@@ -10,4 +10,5 @@ setup(name='pep381client',
       author_email='martin@v.loewis.de',
       url='http://bitbucket.org/loewis/pep381client/',
       packages=['pep381client'],
+      scripts=['pep381run']
      )
