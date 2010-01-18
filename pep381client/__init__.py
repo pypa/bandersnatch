@@ -7,6 +7,7 @@ pypi = 'pypi.python.org'
 BASE = 'http://'+pypi
 SIMPLE = BASE + '/simple/'
 PACKAGES = BASE + '/packages'
+UA = 'pep381client/1.0'
 
 # Helpers
 
@@ -15,6 +16,7 @@ def xmlrpc():
     global _proxy
     if _proxy is None:
         _proxy = xmlrpclib.ServerProxy(BASE+'/pypi')
+        _proxy.useragent = UA
     return _proxy
 
 _conn = None
@@ -50,6 +52,8 @@ class Synchronization:
         self.projects_to_do = set()
         self.files_per_project = {}
         self.etags = {} # path:etag
+
+        self.skip_file_contents = False
 
     def store(self):
         with open(self.homedir+"/status", "wb") as f:
@@ -103,9 +107,14 @@ class Synchronization:
             self.store()
 
     def copy_simple_page(self, project):
-        f = urllib2.urlopen(SIMPLE + project)
-        data = f.read()
-        f.close()
+        h = http()
+        h.putrequest('GET', '/simple/'+project)
+        h.putheader('User-Agent', UA)
+        h.endheaders()
+        r = h.getresponse()
+        if r.status == 404:
+            return None
+        data = r.read()
         with open(self.homedir + "/web/simple/" + project, "wb") as f:
             f.write(data)
         return data
@@ -124,7 +133,11 @@ class Synchronization:
 
     def maybe_copy_file(self, path):
         h = http()
-        h.putrequest("GET", path)
+        if self.skip_file_contents:
+            h.putrequest("HEAD", path)
+        else:
+            h.putrequest("GET", path)
+        h.putheader('User-Agent', UA)
         if path in self.etags:
             h.putheader("If-none-match", self.etags[path])
         h.endheaders()
