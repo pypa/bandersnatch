@@ -108,12 +108,14 @@ class Synchronization:
 
     def copy_simple_page(self, project):
         h = http()
-        h.putrequest('GET', '/simple/'+project)
+        h.putrequest('GET', '/simple/'+urllib2.quote(project))
         h.putheader('User-Agent', UA)
         h.endheaders()
         r = h.getresponse()
         if r.status == 404:
             return None
+        if r.status != 200:
+            raise ValueError, "Status %d on %s" % (r.status, project)
         data = r.read()
         with open(self.homedir + "/web/simple/" + project, "wb") as f:
             f.write(data)
@@ -143,7 +145,8 @@ class Synchronization:
         h.endheaders()
         r = h.getresponse()
         if r.status == 304:
-            # not modified
+            # not modified, discard data
+            r.read()
             return
         lpath = self.homedir + "/web" + path
         if r.status == 200:
