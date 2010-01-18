@@ -1,6 +1,12 @@
 from __future__ import with_statement
-import cPickle, os, xmlrpclib, time, urllib2
+import cPickle, os, xmlrpclib, time, urllib2, httplib
 from xml.etree import ElementTree
+
+# library config
+pypi = 'pypi.python.org'
+BASE = 'http://'+pypi
+SIMPLE = BASE + '/simple/'
+PACKAGES = BASE + '/packages'
 
 # Helpers
 
@@ -8,8 +14,22 @@ _proxy = None
 def xmlrpc():
     global _proxy
     if _proxy is None:
-        _proxy = xmlrpclib.ServerProxy('http://pypi.python.org/pypi')
+        _proxy = xmlrpclib.ServerProxy(BASE+'/pypi')
     return _proxy
+
+_conn = None
+def http():
+    global _conn
+    if _conn is None:
+        _conn = httplib.HTTPConnection(pypi)
+        _conn.connect()
+    # check that connection is still open
+    try:
+        _conn.sock.getpeername()
+    except socket.error:
+        _conn = httplib.HTTPConnection(pypi)
+        _conn.connect()
+    return _conn
 
 def now():
     return int(time.time())
@@ -18,13 +38,6 @@ def now():
 
 class Synchronization:
     "Picklable status of a mirror"
-    base = "http://pypi.python.org"
-
-    @property
-    def simple(self):
-        return self.base+"/simple"
-    @property packages(self):
-        return self.base+"/packages"
 
     def __init__(self):
         self.homedir = None
@@ -36,6 +49,7 @@ class Synchronization:
         self.complete_projects = set()
         self.projects_to_do = set()
         self.files_per_project = {}
+        self.etags = {} # path:etag
 
     def store(self):
         with open(self.homedir+"/status", "wb") as f:
@@ -71,20 +85,28 @@ class Synchronization:
                 return
             for change in changes:
                 self.projects_to_do.add(change[0])
-            self.save()
-        for project in self.projects_to_do:
+            self.store()
+        # sort projects to allow for repeatable runs
+        for project in sorted(self.projects_to_do):
+            print "Synchronizing", project
             data = self.copy_simple_page(project)
-            files = self.get_package_files(data)
+            files = set(self.get_package_files(data))
             for file in files:
+                print "Copying", file
                 self.maybe_copy_file(file)
+            if project in self.files_per_project:
+                for file in self.files_per_project[project]-files:
+                    self.remove_file(file)
+            self.files_per_project[project] = files
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
-            self.save()
+            self.store()
 
-    def copy_simple_package(self, project):
-        with urllib2.urlopen(self.simple + project) as f:
-            data = f.read()
-        with open(self.homedir + "/web/simple/" + project, "wb"):
+    def copy_simple_page(self, project):
+        f = urllib2.urlopen(SIMPLE + project)
+        data = f.read()
+        f.close()
+        with open(self.homedir + "/web/simple/" + project, "wb") as f:
             f.write(data)
         return data
 
@@ -93,13 +115,44 @@ class Synchronization:
         res = []
         for a in x.findall(".//a"):
             url = a.attrib['href']
-            if not url.startswith(self.packages):
+            if not url.startswith(PACKAGES):
                 continue
             url = url.split('#')[0]
-            url = url[len(self.packages):]
+            url = url[len(BASE):]
             res.append(url)
+        return res
 
     def maybe_copy_file(self, path):
-        # TODO
-        # use If-None-Match
-        # download file, cache etag
+        h = http()
+        h.putrequest("GET", path)
+        if path in self.etags:
+            h.putheader("If-none-match", self.etags[path])
+        h.endheaders()
+        r = h.getresponse()
+        if r.status == 304:
+            # not modified
+            return
+        lpath = self.homedir + "/web" + path
+        if r.status == 200:
+            if path in self.etags:
+                del self.etags[path]
+            data = r.read()
+            dirname = os.path.dirname(lpath)
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            with open(lpath, "wb") as f:
+                f.write(data)
+            # XXX may set last-modified timestamp on file
+            if "etag" in r.msg:
+                self.etags[path] = r.msg["etag"]
+            self.store()
+            return
+        if r.status == 404:
+            self.remove_file(path)
+
+    def remove_file(self, path):
+        if path in self.etags:
+            del self.etags[path]
+        lpath = self.homedir + "/web" + path
+        if os.path.exists(lpath):
+            os.unlink(lpath)
