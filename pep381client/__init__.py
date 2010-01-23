@@ -1,12 +1,12 @@
 from __future__ import with_statement
-import cPickle, os, xmlrpclib, time, urllib2, httplib
+import cPickle, os, xmlrpclib, time, urllib2, httplib, socket
 from xml.etree import ElementTree
+import xml.parsers.expat
 
 # library config
 pypi = 'pypi.python.org'
 BASE = 'http://'+pypi
 SIMPLE = BASE + '/simple/'
-PACKAGES = BASE + '/packages'
 UA = 'pep381client/1.0'
 
 # Helpers
@@ -27,6 +27,9 @@ def http():
         _conn.connect()
     # check that connection is still open
     try:
+        if not _conn.sock:
+            # HTTP server had announced to close the connection
+            raise socket.error
         _conn.sock.getpeername()
     except socket.error:
         _conn = httplib.HTTPConnection(pypi)
@@ -94,7 +97,16 @@ class Synchronization:
         for project in sorted(self.projects_to_do):
             print "Synchronizing", project
             data = self.copy_simple_page(project)
-            files = set(self.get_package_files(data))
+            if not data:
+                self.delete_project(project)
+                self.store()
+                continue
+            try:
+                files = set(self.get_package_files(data))
+            except xml.parsers.expat.ExpatError, e:
+                # not well-formed, skip for now
+                print "Page for %s cannot be parsed: %r" % (project, e)
+                raise
             for file in files:
                 print "Copying", file
                 self.maybe_copy_file(file)
@@ -108,28 +120,37 @@ class Synchronization:
 
     def copy_simple_page(self, project):
         h = http()
-        h.putrequest('GET', '/simple/'+urllib2.quote(project))
+        h.putrequest('GET', '/simple/'+urllib2.quote(project.encode('utf-8'))+'/')
         h.putheader('User-Agent', UA)
         h.endheaders()
         r = h.getresponse()
+        html = r.read()
         if r.status == 404:
             return None
         if r.status != 200:
             raise ValueError, "Status %d on %s" % (r.status, project)
-        data = r.read()
         with open(self.homedir + "/web/simple/" + project, "wb") as f:
-            f.write(data)
-        return data
+            f.write(html)
+        h.putrequest('GET', '/serversig/'+urllib2.quote(project.encode('utf-8'))+'/')
+        h.putheader('User-Agent', UA)
+        h.endheaders()
+        r = h.getresponse()
+        sig = r.read()
+        if r.status != 200:
+            raise ValueError, "Status %d on signature for %s" % (r.status, project)
+        with open(self.homedir + "/web/serversig/" + project, "wb") as f:
+            f.write(sig)
+        return html
 
     def get_package_files(self, data):
         x = ElementTree.fromstring(data)
         res = []
         for a in x.findall(".//a"):
             url = a.attrib['href']
-            if not url.startswith(PACKAGES):
+            if not url.startswith('../../packages/'):
                 continue
             url = url.split('#')[0]
-            url = url[len(BASE):]
+            url = url[len('../..'):]
             res.append(url)
         return res
 
@@ -172,3 +193,15 @@ class Synchronization:
         lpath = self.homedir + "/web" + path
         if os.path.exists(lpath):
             os.unlink(lpath)
+
+    def delete_project(self, project):
+        for f in self.files_per_project.get(project, ()):
+            self.remove_file(f)
+        if os.path.exists(self.homedir+"/web/simple/"+project):
+            os.unlink(self.homedir+"/web/simple/"+project)
+        if os.path.exists(self.homedir+"/web/serversig/"+project):
+            os.unlink(self.homedir+"/web/serversig/"+project)
+        if project in self.projects_to_do:
+            self.projects_to_do.remove(project)
+        if project in self.complete_projects:
+            self.complete_projects.remove(project)
