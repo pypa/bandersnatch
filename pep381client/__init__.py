@@ -129,7 +129,9 @@ class Synchronization:
             return None
         if r.status != 200:
             raise ValueError, "Status %d on %s" % (r.status, project)
-        with open(self.homedir + "/web/simple/" + project, "wb") as f:
+        if not os.path.exists(self.homedir+'/web/simple/'+project):
+            os.mkdir(self.homedir+'/web/simple/'+project)
+        with open(self.homedir + "/web/simple/" + project + 'index.html', "wb") as f:
             f.write(html)
         h.putrequest('GET', '/serversig/'+urllib2.quote(project.encode('utf-8'))+'/')
         h.putheader('User-Agent', UA)
