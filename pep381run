@@ -7,13 +7,8 @@ if len(sys.argv) != 2:
     raise SystemExit
 
 targetdir = sys.argv[1]
-if not os.path.exists(targetdir):
-    try:
-        state = pep381client.Synchronization.initialize(targetdir)
-    except Exception, e:
-        print "Initialization failed:", str(e)
-        shutil.rmtree(targetdir)
-        raise
+if not os.path.exists(os.path.join(targetdir, 'web')):
+    state = pep381client.Synchronization.initialize(targetdir)
 else:
     state = pep381client.Synchronization.load(targetdir)
 

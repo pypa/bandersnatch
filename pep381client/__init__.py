@@ -71,8 +71,10 @@ class Synchronization:
     @staticmethod
     def initialize(targetdir):
         'Create a new empty mirror. This operation should not be interrupted.'
-        assert not os.path.exists(targetdir)
-        os.makedirs(targetdir)
+        if not os.path.exists(targetdir):
+            os.makedirs(targetdir)
+        else:
+            assert not os.listdir(targetdir)
         for d in ('/web/simple', '/web/packages', '/web/serversig'):
             os.makedirs(targetdir+d)
         status = Synchronization()
