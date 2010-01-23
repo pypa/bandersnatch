@@ -97,7 +97,7 @@ class Synchronization:
             self.store()
         # sort projects to allow for repeatable runs
         for project in sorted(self.projects_to_do):
-            print "Synchronizing", project
+            print "Synchronizing", project.encode('utf-8')
             data = self.copy_simple_page(project)
             if not data:
                 self.delete_project(project)
@@ -121,8 +121,9 @@ class Synchronization:
             self.store()
 
     def copy_simple_page(self, project):
+        project = project.encode('utf-8')
         h = http()
-        h.putrequest('GET', '/simple/'+urllib2.quote(project.encode('utf-8'))+'/')
+        h.putrequest('GET', '/simple/'+urllib2.quote(project)+'/')
         h.putheader('User-Agent', UA)
         h.endheaders()
         r = h.getresponse()
@@ -133,7 +134,7 @@ class Synchronization:
             raise ValueError, "Status %d on %s" % (r.status, project)
         with open(self.homedir + "/web/simple/" + project, "wb") as f:
             f.write(html)
-        h.putrequest('GET', '/serversig/'+urllib2.quote(project.encode('utf-8'))+'/')
+        h.putrequest('GET', '/serversig/'+urllib2.quote(project)+'/')
         h.putheader('User-Agent', UA)
         h.endheaders()
         r = h.getresponse()
