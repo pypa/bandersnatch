@@ -75,7 +75,8 @@ class Synchronization:
             os.makedirs(targetdir)
         else:
             assert not os.listdir(targetdir)
-        for d in ('/web/simple', '/web/packages', '/web/serversig'):
+        for d in ('/web/simple', '/web/packages', '/web/serversig', 
+                  '/web/local-stats/days', '/web/stats/days', '/web/stats/months'):
             os.makedirs(targetdir+d)
         status = Synchronization()
         status.homedir = targetdir
@@ -120,7 +121,7 @@ class Synchronization:
             self.projects_to_do.remove(project)
             self.store()
         with open(self.homedir+"/web/last-modified", "wb") as f:
-            f.write(time.strftime("%Y%m%dT%H:%M:%S\n", time.gmtime(now))
+            f.write(time.strftime("%Y%m%dT%H:%M:%S\n", time.gmtime(now)))
 
     def copy_simple_page(self, project):
         project = project.encode('utf-8')
