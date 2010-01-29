@@ -89,7 +89,7 @@ class Synchronization:
         if self.last_started == 0:
             # no synchronization in progress. Fetch changelog
             self.last_started = now()
-            changes = xmlrpc.changelog(self.last_completed-1)
+            changes = xmlrpc().changelog(self.last_completed-1)
             if not changes:
                 return
             for change in changes:
@@ -119,6 +119,9 @@ class Synchronization:
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
             self.store()
+        self.last_completed = self.last_started
+        self.last_started = 0
+        self.store()
 
     def copy_simple_page(self, project):
         project = project.encode('utf-8')
@@ -129,6 +132,10 @@ class Synchronization:
         r = h.getresponse()
         html = r.read()
         if r.status == 404:
+            return None
+        if r.status == 301:
+            # package not existant anymore, however, similarly-spelled
+            # package exists
             return None
         if r.status != 200:
             raise ValueError, "Status %d on %s" % (r.status, project)
