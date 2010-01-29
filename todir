@@ -2,7 +2,10 @@
 # convert all files in a directory to directories with an index.html
 for a in $1/*
 do
-  mv $a $a.bak
-  mkdir $a
-  mv $a.bak $a/index.html
+  if [ -f "$a" ]
+  then
+      mv "$a" "$a.bak"
+      mkdir "$a"
+      mv "$a.bak" "$a/index.html"
+  fi
 done
