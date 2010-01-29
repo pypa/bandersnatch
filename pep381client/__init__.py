@@ -213,7 +213,8 @@ class Synchronization:
         for f in self.files_per_project.get(project, ()):
             self.remove_file(f)
         if os.path.exists(self.homedir+"/web/simple/"+project):
-            os.unlink(self.homedir+"/web/simple/"+project)
+            os.unlink(self.homedir+"/web/simple/"+project+"/index.html")
+            os.rmdir(self.homedir+"/web/simple/"+project)
         if os.path.exists(self.homedir+"/web/serversig/"+project):
             os.unlink(self.homedir+"/web/serversig/"+project)
         if project in self.projects_to_do:
