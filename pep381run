@@ -2,8 +2,13 @@
 import sys, os, shutil
 import pep381client
 
+quiet = False
+if '-q' in sys.argv:
+    sys.argv.remove('-q')
+    quiet = True
+
 if len(sys.argv) != 2:
-    print "Usage: pep381run <targetdir>"
+    print "Usage: pep381run [-q] <targetdir>"
     raise SystemExit
 
 targetdir = sys.argv[1]
@@ -11,5 +16,7 @@ if not os.path.exists(os.path.join(targetdir, 'web')):
     state = pep381client.Synchronization.initialize(targetdir)
 else:
     state = pep381client.Synchronization.load(targetdir)
+
+state.quiet = quiet
 
 state.synchronize()

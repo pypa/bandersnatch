@@ -46,6 +46,7 @@ class Synchronization:
 
     def __init__(self):
         self.homedir = None
+        self.quiet = False
 
         # time stamps: seconds since 1970
         self.last_completed = 0 # when did the last run complete
@@ -58,13 +59,21 @@ class Synchronization:
 
         self.skip_file_contents = False
 
+    def defaults(self):
+        # Fill fields that may not exist in the pickle
+        for field, value in (('quiet', False),):
+            if not hasattr(self, field):
+                setattr(self, field, value)
+
     def store(self):
         with open(self.homedir+"/status", "wb") as f:
             cPickle.dump(self, f, cPickle.HIGHEST_PROTOCOL)
 
     @staticmethod
     def load(homedir):
-        return cPickle.load(open(homedir+"/status", "rb"))
+        res = cPickle.load(open(homedir+"/status", "rb"))
+        res.defaults()
+        return res
 
     #################### Synchronization logic ##############################
 
@@ -98,7 +107,8 @@ class Synchronization:
             self.store()
         # sort projects to allow for repeatable runs
         for project in sorted(self.projects_to_do):
-            print "Synchronizing", project.encode('utf-8')
+            if not self.quiet:
+                print "Synchronizing", project.encode('utf-8')
             data = self.copy_simple_page(project)
             if not data:
                 self.delete_project(project)
@@ -108,10 +118,12 @@ class Synchronization:
                 files = set(self.get_package_files(data))
             except xml.parsers.expat.ExpatError, e:
                 # not well-formed, skip for now
-                print "Page for %s cannot be parsed: %r" % (project, e)
+                if not self.quiet:
+                    print "Page for %s cannot be parsed: %r" % (project, e)
                 raise
             for file in files:
-                print "Copying", file
+                if not self.quiet:
+                    print "Copying", file
                 self.maybe_copy_file(file)
             if project in self.files_per_project:
                 for file in self.files_per_project[project]-files:
