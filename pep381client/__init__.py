@@ -101,6 +101,7 @@ class Synchronization:
             self.last_started = now()
             changes = xmlrpc().changelog(self.last_completed-1)
             if not changes:
+                self.update_timestamp(self.last_started)
                 return
             for change in changes:
                 self.projects_to_do.add(change[0])
@@ -132,11 +133,14 @@ class Synchronization:
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
             self.store()
-        with open(self.homedir+"/web/last-modified", "wb") as f:
-            f.write(time.strftime("%Y%m%dT%H:%M:%S\n", time.gmtime(self.last_started)))
+        self.update_timestamp(self.last_started)
         self.last_completed = self.last_started
         self.last_started = 0
         self.store()
+
+    def update_timestamp(self, when):
+        with open(self.homedir+"/web/last-modified", "wb") as f:
+            f.write(time.strftime("%Y%m%dT%H:%M:%S\n", time.gmtime(when)))
 
     def copy_simple_page(self, project):
         project = project.encode('utf-8')
