@@ -2,6 +2,7 @@ from __future__ import with_statement
 import cPickle, os, xmlrpclib, time, urllib2, httplib, socket
 from xml.etree import ElementTree
 import xml.parsers.expat
+import sqlite
 
 # library config
 pypi = 'pypi.python.org'
@@ -54,8 +55,7 @@ class Synchronization:
 
         self.complete_projects = set()
         self.projects_to_do = set()
-        self.files_per_project = {}
-        self.etags = {} # path:etag
+        self.files_per_project = None # not used anymore, can go when tosqlite goes
 
         self.skip_file_contents = False
 
@@ -68,10 +68,13 @@ class Synchronization:
     def store(self):
         with open(self.homedir+"/status", "wb") as f:
             cPickle.dump(self, f, cPickle.HIGHEST_PROTOCOL)
+            self.conn.commit()
 
     @staticmethod
     def load(homedir):
         res = cPickle.load(open(homedir+"/status", "rb"))
+        res.conn = sqlite.open(homedir+"/files")
+        res.cursor = res.conn.cursor()
         res.defaults()
         return res
 
@@ -125,11 +128,9 @@ class Synchronization:
             for file in files:
                 if not self.quiet:
                     print "Copying", file
-                self.maybe_copy_file(file)
-            if project in self.files_per_project:
-                for file in self.files_per_project[project]-files:
+                self.maybe_copy_file(project, file)
+            for file in sqlite.files(self.cursor, project)-files:
                     self.remove_file(file)
-            self.files_per_project[project] = files
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
             self.store()
@@ -185,15 +186,16 @@ class Synchronization:
             res.append(url)
         return res
 
-    def maybe_copy_file(self, path):
+    def maybe_copy_file(self, project, path):
         h = http()
         if self.skip_file_contents:
             h.putrequest("HEAD", path)
         else:
             h.putrequest("GET", path)
         h.putheader('User-Agent', UA)
-        if path in self.etags:
-            h.putheader("If-none-match", self.etags[path])
+        etag = sqlite.etag(self.cursor, path)
+        if etag:
+            h.putheader("If-none-match", etag)
         h.endheaders()
         r = h.getresponse()
         if r.status == 304:
@@ -202,8 +204,7 @@ class Synchronization:
             return
         lpath = self.homedir + "/web" + path
         if r.status == 200:
-            if path in self.etags:
-                del self.etags[path]
+            sqlite.remove_file(self.cursor, path) # readd when done downloading
             data = r.read()
             dirname = os.path.dirname(lpath)
             if not os.path.exists(dirname):
@@ -212,21 +213,20 @@ class Synchronization:
                 f.write(data)
             # XXX may set last-modified timestamp on file
             if "etag" in r.msg:
-                self.etags[path] = r.msg["etag"]
+                sqlite.add_file(self.cursor, project, path, r.msg['etag'])
             self.store()
             return
         if r.status == 404:
             self.remove_file(path)
 
     def remove_file(self, path):
-        if path in self.etags:
-            del self.etags[path]
+        sqlite.remove_file(self.cursor, path)
         lpath = self.homedir + "/web" + path
         if os.path.exists(lpath):
             os.unlink(lpath)
 
     def delete_project(self, project):
-        for f in self.files_per_project.get(project, ()):
+        for f in sqlite.files(self.cursor, project):
             self.remove_file(f)
         if os.path.exists(self.homedir+"/web/simple/"+project):
             if os.path.exists(self.homedir+"/web/simple/"+project+"/index.html"):

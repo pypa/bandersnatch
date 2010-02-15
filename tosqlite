@@ -1,0 +1,15 @@
+#!/usr/bin/python
+# Convert dict-based synchronization status to sqlite
+import pep381client, sys
+
+s = pep381client.Synchronization.load(sys.argv[1])
+if not s.files_per_project:
+    print "Already converted"
+    raise SystemExit
+
+for project,files in s.files_per_project.items():
+    for file in files:
+        pep381client.sqlite.add_file(s.cursor, project, file, s.etags.get(file))
+del s.etags
+s.files_per_project = None
+s.store()
