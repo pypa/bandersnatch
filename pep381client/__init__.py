@@ -108,6 +108,7 @@ class Synchronization:
                 return
             for change in changes:
                 self.projects_to_do.add(change[0])
+            self.copy_simple_page('')
             self.store()
         # sort projects to allow for repeatable runs
         for project in sorted(self.projects_to_do):
@@ -146,7 +147,10 @@ class Synchronization:
     def copy_simple_page(self, project):
         project = project.encode('utf-8')
         h = http()
-        h.putrequest('GET', '/simple/'+urllib2.quote(project)+'/')
+        if project:
+             h.putrequest('GET', '/simple/'+urllib2.quote(project)+'/')
+        else:
+             h.putrequest('GET', '/simple/')
         h.putheader('User-Agent', UA)
         h.endheaders()
         r = h.getresponse()
@@ -169,6 +173,9 @@ class Synchronization:
         r = h.getresponse()
         sig = r.read()
         if r.status != 200:
+            if not project:
+                # index page is unsigned
+                return
             raise ValueError, "Status %d on signature for %s" % (r.status, project)
         with open(self.homedir + "/web/serversig/" + project, "wb") as f:
             f.write(sig)
