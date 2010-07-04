@@ -1,0 +1,70 @@
+#!/usr/bin/python
+# Generates download stats for all days in the given log files,
+# except for the oldest and the newest day, and for all months
+# except for the newest one (possibly reading older daily stats)
+import sys, os, csv
+from pep381client import apache_reader, apache_stats
+
+def usage(msg=None):
+    if msg:
+        print msg
+    print "Usage: processlogs <pypi-targetdir> logfile [logfile...]"
+    raise SystemExit
+
+if len(sys.argv) < 3:
+    usage()
+
+targetdir = sys.argv[1]
+
+if not os.path.exists(targetdir):
+    usage(targetdir + ' does not exist')
+
+if not os.path.exists(targetdir+'/web'):
+    usage('Not a pypi mirror (%s/web does not exist)' % targetdir)
+
+statsdir = targetdir+'/web/local-stats/'
+
+if not os.path.isdir(statsdir):
+    os.mkdir(statsdir)
+    os.mkdir(statsdir+'days')
+    os.mkdir(statsdir+'months')
+
+days = set()
+records = []
+for fn in sys.argv[2:]:
+    for record in apache_reader.ApacheLogReader(fn, '/packages'):
+        days.add((record['year'], record['month'], record['day']))
+        records.append(record)
+
+days = sorted(days)[1:-1]
+
+class Stats(apache_stats.LocalStats):
+    def _get_logs(self, logfile, files_url):
+        return records
+months = set()
+stats = Stats()
+for year,month,day in days:
+    months.add((year,month))
+    stats.build_local_stats(year, month, day, None, statsdir+'days')
+
+months = sorted(months)[:-1]
+files = os.listdir(statsdir+'days')
+for year,month in months:
+    totals = {}
+    ym = '%s-%s-' % (year, month)
+    for fn in files:
+        if fn.startswith(ym):
+            for r in stats.read_stats(statsdir+'days/'+fn):
+                key = (r['packagename'], r['filename'], r['useragent'])
+                value = r['count']
+                if key in totals:
+                    totals[key] += value
+                else:
+                    totals[key] = value
+    fileobj = stats._get_file_obj(statsdir+'months/%s-%s.bz2' % (year, month), 'wb', 'bz2')
+    writer = csv.writer(fileobj)
+    for key in sorted(totals.keys()):
+        count = totals[key]
+        writer.writerow(key + (count,))
+    fileobj.close()
+
