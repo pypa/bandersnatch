@@ -112,7 +112,7 @@ class LocalStats(object):
 
     def build_local_stats(self, year, month, day, logfile, directory=None):
         """builds local stats with default values"""
-        filename = '%d-%d-%d.bz2' % (year, month, day)
+        filename = '%d-%.2d-%.2d.bz2' % (year, month, day)
         if directory is not None:
             filename = os.path.join(directory, filename)
 
