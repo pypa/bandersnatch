@@ -1,5 +1,6 @@
 build
 dist
 MANIFEST
+web
 .*~
 .*pyc
