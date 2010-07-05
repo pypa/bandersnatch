@@ -55,7 +55,6 @@ class Synchronization:
 
         self.complete_projects = set()
         self.projects_to_do = set()
-        self.files_per_project = None # not used anymore, can go when tosqlite goes
 
         self.skip_file_contents = False
 
