@@ -93,7 +93,7 @@ class Synchronization:
         status.homedir = targetdir
         status.last_started = now()
         status.projects_to_do = set(xmlrpc().list_packages())
-        status.conn = sqlite.open(homedir+"/files")
+        status.conn = sqlite.open(status.homedir+"/files")
         status.cursor = res.conn.cursor()
         status.store()
         return status
