@@ -88,7 +88,7 @@ class Synchronization:
         else:
             assert not os.listdir(targetdir)
         for d in ('/web/simple', '/web/packages', '/web/serversig', 
-                  '/web/local-stats/days', '/web/stats/days', '/web/stats/months'):
+                  '/web/local-stats/days'):
             os.makedirs(targetdir+d)
         status = Synchronization()
         status.homedir = targetdir
