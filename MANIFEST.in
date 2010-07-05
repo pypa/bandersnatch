@@ -1,1 +1,1 @@
-include pep381run MANIFEST.in
+include pep381run processlogs MANIFEST.in

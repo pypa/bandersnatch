@@ -1,0 +1,37 @@
+This application implements a PyPI mirror application
+according to PEP 381.
+
+Installation
+------------
+
+It is possible to run this application directly from the source
+distribution. Alternatively, 'python setup.py install' could be used.
+
+The actual mirroring is performed by the pep381run script, which
+should be invoked through cron like this::
+
+   */15 *  *   *   *     /path/pep381client/pep381run -q /var/pypi
+
+The command line arguments points to root of the data files that
+the mirror creates. An initial run (without the -q option) should
+be performed manually. It is possible to interrupt the mirroring;
+it will automatically know where to continue when restarted.
+
+In above example, /var/pypi/web must be served through the webserver.
+An Apache configuration could read like this::
+
+  <VirtualHost IPADDRESS:80>
+    ServerName X.pypi.python.org
+    CustomLog /var/log/apache2/pypi.log combined
+    DocumentRoot /var/pypi/web
+  </VirtualHost>
+
+To propagate the download statistics back to the central server,
+processlogs must be run regularly, e.g. through::
+
+   10 7  *   *   *     /path/pep381client/processlogs /var/pypi /var/log/apache2/pypi.log{,.1}
+
+Contact
+-------
+
+If you have questions or comments, please contact martin@v.loewis.de.
