@@ -4,7 +4,7 @@
 from distutils.core import setup
 
 setup(name='pep381client',
-      version='1.0',
+      version='1.1',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description=open('README').read(),
       author='Martin v. Loewis',

@@ -34,4 +34,17 @@ processlogs must be run regularly, e.g. through::
 Contact
 -------
 
-If you have questions or comments, please contact martin@v.loewis.de.
+If you have questions or comments, please submit a bug report to
+http://bitbucket.org/loewis/pep381client/issues/new, or contact me
+at martin@v.loewis.de
+
+Changes
+-------
+
+1.1 (2010-07-05):
+
+- Issue #1: properly setup sqlite connection when initializing mirror.
+
+1.0 (2010-07-05):
+
+- Initial release
