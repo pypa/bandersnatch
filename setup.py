@@ -6,9 +6,11 @@ from distutils.core import setup
 setup(name='pep381client',
       version='1.0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
-      author=u'Martin v. Löwis'.encode("utf-8"),
+      long_description=open('README').read(),
+      author='Martin v. Loewis',
       author_email='martin@v.loewis.de',
+      license = 'Academic Free License, version 3',
       url='http://bitbucket.org/loewis/pep381client/',
       packages=['pep381client'],
-      scripts=['pep381run']
+      scripts=['pep381run','processlogs']
      )
