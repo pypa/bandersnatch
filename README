@@ -41,6 +41,11 @@ at martin@v.loewis.de
 Changes
 -------
 
+1.3 (2010-07-06):
+
+- The individual index pages where put into the wrong location; this is
+  now fixed. Users should run 'mvindex /var/pypi' to fix their mirrors.
+
 1.2 (2010-07-06):
 
 - Fix #1 for good.
