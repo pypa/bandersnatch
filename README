@@ -41,6 +41,10 @@ at martin@v.loewis.de
 Changes
 -------
 
+1.2 (2010-07-06):
+
+- Fix #1 for good.
+
 1.1 (2010-07-05):
 
 - Issue #1: properly setup sqlite connection when initializing mirror.
