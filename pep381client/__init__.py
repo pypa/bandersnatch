@@ -212,6 +212,8 @@ class Synchronization:
             # not modified, discard data
             r.read()
             return
+        if path.startswith("/"):
+            path = path[1:]
         lpath = os.path.join(self.homedir, "web", path)
         if r.status == 200:
             sqlite.remove_file(self.cursor, path) # readd when done downloading
