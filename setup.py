@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from distutils.core import setup
+from pep381client import version
 
 setup(name='pep381client',
-      version='1.3',
+      version=version,
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description=open('README').read(),
       author='Martin v. Loewis',
