@@ -13,5 +13,5 @@ setup(name='pep381client',
       license = 'Academic Free License, version 3',
       url='http://bitbucket.org/loewis/pep381client/',
       packages=['pep381client'],
-      scripts=['pep381run','processlogs']
+      scripts=['pep381run', 'mvindex', 'processlogs']
      )
