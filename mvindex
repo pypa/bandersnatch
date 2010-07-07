@@ -1,0 +1,20 @@
+#!/usr/bin/python
+# Move fooindex.html into foo/index.html
+import sys, os
+
+for f in os.listdir(sys.argv[1] + "/web/simple"):
+    f = sys.argv[1] + "/web/simple/" + f
+    if not os.path.isdir(f): continue
+    if not os.path.exists(f + "index.html"): continue
+    src = os.stat(f+"index.html")
+    try:
+        dest = os.stat(f+"/index.html")
+    except OSError:
+        os.rename(f+"index.html", f+"/index.html")
+    else:
+        if src.st_mtime < dest.st_mtime:
+            os.unlink(f+"index.html")
+        else:
+            os.unlink(f+"/index.html")
+            os.rename(f+"index.html", f+"/index.html")
+
