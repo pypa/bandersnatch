@@ -8,7 +8,8 @@ import sqlite
 pypi = 'pypi.python.org'
 BASE = 'http://'+pypi
 SIMPLE = BASE + '/simple/'
-UA = 'pep381client/1.0'
+version = '1.4'
+UA = 'pep381client/'+version
 
 # Helpers
 
@@ -166,7 +167,7 @@ class Synchronization:
             raise ValueError, "Status %d on %s" % (r.status, project)
         if not os.path.exists(self.homedir+'/web/simple/'+project):
             os.mkdir(self.homedir+'/web/simple/'+project)
-        with open(self.homedir + "/web/simple/" + project + 'index.html', "wb") as f:
+        with open(self.homedir + "/web/simple/" + project + '/index.html', "wb") as f:
             f.write(html)
         h.putrequest('GET', '/serversig/'+urllib2.quote(project)+'/')
         h.putheader('User-Agent', UA)
