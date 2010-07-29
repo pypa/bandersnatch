@@ -10,7 +10,7 @@ class SqliteStorage(object):
     def __init__(self, filename):
         self.conn = sqlite3.connect(filename)
         cursor = self.conn.cursor()
-        for stmt in schema:
+        for stmt in self.schema:
             cursor.execute(stmt)
         self.commit()
 
