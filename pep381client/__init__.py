@@ -73,7 +73,7 @@ class Synchronization:
     @staticmethod
     def load(homedir, storage=None):
         res = cPickle.load(open(homedir+"/status", "rb"))
-        res.storage = storage or sqlite.Storage(homedir+"/files")
+        res.storage = storage or sqlite.SqliteStorage(homedir+"/files")
         res.defaults()
         return res
 
@@ -93,7 +93,7 @@ class Synchronization:
         status.homedir = targetdir
         status.last_started = now()
         status.projects_to_do = set(xmlrpc().list_packages())
-        status.storage = storage or sqlite.Storage(homedir+"/files")
+        status.storage = storage or sqlite.SqliteStorage(targetdir+"/files")
         status.store()
         return status
 
