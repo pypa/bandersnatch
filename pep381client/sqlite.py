@@ -1,32 +1,41 @@
 import sqlite3, os
 
-schema = ["create table if not exists files(project, filename, etag)",
-          "create index if not exists files_project on files(project)",
-          "create index if not exists files_filename on files(filename)",
-          ]
+class SqliteStorage(object):
 
-def open(filename):
-    conn = sqlite3.connect(filename)
-    for stmt in schema:
-        conn.execute(stmt)
-    conn.commit()
-    return conn
+    schema = ["create table if not exists files(project, filename, etag)",
+              "create index if not exists files_project on files(project)",
+              "create index if not exists files_filename on files(filename)",
+              ]
 
-def files(cursor, project):
-    cursor.execute("select filename from files where project=?", (project,))
-    return set(r[0] for r in cursor.fetchall())
+    def __init__(self, filename):
+        self.conn = sqlite3.connect(filename)
+        cursor = self.conn.cursor()
+        for stmt in schema:
+            cursor.execute(stmt)
+        self.commit()
 
-def etag(cursor, filename):
-    cursor.execute("select etag from files where filename=?", (filename,))
-    res = cursor.fetchone()
-    if res:
-        return res[0]
-    else:
-        return None
+    def commit(self):
+        self.conn.commit()
 
-def add_file(cursor, project, filename, etag):
-    cursor.execute("insert into files(project, filename, etag) values(?, ?, ?)",
-                   (project, filename, etag))
+    def files(self, project):
+        cursor = self.conn.cursor()
+        cursor.execute("select filename from files where project=?", (project,))
+        return set(r[0] for r in cursor.fetchall())
 
-def remove_file(cursor, filename):
-    cursor.execute("delete from files where filename=?", (filename,))
+    def etag(self, filename):
+        cursor = self.conn.cursor()
+        cursor.execute("select etag from files where filename=?", (filename,))
+        res = cursor.fetchone()
+        if res:
+            return res[0]
+        else:
+            return None
+
+    def add_file(self, project, filename, etag):
+        cursor = self.conn.cursor()
+        cursor.execute("insert into files(project, filename, etag) values(?, ?, ?)",
+                       (project, filename, etag))
+
+    def remove_file(self, filename):
+        cursor = self.conn.cursor()
+        cursor.execute("delete from files where filename=?", (filename,))
