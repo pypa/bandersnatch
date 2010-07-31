@@ -198,9 +198,9 @@ class Synchronization:
     def maybe_copy_file(self, project, path):
         h = http()
         if self.skip_file_contents:
-            h.putrequest("HEAD", path)
+            h.putrequest("HEAD", urllib2.quote(path))
         else:
-            h.putrequest("GET", path)
+            h.putrequest("GET", urllib2.quote(path))
         h.putheader('User-Agent', UA)
         etag = sqlite.etag(self.cursor, path)
         if etag:
