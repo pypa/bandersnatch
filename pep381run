@@ -1,22 +1,21 @@
 #!/usr/bin/env python
-import sys, os, shutil
+import sys, os, shutil, optparse
 import pep381client
 
-quiet = False
-if '-q' in sys.argv:
-    sys.argv.remove('-q')
-    quiet = True
+opts = optparse.OptionParser(usage="Usage: pep381run [OPTIONS] <targetdir>")
+opts.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
+        help="Don't print status information")
+options, args = opts.parse_args()
 
-if len(sys.argv) != 2:
-    print "Usage: pep381run [-q] <targetdir>"
-    raise SystemExit
+if len(args) != 1:
+    opts.error("You have to specify a target directory")
 
-targetdir = sys.argv[1]
+targetdir = args[0]
 if not os.path.exists(os.path.join(targetdir, 'web')):
     state = pep381client.Synchronization.initialize(targetdir)
 else:
     state = pep381client.Synchronization.load(targetdir)
 
-state.quiet = quiet
+state.quiet = options.quiet
 
 state.synchronize()
