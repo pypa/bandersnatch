@@ -98,6 +98,21 @@ class Synchronization:
         return status
 
     def synchronize(self):
+        # check whether another job is already running
+        lockfile = os.path.join(self.homedir, 'running')
+        try:
+            fh = os.open(lockfile, os.O_CREAT|os.O_EXCL, 0777)
+            os.close(fh)
+        except OSError:        
+            if not self.quiet:
+                print "Currently already running; mirroring is skipped"
+            return
+        try:
+            self._synchronize()
+        finally:
+            os.unlink(lockfile)
+
+    def _synchronize(self):
         'Run synchronization. Can be interrupted and restarted at any time.'
         if self.last_started == 0:
             # no synchronization in progress. Fetch changelog
