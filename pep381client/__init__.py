@@ -49,7 +49,7 @@ class Synchronization:
     def __init__(self):
         self.homedir = None
         self.quiet = False
-
+        
         # time stamps: seconds since 1970
         self.last_completed = 0 # when did the last run complete
         self.last_started = 0   # when did the current run start
@@ -68,20 +68,19 @@ class Synchronization:
     def store(self):
         with open(os.path.join(self.homedir, "status"), "wb") as f:
             cPickle.dump(self, f, cPickle.HIGHEST_PROTOCOL)
-            self.conn.commit()
+            self.storage.commit()
 
     @staticmethod
-    def load(homedir):
+    def load(homedir, storage=None):
         res = cPickle.load(open(os.path.join(homedir, "status"), "rb"))
-        res.conn = sqlite.open(os.path.join(homedir, "files"))
-        res.cursor = res.conn.cursor()
+        res.storage = storage or sqlite.SqliteStorage(os.path.join(homedir, "files"))
         res.defaults()
         return res
 
     #################### Synchronization logic ##############################
 
     @staticmethod
-    def initialize(targetdir):
+    def initialize(targetdir, storage=None):
         'Create a new empty mirror. This operation should not be interrupted.'
         if not os.path.exists(targetdir):
             os.makedirs(targetdir)
@@ -94,8 +93,7 @@ class Synchronization:
         status.homedir = targetdir
         status.last_started = now()
         status.projects_to_do = set(xmlrpc().list_packages())
-        status.conn = sqlite.open(os.path.join(status.homedir, "files"))
-        status.cursor = status.conn.cursor()
+        status.storage = storage or sqlite.SqliteStorage(os.path.join(status.homedir, "files"))
         status.store()
         return status
 
@@ -132,7 +130,7 @@ class Synchronization:
                 if not self.quiet:
                     print "Copying", file
                 self.maybe_copy_file(project, file)
-            for file in sqlite.files(self.cursor, project)-files:
+            for file in self.storage.files(project)-files:
                     self.remove_file(file)
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
@@ -203,7 +201,7 @@ class Synchronization:
         else:
             h.putrequest("GET", urllib2.quote(path))
         h.putheader('User-Agent', UA)
-        etag = sqlite.etag(self.cursor, path)
+        etag = self.storage.etag(path)
         if etag:
             h.putheader("If-none-match", etag)
         h.endheaders()
@@ -216,7 +214,7 @@ class Synchronization:
             path = path[1:]
         lpath = os.path.join(self.homedir, "web", path)
         if r.status == 200:
-            sqlite.remove_file(self.cursor, path) # readd when done downloading
+            self.storage.remove_file(path) # readd when done downloading
             data = r.read()
             dirname = os.path.dirname(lpath)
             if not os.path.exists(dirname):
@@ -225,20 +223,20 @@ class Synchronization:
                 f.write(data)
             # XXX may set last-modified timestamp on file
             if "etag" in r.msg:
-                sqlite.add_file(self.cursor, project, path, r.msg['etag'])
+                self.storage.add_file(project, path, r.msg['etag'])
             self.store()
             return
         if r.status == 404:
             self.remove_file(path)
 
     def remove_file(self, path):
-        sqlite.remove_file(self.cursor, path)
+        self.storage.remove_file(path)
         lpath = os.path.join(self.homedir, "web", path)
         if os.path.exists(lpath):
             os.unlink(lpath)
 
     def delete_project(self, project):
-        for f in sqlite.files(self.cursor, project):
+        for f in self.storage.files(project):
             self.remove_file(f)
         project_simple_dir = os.path.join(self.homedir, "web", "simple", project)
         if os.path.exists(project_simple_dir):
