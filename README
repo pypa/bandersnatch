@@ -41,6 +41,14 @@ at martin@v.loewis.de
 Changes
 -------
 
+1.4 (2011-01-XX):
+
+- Improve installation procedure (Jannis Leidel)
+- Add support for alternative storage backends (Jacob Kaplan-Moss)
+- Print nicer message for Ctrl-C (Jacob Kaplan-Moss)
+- Add --help option to pep381run (Horst Gutmann)
+- Drop mvindex again
+
 1.3 (2010-07-06):
 
 - The individual index pages where put into the wrong location; this is
