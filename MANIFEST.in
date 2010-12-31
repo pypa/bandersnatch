@@ -1,1 +1,1 @@
-include scripts/pep381run scripts/processlogs scripts/mvindex MANIFEST.in
+include scripts/pep381run scripts/processlogs MANIFEST.in
