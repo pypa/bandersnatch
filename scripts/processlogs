@@ -2,6 +2,11 @@
 # Generates download stats for all days in the given log files,
 # except for the oldest and the newest day.
 import sys, os, csv
+# See whether we are run out of a source tree
+module_path = os.path.join(os.path.dirname(sys.argv[0]), 
+                           '..', 'pep381client')
+if os.path.exists(module_path):
+    sys.path.extend(module_path)
 from pep381client import apache_reader, apache_stats
 
 def usage(msg=None):
