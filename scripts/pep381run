@@ -18,4 +18,7 @@ else:
 
 state.quiet = options.quiet
 
-state.synchronize()
+try:
+    state.synchronize()
+except KeyboardInterrupt:
+    print "\nMirroring paused. Resume by restarting pep381run."
