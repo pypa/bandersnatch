@@ -49,7 +49,7 @@ class Synchronization:
     def __init__(self):
         self.homedir = None
         self.quiet = False
-
+        
         # time stamps: seconds since 1970
         self.last_completed = 0 # when did the last run complete
         self.last_started = 0   # when did the current run start
@@ -66,36 +66,34 @@ class Synchronization:
                 setattr(self, field, value)
 
     def store(self):
-        with open(self.homedir+"/status", "wb") as f:
+        with open(os.path.join(self.homedir, "status"), "wb") as f:
             cPickle.dump(self, f, cPickle.HIGHEST_PROTOCOL)
-            self.conn.commit()
+            self.storage.commit()
 
     @staticmethod
-    def load(homedir):
-        res = cPickle.load(open(homedir+"/status", "rb"))
-        res.conn = sqlite.open(homedir+"/files")
-        res.cursor = res.conn.cursor()
+    def load(homedir, storage=None):
+        res = cPickle.load(open(os.path.join(homedir, "status"), "rb"))
+        res.storage = storage or sqlite.SqliteStorage(os.path.join(homedir, "files"))
         res.defaults()
         return res
 
     #################### Synchronization logic ##############################
 
     @staticmethod
-    def initialize(targetdir):
+    def initialize(targetdir, storage=None):
         'Create a new empty mirror. This operation should not be interrupted.'
         if not os.path.exists(targetdir):
             os.makedirs(targetdir)
         else:
             assert not os.listdir(targetdir)
-        for d in ('/web/simple', '/web/packages', '/web/serversig', 
-                  '/web/local-stats/days'):
-            os.makedirs(targetdir+d)
+        for d in ('simple', 'packages', 'serversig',
+                  'local-stats/days'):
+            os.makedirs(os.path.join(targetdir, 'web', d))
         status = Synchronization()
         status.homedir = targetdir
         status.last_started = now()
         status.projects_to_do = set(xmlrpc().list_packages())
-        status.conn = sqlite.open(status.homedir+"/files")
-        status.cursor = status.conn.cursor()
+        status.storage = storage or sqlite.SqliteStorage(os.path.join(status.homedir, "files"))
         status.store()
         return status
 
@@ -132,7 +130,7 @@ class Synchronization:
                 if not self.quiet:
                     print "Copying", file
                 self.maybe_copy_file(project, file)
-            for file in sqlite.files(self.cursor, project)-files:
+            for file in self.storage.files(project)-files:
                     self.remove_file(file)
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
@@ -143,7 +141,7 @@ class Synchronization:
         self.store()
 
     def update_timestamp(self, when):
-        with open(self.homedir+"/web/last-modified", "wb") as f:
+        with open(os.path.join(self.homedir, "web", "last-modified"), "wb") as f:
             f.write(time.strftime("%Y%m%dT%H:%M:%S\n", time.gmtime(when)))
 
     def copy_simple_page(self, project):
@@ -165,9 +163,10 @@ class Synchronization:
             return None
         if r.status != 200:
             raise ValueError, "Status %d on %s" % (r.status, project)
-        if not os.path.exists(self.homedir+'/web/simple/'+project):
-            os.mkdir(self.homedir+'/web/simple/'+project)
-        with open(self.homedir + "/web/simple/" + project + '/index.html', "wb") as f:
+        project_simple_dir = os.path.join(self.homedir, 'web', 'simple', project)
+        if not os.path.exists(project_simple_dir):
+            os.mkdir(project_simple_dir)
+        with open(os.path.join(project_simple_dir, 'index.html'), "wb") as f:
             f.write(html)
         h.putrequest('GET', '/serversig/'+urllib2.quote(project)+'/')
         h.putheader('User-Agent', UA)
@@ -179,7 +178,7 @@ class Synchronization:
                 # index page is unsigned
                 return
             raise ValueError, "Status %d on signature for %s" % (r.status, project)
-        with open(self.homedir + "/web/serversig/" + project, "wb") as f:
+        with open(os.path.join(self.homedir, "web", "serversig", project), "wb") as f:
             f.write(sig)
         return html
 
@@ -202,7 +201,7 @@ class Synchronization:
         else:
             h.putrequest("GET", urllib2.quote(path))
         h.putheader('User-Agent', UA)
-        etag = sqlite.etag(self.cursor, path)
+        etag = self.storage.etag(path)
         if etag:
             h.putheader("If-none-match", etag)
         h.endheaders()
@@ -211,9 +210,11 @@ class Synchronization:
             # not modified, discard data
             r.read()
             return
-        lpath = self.homedir + "/web" + path
+        if path.startswith("/"):
+            path = path[1:]
+        lpath = os.path.join(self.homedir, "web", path)
         if r.status == 200:
-            sqlite.remove_file(self.cursor, path) # readd when done downloading
+            self.storage.remove_file(path) # readd when done downloading
             data = r.read()
             dirname = os.path.dirname(lpath)
             if not os.path.exists(dirname):
@@ -222,27 +223,30 @@ class Synchronization:
                 f.write(data)
             # XXX may set last-modified timestamp on file
             if "etag" in r.msg:
-                sqlite.add_file(self.cursor, project, path, r.msg['etag'])
+                self.storage.add_file(project, path, r.msg['etag'])
             self.store()
             return
         if r.status == 404:
             self.remove_file(path)
 
     def remove_file(self, path):
-        sqlite.remove_file(self.cursor, path)
-        lpath = self.homedir + "/web" + path
+        self.storage.remove_file(path)
+        lpath = os.path.join(self.homedir, "web", path)
         if os.path.exists(lpath):
             os.unlink(lpath)
 
     def delete_project(self, project):
-        for f in sqlite.files(self.cursor, project):
+        for f in self.storage.files(project):
             self.remove_file(f)
-        if os.path.exists(self.homedir+"/web/simple/"+project):
-            if os.path.exists(self.homedir+"/web/simple/"+project+"/index.html"):
-                os.unlink(self.homedir+"/web/simple/"+project+"/index.html")
-            os.rmdir(self.homedir+"/web/simple/"+project)
-        if os.path.exists(self.homedir+"/web/serversig/"+project):
-            os.unlink(self.homedir+"/web/serversig/"+project)
+        project_simple_dir = os.path.join(self.homedir, "web", "simple", project)
+        if os.path.exists(project_simple_dir):
+            index_file = os.path.join(project_simple_dir, "index.html")
+            if os.path.exists(index_file):
+                os.unlink(index_file)
+            os.rmdir(project_simple_dir)
+        project_serversig_dir = os.path.join(self.homedir, "web", "serversig", project)
+        if os.path.exists(project_serversig_dir):
+            os.unlink(project_serversig_dir)
         if project in self.projects_to_do:
             self.projects_to_do.remove(project)
         if project in self.complete_projects:
