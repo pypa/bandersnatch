@@ -99,18 +99,25 @@ class Synchronization:
 
     def synchronize(self):
         # check whether another job is already running
-        lockfile = os.path.join(self.homedir, 'running')
-        try:
-            fh = os.open(lockfile, os.O_CREAT|os.O_EXCL, 0777)
-            os.close(fh)
-        except OSError:        
-            if not self.quiet:
-                print "Currently already running; mirroring is skipped"
-            return
+        pid = self.storage.find_running()
+        if pid:
+            # check whether process still runs
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                # process is gone, take over
+                self.storage.end_running()
+            else:
+                self.storage.commit()
+                if not self.quiet:
+                    print "Currently already running; mirroring is skipped"
+                return
+        self.storage.start_running(os.getpid())
+        self.storage.commit()
         try:
             self._synchronize()
         finally:
-            os.unlink(lockfile)
+            self.storage.end_running()
 
     def _synchronize(self):
         'Run synchronization. Can be interrupted and restarted at any time.'
