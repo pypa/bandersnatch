@@ -24,8 +24,13 @@ An Apache configuration could read like this::
     ServerName X.pypi.python.org
     CustomLog /var/log/apache2/pypi.log combined
     DocumentRoot /var/pypi/web
+    SetEnv PYPITARGET /var/pypi
     ScriptAlias /sync /path/pep381sync.cgi
   </VirtualHost>
+
+Notice that supporting the sync URL requires that the web server
+user has access to the mirror data, or else that the CGI script
+runs as the mirror user.
 
 To propagate the download statistics back to the central server,
 processlogs must be run regularly, e.g. through::
