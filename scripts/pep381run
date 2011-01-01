@@ -5,9 +5,9 @@ try:
 except ImportError:
     # See whether we are run out of a source tree
     module_path = os.path.join(os.path.dirname(sys.argv[0]), 
-                               '..', 'pep381client')
+                               '..')
     if os.path.exists(module_path):
-        sys.path.extend(module_path)
+        sys.path.append(module_path)
     import pep381client
 
 opts = optparse.OptionParser(usage="Usage: pep381run [OPTIONS] <targetdir>")

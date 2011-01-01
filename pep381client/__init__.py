@@ -75,6 +75,7 @@ class Synchronization:
         res = cPickle.load(open(os.path.join(homedir, "status"), "rb"))
         res.storage = storage or sqlite.SqliteStorage(os.path.join(homedir, "files"))
         res.defaults()
+        res.homedir = homedir # override pickled value in case it got relocated
         return res
 
     #################### Synchronization logic ##############################

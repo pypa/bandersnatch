@@ -24,6 +24,7 @@ An Apache configuration could read like this::
     ServerName X.pypi.python.org
     CustomLog /var/log/apache2/pypi.log combined
     DocumentRoot /var/pypi/web
+    ScriptAlias /sync /path/pep381sync.cgi
   </VirtualHost>
 
 To propagate the download statistics back to the central server,
@@ -48,6 +49,7 @@ Changes
 - Print nicer message for Ctrl-C (Jacob Kaplan-Moss)
 - Add --help option to pep381run (Horst Gutmann)
 - Drop mvindex again
+- Add support for master-initiated sync operations
 
 1.3 (2010-07-06):
 
