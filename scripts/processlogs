@@ -3,10 +3,9 @@
 # except for the oldest and the newest day.
 import sys, os, csv
 # See whether we are run out of a source tree
-module_path = os.path.join(os.path.dirname(sys.argv[0]), 
-                           '..', 'pep381client')
-if os.path.exists(module_path):
-    sys.path.extend(module_path)
+module_path = os.path.dirname(os.path.dirname(sys.argv[0]))
+if os.path.exists(os.path.join(module_path, "pep381client")):
+    sys.path.append(module_path)
 from pep381client import apache_reader, apache_stats
 
 def usage(msg=None):
