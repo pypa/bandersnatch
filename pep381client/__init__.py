@@ -135,6 +135,9 @@ class Synchronization:
             self.store()
         # sort projects to allow for repeatable runs
         for project in sorted(self.projects_to_do):
+            if not project:
+                # skip empty project names resulting from PyPI-wide changes
+                continue
             if not self.quiet:
                 print "Synchronizing", project.encode('utf-8')
             data = self.copy_simple_page(project)
