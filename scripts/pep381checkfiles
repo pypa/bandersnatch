@@ -23,7 +23,13 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
     dir = os.path.join(targetdir, 'web', 'simple', package)
     if not os.path.isdir(dir):
         continue
-    tree = ElementTree.fromstring(open(os.path.join(dir, 'index.html')).read())
+    try:
+        f = open(os.path.join(dir, 'index.html'))
+    except IOError:
+        print "Missing index.html for", dir
+        incomplete_packages.add(package)
+        continue
+    tree = ElementTree.fromstring(f.read())
     for a in tree.findall(".//a"):
         url = a.attrib['href']
         if not url.startswith('../../packages/'):
@@ -35,25 +41,29 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
             incomplete_packages.add(package)
             print "Missing file", fn
             continue
-        if "md5="+hashlib.md5(open(fn,'rb').read()).hexdigest() != md5:
-            print "Bad md5", fn
-            continue
+        #if "md5="+hashlib.md5(open(fn,'rb').read()).hexdigest() != md5:
+        #    print "Bad md5", fn
+        #    continue
 
 if incomplete_packages:
-    s = pep381client.load(targetdir)
+    s = pep381client.Synchronization.load(targetdir)
     for i in range(10):
         if s.storage.find_running():
             print "Synchronization in progress, waiting"
             time.sleep(10)
         else:
             break
-    s.storage.start_running()
+    s.storage.start_running(os.getpid())
     s.storage.commit()
-    # Reload pickled state
-    s = pep381client.load(targetdir)
-    s.projects_to_do += incomplete_packages
-    # claim that a synchronization was aborted and 
-    # needs to be restarted
-    s.last_started = s.last_completed
-    s.store()
+    try:
+        # Reload pickled state
+        s = pep381client.Synchronization.load(targetdir)
+        s.projects_to_do.update(incomplete_packages)
+        # claim that a synchronization was aborted and 
+        # needs to be restarted
+        s.last_started = s.last_completed
+        s.store()
+    finally:
+        s.storage.end_running()
+        s.storage.commit()
     print "Todo list updated; run pep381run now"
