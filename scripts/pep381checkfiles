@@ -28,7 +28,7 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
         if not url.startswith('../../packages/'):
             continue
         url, md5 = url.split('#')
-        url = url[len('../..'):]
+        url = url[len('../../'):]
         fn = os.path.join(targetdir, 'web', url)
         if not os.path.exists(fn):
             print "Missing file", fn
