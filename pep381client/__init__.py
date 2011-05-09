@@ -156,7 +156,9 @@ class Synchronization:
                 if not self.quiet:
                     print "Copying", file
                 self.maybe_copy_file(project, file)
-            for file in self.storage.files(project)-files:
+            # files start with /; remove it
+            relfiles = set(p[1:] for p in files)
+            for file in self.storage.files(project)-relfiles:
                     self.remove_file(file)
             self.complete_projects.add(project)
             self.projects_to_do.remove(project)
