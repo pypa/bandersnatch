@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, os, shutil, optparse, hashlib
+import sys, os, shutil, optparse, hashlib, time
 from xml.etree import ElementTree
 try:
     import pep381client
@@ -18,6 +18,7 @@ if len(args) != 1:
     opts.error("You have to specify a target directory")
 
 targetdir = args[0]
+incomplete_packages = set()
 for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
     dir = os.path.join(targetdir, 'web', 'simple', package)
     if not os.path.isdir(dir):
@@ -31,9 +32,28 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
         url = url[len('../../'):]
         fn = os.path.join(targetdir, 'web', url)
         if not os.path.exists(fn):
+            incomplete_packages.add(package)
             print "Missing file", fn
             continue
         if "md5="+hashlib.md5(open(fn,'rb').read()).hexdigest() != md5:
             print "Bad md5", fn
             continue
-    
+
+if incomplete_packages:
+    s = pep381client.load(targetdir)
+    for i in range(10):
+        if s.storage.find_running():
+            print "Synchronization in progress, waiting"
+            time.sleep(10)
+        else:
+            break
+    s.storage.start_running()
+    s.storage.commit()
+    # Reload pickled state
+    s = pep381client.load(targetdir)
+    s.projects_to_do += incomplete_packages
+    # claim that a synchronization was aborted and 
+    # needs to be restarted
+    s.last_started = s.last_completed
+    s.store()
+    print "Todo list updated; run pep381run now"
