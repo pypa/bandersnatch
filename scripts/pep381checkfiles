@@ -33,7 +33,7 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
         if not os.path.exists(fn):
             print "Missing file", fn
             continue
-        if "md5="+hashlib.md5(open(fn,'rb').read()) != md5:
+        if "md5="+hashlib.md5(open(fn,'rb').read()) != md5.hexdigest():
             print "Bad md5", fn
             continue
     
