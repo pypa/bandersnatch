@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+import sys, os, shutil, optparse
+from xml.etree import ElementTree
+try:
+    import pep381client
+except ImportError:
+    # See whether we are run out of a source tree
+    module_path = os.path.join(os.path.dirname(sys.argv[0]), 
+                               '..')
+    if os.path.exists(module_path):
+        sys.path.append(module_path)
+    import pep381client
+
+opts = optparse.OptionParser(usage="Usage: pep381checkfiles <targetdir>")
+options, args = opts.parse_args()
+
+if len(args) != 1:
+    opts.error("You have to specify a target directory")
+
+targetdir = args[0]
+for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
+    dir = os.path.join(targetdir, 'web', 'simple', package)
+    if not os.path.isdir(dir):
+        continue
+    tree = ElementTree.fromstring(open(os.path.join(dir, 'index.html')).read())
+    for a in tree.findall(".//a"):
+        url = a.attrib['href']
+        if not url.startswith('../../packages/'):
+            continue
+        url, md5 = url.split('#')
+        url = url[len('../..'):]
+        fn = os.path.join(targetdir, 'web', url)
+        if not os.path.exists(fn):
+            print "Missing file", fn
+            continue
+        if "md5="+hashlib.md5(open(fn,'b').read()) != md5:
+            print "Bad md5", fn
+            continue
+    
