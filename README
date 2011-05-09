@@ -47,6 +47,12 @@ at martin@v.loewis.de
 Changes
 -------
 
+1.5 (2011-05-09):
+
+- Fix mirroring bug that caused unnecessary deletion of files
+- Provide pep381checkfiles script to verify presence and integrity
+  of all files
+
 1.4 (2011-04-27):
 
 - Improve installation procedure (Jannis Leidel)
