@@ -41,9 +41,9 @@ for package in os.listdir(os.path.join(targetdir, 'web', 'simple')):
             incomplete_packages.add(package)
             print "Missing file", fn
             continue
-        #if "md5="+hashlib.md5(open(fn,'rb').read()).hexdigest() != md5:
-        #    print "Bad md5", fn
-        #    continue
+        if "md5="+hashlib.md5(open(fn,'rb').read()).hexdigest() != md5:
+            print "Bad md5", fn
+            continue
 
 if incomplete_packages:
     s = pep381client.Synchronization.load(targetdir)

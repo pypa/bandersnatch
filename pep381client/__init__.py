@@ -8,7 +8,7 @@ import sqlite
 pypi = 'pypi.python.org'
 BASE = 'http://'+pypi
 SIMPLE = BASE + '/simple/'
-version = '1.4'
+version = '1.5'
 UA = 'pep381client/'+version
 
 # Helpers
