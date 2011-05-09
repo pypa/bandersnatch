@@ -119,6 +119,7 @@ class Synchronization:
             self._synchronize()
         finally:
             self.storage.end_running()
+            self.storage.commit()
 
     def _synchronize(self):
         'Run synchronization. Can be interrupted and restarted at any time.'
