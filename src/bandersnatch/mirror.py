@@ -103,11 +103,11 @@ class Mirror(object):
             worker.daemon = True
             worker.start()
         while workers:
-            if self.stop_on_error and self.errors:
-                logger.error('Exiting early after error.')
-                sys.exit(1)
             for worker in workers:
-                worker.join(1)
+                worker.join(0.5)
+                if self.stop_on_error and self.errors:
+                    logger.error('Exiting early after error.')
+                    sys.exit(1)
                 if not worker.isAlive():
                     workers.remove(worker)
 
