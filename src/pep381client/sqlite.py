@@ -40,19 +40,3 @@ class SqliteStorage(object):
     def remove_file(self, filename):
         cursor = self.conn.cursor()
         cursor.execute("delete from files where filename=?", (filename,))
-
-    def find_running(self):
-        cursor = self.conn.cursor()
-        cursor.execute("select pid from running")
-        res = cursor.fetchall()
-        if not res:
-            return None
-        return res[0][0]
-
-    def start_running(self, pid):
-        cursor = self.conn.cursor()
-        cursor.execute("insert into running(pid) values(?)", (pid,))
-
-    def end_running(self):
-        cursor = self.conn.cursor()
-        cursor.execute("delete from running")

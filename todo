@@ -1,0 +1,44 @@
+- project granularity
+- locking method to avoid multiple synchronization runs
+- why should the empty mirror initialization not get interrupted?
+
+- use requests
+- timeout control?
+- factor out:
+    - master as object
+    - mirror as object
+    - package as object
+
+    - mirror make a master class and a mirror class
+
+- make master configurable (to support testing)
+- turn prints into logging to support instrumenting quiet/verbose levels
+- use md5sums to verify existing downloads, don't leverage etags
+- ensure we show the right user agent
+- re-add signature checking
+- can we get "scrub the mirror" in a reasonable performance?
+    - walk all packages by assuming we haven't synced yet
+    - remove packages that we missed deleting!
+- parallelize package syncing
+- try downloading actual files from other mirrors?
+
+General algorithm
+
+
+- determine working snapshot time
+    - if we have a working snapshot time stored, use that
+    - elif we have a finished snapshot time stored, use that
+    - else use now
+
+- determine list of packages we should update
+    - use changelog since last finished snapshot time if we have ever finished
+    - list all packages
+
+- go through each package
+    - update all release files, store md5sums and compare with response from server to avoid multiple downloads, delete files we don't see any longer
+    - synchronize simple page
+
+- store working snapshot time to finished snapshot time
+
+
+- only thing we have to keep consistent in the state file is the 'current snapshot we are working on' and 'last snapshot time we finished', no todo list, etc
