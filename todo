@@ -1,0 +1,18 @@
+Must-be
+
+- use config file
+- flake8 check
+- XXX review
+
+Optional/Later
+
+- continuous integration build
+- try downloading actual files from other mirrors?
+- timeout control?
+- ensure we show the right user agent
+
+Documentation
+
+- setting up your mirror
+- scrubbing the mirror (reset the status file or just delete it)
+- migrate from existing mirrors
