@@ -7,28 +7,37 @@ import re
 import os
 
 # list of recognized user agents
-SETUPTOOLS_UA = (re.compile((r'^.* setuptools/(?P<version>[0-9]\..*)$')), 'setuptools/%s')
-URLLIB_UA = (re.compile(r'^Python-urllib/(?P<version>[23]\.[0-9])$'), 'Python-urllib/%s')
-SAFARI_UA = (re.compile(r'^Mozilla.* .* Version/(?P<version>.*) Safari/.*$'), 'Safari/%s')
-GOOGLEBOT = (re.compile(r'Googlebot-Mobile/(?P<version>.*);'), 'Googlebot-Mobile/%s')
+SETUPTOOLS_UA = (re.compile((r'^.* setuptools/(?P<version>[0-9]\..*)$')),
+                 'setuptools/%s')
+URLLIB_UA = (re.compile(r'^Python-urllib/(?P<version>[23]\.[0-9])$'),
+             'Python-urllib/%s')
+SAFARI_UA = (re.compile(r'^Mozilla.* .* Version/(?P<version>.*) Safari/.*$'),
+             'Safari/%s')
+GOOGLEBOT = (re.compile(r'Googlebot-Mobile/(?P<version>.*);'),
+             'Googlebot-Mobile/%s')
 MSNBOT = (re.compile(r'^msnbot/(?P<version>.*) '), 'msnbot/%s')
-FIREFOX_UA = (re.compile(r'^Mozilla.*? Firefox/(?P<version>[23])\..*$'), 'Firefox/%s')
-PLAIN_MOZILLA = (re.compile(r'^Mozilla/(?P<version>.*?) '), 'Mozilla/%s')
+FIREFOX_UA = (re.compile(r'^Mozilla.*? Firefox/(?P<version>[23])\..*$'),
+              'Firefox/%s')
+PLAIN_MOZILLA = (re.compile(r'^Mozilla/(?P<version>.*?) '),
+                 'Mozilla/%s')
 
-logre = re.compile(r"\[(?P<day>..)/(?P<month>...)/(?P<year>....):"
-                   r"(?P<hour>..):(?P<min>..):(?P<sec>..) "
-                   r'(?P<zone>.*)\] "GET (?P<path>[^ "]+) HTTP/1.." 200 .*? (?:".*?")? '
-                   r'"(User-Agent: )?(?P<useragent>.*)"$', re.DOTALL)
+logre = re.compile(
+    r"\[(?P<day>..)/(?P<month>...)/(?P<year>....):"
+    r"(?P<hour>..):(?P<min>..):(?P<sec>..) "
+    r'(?P<zone>.*)\] "GET (?P<path>[^ "]+) HTTP/1.." 200 .*? (?:".*?")? '
+    r'"(User-Agent: )?(?P<useragent>.*)"$', re.DOTALL)
 
-month_names=['jan','feb','mar','apr','may','jun',
-             'jul','aug','sep','oct','nov','dec']
+month_names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
+               'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 month_index = {}
 
 for i in range(12):
     month_index[month_names[i]] = i+1
 
+
 def month_to_index(month):
     return month_index[month.lower()]
+
 
 class ApacheLogReader(object):
     """provides an iterator over apache logs"""
@@ -63,8 +72,8 @@ class ApacheLogReader(object):
         return path[-2]
 
     def get_simplified_ua(self, user_agent):
-        """returns a simplified version of the user agent""" 
-        for expr, repl in (URLLIB_UA, SETUPTOOLS_UA, SAFARI_UA, GOOGLEBOT, 
+        """returns a simplified version of the user agent"""
+        for expr, repl in (URLLIB_UA, SETUPTOOLS_UA, SAFARI_UA, GOOGLEBOT,
                            MSNBOT, FIREFOX_UA, PLAIN_MOZILLA):
             res = expr.search(user_agent)
             if res is not None:
@@ -74,7 +83,7 @@ class ApacheLogReader(object):
     def next(self):
 
         while True:
-            line = self._data.next().strip() 
+            line = self._data.next().strip()
             m = logre.search(line)
             if m is None:
                 continue
@@ -95,4 +104,3 @@ class ApacheLogReader(object):
             return res
 
         raise StopIteration
-
