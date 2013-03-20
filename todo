@@ -8,6 +8,7 @@ Must-be
 - use config file
 - flake8 check
 - XXX review
+- rename project to "mirrorpypi"
 
 Optional/Later
 
