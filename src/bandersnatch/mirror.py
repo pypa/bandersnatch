@@ -4,6 +4,7 @@ import datetime
 import logging
 import multiprocessing.pool
 import optparse
+import fcntl
 import os
 import pkg_resources
 import requests
@@ -64,12 +65,13 @@ class Mirror:
         else:
             logger.info('Syncing based on changelog.')
             todo, self.target_serial = self.master.changed_packages(self.synced_serial)
-        logger.info('Current master serial {}'.format(self.target_serial))
+        logger.info('Current master serial: {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
 
     def sync_packages(self):
         logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
         packages = [Package(name, self) for name in self.packages_to_sync]
+        # XXX make configurable
         pool = multiprocessing.pool.ThreadPool(10)
         pool.map(lambda package: package.sync(), packages)
 
@@ -78,6 +80,7 @@ class Mirror:
             return
         logger.info('Syncing global index page.')
         r = requests.get(self.master.url+'/simple')
+        r.raise_for_status()
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
         with open(index_page, "wb") as f:
             f.write(r.content)
@@ -101,7 +104,14 @@ class Mirror:
                       'web/local-stats/days'):
                 os.makedirs(os.path.join(self.homedir, d))
 
-        # XXX fctl lock something
+        try:
+            self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
+            fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except IOError:
+            raise RuntimeError('Could not acquire lock on {}. '
+                'Another instance seems to be running.'.format(
+                    self.lockfile.name))
+
         self._load()
 
     @property
@@ -121,7 +131,7 @@ class Mirror:
 
 
 def main():
-    opts = optparse.OptionParser(usage="Usage: pep381run <targetdir>")
+    opts = optparse.OptionParser(usage="Usage: bsn-mirror <targetdir>")
     options, args = opts.parse_args()
 
     if len(args) != 1:
@@ -130,11 +140,12 @@ def main():
     ch = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
     ch.setFormatter(formatter)
-    logger = logging.getLogger('pep381client')
+    logger = logging.getLogger('bandersnatch')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
 
     targetdir = args[0]
+    # XXX make configurable
     master = Master('https://testpypi.python.org')
     state = Mirror(targetdir, master)
     state.synchronize()
