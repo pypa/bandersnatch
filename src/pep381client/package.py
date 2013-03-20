@@ -84,6 +84,8 @@ class Package(object):
 
     def download_file(self, info):
         path = self._file_url_to_local_path(info['url'])
+        tmppath = os.path.join(os.path.dirname(path),
+                               '.downloading.'+os.path.basename(path))
 
         # Avoid downloading again if we have the file and it matches the hash.
         if os.path.exists(path):
@@ -93,22 +95,22 @@ class Package(object):
 
         logger.info('Downloading file {}'.format(url))
 
-        r = requests.get(url)
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
-        with open(path, "wb") as f:
-            f.write(r.content)
 
-        # Verify the download. Do not leave the file in place if it isn't the
-        # correct one.
-        # XXX why load again after we just touched the in-memory data a few
-        # lines above?
-        existing_hash = utils.hash(path)
-        if existing_hash != info['md5_digest']:
-            os.unlink(path)
+        r = requests.get(url, stream=True)
+        checksum = hashlib.md5()
+        for chunk in r.iter_content(chunk_size=64*1024):
+            checksum.update(chunk)
+            with open(tmppath, "wb") as f:
+                f.write(chunk)
+
+        if checksum.hexdigest() != info['md5_digest']
+            os.unlink(tmppath)
             raise ValueError('{} has hash {} instead of {}'.format(
                 url, existing_hash, info['md5_digest']))
+        os.rename(tmppath, path)
 
     def delete(self):
         logger.info('Deleting package {}'.format(self.name))
