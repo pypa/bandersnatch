@@ -5,6 +5,7 @@ import logging
 import os.path
 import requests
 import shutil
+import urllib2
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +19,12 @@ class Package(object):
     @property
     def package_directories(self):
         return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}'.format(self.name[1], self.name)))
+            self.mirror.webdir, 'packages/*/{}/{}'.format(self.name[0], self.name)))
 
     @property
     def package_files(self):
         return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}/*'.format(self.name[1], self.name)))
+            self.mirror.webdir, 'packages/*/{}/{}/*'.format(self.name[0], self.name)))
 
     @property
     def simple_directory(self):
@@ -45,10 +46,7 @@ class Package(object):
                 self.delete()
                 return
             self.sync_release_files()
-            if self.releases:
-                self.sync_simple_page()
-            else:
-                self.remove_simple_page()
+	    self.sync_simple_page()
         except Exception:
             logger.exception('Error syncing package: {}'.format(self.name))
             self.mirror.errors = True
@@ -65,17 +63,9 @@ class Package(object):
         for release_file in release_files:
             self.download_file(release_file['url'], release_file['md5_digest'])
 
-    def remove_simple_page(self):
-        logger.info('Removing index page: {}'.format(self.name))
-        simple_page = os.path.join(self.simple_directory, 'index.html')
-        if os.path.exists(simple_page):
-            os.unlink(simple_page)
-        if os.path.exists(self.serversig_file):
-            os.unlink(self.serversig_file)
-
     def sync_simple_page(self):
         logger.info('Syncing index page: {}'.format(self.name))
-        r = requests.get(self.mirror.master.url+'/simple/'+self.name)
+        r = requests.get(self.mirror.master.url+'/simple/'+urllib2.quote(self.name))
         r.raise_for_status()
 
         if not os.path.exists(self.simple_directory):
@@ -85,7 +75,7 @@ class Package(object):
         with open(simple_page, 'wb') as f:
             f.write(r.content)
 
-        r = requests.get(self.mirror.master.url+'/serversig/'+self.name)
+        r = requests.get(self.mirror.master.url+'/serversig/'+urllib2.quote(self.name))
         r.raise_for_status()
         with open(self.serversig_file, 'wb') as f:
             f.write(r.content)
