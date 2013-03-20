@@ -25,7 +25,7 @@ class Package(object):
     @property
     def package_files(self):
         return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}/*'.format(
+            self.mirror.webdir, u'packages/*/{}/{}/*'.format(
                 self.name[0], self.name)))
 
     @property
@@ -73,7 +73,7 @@ class Package(object):
         # trailing ? that will get eaten by the webserver even if we quote it
         # properly. Yay.
         r = requests.get(self.mirror.master.url + '/simple/' +
-                         urllib2.quote(self.name) + '/')
+                         urllib2.quote(self.name.encode('utf-8')) + '/')
         r.raise_for_status()
 
         if not os.path.exists(self.simple_directory):
@@ -84,7 +84,7 @@ class Package(object):
             f.write(r.content)
 
         r = requests.get(self.mirror.master.url + '/serversig/' +
-                         urllib2.quote(self.name) + '/')
+                         urllib2.quote(self.name.encode('utf-8')) + '/')
         r.raise_for_status()
         with open(self.serversig_file, 'wb') as f:
             f.write(r.content)
