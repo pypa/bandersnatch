@@ -28,13 +28,17 @@ class Package(object):
         return self.package_directories + [self.simple_directory]
 
     def sync(self):
-        logging.info('Syncing package {}'.format(self.name))
-        self.releases = self.mirror.master.package_releases(self.name)
-        if not self.releases:
-            self.delete()
-            return
-        self.sync_release_files()
-        self.sync_simple_page()
+        try:
+            logger.info('Syncing package {}'.format(self.name))
+            self.releases = self.mirror.master.package_releases(self.name)
+            if not self.releases:
+                self.delete()
+                return
+            self.sync_release_files()
+            self.sync_simple_page()
+        except Exception:
+            logger.exception('Error syncing package {}'.format(self.name))
+            self.mirror.errors = True
 
     def sync_release_files(self):
         release_files = []
@@ -70,7 +74,7 @@ class Package(object):
             if existing_hash == info['md5_digest']:
                 return
 
-        logging.info('Downloading file {}'.format(url))
+        logger.info('Downloading file {}'.format(url))
 
         r = requests.get(url)
         dirname = os.path.dirname(local_path)
@@ -85,7 +89,7 @@ class Package(object):
                 url, existing_hash, info['md5_digest']))
 
     def delete(self):
-        logging.info('Deleting package {}'.format(self.name))
+        logger.info('Deleting package {}'.format(self.name))
         for directory in self.directories:
             if not os.path.exists(directory):
                 continue
