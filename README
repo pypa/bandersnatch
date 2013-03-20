@@ -5,6 +5,13 @@ Installation
 
 XXX coming up
 
+Migrating from pep381client installations
+-----------------------------------------
+
+* update cronjobs 
+* update config 
+* remove old status files
+
 Contact
 -------
 
