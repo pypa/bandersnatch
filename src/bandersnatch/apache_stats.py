@@ -1,12 +1,16 @@
-import os
-import csv 
+from bandersnatch import apache_reader
 import bz2
+import csv
 import gzip
+import os
 import re
-import urllib2
 import socket
+import sys
+import urllib2
+
 
 from apache_reader import ApacheLogReader
+
 
 class LocalStats(object):
     """Base class that writes the log file
@@ -25,11 +29,11 @@ class LocalStats(object):
         elif compression == 'gz':
             return gzip.open(path, mode)
         return open(path, mode)
-    
+
     def _build_stats(self, logfile, fileobj, files_url='/packages', 
                      filter=None, compression=None):
         """Builds a stats file
-        
+
         - logfile: path to the original log file, or callable
         - fileobj : a file object or a path to create a file
         - files_url : a filter that define the beginnin of package urls 
@@ -171,3 +175,43 @@ class ApacheDistantLocalStats(ApacheLocalStats):
                 return iter([])
         return ApacheLocalStats.read_stats(self, path)
 
+
+def usage(msg=None):
+    if msg:
+        print msg
+    print "Usage: processlogs <pypi-targetdir> logfile [logfile...]"
+    raise SystemExit
+
+def main():
+    if len(sys.argv) < 3:
+        usage()
+
+    targetdir = sys.argv[1]
+
+    if not os.path.exists(targetdir):
+        usage(targetdir + ' does not exist')
+
+    if not os.path.exists(os.path.join(targetdir, 'web')):
+        usage('Not a pypi mirror (%s/web does not exist)' % targetdir)
+
+    statsdir = os.path.join(targetdir, 'web/local-stats')
+
+    if not os.path.isdir(statsdir):
+        os.mkdir(statsdir)
+        os.mkdir(os.path.join(statsdir, 'days'))
+
+    days = set()
+    records = []
+    for fn in sys.argv[2:]:
+        for record in apache_reader.ApacheLogReader(fn, files_url='/packages'):
+            days.add((record['year'], record['month'], record['day']))
+            records.append(record)
+
+    days = sorted(days)[1:-1]
+
+    class Stats(LocalStats):
+        def _get_logs(self, logfile, files_url):
+            return records
+    stats = Stats()
+    for year,month,day in days:
+        stats.build_local_stats(year, month, day, None, os.path.join(statsdir, 'days'))
