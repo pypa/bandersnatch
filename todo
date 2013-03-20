@@ -1,11 +1,10 @@
 Must-be
 
-- fix ctrl-c during parallel thread-pool
+- stop on first error
 - review all scripts
 - use config file
 - flake8 check
 - XXX review
-- rename project to "mirrorpypi"
 
 Optional/Later
 
