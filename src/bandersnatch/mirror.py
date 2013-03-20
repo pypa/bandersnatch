@@ -91,7 +91,7 @@ class Mirror:
 
         # This is a rather complicated setup just to keep Ctrl-C working.
         # Otherwise I'd use multiprocessing.pool
-        workers = [Worker(queue) for i in range(10)]
+        workers = [Worker(queue) for i in range(20)]
         for worker in workers:
             worker.daemon = True
             worker.start()
@@ -172,6 +172,6 @@ def main():
 
     targetdir = args[0]
     # XXX make configurable
-    master = Master('https://testpypi.python.org')
+    master = Master('https://pypi.python.org')
     state = Mirror(targetdir, master)
     state.synchronize()
