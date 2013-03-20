@@ -42,7 +42,7 @@ class Package(object):
 
     def sync(self):
         try:
-            logger.info('Syncing package: {}'.format(self.name))
+            logger.info(u'Syncing package: {}'.format(self.name))
             self.releases = self.mirror.master.package_releases(self.name)
             if not self.releases:
                 self.delete()
@@ -50,7 +50,7 @@ class Package(object):
             self.sync_release_files()
             self.sync_simple_page()
         except Exception:
-            logger.exception('Error syncing package: {}'.format(self.name))
+            logger.exception(u'Error syncing package: {}'.format(self.name))
             self.mirror.errors = True
         else:
             self.mirror.record_finished_package(self.name)
@@ -68,7 +68,7 @@ class Package(object):
             self.download_file(release_file['url'], release_file['md5_digest'])
 
     def sync_simple_page(self):
-        logger.info('Syncing index page: {}'.format(self.name))
+        logger.info(u'Syncing index page: {}'.format(self.name))
         # The trailing slash is important. There are packages that have a
         # trailing ? that will get eaten by the webserver even if we quote it
         # properly. Yay.
@@ -119,7 +119,7 @@ class Package(object):
                         path, md5sum, existing_hash))
                 os.unlink(path)
 
-        logger.info('Downloading: {}'.format(url))
+        logger.info(u'Downloading: {}'.format(url))
 
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
@@ -141,7 +141,7 @@ class Package(object):
         os.rename(tmppath, path)
 
     def delete(self):
-        logger.info('Deleting package: {}'.format(self.name))
+        logger.info(u'Deleting package: {}'.format(self.name))
         for directory in self.directories:
             if not os.path.exists(directory):
                 continue

@@ -66,31 +66,31 @@ class Mirror(object):
         # In case we don't find any changes we will stay on the currently
         # synced serial.
         self.target_serial = self.synced_serial
-        logger.info('Current mirror serial: {}'.format(self.synced_serial))
+        logger.info(u'Current mirror serial: {}'.format(self.synced_serial))
 
         if os.path.exists(self.todolist):
             todo = open(self.todolist).readlines()
             self.target_serial = todo.pop(0).strip()
             todo = [x.decode('utf-8').strip() for x in todo]
-            logger.info('Resuming aborted sync.')
+            logger.info(u'Resuming aborted sync.')
         elif not self.synced_serial:
-            logger.info('Syncing all packages.')
+            logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
             # those two calls.
             self.target_serial = self.master.get_current_serial()
             todo = self.master.list_packages()
         else:
-            logger.info('Syncing based on changelog.')
+            logger.info(u'Syncing based on changelog.')
             todo, self.target_serial = self.master.changed_packages(
                 self.synced_serial)
 
-        logger.info('Current master serial: {}'.format(self.target_serial))
+        logger.info(u'Current master serial: {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
 
     def sync_packages(self):
         queue = Queue.Queue()
-        logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
+        logger.info(u'{} packages to sync.'.format(len(self.packages_to_sync)))
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
@@ -106,7 +106,7 @@ class Mirror(object):
             for worker in workers:
                 worker.join(0.5)
                 if self.stop_on_error and self.errors:
-                    logger.error('Exiting early after error.')
+                    logger.error(u'Exiting early after error.')
                     sys.exit(1)
                 if not worker.isAlive():
                     workers.remove(worker)
@@ -123,7 +123,7 @@ class Mirror(object):
     def sync_index_page(self):
         if not self.packages_to_sync:
             return
-        logger.info('Syncing global index page.')
+        logger.info(u'Syncing global index page.')
         r = requests.get(self.master.url+'/simple')
         r.raise_for_status()
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
@@ -135,7 +135,7 @@ class Mirror(object):
             return
         self.synced_serial = self.target_serial
         os.unlink(self.todolist)
-        logger.info('New mirror serial: {}'.format(self.synced_serial))
+        logger.info(u'New mirror serial: {}'.format(self.synced_serial))
         last_modified = os.path.join(self.homedir, "web", "last-modified")
         with open(last_modified, "wb") as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
@@ -143,7 +143,7 @@ class Mirror(object):
 
     def _bootstrap(self):
         if not os.path.exists(self.homedir):
-            logger.info('Setting up empty mirror tree.')
+            logger.info(u'Setting up empty mirror tree.')
             for d in ('',
                       'web/simple',
                       'web/packages',
@@ -168,7 +168,7 @@ class Mirror(object):
 
     def _load(self):
         if not os.path.exists(self.statusfile):
-            logger.info('Status file missing. Starting over.')
+            logger.info(u'Status file missing. Starting over.')
             return
         with open(self.statusfile, "rb") as f:
             self.synced_serial = int(f.read().strip())
