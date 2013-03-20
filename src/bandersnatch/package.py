@@ -46,10 +46,12 @@ class Package(object):
                 self.delete()
                 return
             self.sync_release_files()
-	    self.sync_simple_page()
+            self.sync_simple_page()
         except Exception:
             logger.exception('Error syncing package: {}'.format(self.name))
             self.mirror.errors = True
+        else:
+            self.mirror.record_finished_package(self.name)
 
     def sync_release_files(self):
         release_files = []
@@ -65,7 +67,10 @@ class Package(object):
 
     def sync_simple_page(self):
         logger.info('Syncing index page: {}'.format(self.name))
-        r = requests.get(self.mirror.master.url+'/simple/'+urllib2.quote(self.name))
+        # The trailing slash is important. There are packages that have a
+        # trailing ? that will get eaten by the webserver even if we quote it
+        # properly. Yay.
+        r = requests.get(self.mirror.master.url+'/simple/'+urllib2.quote(self.name)+'/')
         r.raise_for_status()
 
         if not os.path.exists(self.simple_directory):
@@ -75,7 +80,7 @@ class Package(object):
         with open(simple_page, 'wb') as f:
             f.write(r.content)
 
-        r = requests.get(self.mirror.master.url+'/serversig/'+urllib2.quote(self.name))
+        r = requests.get(self.mirror.master.url+'/serversig/'+urllib2.quote(self.name)+'/')
         r.raise_for_status()
         with open(self.serversig_file, 'wb') as f:
             f.write(r.content)
