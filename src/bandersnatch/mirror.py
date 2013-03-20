@@ -48,18 +48,20 @@ class Mirror(object):
         self.master = master
         self.packages_to_sync = set()
         self._bootstrap()
+        self._finish_lock = threading.RLock()
 
     @property
     def webdir(self):
         return os.path.join(self.homedir, 'web')
 
+    @property
+    def todolist(self):
+        return os.path.join(self.homedir, 'todo')
+
     def synchronize(self):
         self.now = datetime.datetime.utcnow()
 
-
         self.determine_packages_to_sync()
-
-
         self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
@@ -69,7 +71,13 @@ class Mirror(object):
         # synced serial.
         self.target_serial = self.synced_serial
         logger.info('Current mirror serial: {}'.format(self.synced_serial))
-        if not self.synced_serial:
+
+        if os.path.exists(self.todolist):
+            todo = open(self.todolist).readlines()
+            self.target_serial = todo.pop(0).strip()
+            todo = [x.decode('utf-8').strip() for x in todo]
+            logger.info('Resuming aborted sync.')
+        elif not self.synced_serial:
             logger.info('Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
@@ -79,6 +87,7 @@ class Mirror(object):
         else:
             logger.info('Syncing based on changelog.')
             todo, self.target_serial = self.master.changed_packages(self.synced_serial)
+
         logger.info('Current master serial: {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
 
@@ -105,6 +114,15 @@ class Mirror(object):
                 if not worker.isAlive():
                     workers.remove(worker)
 
+    def record_finished_package(self, name):
+        with self._finish_lock:
+            self.packages_to_sync.remove(name)
+            with open(self.todolist, 'wb') as f:
+                todo = [str(self.target_serial)]
+                todo.extend(self.packages_to_sync)
+                todo = [x.encode('utf-8') for x in todo]
+                f.write('\n'.join(todo))
+
     def sync_index_page(self):
         if not self.packages_to_sync:
             return
@@ -119,6 +137,7 @@ class Mirror(object):
         if self.errors:
             return
         self.synced_serial = self.target_serial
+        os.unlink(self.todolist)
         logger.info('New mirror serial: {}'.format(self.synced_serial))
         with open(os.path.join(self.homedir, "web", "last-modified"), "wb") as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
