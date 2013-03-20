@@ -1,7 +1,6 @@
 Must-be
 
 - use config file
-- flake8 check
 - XXX review
 
 Optional/Later
@@ -9,7 +8,7 @@ Optional/Later
 - continuous integration build
 - try downloading actual files from other mirrors?
 - timeout control?
-- ensure we show the right user agent
+- ensure we show a specific user agent
 
 Documentation
 
