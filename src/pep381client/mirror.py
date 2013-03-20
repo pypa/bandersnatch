@@ -1,15 +1,15 @@
 from .master import Master
 from .package import Package
-import cPickle
 import datetime
 import logging
+import multiprocessing.pool
 import optparse
 import os
 import pkg_resources
+import requests
 import shutil
 import socket
 import sys
-import multiprocessing.pool
 
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,15 @@ logger = logging.getLogger(__name__)
 class Mirror:
 
     homedir = None
-    last_finished = None # when did the last run complete
-    last_started = None  # when did the current run start
+
+    synced_serial = 0       # The last serial we have consistently synced to.
+    target_serial = None    # What is the serial we are trying to reach?
     errors = None
+
+    # We are required to leave a 'last changed' timestamp. I'd rather err on
+    # the side of giving a timestamp that is too old so we keep track of it
+    # when starting to sync.
+    now = None
 
     def __init__(self, homedir, master):
         self.homedir = homedir
@@ -33,63 +39,57 @@ class Mirror:
         return os.path.join(self.homedir, 'web')
 
     def synchronize(self):
-        self.determine_working_snapshot_time()
+        self.now = datetime.datetime.utcnow()
 
-        logger.info('Last successful sync: {}'.format(self.last_finished))
-        logger.info('Current sync reference: {}'.format(self.last_started))
 
         self.determine_packages_to_sync()
 
-        logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
 
         self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
 
-    def determine_working_snapshot_time(self):
-        if self.last_started:
-            logger.info('Resuming sync started on {}.'.self.last_started)
-            return
-        if self.last_finished:
-            # We continue syncing using a changelog with 10 seconds overlap for
-            # good measure in case PyPI had some transactions in between.
-            # Not sure this is really needed. XXX
-            self.last_started = self.last_finished - datetime.timedelta(seconds=10)
-        self.last_started = datetime.datetime.utcnow()
-
     def determine_packages_to_sync(self):
-        if not self.last_finished:
+        # In case we don't find any changes we will stay on the currently
+        # synced serial.
+        self.target_serial = self.synced_serial
+        logger.info('Current mirror serial: {}'.format(self.synced_serial))
+        if not self.synced_serial:
             logger.info('Syncing all packages.')
+            # First get the current serial, then start to sync. This makes us
+            # more defensive in case something changes on the server between
+            # those two calls.
+            self.target_serial = self.master.get_current_serial()
             todo = self.master.list_packages()
         else:
             logger.info('Syncing based on changelog.')
-            request_since = int(self.last_started.strftime('%s'))
-            todo = self.master.changed_packages(request_since)
+            todo, self.target_serial = self.master.changed_packages(self.synced_serial)
+        logger.info('Current master serial {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
 
     def sync_packages(self):
+        logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
         packages = [Package(name, self) for name in self.packages_to_sync]
-
         pool = multiprocessing.pool.ThreadPool(10)
         pool.map(lambda package: package.sync(), packages)
 
     def sync_index_page(self):
-        # XXX
-        return
-        r = requests.get(SIMPLE)
-        project_simple_dir = os.path.join(self.webdir, 'simple', project)
-        html = r.content
-        with open(os.path.join(project_simple_dir, 'index.html'), "wb") as f:
-            f.write(html)
-        # XXX add serversignature downloading here
+        if not self.packages_to_sync:
+            return
+        logger.info('Syncing global index page.')
+        r = requests.get(self.master.url+'/simple')
+        index_page = os.path.join(self.webdir, 'simple', 'index.html')
+        with open(index_page, "wb") as f:
+            f.write(r.content)
+        # XXX add serversignature downloading here. check before writing them out
 
     def wrapup_successful_sync(self):
         if self.errors:
             return
-        self.last_finished = self.last_started
-        self.last_started = None
+        self.synced_serial = self.target_serial
+        logger.info('New mirror serial: {}'.format(self.synced_serial))
         with open(os.path.join(self.homedir, "web", "last-modified"), "wb") as f:
-            f.write(self.last_finished.strftime("%Y%m%dT%H:%M:%S\n"))
+            f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
     def _bootstrap(self):
@@ -114,13 +114,11 @@ class Mirror:
             logger.info('Status file missing. Starting over.')
             return
         with open(self.statusfile, "rb") as f:
-            self.last_finished, self.last_started = cPickle.load(f)
+            self.synced_serial = int(f.read().strip())
 
     def _save(self):
         with open(self.statusfile, "wb") as f:
-            cPickle.dump(
-                (self.last_finished, self.last_started),
-                f, cPickle.HIGHEST_PROTOCOL)
+            f.write(str(self.synced_serial))
 
 
 def main():
@@ -138,6 +136,6 @@ def main():
     logger.addHandler(ch)
 
     targetdir = args[0]
-    master = Master('https://pypi.python.org')
+    master = Master('https://testpypi.python.org')
     state = Mirror(targetdir, master)
     state.synchronize()

@@ -1,14 +1,17 @@
 Must-be
 
-
-- fix ctrl-c during parallel thread-pool
-- add simple page downloading
 - re-add signature checking
 - locking method to avoid multiple synchronization runs
+- fix ctrl-c during parallel thread-pool
 - make master configurable (to support testing)
+- review all scripts
+- use config file
+- flake8 check
+- XXX review
 
 Optional/Later
 
+- continuous integration build
 - try downloading actual files from other mirrors?
 - use invisible dotfiles for temporary download, requests and large files?
 - timeout control?
