@@ -1,5 +1,6 @@
 Must-be
 
+- keep a todo list for allowing a full sync to resume
 - fix ctrl-c during parallel thread-pool
 - review all scripts
 - use config file

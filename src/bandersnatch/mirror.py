@@ -29,13 +29,14 @@ class Worker(threading.Thread):
             package.sync()
 
 
-class Mirror:
+class Mirror(object):
 
     homedir = None
 
     synced_serial = 0       # The last serial we have consistently synced to.
     target_serial = None    # What is the serial we are trying to reach?
     errors = None
+    stop_on_error = True    # XXX make configurable
 
     # We are required to leave a 'last changed' timestamp. I'd rather err on
     # the side of giving a timestamp that is too old so we keep track of it
@@ -96,6 +97,9 @@ class Mirror:
             worker.daemon = True
             worker.start()
         while workers:
+            if self.stop_on_error and self.errors:
+                logger.error('Exiting early after error.')
+                sys.exit(1)
             for worker in workers:
                 worker.join(1)
                 if not worker.isAlive():
