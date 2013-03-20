@@ -1,9 +1,6 @@
 Must-be
 
-- re-add signature checking
-- locking method to avoid multiple synchronization runs
 - fix ctrl-c during parallel thread-pool
-- make master configurable (to support testing)
 - review all scripts
 - use config file
 - flake8 check
@@ -14,26 +11,11 @@ Optional/Later
 
 - continuous integration build
 - try downloading actual files from other mirrors?
-- use invisible dotfiles for temporary download, requests and large files?
 - timeout control?
 - ensure we show the right user agent
-- can we get "scrub the mirror" in a reasonable performance?
-    - walk all packages by assuming we haven't synced yet
-    - remove packages that we missed deleting!
 
+Documentation
 
-General algorithm
-
-- determine working snapshot time
-    - if we have a working snapshot time stored, use that
-    - elif we have a finished snapshot time stored, use that
-    - else use now
-
-- determine list of packages we should update
-    - use changelog since last finished snapshot time if we have ever finished
-    - list all packages
-
-- go through each package
-    - update all release files, compare with response from server to avoid multiple downloads, delete files we don't see any longer
-    - synchronize simple page
-
+- setting up your mirror
+- scrubbing the mirror (reset the status file or just delete it)
+- migrate from existing mirrors

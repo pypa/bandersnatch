@@ -1,6 +1,6 @@
 # Generates download stats for all days in the given log files,
 # except for the oldest and the newest day.
-from pep381client import apache_reader, apache_stats
+from bandersnatch import apache_reader, apache_stats
 import sys, os, csv
 
 def usage(msg=None):
