@@ -1,19 +1,32 @@
 from .master import Master
 from .package import Package
+import Queue
 import datetime
+import fcntl
 import logging
 import multiprocessing.pool
 import optparse
-import fcntl
 import os
 import pkg_resources
 import requests
 import shutil
 import socket
 import sys
-
+import threading
 
 logger = logging.getLogger(__name__)
+
+
+class Worker(threading.Thread):
+
+    def __init__(self, queue):
+        super(Worker, self).__init__()
+        self.queue = queue
+
+    def run(self):
+        while not self.queue.empty():
+            package = self.queue.get()
+            package.sync()
 
 
 class Mirror:
@@ -69,11 +82,22 @@ class Mirror:
         self.packages_to_sync.update(todo)
 
     def sync_packages(self):
+        queue = Queue.Queue()
         logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
-        packages = [Package(name, self) for name in self.packages_to_sync]
-        # XXX make configurable
-        pool = multiprocessing.pool.ThreadPool(10)
-        pool.map(lambda package: package.sync(), packages)
+        for name in self.packages_to_sync:
+            queue.put(Package(name, self))
+
+        # This is a rather complicated setup just to keep Ctrl-C working.
+        # Otherwise I'd use multiprocessing.pool
+        workers = [Worker(queue) for i in range(10)]
+        for worker in workers:
+            worker.daemon = True
+            worker.start()
+        while workers:
+            for worker in workers:
+                worker.join(1)
+                if not worker.isAlive():
+                    workers.remove(worker)
 
     def sync_index_page(self):
         if not self.packages_to_sync:
