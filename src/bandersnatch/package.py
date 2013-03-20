@@ -19,12 +19,14 @@ class Package(object):
     @property
     def package_directories(self):
         return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}'.format(self.name[0], self.name)))
+            self.mirror.webdir, 'packages/*/{}/{}'.format(
+                self.name[0], self.name)))
 
     @property
     def package_files(self):
         return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}/*'.format(self.name[0], self.name)))
+            self.mirror.webdir, 'packages/*/{}/{}/*'.format(
+                self.name[0], self.name)))
 
     @property
     def simple_directory(self):
@@ -70,7 +72,8 @@ class Package(object):
         # The trailing slash is important. There are packages that have a
         # trailing ? that will get eaten by the webserver even if we quote it
         # properly. Yay.
-        r = requests.get(self.mirror.master.url+'/simple/'+urllib2.quote(self.name)+'/')
+        r = requests.get(self.mirror.master.url + '/simple/' +
+                         urllib2.quote(self.name) + '/')
         r.raise_for_status()
 
         if not os.path.exists(self.simple_directory):
@@ -80,7 +83,8 @@ class Package(object):
         with open(simple_page, 'wb') as f:
             f.write(r.content)
 
-        r = requests.get(self.mirror.master.url+'/serversig/'+urllib2.quote(self.name)+'/')
+        r = requests.get(self.mirror.master.url + '/serversig/' +
+                         urllib2.quote(self.name) + '/')
         r.raise_for_status()
         with open(self.serversig_file, 'wb') as f:
             f.write(r.content)
@@ -93,6 +97,7 @@ class Package(object):
         return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
+        # XXX
         master_files = [self._file_url_to_local_path(f['url'])
                         for f in release_files]
         existing_files = list(self.package_files)
@@ -108,8 +113,10 @@ class Package(object):
             if existing_hash == md5sum:
                 return
             else:
-                logger.warning('Checksum error with local file {}: expected {} got {}'.format(
-                    path, md5sum, existing_hash))
+                logger.warning(
+                    'Checksum error with local file {}: '
+                    'expected {} got {}'.format(
+                        path, md5sum, existing_hash))
                 os.unlink(path)
 
         logger.info('Downloading: {}'.format(url))
@@ -126,7 +133,8 @@ class Package(object):
                 checksum.update(chunk)
                 f.write(chunk)
 
-        if checksum.hexdigest() != md5sum:
+        existing_hash = checksum.hexdigest()
+        if existing_hash != md5sum:
             os.unlink(tmppath)
             raise ValueError('{} has hash {} instead of {}'.format(
                 url, existing_hash, md5sum))

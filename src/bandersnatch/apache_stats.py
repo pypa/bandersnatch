@@ -30,15 +30,15 @@ class LocalStats(object):
             return gzip.open(path, mode)
         return open(path, mode)
 
-    def _build_stats(self, logfile, fileobj, files_url='/packages', 
+    def _build_stats(self, logfile, fileobj, files_url='/packages',
                      filter=None, compression=None):
         """Builds a stats file
 
         - logfile: path to the original log file, or callable
         - fileobj : a file object or a path to create a file
-        - files_url : a filter that define the beginnin of package urls 
-        - filter: if given, a callable that receives the 
-        current line. if the callable returns True, 
+        - files_url : a filter that define the beginnin of package urls
+        - filter: if given, a callable that receives the
+        current line. if the callable returns True,
         the line is not included
         """
         if isinstance(fileobj, str):
@@ -54,7 +54,7 @@ class LocalStats(object):
                 if filter(log):
                     continue
             filename = log['filename']
-            user_agent = log['useragent'] 
+            user_agent = log['useragent']
             package_name = log['packagename']
             key = (filename, user_agent, package_name)
             count = log.get('count', 1)
@@ -74,23 +74,22 @@ class LocalStats(object):
     def build_daily_stats(self, year, month, day, logfile, fileobj,
                           files_url='/packages', compression=None):
         """creates a daily stats file using an apache log file.
-        
-        - year, month, day: values for the day 
+
+        - year, month, day: values for the day
         - logfile : path to the log file, or callable
         - fileobj : a file object or a path to create a file
         - files_url : a filter that define the beginning of package urls
         """
         def _filter(log):
-            return (day != log['day'] or month != log['month'] or 
+            return (day != log['day'] or month != log['month'] or
                     year != log['year'])
 
         self._build_stats(logfile, fileobj, files_url, _filter, compression)
 
-
     def build_monthly_stats(self, year, month, logfile, fileobj,
                             files_url='/packages', compression=None):
         """creates a monthly stats file using an apache log file.
-        
+
         - year, month: values for the month
         - logfile : path to the log file
         - fileobj : a file object or a path to create a file
@@ -120,13 +119,16 @@ class LocalStats(object):
         if directory is not None:
             filename = os.path.join(directory, filename)
 
-        self.build_daily_stats(year, month, day, logfile, filename, 
+        self.build_daily_stats(year, month, day, logfile, filename,
                                compression='bz2')
+
 
 class ApacheLocalStats(LocalStats):
     """concrete class that uses the ApacheLogReader"""
+
     def _get_logs(self, logfile, files_url):
         return ApacheLogReader(logfile, files_url)
+
 
 class ApacheDistantLocalStats(ApacheLocalStats):
     """Concrete class that gets the data from a distant file"""
@@ -139,14 +141,13 @@ class ApacheDistantLocalStats(ApacheLocalStats):
         self.timeout = timeout
 
     def get_and_cache(self, url):
-        """retrieve the distant file and add it in the local 
-        cache"""
+        """retrieve the distant file and add it in the local cache"""
         basename = url.split('/')[-1]
         filename = os.path.join(self.cache_folder, basename)
         if os.path.exists(filename):
             # in cache, let's return it
             return filename, open(filename)
-        
+
         # not in cache, we need to retrieve it
         # and store it
         oldtimeout = socket.getdefaulttimeout()
@@ -164,12 +165,12 @@ class ApacheDistantLocalStats(ApacheLocalStats):
             f.write(content)
         finally:
             f.close()
-        
+
         return filename, open(filename)
 
-    def read_stats(self, stats_file):  
+    def read_stats(self, stats_file):
         """retrieve a distant file and works with it"""
-        if self.is_url.search(stats_file) is not None: 
+        if self.is_url.search(stats_file) is not None:
             path, fileobj = self.get_and_cache(stats_file)
             if path == '':
                 return iter([])
@@ -181,6 +182,7 @@ def usage(msg=None):
         print msg
     print "Usage: processlogs <pypi-targetdir> logfile [logfile...]"
     raise SystemExit
+
 
 def main():
     if len(sys.argv) < 3:
@@ -213,5 +215,6 @@ def main():
         def _get_logs(self, logfile, files_url):
             return records
     stats = Stats()
-    for year,month,day in days:
-        stats.build_local_stats(year, month, day, None, os.path.join(statsdir, 'days'))
+    for year, month, day in days:
+        stats.build_local_stats(year, month, day, None,
+                                os.path.join(statsdir, 'days'))

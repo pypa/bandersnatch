@@ -4,13 +4,9 @@ import Queue
 import datetime
 import fcntl
 import logging
-import multiprocessing.pool
 import optparse
 import os
-import pkg_resources
 import requests
-import shutil
-import socket
 import sys
 import threading
 
@@ -86,7 +82,8 @@ class Mirror(object):
             todo = self.master.list_packages()
         else:
             logger.info('Syncing based on changelog.')
-            todo, self.target_serial = self.master.changed_packages(self.synced_serial)
+            todo, self.target_serial = self.master.changed_packages(
+                self.synced_serial)
 
         logger.info('Current master serial: {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
@@ -139,7 +136,8 @@ class Mirror(object):
         self.synced_serial = self.target_serial
         os.unlink(self.todolist)
         logger.info('New mirror serial: {}'.format(self.synced_serial))
-        with open(os.path.join(self.homedir, "web", "last-modified"), "wb") as f:
+        last_modified = os.path.join(self.homedir, "web", "last-modified")
+        with open(last_modified, "wb") as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
@@ -157,7 +155,8 @@ class Mirror(object):
             self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
             fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
-            raise RuntimeError('Could not acquire lock on {}. '
+            raise RuntimeError(
+                'Could not acquire lock on {}. '
                 'Another instance seems to be running.'.format(
                     self.lockfile.name))
 
@@ -187,7 +186,8 @@ def main():
         opts.error("You have to specify a target directory")
 
     ch = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s %(name)s %(levelname)s: %(message)s')
     ch.setFormatter(formatter)
     logger = logging.getLogger('bandersnatch')
     logger.setLevel(logging.DEBUG)
