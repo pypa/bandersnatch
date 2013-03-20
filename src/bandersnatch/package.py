@@ -97,10 +97,13 @@ class Package(object):
         return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
-        # XXX
         master_files = [self._file_url_to_local_path(f['url'])
                         for f in release_files]
         existing_files = list(self.package_files)
+        to_remove = set(existing_files) - set(master_files)
+        for filename in to_remove:
+            logger.info('Removing deleted file {}'.format(filename))
+            os.unlink(filename)
 
     def download_file(self, url, md5sum):
         path = self._file_url_to_local_path(url)
