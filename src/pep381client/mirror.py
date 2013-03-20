@@ -81,7 +81,6 @@ class Mirror:
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
         with open(index_page, "wb") as f:
             f.write(r.content)
-        # XXX add serversignature downloading here. check before writing them out
 
     def wrapup_successful_sync(self):
         if self.errors:
