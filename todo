@@ -1,6 +1,5 @@
 Must-be
 
-- keep a todo list for allowing a full sync to resume
 - review all scripts
 - use config file
 - flake8 check
