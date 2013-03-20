@@ -15,7 +15,6 @@ class Package(object):
         self.name = name
         self.mirror = mirror
 
-
     @property
     def package_directories(self):
         return glob.glob(os.path.join(
@@ -46,7 +45,10 @@ class Package(object):
                 self.delete()
                 return
             self.sync_release_files()
-            self.sync_simple_page()
+            if self.releases:
+                self.sync_simple_page()
+            else:
+                self.remove_simple_page()
         except Exception:
             logger.exception('Error syncing package: {}'.format(self.name))
             self.mirror.errors = True
@@ -62,6 +64,14 @@ class Package(object):
 
         for release_file in release_files:
             self.download_file(release_file['url'], release_file['md5_digest'])
+
+    def remove_simple_page(self):
+        logger.info('Removing index page: {}'.format(self.name))
+        simple_page = os.path.join(self.simple_directory, 'index.html')
+        if os.path.exists(simple_page):
+            os.unlink(simple_page)
+        if os.path.exists(self.serversig_file):
+            os.unlink(self.serversig_file)
 
     def sync_simple_page(self):
         logger.info('Syncing index page: {}'.format(self.name))

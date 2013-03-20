@@ -84,7 +84,9 @@ class Mirror:
     def sync_packages(self):
         queue = Queue.Queue()
         logger.info('{} packages to sync.'.format(len(self.packages_to_sync)))
-        for name in self.packages_to_sync:
+        # Sorting the packages alphabetically makes it more predicatable:
+        # easier to debug and easier to follow in the logs.
+        for name in sorted(self.packages_to_sync):
             queue.put(Package(name, self))
 
         # This is a rather complicated setup just to keep Ctrl-C working.
