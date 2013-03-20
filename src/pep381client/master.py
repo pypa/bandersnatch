@@ -1,15 +1,19 @@
+from threading import local
 import xmlrpclib
 
 
 class Master(object):
 
-    def __init__(self, url='https://testpypi.python.org'):
+    def __init__(self, url='https://pypi.python.org'):
         self.url = url
-        self.rpc = xmlrpclib.ServerProxy(self.xmlrpc_url)
+
+    @property
+    def rpc(self):
+        return xmlrpclib.ServerProxy(self.xmlrpc_url)
 
     @property
     def xmlrpc_url(self):
-        return '{}/pypi'.format(self.url)
+        return '{}/pypi/'.format(self.url)
 
     def list_packages(self):
         return self.rpc.list_packages()
