@@ -1,0 +1,24 @@
+This is a PyPI mirror client according to PEP 381.
+
+Installation
+------------
+
+XXX coming up
+
+Migrating from pep381client installations
+-----------------------------------------
+
+* update cronjobs 
+* update config 
+* remove old status files
+
+Contact
+-------
+
+If you have questions or comments, please submit a bug report to
+http://bitbucket.org/ctheune/bandersnatch/issues/new.
+
+Kudos
+-----
+
+This client is based heavily off the original pep381client by Martin v. Loewis.

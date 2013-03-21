@@ -1,0 +1,16 @@
+syntax:glob
+*.egg-info
+*.swp
+*.pyc
+.*~
+.Python
+.installed.cfg
+MANIFEST
+bin
+build
+develop-eggs
+dist
+eggs
+include
+lib
+web
