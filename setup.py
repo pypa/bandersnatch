@@ -5,7 +5,8 @@ from setuptools import setup, find_packages
 setup(name='bandersnatch',
       version='1.0dev',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
-      long_description=open('README').read(),
+      long_description='\n\n'.join(
+        [open('README').read(), open('CHANGES.txt').read()]),
       author='Christian Theune',
       author_email='ct@gocept.com',
       license = 'Academic Free License, version 3',
