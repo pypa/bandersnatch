@@ -134,7 +134,8 @@ class Mirror(object):
         if self.errors:
             return
         self.synced_serial = self.target_serial
-        os.unlink(self.todolist)
+        if os.path.exists(self.todolist):
+            os.unlink(self.todolist)
         logger.info(u'New mirror serial: {}'.format(self.synced_serial))
         last_modified = os.path.join(self.homedir, "web", "last-modified")
         with open(last_modified, "wb") as f:
