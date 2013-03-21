@@ -15,7 +15,11 @@ setup(name='bandersnatch',
       include_package_data=True,
       install_requires=[
           'distribute',
-          'requests'],
+          'mock',
+          'pytest',
+          'pytest-cov',
+          'requests',
+          ],
       entry_points="""
             [console_scripts]
                 bsn-mirror = bandersnatch.mirror:main
