@@ -3,6 +3,8 @@ This is a PyPI mirror client according to PEP 381.
 Installation
 ------------
 
+* Only runs with Python 2.7
+
 XXX coming up
 
 Migrating from pep381client installations
