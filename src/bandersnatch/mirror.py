@@ -198,7 +198,7 @@ class Mirror(object):
             f.write(str(self.synced_serial))
 
 
-def main():
+def setup_logging():
     ch = logging.StreamHandler()
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s')
@@ -206,6 +206,10 @@ def main():
     logger = logging.getLogger('bandersnatch')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
+
+
+def main():
+    setup_logging()
 
     parser = argparse.ArgumentParser(
         description='Sync PyPI mirror with master server.')

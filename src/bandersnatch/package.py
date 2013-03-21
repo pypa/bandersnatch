@@ -18,9 +18,9 @@ class Package(object):
 
     @property
     def package_directories(self):
-        return glob.glob(os.path.join(
-            self.mirror.webdir, 'packages/*/{}/{}'.format(
-                self.name[0], self.name)))
+        expr = '{}/packages/*/{}/{}'.format(
+            self.mirror.webdir, self.name[0], self.name)
+        return glob.glob(expr)
 
     @property
     def package_files(self):
