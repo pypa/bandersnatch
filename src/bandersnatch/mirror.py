@@ -145,14 +145,15 @@ class Mirror(object):
         self._save()
 
     def _bootstrap(self):
-        if not os.path.exists(self.homedir):
-            logger.info(u'Setting up empty mirror tree.')
-            for d in ('',
-                      'web/simple',
-                      'web/packages',
-                      'web/serversig',
-                      'web/local-stats/days'):
-                os.makedirs(os.path.join(self.homedir, d))
+        for path in ('',
+                     'web/simple',
+                     'web/packages',
+                     'web/serversig',
+                     'web/local-stats/days'):
+            path = os.path.join(self.homedir, path)
+            if not os.path.exists(path):
+                logger.info(u'Setting up mirror directory: {}'.format(path))
+                os.makedirs(path)
 
         try:
             self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
