@@ -1,9 +1,10 @@
 syntax:glob
 *.egg-info
-*.swp
 *.pyc
+*.swp
 .*~
 .Python
+.coverage
 .installed.cfg
 MANIFEST
 bin
@@ -11,6 +12,7 @@ build
 develop-eggs
 dist
 eggs
+htmlcov
 include
 lib
 web
