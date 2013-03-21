@@ -39,19 +39,23 @@ class Mirror(object):
     # mirror's serial if false.
     stop_on_error = False
 
+    delete_packages = True
+
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
     # of it when starting to sync.
     now = None
 
-
-    def __init__(self, homedir, master, stop_on_error=False, workers=3):
+    def __init__(self, homedir, master, stop_on_error=False, workers=3,
+                 delete_packages=True):
         self.homedir = homedir
         self.master = master
         self.stop_on_error = stop_on_error
+        self.delete_packages = delete_packages
         self.workers = workers
         if self.workers > 50:
-            raise ValueError('Downloading with more than 50 workers is not allowed.')
+            raise ValueError(
+                'Downloading with more than 50 workers is not allowed.')
 
         self.packages_to_sync = set()
         self._bootstrap()
@@ -203,16 +207,18 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
 
-    parser = argparse.ArgumentParser(description='Sync PyPI mirror with master server.')
+    parser = argparse.ArgumentParser(
+        description='Sync PyPI mirror with master server.')
     parser.add_argument('-c', '--config', default='/etc/bandersnatch.conf',
                         help='use configuration file (default: %(default)s)')
     args = parser.parse_args()
 
     default_config = os.path.join(os.path.dirname(__file__), 'default.conf')
     if not os.path.exists(args.config):
-        logger.warning('Config file \'{}\' missing, creating default config.'
-            .format(args.config))
-        logger.warning('Please review the config file, then run \'bsn-mirror\' again.')
+        logger.warning('Config file \'{}\' missing, creating default config.'.
+                       format(args.config))
+        logger.warning(
+            'Please review the config file, then run \'bsn-mirror\' again.')
         try:
             shutil.copy(default_config, args.config)
         except IOError, e:
@@ -226,5 +232,6 @@ def main():
     mirror = Mirror(
         config.get('mirror', 'directory'), master,
         stop_on_error=config.getboolean('mirror', 'stop-on-error'),
-        workers=config.getint('mirror', 'workers'))
+        workers=config.getint('mirror', 'workers'),
+        delete_packages=config.getboolean('mirror', 'delete-packages'))
     mirror.synchronize()

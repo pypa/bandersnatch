@@ -97,7 +97,8 @@ class Package(object):
         return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
-        # XXX make configurable
+        if not self.mirror.delete_packages:
+            return
         master_files = [self._file_url_to_local_path(f['url'])
                         for f in release_files]
         existing_files = list(self.package_files)
