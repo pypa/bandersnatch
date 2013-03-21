@@ -1,0 +1,67 @@
+This is a PyPI mirror client according to PEP 381.
+
+Installation
+------------
+
+Until a release is ready, here's the way to go::
+
+  $ hg clone https://bitbucket.org/ctheune/bandersnatch
+  $ cd bandersnatch
+  $ virtualenv-2.7 .
+  $ bin/python bootstrap.py
+  $ bin/buildout
+
+Use 'bin/bsn-mirror' to get started. It will create a default config file for
+you with reasonable defaults. Review it. Then run 'bin/bsn-mirror' to
+initialize the mirror and use cron to run it regularly to keep up to date.
+
+Mirror vhost configuration
+--------------------------
+
+For nginx the config should look something like this::
+
+    server {
+        listen 127.0.0.1:80;
+        server_name mymirrorname;
+        root <path-to-mirror>/web;
+        autoindex on;
+        charset utf-8;
+    }
+
+Note the ``charset utf-8``! Otherwise the index pages will be served with an
+incorrect encoding. They will be correct but Unicode characters might end up
+looking funny.
+
+Maintenance instructions
+------------------------
+
+bandersnatch does not keep much local state in addition to the mirrored data.
+In general you can just rerun it to make it fix errors and you can force it to
+check everything by deleting the state files.
+
+If you notice your mirror being inconsistent or you just want to cross-check,
+then:
+
+* delete the ./state file and ./todo (if it should exist)
+* run bin/bsn-mirror again to get a full sync
+
+Be aware, that this might take hours depending on PyPIs performance and your
+network latency and bandwidth.
+
+Migrating from pep381client installations
+-----------------------------------------
+
+* remove old status files
+* create config file
+* update cronjobs
+
+Contact
+-------
+
+If you have questions or comments, please submit a bug report to
+http://bitbucket.org/ctheune/bandersnatch/issues/new.
+
+Kudos
+-----
+
+This client is based heavily off the original pep381client by Martin v. Loewis.
