@@ -28,7 +28,7 @@ For nginx the config should look something like this::
         charset utf-8;
     }
 
-Note the `charset utf-8`! Otherwise the index pages will be served with an
+Note the ``charset utf-8``! Otherwise the index pages will be served with an
 incorrect encoding. They will be correct but Unicode characters might end up
 looking funny.
 
