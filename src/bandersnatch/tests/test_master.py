@@ -1,14 +1,5 @@
 from bandersnatch.master import Master
-import mock
-import pytest
 import xmlrpclib
-
-
-@pytest.fixture
-def master():
-    master = Master('http://pypi.example.com')
-    master.rpc = mock.Mock()
-    return master
 
 
 def test_rpc_factory():
