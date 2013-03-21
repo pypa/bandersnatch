@@ -1,8 +1,10 @@
 Must-be
 
+- clean up argparse in main script
 - use config file
 - XXX review
-
+- test coverage
+ 
 Optional/Later
 
 - continuous integration build
