@@ -15,6 +15,23 @@ Use 'bin/bsn-mirror' to get started. It will create a default config file for
 you with reasonable defaults. Review it. Then run 'bin/bsn-mirror' to
 initialize the mirror and use cron to run it regularly to keep up to date.
 
+Mirror vhost configuration
+--------------------------
+
+For nginx the config should look something like this::
+
+    server {
+        listen 127.0.0.1:80;
+        server_name mymirrorname;
+        root <path-to-mirror>/web;
+        autoindex on;
+        charset utf-8;
+    }
+
+Note the `charset utf-8`! Otherwise the index pages will be served with an
+incorrect encoding. They will be correct but Unicode characters might end up
+looking funny.
+
 Maintenance instructions
 ------------------------
 
