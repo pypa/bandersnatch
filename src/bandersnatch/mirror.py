@@ -1,14 +1,17 @@
 from .master import Master
 from .package import Package
+import ConfigParser
 import Queue
+import argparse
 import datetime
 import fcntl
 import logging
-import optparse
 import os
 import requests
+import shutil
 import sys
 import threading
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +35,24 @@ class Mirror(object):
     synced_serial = 0       # The last serial we have consistently synced to.
     target_serial = None    # What is the serial we are trying to reach?
     errors = None
-    stop_on_error = True    # XXX make configurable
+    # Stop soon after meeting an error. Continue without updating the
+    # mirror's serial if false.
+    stop_on_error = False
 
-    # We are required to leave a 'last changed' timestamp. I'd rather err on
-    # the side of giving a timestamp that is too old so we keep track of it
-    # when starting to sync.
+    # We are required to leave a 'last changed' timestamp. I'd rather err
+    # on the side of giving a timestamp that is too old so we keep track
+    # of it when starting to sync.
     now = None
 
-    def __init__(self, homedir, master):
+
+    def __init__(self, homedir, master, stop_on_error=False, workers=3):
         self.homedir = homedir
         self.master = master
+        self.stop_on_error = stop_on_error
+        self.workers = workers
+        if self.workers > 50:
+            raise ValueError('Downloading with more than 50 workers is not allowed.')
+
         self.packages_to_sync = set()
         self._bootstrap()
         self._finish_lock = threading.RLock()
@@ -56,6 +67,7 @@ class Mirror(object):
         return os.path.join(self.homedir, 'todo')
 
     def synchronize(self):
+        logger.info('Syncing with {}.'.format(self.master.url))
         self.now = datetime.datetime.utcnow()
 
         self.determine_packages_to_sync()
@@ -183,22 +195,36 @@ class Mirror(object):
 
 
 def main():
-    opts = optparse.OptionParser(usage="Usage: bsn-mirror <targetdir>")
-    options, args = opts.parse_args()
-
-    if len(args) != 1:
-        opts.error("You have to specify a target directory")
-
     ch = logging.StreamHandler()
     formatter = logging.Formatter(
-        '%(asctime)s %(name)s %(levelname)s: %(message)s')
+        '%(asctime)s %(levelname)s: %(message)s')
     ch.setFormatter(formatter)
     logger = logging.getLogger('bandersnatch')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
 
-    targetdir = args[0]
-    # XXX make configurable
-    master = Master('https://pypi.python.org')
-    state = Mirror(targetdir, master)
-    state.synchronize()
+    parser = argparse.ArgumentParser(description='Sync PyPI mirror with master server.')
+    parser.add_argument('-c', '--config', default='/etc/bandersnatch.conf',
+                        help='use configuration file (default: %(default)s)')
+    args = parser.parse_args()
+
+    default_config = os.path.join(os.path.dirname(__file__), 'default.conf')
+    if not os.path.exists(args.config):
+        logger.warning('Config file \'{}\' missing, creating default config.'
+            .format(args.config))
+        logger.warning('Please review the config file, then run \'bsn-mirror\' again.')
+        try:
+            shutil.copy(default_config, args.config)
+        except IOError, e:
+            logger.error('Could not create config file: {}'.format(str(e)))
+        sys.exit(1)
+
+    config = ConfigParser.ConfigParser()
+    config.read([default_config, args.config])
+
+    master = Master(config.get('mirror', 'master'))
+    mirror = Mirror(
+        config.get('mirror', 'directory'), master,
+        stop_on_error=config.getboolean('mirror', 'stop-on-error'),
+        workers=config.getint('mirror', 'workers'))
+    mirror.synchronize()
