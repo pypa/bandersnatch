@@ -45,6 +45,7 @@ class Mirror(object):
         self.packages_to_sync = set()
         self._bootstrap()
         self._finish_lock = threading.RLock()
+        self._need_index_sync = False
 
     @property
     def webdir(self):
@@ -87,6 +88,7 @@ class Mirror(object):
 
         logger.info(u'Current master serial: {}'.format(self.target_serial))
         self.packages_to_sync.update(todo)
+        self._need_index_sync = bool(self.packages_to_sync)
 
     def sync_packages(self):
         queue = Queue.Queue()
@@ -121,7 +123,7 @@ class Mirror(object):
                 f.write('\n'.join(todo))
 
     def sync_index_page(self):
-        if not self.packages_to_sync:
+        if not self._need_index_sync:
             return
         logger.info(u'Syncing global index page.')
         r = requests.get(self.master.url+'/simple')
