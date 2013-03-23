@@ -14,7 +14,7 @@ def requests(request):
 
 @pytest.fixture(autouse=True)
 def logging(request):
-    from bandersnatch.mirror import setup_logging
+    from bandersnatch.main import setup_logging
     import logging
     handler = setup_logging()
     def tearDown():
@@ -43,3 +43,13 @@ def master_mock():
     master = mock.Mock()
     master.url = 'http://pypi.example.com'
     return master
+
+
+@pytest.fixture
+def mirror_mock(request):
+    patcher = mock.patch('bandersnatch.mirror.Mirror')
+    mirror = patcher.start()
+    def tearDown():
+        patcher.stop()
+    request.addfinalizer(tearDown)
+    return mirror
