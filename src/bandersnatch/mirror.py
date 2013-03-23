@@ -35,6 +35,9 @@ class Mirror(object):
     synced_serial = 0       # The last serial we have consistently synced to.
     target_serial = None    # What is the serial we are trying to reach?
     errors = None
+    packages_to_sync = None
+    need_index_sync = True
+
     # Stop soon after meeting an error. Continue without updating the
     # mirror's serial if false.
     stop_on_error = False
@@ -56,11 +59,8 @@ class Mirror(object):
         if self.workers > 50:
             raise ValueError(
                 'Downloading with more than 50 workers is not allowed.')
-
-        self.packages_to_sync = set()
         self._bootstrap()
         self._finish_lock = threading.RLock()
-        self._need_index_sync = False
 
     @property
     def webdir(self):
@@ -86,10 +86,13 @@ class Mirror(object):
         logger.info(u'Current mirror serial: {}'.format(self.synced_serial))
 
         if os.path.exists(self.todolist):
+            # We started a sync previously and left a todo list as well as the
+            # targetted serial. We'll try to keep going through the todo list
+            # and then mark the targetted serial as done.
+            logger.info(u'Resuming interrupted sync from local todo list.')
             todo = open(self.todolist).readlines()
             self.target_serial = todo.pop(0).strip()
             todo = [x.decode('utf-8').strip() for x in todo]
-            logger.info(u'Resuming aborted sync.')
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
@@ -101,14 +104,17 @@ class Mirror(object):
             logger.info(u'Syncing based on changelog.')
             todo, self.target_serial = self.master.changed_packages(
                 self.synced_serial)
+            # We can avoid downloading the main index page if we don't have
+            # anything todo at all during a changelog-based sync.
+            self.need_index_sync = bool(todo)
 
-        logger.info(u'Current master serial: {}'.format(self.target_serial))
-        self.packages_to_sync.update(todo)
-        self._need_index_sync = bool(self.packages_to_sync)
+        self.packages_to_sync = set(todo)
+
+        logger.info(u'Trying to reach serial: {}'.format(self.target_serial))
+        logger.info(u'{} packages to sync.'.format(len(self.packages_to_sync)))
 
     def sync_packages(self):
         queue = Queue.Queue()
-        logger.info(u'{} packages to sync.'.format(len(self.packages_to_sync)))
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
@@ -139,7 +145,7 @@ class Mirror(object):
                 f.write('\n'.join(todo))
 
     def sync_index_page(self):
-        if not self._need_index_sync:
+        if not self.need_index_sync:
             return
         logger.info(u'Syncing global index page.')
         r = requests.get(self.master.url+'/simple')
@@ -206,6 +212,7 @@ def setup_logging():
     logger = logging.getLogger('bandersnatch')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
+    return ch
 
 
 def main():

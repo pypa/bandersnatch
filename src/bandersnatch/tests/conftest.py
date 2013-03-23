@@ -36,3 +36,10 @@ def mirror(tmpdir, master, monkeypatch):
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror
     return Mirror(str(tmpdir), master)
+
+
+@pytest.fixture
+def master_mock():
+    master = mock.Mock()
+    master.url = 'http://pypi.example.com'
+    return master
