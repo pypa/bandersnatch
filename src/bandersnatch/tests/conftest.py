@@ -13,9 +13,14 @@ def requests(request):
 
 
 @pytest.fixture(autouse=True)
-def logging():
+def logging(request):
     from bandersnatch.mirror import setup_logging
-    setup_logging()
+    import logging
+    handler = setup_logging()
+    def tearDown():
+        logger = logging.getLogger('bandersnatch')
+        logger.removeHandler(handler)
+    request.addfinalizer(tearDown)
 
 
 @pytest.fixture
