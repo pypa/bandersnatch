@@ -84,13 +84,13 @@ class Package(object):
             os.makedirs(self.simple_directory)
 
         simple_page = os.path.join(self.simple_directory, 'index.html')
-        with open(simple_page, 'wb') as f:
+        with utils.rewrite(simple_page) as f:
             f.write(r.content)
 
         r = requests.get(self.mirror.master.url + '/serversig/' +
                          urllib2.quote(self.name.encode('utf-8')) + '/')
         r.raise_for_status()
-        with open(self.serversig_file, 'wb') as f:
+        with utils.rewrite(self.serversig_file) as f:
             f.write(r.content)
 
     def _file_url_to_local_path(self, url):
@@ -113,8 +113,6 @@ class Package(object):
 
     def download_file(self, url, md5sum):
         path = self._file_url_to_local_path(url)
-        tmppath = os.path.join(os.path.dirname(path),
-                               '.downloading.'+os.path.basename(path))
 
         # Avoid downloading again if we have the file and it matches the hash.
         if os.path.exists(path):
@@ -137,17 +135,14 @@ class Package(object):
         r = requests.get(url, stream=True)
         r.raise_for_status()
         checksum = hashlib.md5()
-        with open(tmppath, "wb") as f:
+        with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):
                 checksum.update(chunk)
                 f.write(chunk)
-
-        existing_hash = checksum.hexdigest()
-        if existing_hash != md5sum:
-            os.unlink(tmppath)
-            raise ValueError('{} has hash {} instead of {}'.format(
-                url, existing_hash, md5sum))
-        os.rename(tmppath, path)
+            existing_hash = checksum.hexdigest()
+            if existing_hash != md5sum:
+                raise ValueError('{} has hash {} instead of {}'.format(
+                    url, existing_hash, md5sum))
 
     def delete(self):
         logger.info(u'Deleting package: {}'.format(self.name))

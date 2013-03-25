@@ -1,5 +1,6 @@
 from .master import Master
 from .package import Package
+from .utils import rewrite
 import ConfigParser
 import Queue
 import argparse
@@ -151,7 +152,7 @@ class Mirror(object):
         r = requests.get(self.master.url+'/simple')
         r.raise_for_status()
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
-        with open(index_page, "wb") as f:
+        with rewrite(index_page) as f:
             f.write(r.content)
 
     def wrapup_successful_sync(self):
@@ -162,7 +163,7 @@ class Mirror(object):
             os.unlink(self.todolist)
         logger.info(u'New mirror serial: {}'.format(self.synced_serial))
         last_modified = os.path.join(self.homedir, "web", "last-modified")
-        with open(last_modified, "wb") as f:
+        with rewrite(last_modified) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
