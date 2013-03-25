@@ -19,22 +19,26 @@ class Package(object):
     @property
     def package_directories(self):
         expr = '{}/packages/*/{}/{}'.format(
-            self.mirror.webdir, self.name[0], self.name)
+            self.mirror.webdir,
+            self.name[0].encode('utf-8'),
+            self.name.encode('utf-8'))
         return glob.glob(expr)
 
     @property
     def package_files(self):
-        return glob.glob(os.path.join(
-            self.mirror.webdir, u'packages/*/{}/{}/*'.format(
-                self.name[0], self.name)))
+        expr = '{}/packages/*/{}/{}/*'.format(
+            self.mirror.webdir,
+            self.name[0].encode('utf-8'),
+            self.name.encode('utf-8'))
+        return glob.glob(expr)
 
     @property
     def simple_directory(self):
-        return os.path.join(self.mirror.webdir, 'simple', self.name)
+        return os.path.join(self.mirror.webdir, 'simple', self.name.encode('utf-8'))
 
     @property
     def serversig_file(self):
-        return os.path.join(self.mirror.webdir, 'serversig', self.name)
+        return os.path.join(self.mirror.webdir, 'serversig', self.name.encode('utf-8'))
 
     @property
     def directories(self):
@@ -94,7 +98,7 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {}'.format(url))
         path = path[1:]
-        return os.path.join(self.mirror.webdir, path)
+        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
