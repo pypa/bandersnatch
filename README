@@ -1,4 +1,4 @@
-This is a PyPI mirror client according to PEP 381.
+This is a PyPI mirror client according to `PEP 381 <http://www.python.org/dev/peps/pep-0381/>`_.
 
 .. image:: https://builds.gocept.com/job/bandersnatch/badge/icon
    :target: https://builds.gocept.com/job/bandersnatch/
