@@ -24,7 +24,7 @@ def test_mirror_empty_master_gets_index(mirror, master_mock, requests):
     mirror.master = master_mock
     mirror.master.list_packages.return_value = []
     mirror.master.get_current_serial.return_value = 1
-    
+
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
     requests.return_value = simple_index_page
@@ -49,7 +49,7 @@ def test_mirror_empty_master_gets_index(mirror, master_mock, requests):
 def test_mirror_empty_resume_from_todo_list(mirror, master_mock, requests):
     mirror.master = master_mock
     mirror.master.get_current_serial.return_value = 2
-    
+
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
     requests.return_value = simple_index_page
@@ -82,7 +82,7 @@ def test_mirror_empty_sync_from_changelog(mirror, master_mock, requests):
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
     requests.return_value = simple_index_page
-    
+
     with open('status', 'w') as status:
         status.write('1')
     with open('web/simple/index.html', 'w') as simple:
@@ -95,7 +95,8 @@ def test_mirror_empty_sync_from_changelog(mirror, master_mock, requests):
     assert open('status').read() == '3'
 
 
-def test_mirror_empty_sync_with_errors_keeps_index_and_status(mirror, master_mock, requests):
+def test_mirror_empty_sync_with_errors_keeps_index_and_status(
+        mirror, master_mock, requests):
     mirror.master = master_mock
     mirror.master.get_current_serial.return_value = 2
     mirror.master.changed_packages.return_value = ([], 3)
@@ -103,7 +104,7 @@ def test_mirror_empty_sync_with_errors_keeps_index_and_status(mirror, master_moc
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
     requests.return_value = simple_index_page
-    
+
     with open('status', 'w') as status:
         status.write('1')
     with open('web/simple/index.html', 'w') as simple:
@@ -135,7 +136,10 @@ def test_mirror_sync_package(mirror, master_mock, requests):
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
 
-    responses = iter([release_download, simple_page, serversig, simple_index_page])
+    responses = iter([release_download,
+                      simple_page,
+                      serversig,
+                      simple_index_page])
     requests.side_effect = lambda *args, **kw: responses.next()
 
     mirror.synchronize()
@@ -152,7 +156,8 @@ def test_mirror_sync_package(mirror, master_mock, requests):
     assert open('status').read() == '1'
 
 
-def test_mirror_sync_package_error_no_early_exit(mirror, master_mock, requests):
+def test_mirror_sync_package_error_no_early_exit(
+        mirror, master_mock, requests):
     mirror.master = master_mock
     mirror.master.get_current_serial.return_value = 1
     mirror.master.list_packages.return_value = ['foo']
@@ -170,7 +175,10 @@ def test_mirror_sync_package_error_no_early_exit(mirror, master_mock, requests):
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
 
-    responses = iter([release_download, simple_page, serversig, simple_index_page])
+    responses = iter([release_download,
+                      simple_page,
+                      serversig,
+                      simple_index_page])
     requests.side_effect = lambda *args, **kw: responses.next()
 
     mirror.errors = True
@@ -204,7 +212,10 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock, requests):
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
 
-    responses = iter([release_download, simple_page, serversig, simple_index_page])
+    responses = iter([release_download,
+                      simple_page,
+                      serversig,
+                      simple_index_page])
     requests.side_effect = lambda *args, **kw: responses.next()
 
     with open('web/simple/index.html', 'wb') as index:

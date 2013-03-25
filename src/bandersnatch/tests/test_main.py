@@ -44,5 +44,7 @@ def test_main_reads_config_values(capsys, mirror_mock):
     (homedir, master), kwargs = mirror_mock.call_args_list[0]
     assert '/srv/pypi' == homedir
     assert isinstance(master, bandersnatch.master.Master)
-    assert {'delete_packages': True, 'stop_on_error': False, 'workers': 3} == kwargs
+    assert {'delete_packages': True,
+            'stop_on_error': False,
+            'workers': 3} == kwargs
     assert mirror_mock().synchronize.called

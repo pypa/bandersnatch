@@ -6,6 +6,7 @@ import pytest
 def requests(request):
     patcher = mock.patch('requests.get')
     requests = patcher.start()
+
     def tearDown():
         patcher.stop()
     request.addfinalizer(tearDown)
@@ -17,6 +18,7 @@ def logging(request):
     from bandersnatch.main import setup_logging
     import logging
     handler = setup_logging()
+
     def tearDown():
         logger = logging.getLogger('bandersnatch')
         logger.removeHandler(handler)
@@ -49,6 +51,7 @@ def master_mock():
 def mirror_mock(request):
     patcher = mock.patch('bandersnatch.mirror.Mirror')
     mirror = patcher.start()
+
     def tearDown():
         patcher.stop()
     request.addfinalizer(tearDown)

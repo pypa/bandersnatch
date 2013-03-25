@@ -1,15 +1,11 @@
-from .master import Master
 from .package import Package
 from .utils import rewrite
-import ConfigParser
 import Queue
-import argparse
 import datetime
 import fcntl
 import logging
 import os
 import requests
-import shutil
 import sys
 import threading
 

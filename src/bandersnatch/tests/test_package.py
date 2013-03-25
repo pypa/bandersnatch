@@ -2,7 +2,7 @@ from bandersnatch.package import Package
 import mock
 import os.path
 
- 
+
 def test_package_directories_and_files_on_empty_mirror(mirror):
     package = Package('foo', mirror)
     assert [] == package.package_directories
@@ -51,7 +51,9 @@ def test_package_sync_no_releases_deletes_package_race_condition(mirror):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = []
 
-    # web/simple/foo/index.html is always expected to exist. we don't fail if it doesn't, though.
+    # web/simple/foo/index.html is always expected to exist. we don't fail if
+    # it doesn't, though. Good for testing the race condition in the delete
+    # function.
     paths = ['web/packages/2.4/f/foo/foo.zip',
              'web/serversig/foo']
     for path in paths:
@@ -123,7 +125,8 @@ def test_package_sync_downloads_release_file(
     package = Package('foo', mirror)
     package.sync()
 
-    assert open('web/packages/any/f/foo/foo.zip').read() == 'the release content'
+    assert open('web/packages/any/f/foo/foo.zip').read() == (
+        'the release content')
 
 
 def test_package_download_rejects_non_package_directory_links(
@@ -204,7 +207,8 @@ def test_package_sync_replaces_mismatching_local_files(
     package = Package('foo', mirror)
     package.sync()
 
-    assert open('web/packages/any/f/foo/foo.zip').read() == 'the release content'
+    assert open('web/packages/any/f/foo/foo.zip').read() == (
+        'the release content')
 
 
 def test_package_sync_does_not_touch_existing_local_file(
@@ -244,7 +248,7 @@ def test_sync_does_not_keep_download_with_incorrect_checksum(
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
-    release_download.iter_content.return_value = iter('not the release content')
+    release_download.iter_content.return_value = iter('not release content')
     requests.return_value = release_download
 
     mirror.packages_to_sync = set(['foo'])
