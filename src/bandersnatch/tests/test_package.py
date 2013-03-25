@@ -18,10 +18,10 @@ def test_package_directories_and_files_with_existing_stuff(mirror):
         filename = os.path.join(path, pkg_name+'.zip')
         open(filename, 'wb')
     package = Package(pkg_name, mirror)
-    dirs = package.package_directories
+    dirs = sorted(package.package_directories)
     dirs = [x.replace(mirror.webdir, '') for x in dirs]
     assert dirs == ['/packages/2.4/f/foo', '/packages/any/f/foo']
-    files = package.package_files
+    files = sorted(package.package_files)
     files = [x.replace(mirror.webdir, '') for x in files]
     assert files == ['/packages/2.4/f/foo/foo.zip',
                      '/packages/any/f/foo/foo.zip']
@@ -45,6 +45,7 @@ def test_package_sync_no_releases_deletes_package(mirror):
     for path in paths:
         path = os.path.join(path)
         assert not os.path.exists(path)
+
 
 def test_package_sync_no_releases_deletes_package_race_condition(mirror):
     mirror.master.package_releases = mock.Mock()
