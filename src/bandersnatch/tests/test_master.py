@@ -24,8 +24,7 @@ def test_changed_packages_no_changes(master):
 
 def test_changed_packages_with_changes(master):
     master.rpc().changelog_since_serial.return_value = [
-            ('foobar', 17),
-            ('baz', 18)]
+        ('foobar', 17), ('baz', 18)]
     changes, last_serial = master.changed_packages(4)
     assert list(changes) == ['foobar', 'baz']
     assert last_serial == 18

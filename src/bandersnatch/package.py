@@ -34,11 +34,13 @@ class Package(object):
 
     @property
     def simple_directory(self):
-        return os.path.join(self.mirror.webdir, 'simple', self.name.encode('utf-8'))
+        return os.path.join(
+            self.mirror.webdir, 'simple', self.name.encode('utf-8'))
 
     @property
     def serversig_file(self):
-        return os.path.join(self.mirror.webdir, 'serversig', self.name.encode('utf-8'))
+        return os.path.join(
+            self.mirror.webdir, 'serversig', self.name.encode('utf-8'))
 
     @property
     def directories(self):
