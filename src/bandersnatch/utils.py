@@ -37,4 +37,5 @@ def rewrite(filename):
     _, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
     with open(filename_tmp, 'w') as f:
         yield f
+    os.chmod(filename_tmp, 0100644)
     os.rename(filename_tmp, filename)
