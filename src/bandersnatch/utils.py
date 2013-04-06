@@ -34,7 +34,8 @@ def find(root, dirs=True):
 def rewrite(filename):
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
-    _, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
+    fd, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
+    os.close(fd)
     with open(filename_tmp, 'w') as f:
         yield f
     os.chmod(filename_tmp, 0100644)
