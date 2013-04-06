@@ -1,0 +1,4 @@
+1.0 (unreleased)
+----------------
+
+- Initial release. Massive rewrite of pep381client.
