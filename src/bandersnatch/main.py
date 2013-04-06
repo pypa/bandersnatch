@@ -74,7 +74,8 @@ def main():
     # `mirror` command
     p = subparsers.add_parser(
         'mirror',
-        help='Performs a one-time synchronization with the PyPI master server.')
+        help='Performs a one-time synchronization with '
+             'the PyPI master server.')
     p.set_defaults(func=mirror)
 
     # `update-stats` command

@@ -5,7 +5,6 @@ import gzip
 import os
 import re
 import socket
-import sys
 import urllib2
 
 
