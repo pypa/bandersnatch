@@ -177,34 +177,10 @@ class ApacheDistantLocalStats(ApacheLocalStats):
         return ApacheLocalStats.read_stats(self, path)
 
 
-def usage(msg=None):
-    if msg:
-        print msg
-    print "Usage: processlogs <pypi-targetdir> logfile [logfile...]"
-    raise SystemExit
-
-
-def main():
-    if len(sys.argv) < 3:
-        usage()
-
-    targetdir = sys.argv[1]
-
-    if not os.path.exists(targetdir):
-        usage(targetdir + ' does not exist')
-
-    if not os.path.exists(os.path.join(targetdir, 'web')):
-        usage('Not a pypi mirror (%s/web does not exist)' % targetdir)
-
-    statsdir = os.path.join(targetdir, 'web/local-stats')
-
-    if not os.path.isdir(statsdir):
-        os.mkdir(statsdir)
-        os.mkdir(os.path.join(statsdir, 'days'))
-
+def update_stats(statsdir, logs):
     days = set()
     records = []
-    for fn in sys.argv[2:]:
+    for fn in logs:
         for record in apache_reader.ApacheLogReader(fn, files_url='/packages'):
             days.add((record['year'], record['month'], record['day']))
             records.append(record)
