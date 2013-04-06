@@ -124,9 +124,9 @@ class Package(object):
             if existing_hash == md5sum:
                 return
             else:
-                logger.warning(
-                    'Checksum error with local file {}: '
-                    'expected {} got {}'.format(
+                logger.info(
+                    'Checksum mismatch with local file {}: '
+                    'expected {} got {}, will re-download.'.format(
                         path, md5sum, existing_hash))
                 os.unlink(path)
 

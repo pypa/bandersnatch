@@ -16,7 +16,7 @@ def test_main_help(capsys):
 
 
 def test_main_create_config(capsys, tmpdir):
-    sys.argv = ['bsn-mirror', '-c', str(tmpdir / 'bandersnatch.conf')]
+    sys.argv = ['bandersnatch', '-c', str(tmpdir / 'bandersnatch.conf'), 'mirror']
     with pytest.raises(SystemExit):
         main()
     out, err = capsys.readouterr()
@@ -25,7 +25,7 @@ def test_main_create_config(capsys, tmpdir):
 
 
 def test_main_cant_create_config(capsys, tmpdir):
-    sys.argv = ['bsn-mirror', '-c', str(tmpdir / 'foo' / 'bandersnatch.conf')]
+    sys.argv = ['bandersnatch', '-c', str(tmpdir / 'foo' / 'bandersnatch.conf'), 'mirror']
     with pytest.raises(SystemExit):
         main()
     out, err = capsys.readouterr()
@@ -36,7 +36,7 @@ def test_main_cant_create_config(capsys, tmpdir):
 
 def test_main_reads_config_values(capsys, mirror_mock):
     config = os.path.dirname(bandersnatch.__file__) + '/default.conf'
-    sys.argv = ['bsn-mirror', '-c', config]
+    sys.argv = ['bandersnatch', '-c', config, 'mirror']
     assert os.path.exists(config)
     assert isinstance(bandersnatch.mirror.Mirror, mock.Mock)
     main()
