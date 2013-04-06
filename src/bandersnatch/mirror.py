@@ -72,8 +72,9 @@ class Mirror(object):
         self.now = datetime.datetime.utcnow()
 
         self.determine_packages_to_sync()
-        self.sync_packages()
-        self.sync_index_page()
+        if self.target_serial != self.synced_serial:
+            self.sync_packages()
+            self.sync_index_page()
         self.wrapup_successful_sync()
 
     def determine_packages_to_sync(self):
