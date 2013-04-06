@@ -233,3 +233,19 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock, requests):
 /web/simple/foo/index.html
 /web/simple/index.html""" == utils.find(mirror.homedir, dirs=False)
     assert open('web/simple/index.html').read() == 'old index'
+
+
+def test_mirror_serial_current_no_sync_of_packages_and_index_page(
+        mirror, master_mock, requests):
+    mirror.master = master_mock
+    mirror.master.changed_packages.return_value = ([], 1)
+    mirror.synced_serial = 1
+
+    requests.return_value = mock.Mock()
+
+    mirror.synchronize()
+
+    assert """\
+/.lock
+/status
+/web/last-modified""" == utils.find(mirror.homedir, dirs=False)
