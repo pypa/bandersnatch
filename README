@@ -19,8 +19,9 @@ Use 'bin/bsn-mirror' to get started. It will create a default config file for
 you with reasonable defaults. Review it. Then run 'bin/bsn-mirror' to
 initialize the mirror and use cron to run it regularly to keep up to date.
 
-Mirror vhost configuration
---------------------------
+
+Webserver configuration
+-----------------------
 
 For nginx the config should look something like this::
 
@@ -39,6 +40,21 @@ looking funny.
 Also, you need to make sure that the webserver uses UTF-8 to look up unicode
 path names.
 
+
+Cron setup
+----------
+
+Here's a sample cron file that you could place in '/etc/cron.d/bandersnatch'
+for example::
+
+    LC_ALL=en_US.utf8
+    */2 * * * * root /opt/bandersnatch/bin/bandersnatch mirror |& logger -t bandersnatch[mirror]
+    12 * * * * root /opt/bandersnatch/bin/bandersnatch update-stats |& logger -t bandersnatch[update-stats]
+
+This assumes that you have a 'logger' utility installed that will convert the
+output of the commands to syslog entries.
+
+
 Maintenance instructions
 ------------------------
 
@@ -55,6 +71,7 @@ then:
 Be aware, that this might take hours depending on PyPIs performance and your
 network latency and bandwidth.
 
+
 Migrating from pep381client installations
 -----------------------------------------
 
@@ -62,13 +79,19 @@ Migrating from pep381client installations
 * create config file
 * update cronjobs
 
+
 Contact
 -------
 
 If you have questions or comments, please submit a bug report to
 http://bitbucket.org/ctheune/bandersnatch/issues/new.
 
+If you'd like to support my work on PyPI mirrors, please consider a `gittip
+<https://www.gittip.com/theuni/>`_. I'm planning to run a couple more
+international mirrors if I get enough support.
+
+
 Kudos
 -----
 
-This client is based heavily off the original pep381client by Martin v. Loewis.
+This client is based on the original pep381client by Martin v. Loewis.

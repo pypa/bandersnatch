@@ -23,6 +23,5 @@ setup(name='bandersnatch',
           ],
       entry_points="""
             [console_scripts]
-                bsn-mirror = bandersnatch.main:main
-                bsn-processlogs = bandersnatch.apache_stats:main
+                bandersnatch = bandersnatch.main:main
       """)
