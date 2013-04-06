@@ -5,6 +5,7 @@ import logging
 import os.path
 import requests
 import shutil
+import urllib
 import urllib2
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class Package(object):
 
     def _file_url_to_local_path(self, url):
         path = url.replace(self.mirror.master.url, '')
+        path = urllib.unquote(path)
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {}'.format(url))
         path = path[1:]
