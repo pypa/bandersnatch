@@ -16,7 +16,8 @@ def test_main_help(capsys):
 
 
 def test_main_create_config(capsys, tmpdir):
-    sys.argv = ['bandersnatch', '-c', str(tmpdir / 'bandersnatch.conf'), 'mirror']
+    sys.argv = ['bandersnatch', '-c', str(tmpdir / 'bandersnatch.conf'),
+                'mirror']
     with pytest.raises(SystemExit):
         main()
     out, err = capsys.readouterr()
@@ -25,7 +26,9 @@ def test_main_create_config(capsys, tmpdir):
 
 
 def test_main_cant_create_config(capsys, tmpdir):
-    sys.argv = ['bandersnatch', '-c', str(tmpdir / 'foo' / 'bandersnatch.conf'), 'mirror']
+    sys.argv = ['bandersnatch',
+                '-c', str(tmpdir / 'foo' / 'bandersnatch.conf'),
+                'mirror']
     with pytest.raises(SystemExit):
         main()
     out, err = capsys.readouterr()
