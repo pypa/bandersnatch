@@ -79,7 +79,7 @@ Migrating from pep381client installations
 
 * remove old status files
 * create config file
-* update cronjobs
+* update cron jobs
 
 
 Contact
