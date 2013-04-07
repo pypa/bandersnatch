@@ -20,16 +20,17 @@ Until a release is ready, here's the way to go::
   $ bin/python bootstrap.py
   $ bin/buildout
 
+The ``bandersnatch`` executable will be placed in the ``bin/`` directory of your virtualenv.
 
 Configuration
 =============
 
-* Run ``bin/bandersnatch mirror`` - it will create an empty configuration file
+* Run ``bandersnatch mirror`` - it will create an empty configuration file
   for you in ``/etc/bandersnatch.conf``.
 * Review ``/etc/bandersnatch.conf`` and adapt to your needs.
-* Run ``bin/bandersnatch mirror`` again. It will populate your mirror with the
+* Run ``bandersnatch mirror`` again. It will populate your mirror with the
   current status of all PyPI packages - roughly 50GiB at the time of writing.
-* Run ``bin/bandersnatch mirror`` regularly to update your mirror with any
+* Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
 
 Webserver
@@ -63,8 +64,8 @@ aggregation on the master PyPI.
 Here's a sample that you could place in ``/etc/cron.d/bandersnatch``::
 
     LC_ALL=en_US.utf8
-    */2 * * * * root /opt/bandersnatch/bin/bandersnatch mirror |& logger -t bandersnatch[mirror]
-    12 * * * * root /opt/bandersnatch/bin/bandersnatch update-stats |& logger -t bandersnatch[update-stats]
+    */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
+    12 * * * * root bandersnatch update-stats |& logger -t bandersnatch[update-stats]
 
 This assumes that you have a ``logger`` utility installed that will convert the
 output of the commands to syslog entries.
