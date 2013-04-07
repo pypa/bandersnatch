@@ -1,5 +1,5 @@
 from .package import Package
-from .utils import rewrite
+from .utils import rewrite, USER_AGENT
 import Queue
 import datetime
 import fcntl
@@ -47,6 +47,7 @@ class Mirror(object):
 
     def __init__(self, homedir, master, stop_on_error=False, workers=3,
                  delete_packages=True):
+        logger.info('{}'.format(USER_AGENT))
         self.homedir = homedir
         self.master = master
         self.stop_on_error = stop_on_error

@@ -1,9 +1,23 @@
 import contextlib
 import hashlib
+import logging
 import os
 import os.path
+import pkg_resources
+import sys
 import tempfile
-import logging
+
+
+def user_agent():
+    template = 'bandersnatch/{version} ({python}, {system})'
+    system = os.uname()
+    system = ' '.join([system[0], system[2], system[4]])
+    version = pkg_resources.require("bandersnatch")[0].version
+    python = sys.subversion[0]
+    python += ' {}.{}.{}-{}{}'.format(*sys.version_info)
+    return template.format(**locals())
+
+USER_AGENT = user_agent()
 
 
 def setup_logging():
