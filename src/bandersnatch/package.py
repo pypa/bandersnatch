@@ -3,7 +3,6 @@ import glob
 import hashlib
 import logging
 import os.path
-import requests
 import shutil
 import urllib
 import urllib2
@@ -15,33 +14,31 @@ class Package(object):
 
     def __init__(self, name, mirror):
         self.name = name
+        self.encoded_name = self.name.encode('utf-8')
+        self.encoded_first = self.name[0].encode('utf-8')
+        self.quoted_name = urllib2.quote(self.encoded_name)
         self.mirror = mirror
 
     @property
     def package_directories(self):
         expr = '{}/packages/*/{}/{}'.format(
-            self.mirror.webdir,
-            self.name[0].encode('utf-8'),
-            self.name.encode('utf-8'))
+            self.mirror.webdir, self.encoded_first, self.encoded_name)
         return glob.glob(expr)
 
     @property
     def package_files(self):
         expr = '{}/packages/*/{}/{}/*'.format(
-            self.mirror.webdir,
-            self.name[0].encode('utf-8'),
-            self.name.encode('utf-8'))
+            self.mirror.webdir, self.encoded_first, self.encoded_name)
         return glob.glob(expr)
 
     @property
     def simple_directory(self):
-        return os.path.join(
-            self.mirror.webdir, 'simple', self.name.encode('utf-8'))
+        return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
 
     @property
     def serversig_file(self):
         return os.path.join(
-            self.mirror.webdir, 'serversig', self.name.encode('utf-8'))
+            self.mirror.webdir, 'serversig', self.encoded_name)
 
     @property
     def directories(self):
@@ -76,12 +73,10 @@ class Package(object):
 
     def sync_simple_page(self):
         logger.info(u'Syncing index page: {}'.format(self.name))
-        # The trailing slash is important. There are packages that have a
-        # trailing ? that will get eaten by the webserver even if we quote it
-        # properly. Yay.
-        r = requests.get(self.mirror.master.url + '/simple/' +
-                         urllib2.quote(self.name.encode('utf-8')) + '/')
-        r.raise_for_status()
+        # The trailing slash is important: there are packages that have a
+        # trailing '?' that will get eaten by the webserver even if we urlquote
+        # it properly. Yay. :/
+        r = self.mirror.master.get('/simple/{}/'.format(self.quoted_name))
 
         if not os.path.exists(self.simple_directory):
             os.makedirs(self.simple_directory)
@@ -90,9 +85,7 @@ class Package(object):
         with utils.rewrite(simple_page) as f:
             f.write(r.content)
 
-        r = requests.get(self.mirror.master.url + '/serversig/' +
-                         urllib2.quote(self.name.encode('utf-8')) + '/')
-        r.raise_for_status()
+        r = self.mirror.master.get('/serversig/{}/'.format(self.quoted_name))
         with utils.rewrite(self.serversig_file) as f:
             f.write(r.content)
 
@@ -136,8 +129,7 @@ class Package(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
+        r = self.mirror.master.get(url, stream=True)
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):

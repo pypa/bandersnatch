@@ -1,14 +1,48 @@
+import httplib
+import requests
 import xmlrpclib
+
+
+class TimeoutTransport(xmlrpclib.Transport):
+
+    def __init__(self, timeout=10.0):
+        xmlrpclib.Transport.__init__(self)
+        self.timeout = timeout
+
+    def make_connection(self, host):
+        # Partially coopied form xmlrpclib.py because their inheritance model
+        # is not very convenient.
+
+        #return an existing connection if possible.  This allows
+        #HTTP/1.1 keep-alive.
+        if self._connection and host == self._connection[0]:
+            return self._connection[1]
+
+        # create an HTTP connection object from a host descriptor
+        chost, self._extra_headers, x509 = self.get_host_info(host)
+        # store the host argument along with the connection object
+        self._connection = host, httplib.HTTPConnection(
+            chost, timeout=self.timeout)
+        return self._connection[1]
 
 
 class Master(object):
 
-    def __init__(self, url):
+    def __init__(self, url, timeout=10.0):
         self.url = url
+        self.timeout = timeout
+
+    def get(self, path, **kw):
+        if not path.startswith(self.url):
+            path = self.url + path
+        r = requests.get(path, timeout=self.timeout, **kw)
+        r.raise_for_status()
+        return r
 
     def rpc(self):
         # This is a function as a wrapper to make it thread-safe.
-        return xmlrpclib.ServerProxy(self.xmlrpc_url)
+        t = TimeoutTransport(self.timeout)
+        return xmlrpclib.ServerProxy(self.xmlrpc_url, transport=t)
 
     @property
     def xmlrpc_url(self):

@@ -5,7 +5,6 @@ import datetime
 import fcntl
 import logging
 import os
-import requests
 import sys
 import threading
 
@@ -146,8 +145,7 @@ class Mirror(object):
         if not self.need_index_sync:
             return
         logger.info(u'Syncing global index page.')
-        r = requests.get(self.master.url+'/simple')
-        r.raise_for_status()
+        r = self.master.get('/simple')
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
         with rewrite(index_page) as f:
             f.write(r.content)

@@ -3,6 +3,18 @@ import hashlib
 import os
 import os.path
 import tempfile
+import logging
+
+
+def setup_logging():
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger = logging.getLogger('bandersnatch')
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+    return ch
 
 
 def hash(path, function='md5'):

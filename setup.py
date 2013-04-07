@@ -19,6 +19,8 @@ setup(name='bandersnatch',
           'mock',
           'pytest',
           'pytest-cov',
+          'pytest-codecheckers',
+          'pytest-capturelog',
           'requests',
           ],
       entry_points="""

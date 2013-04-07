@@ -3,6 +3,7 @@ import argparse
 import bandersnatch.apache_stats
 import bandersnatch.master
 import bandersnatch.mirror
+import bandersnatch.utils
 import glob
 import logging
 import os.path
@@ -13,21 +14,12 @@ import sys
 logger = logging.getLogger(__name__)
 
 
-def setup_logging():
-    ch = logging.StreamHandler()
-    formatter = logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s')
-    ch.setFormatter(formatter)
-    logger = logging.getLogger('bandersnatch')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(ch)
-    return ch
-
-
 def mirror(config):
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
-    master = bandersnatch.master.Master(config.get('mirror', 'master'))
+    master = bandersnatch.master.Master(
+        config.get('mirror', 'master'),
+        float(config.get('mirror', 'timeout')))
     mirror = bandersnatch.mirror.Mirror(
         config.get('mirror', 'directory'), master,
         stop_on_error=config.getboolean('mirror', 'stop-on-error'),
@@ -63,7 +55,7 @@ def update_stats(config):
 
 
 def main():
-    setup_logging()
+    bandersnatch.utils.setup_logging()
 
     parser = argparse.ArgumentParser(
         description='PyPI PEP 381 mirroring client.')
