@@ -20,7 +20,8 @@ Until a release is ready, here's the way to go::
   $ bin/python bootstrap.py
   $ bin/buildout
 
-The ``bandersnatch`` executable will be placed in the ``bin/`` directory of your virtualenv.
+The ``bandersnatch`` executable will be placed in the ``bin/`` directory of
+your virtualenv.
 
 Configuration
 =============
@@ -91,8 +92,7 @@ your network latency and bandwidth.
 Migrating from pep381client
 ===========================
 
-* remove old status files, leave actual data (everything under ``web/`` in
-  place)
+* remove old status files, but keep actual data (everything under ``web/``)
 * create config file, port command parameters from old cronjobs
 * update cron jobs
 
