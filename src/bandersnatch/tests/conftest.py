@@ -14,14 +14,12 @@ def requests(request):
 
 
 @pytest.fixture(autouse=True)
-def logging(request):
-    from bandersnatch.main import setup_logging
-    import logging
-    handler = setup_logging()
+def stop_std_logging(request, capfd):
+    patcher = mock.patch('bandersnatch.utils.setup_logging')
+    patcher.start()
 
     def tearDown():
-        logger = logging.getLogger('bandersnatch')
-        logger.removeHandler(handler)
+        patcher.stop()
     request.addfinalizer(tearDown)
 
 
