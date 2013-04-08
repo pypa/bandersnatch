@@ -7,9 +7,10 @@ import xmlrpclib
 class CustomTransport(xmlrpclib.Transport):
     """This transport adds a custom user agent string and timeout handling."""
 
-    def __init__(self, timeout=10.0):
+    def __init__(self, ssl=False, timeout=10.0):
         xmlrpclib.Transport.__init__(self)
         self.timeout = timeout
+        self.ssl = ssl
 
     def make_connection(self, host):
         # Partially copied from xmlrpclib.py because its inheritance model is
@@ -23,9 +24,20 @@ class CustomTransport(xmlrpclib.Transport):
         # create an HTTP connection object from a host descriptor
         chost, self._extra_headers, x509 = self.get_host_info(host)
         self._extra_headers = [('User-Agent', USER_AGENT)]
+
         # store the host argument along with the connection object
-        self._connection = host, httplib.HTTPConnection(
-            chost, timeout=self.timeout)
+        if not self.ssl:
+            self._connection = host, httplib.HTTPConnection(
+                chost, timeout=self.timeout)
+        else:
+            try:
+                httplib.HTTPSConnection
+            except AttributeError:
+                raise NotImplementedError(
+                    "your version of httplib doesn't support HTTPS")
+            self._connection = host, httplib.HTTPSConnection(
+                chost, None, **(x509 or {}))
+
         return self._connection[1]
 
 
@@ -48,7 +60,8 @@ class Master(object):
 
     def rpc(self):
         # This is a function as a wrapper to make it thread-safe.
-        t = CustomTransport(self.timeout)
+        use_ssl = self.xmlrpc_url.startswith('https:')
+        t = CustomTransport(ssl=use_ssl, timeout=self.timeout)
         return xmlrpclib.ServerProxy(self.xmlrpc_url, transport=t)
 
     @property
