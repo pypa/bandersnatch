@@ -1,0 +1,99 @@
+This is a PyPI mirror client according to `PEP 381
+<http://www.python.org/dev/peps/pep-0381/>`_.
+
+.. image:: https://builds.gocept.com/job/bandersnatch/badge/icon
+   :target: https://builds.gocept.com/job/bandersnatch/
+
+
+Installation
+------------
+
+Until a release is ready, here's the way to go::
+
+  $ hg clone https://bitbucket.org/ctheune/bandersnatch
+  $ cd bandersnatch
+  $ virtualenv-2.7 .
+  $ bin/python bootstrap.py
+  $ bin/buildout
+
+Use ``bin/bandersnatch mirror`` to get started. It will create a default config
+file for you with reasonable defaults. Review it. Then run ``bin/bandersnatch
+mirror`` to initialize the mirror and use cron to run it regularly to keep up to
+date.
+
+
+Webserver configuration
+-----------------------
+
+For nginx the config should look something like this::
+
+    server {
+        listen 127.0.0.1:80;
+        server_name mymirrorname;
+        root <path-to-mirror>/web;
+        autoindex on;
+        charset utf-8;
+    }
+
+Note the ``charset utf-8``! Otherwise the index pages will be served with an
+incorrect encoding. They will be correct but Unicode characters might end up
+looking funny.
+
+Also, you need to make sure that the webserver uses UTF-8 to look up unicode
+path names.
+
+
+Cron setup
+----------
+
+Here's a sample cron file that you could place in ``/etc/cron.d/bandersnatch``
+for example::
+
+    LC_ALL=en_US.utf8
+    */2 * * * * root /opt/bandersnatch/bin/bandersnatch mirror |& logger -t bandersnatch[mirror]
+    12 * * * * root /opt/bandersnatch/bin/bandersnatch update-stats |& logger -t bandersnatch[update-stats]
+
+This assumes that you have a ``logger`` utility installed that will convert the
+output of the commands to syslog entries.
+
+
+Maintenance instructions
+------------------------
+
+bandersnatch does not keep much local state in addition to the mirrored data.
+In general you can just rerun it to make it fix errors and you can force it to
+check everything by deleting the state files.
+
+If you notice your mirror being inconsistent or you just want to cross-check,
+then:
+
+* delete the ``./state`` file and ``./todo`` (if it should exist)
+* run ``bin/bandersnatch`` mirror again to get a full sync
+
+Be aware, that this might take hours depending on PyPIs performance and your
+network latency and bandwidth.
+
+
+Migrating from pep381client installations
+-----------------------------------------
+
+* remove old status files
+* create config file
+* update cron jobs
+
+
+Contact
+-------
+
+If you have questions or comments, please submit a bug report to
+http://bitbucket.org/ctheune/bandersnatch/issues/new.
+
+If you'd like to support my work on PyPI mirrors, please consider a `gittip
+<https://www.gittip.com/theuni/>`_. I'm planning to run a couple more
+international mirrors if I get enough support.
+
+
+Kudos
+-----
+
+This client is based on the original pep381client by Martin v. Loewis.
