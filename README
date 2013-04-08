@@ -1,12 +1,16 @@
 This is a PyPI mirror client according to `PEP 381
 <http://www.python.org/dev/peps/pep-0381/>`_.
 
+
 .. image:: https://builds.gocept.com/job/bandersnatch/badge/icon
    :target: https://builds.gocept.com/job/bandersnatch/
 
 
+.. contents::
+
+
 Installation
-------------
+============
 
 Until a release is ready, here's the way to go::
 
@@ -16,77 +20,94 @@ Until a release is ready, here's the way to go::
   $ bin/python bootstrap.py
   $ bin/buildout
 
-Use ``bin/bandersnatch mirror`` to get started. It will create a default config
-file for you with reasonable defaults. Review it. Then run ``bin/bandersnatch
-mirror`` to initialize the mirror and use cron to run it regularly to keep up to
-date.
+The ``bandersnatch`` executable will be placed in the ``bin/`` directory of
+your virtualenv.
 
+Configuration
+=============
 
-Webserver configuration
------------------------
+* Run ``bandersnatch mirror`` - it will create an empty configuration file
+  for you in ``/etc/bandersnatch.conf``.
+* Review ``/etc/bandersnatch.conf`` and adapt to your needs.
+* Run ``bandersnatch mirror`` again. It will populate your mirror with the
+  current status of all PyPI packages - roughly 50GiB at the time of writing.
+* Run ``bandersnatch mirror`` regularly to update your mirror with any
+  intermediate changes.
 
-For nginx the config should look something like this::
+Webserver
+---------
+
+Configure your webserver to serve the ``web/`` sub-directory of the mirror. For nginx it should look something like this::
 
     server {
         listen 127.0.0.1:80;
-        server_name mymirrorname;
+        server_name <mymirrorname>;
         root <path-to-mirror>/web;
         autoindex on;
         charset utf-8;
     }
 
-Note the ``charset utf-8``! Otherwise the index pages will be served with an
-incorrect encoding. They will be correct but Unicode characters might end up
-looking funny.
+* Note that it is a good idea to have your webserver publish the HTML index
+  files correctly with UTF-8 as the carset. The index pages will work without
+  it but if humans look at the pages the characters will end up looking funny.
 
-Also, you need to make sure that the webserver uses UTF-8 to look up unicode
-path names.
+* Make sure that the webserver uses UTF-8 to look up unicode path names. nginx
+  gets this right by default - not sure about others.
 
 
-Cron setup
-----------
+Cron jobs
+---------
 
-Here's a sample cron file that you could place in ``/etc/cron.d/bandersnatch``
-for example::
+You need to set up one cron job to run the mirror itself. If you run a public
+mirror, then you need a second job that will create access statistics for
+aggregation on the master PyPI.
+
+Here's a sample that you could place in ``/etc/cron.d/bandersnatch``::
 
     LC_ALL=en_US.utf8
-    */2 * * * * root /opt/bandersnatch/bin/bandersnatch mirror |& logger -t bandersnatch[mirror]
-    12 * * * * root /opt/bandersnatch/bin/bandersnatch update-stats |& logger -t bandersnatch[update-stats]
+    */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
+    12 * * * * root bandersnatch update-stats |& logger -t bandersnatch[update-stats]
 
 This assumes that you have a ``logger`` utility installed that will convert the
 output of the commands to syslog entries.
 
 
-Maintenance instructions
-------------------------
+Maintenance
+===========
 
 bandersnatch does not keep much local state in addition to the mirrored data.
-In general you can just rerun it to make it fix errors and you can force it to
-check everything by deleting the state files.
+In general you can just keep rerunning ``bandersnatch mirror`` to make it fix
+errors.
 
-If you notice your mirror being inconsistent or you just want to cross-check,
-then:
+If you delete the state files then the next run will force it to check
+everything against the master PyPI::
 
-* delete the ``./state`` file and ``./todo`` (if it should exist)
-* run ``bin/bandersnatch`` mirror again to get a full sync
+* delete ``./state`` file and ``./todo`` if they exist in your mirror directory
+* run ``bandersnatch`` mirror to get a full sync
 
-Be aware, that this might take hours depending on PyPIs performance and your
-network latency and bandwidth.
+Be aware, that full syncs likely take hours depending on PyPIs performance and
+your network latency and bandwidth.
 
 
-Migrating from pep381client installations
------------------------------------------
+Migrating from pep381client
+===========================
 
-* remove old status files
-* create config file
+* remove old status files, but keep actual data (everything under ``web/``)
+* create config file, port command parameters from old cronjobs
 * update cron jobs
 
 
 Contact
--------
+=======
 
 If you have questions or comments, please submit a bug report to
 http://bitbucket.org/ctheune/bandersnatch/issues/new.
+
+Also, I'm reading the `distutils sig
+<http://mail.python.org/mailman/listinfo/distutils-sig>`_ mailing list.
+
+Support this project
+====================
 
 If you'd like to support my work on PyPI mirrors, please consider a `gittip
 <https://www.gittip.com/theuni/>`_. I'm planning to run a couple more
@@ -94,6 +115,6 @@ international mirrors if I get enough support.
 
 
 Kudos
------
+=====
 
 This client is based on the original pep381client by Martin v. Loewis.
