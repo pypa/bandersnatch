@@ -30,8 +30,8 @@ This installs the latest stable, released version.
 ::
 
   $ virtualenv-2.7 bandersnatch
-  $ wget https://bitbucket.org/ctheune/bandersnatch/raw/stable/requirements.txt
-  $ bin/pip install -r requirements.txt
+  $ cd bandersnatch
+  $ bin/pip install -r https://bitbucket.org/ctheune/bandersnatch/raw/stable/requirements.txt
 
 
 zc.buildout
