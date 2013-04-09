@@ -1,6 +1,5 @@
 Making a release
 ----------------
 
-* Run bin/buildout. Did the requirements.txt change?
 * Tests green?
-* Use zest.releaser to make the release.
+* run ``bin/fullrelease``
