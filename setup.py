@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='bandersnatch',
-      version='1.0.dev0',
+      version='1.0rc1',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
         [open('README').read(), open('CHANGES.txt').read()]),
@@ -28,4 +28,11 @@ setup(name='bandersnatch',
                 bandersnatch = bandersnatch.main:main
             [zc.buildout]
                 requirements = bandersnatch.buildout:Requirements
+
+            [zest.releaser.prerelease.after]
+                update_requirements = bandersnatch.release:update_requirements
+            [zest.releaser.release.after]
+                update_stable_tag = bandersnatch.release:update_stable_tag
+            [zest.releaser.postrelease.after]
+                update_requirements = bandersnatch.release:update_requirements
       """)
