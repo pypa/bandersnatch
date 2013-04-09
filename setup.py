@@ -29,10 +29,10 @@ setup(name='bandersnatch',
             [zc.buildout]
                 requirements = bandersnatch.buildout:Requirements
 
-            [zest.releaser.prerelease.after]
+            [zest.releaser.prereleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
-            [zest.releaser.release.after]
+            [zest.releaser.releaser.after]
                 update_stable_tag = bandersnatch.release:update_stable_tag
-            [zest.releaser.postrelease.after]
+            [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
       """)
