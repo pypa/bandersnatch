@@ -5,6 +5,8 @@ This is a PyPI mirror client according to `PEP 381
 .. image:: https://builds.gocept.com/job/bandersnatch/badge/icon
    :target: https://builds.gocept.com/job/bandersnatch/
 
+.. image:: https://builds.gocept.com/job/bandersnatch-packaging-pip/badge/icon
+   :target: https://builds.gocept.com/job/bandersnatch-packaging-pip/
 
 .. contents::
 
