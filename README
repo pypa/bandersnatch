@@ -12,16 +12,26 @@ This is a PyPI mirror client according to `PEP 381
 Installation
 ============
 
-Until a release is ready, here's the way to go::
+Depending on whether you prefer using ``zc.buildout`` or ``pip`` the following
+instructions will place the bandersnatch executable in ``bin/bandersnatch``.
+
+buildout
+--------
 
   $ hg clone https://bitbucket.org/ctheune/bandersnatch
   $ cd bandersnatch
+  $ hg co 1.0
   $ virtualenv-2.7 .
   $ bin/python bootstrap.py
   $ bin/buildout
 
-The ``bandersnatch`` executable will be placed in the ``bin/`` directory of
-your virtualenv.
+pip
+---
+
+  $ virtualenv-2.7 bandersnatch
+  $ wget https://bitbucket.org/ctheune/bandersnatch/raw/1.0/requirements.txt
+  $ bin/pip install -r requirements.txt
+
 
 Configuration
 =============
