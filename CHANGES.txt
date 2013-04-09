@@ -1,5 +1,5 @@
-1.0rc7 (unreleased)
--------------------
+1.0 (2013-04-09)
+----------------
 
 - Update pip install documentation to use the a URL for referring to the
   requirements.txt directly.
