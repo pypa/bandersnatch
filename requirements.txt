@@ -11,4 +11,4 @@ pytest-capturelog==0.7
 pytest-codecheckers==0.2
 pytest-cov==1.6
 requests==1.2.0
-bandersnatch==1.0rc3
+bandersnatch==1.0rc4.dev0
