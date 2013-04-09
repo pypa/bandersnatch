@@ -18,12 +18,14 @@ setup(name='bandersnatch',
           'distribute',
           'mock',
           'pytest',
-          'pytest-cov',
-          'pytest-codecheckers',
           'pytest-capturelog',
+          'pytest-codecheckers',
+          'pytest-cov',
           'requests',
           ],
       entry_points="""
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
+            [zc.buildout]
+                requirements = bandersnatch.buildout:Requirements
       """)
