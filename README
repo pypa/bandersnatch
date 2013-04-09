@@ -22,26 +22,31 @@ Installation
 The following instructions will place the bandersnatch executable in a
 virtualenv under ``bandersnatch/bin/bandersnatch``.
 
+pip
+---
+
+This installs the latest stable, released version.
+
+::
+
+  $ virtualenv-2.7 bandersnatch
+  $ wget https://bitbucket.org/ctheune/bandersnatch/raw/stable/requirements.txt
+  $ bin/pip install -r requirements.txt
+
+
 zc.buildout
 -----------
+
+This installs the current development version. Use 'hg up <version>' and run
+buildout again to choose a specific release.
 
 ::
 
   $ hg clone https://bitbucket.org/ctheune/bandersnatch
   $ cd bandersnatch
-  $ hg co 1.0
   $ virtualenv-2.7 .
   $ bin/python bootstrap.py
   $ bin/buildout
-
-pip
----
-
-::
-
-  $ virtualenv-2.7 bandersnatch
-  $ wget https://bitbucket.org/ctheune/bandersnatch/raw/1.0/requirements.txt
-  $ bin/pip install -r requirements.txt
 
 
 Configuration

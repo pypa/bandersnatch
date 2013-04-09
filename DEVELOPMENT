@@ -1,0 +1,8 @@
+Making a release
+----------------
+
+* Run bin/buildout. Did the requirements.txt change?
+* Tests green?
+* Use zest.releaser to make the release.
+* Update the 'stable' tag to refer to the released version.
+* Push
