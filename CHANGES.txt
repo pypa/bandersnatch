@@ -1,4 +1,4 @@
-1.0rc3 (unreleased)
+1.0rc3 (2013-04-09)
 -------------------
 
 - Experiment with zest.releaser integration to automatically generate
