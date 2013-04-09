@@ -16,4 +16,4 @@ def update_requirements(data):
 def update_stable_tag(data):
     os.chdir(data['workingdir'])
     logging.info('Updating stable tag.')
-    system('hg tag -r %s stable' % data['version'])
+    system('hg tag -f -r %s stable' % data['version'])
