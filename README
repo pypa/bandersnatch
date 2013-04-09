@@ -18,6 +18,8 @@ instructions will place the bandersnatch executable in ``bin/bandersnatch``.
 buildout
 --------
 
+::
+
   $ hg clone https://bitbucket.org/ctheune/bandersnatch
   $ cd bandersnatch
   $ hg co 1.0
@@ -27,6 +29,8 @@ buildout
 
 pip
 ---
+
+::
 
   $ virtualenv-2.7 bandersnatch
   $ wget https://bitbucket.org/ctheune/bandersnatch/raw/1.0/requirements.txt
