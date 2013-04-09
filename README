@@ -12,11 +12,11 @@ This is a PyPI mirror client according to `PEP 381
 Installation
 ============
 
-Depending on whether you prefer using ``zc.buildout`` or ``pip`` the following
-instructions will place the bandersnatch executable in ``bin/bandersnatch``.
+The following instructions will place the bandersnatch executable in a
+virtualenv under ``bandersnatch/bin/bandersnatch``.
 
-buildout
---------
+zc.buildout
+-----------
 
 ::
 
