@@ -6,14 +6,14 @@ setup(name='bandersnatch',
       version='1.1.dev0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
-        [open('README').read(), open('CHANGES.txt').read()]),
+          [open('README').read(), open('CHANGES.txt').read()]),
       author='Christian Theune',
       author_email='ct@gocept.com',
-      license = 'Academic Free License, version 3',
+      license='Academic Free License, version 3',
       url='http://bitbucket.org/ctheune/bandersnatch/',
       packages=find_packages('src'),
       package_dir={'': 'src'},
-      include_package_data=True,
+      package_data={'bandersnatch': ['default.conf']},
       install_requires=[
           'distribute',
           'mock',
@@ -22,7 +22,7 @@ setup(name='bandersnatch',
           'pytest-codecheckers',
           'pytest-cov',
           'requests',
-          ],
+      ],
       entry_points="""
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
