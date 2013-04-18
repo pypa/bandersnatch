@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='bandersnatch',
-      version='1.1.dev0',
+      version='1.0.1.dev0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
@@ -13,7 +13,7 @@ setup(name='bandersnatch',
       url='http://bitbucket.org/ctheune/bandersnatch/',
       packages=find_packages('src'),
       package_dir={'': 'src'},
-      package_data={'bandersnatch': ['default.conf']},
+      include_package_data=True,
       install_requires=[
           'distribute',
           'mock',
@@ -22,7 +22,7 @@ setup(name='bandersnatch',
           'pytest-codecheckers',
           'pytest-cov',
           'requests',
-      ],
+          ],
       entry_points="""
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
