@@ -35,4 +35,6 @@ setup(name='bandersnatch',
                 update_stable_tag = bandersnatch.release:update_stable_tag
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
-      """)
+      """,
+      classifiers=[
+          'Programming Language :: Python :: 2.7'])
