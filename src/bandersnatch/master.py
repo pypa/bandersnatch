@@ -1,7 +1,11 @@
 from .utils import USER_AGENT
 import httplib
+import logging
 import requests
 import xmlrpclib
+
+
+logger = logging.getLogger(__name__)
 
 
 class CustomTransport(xmlrpclib.Transport):
@@ -41,21 +45,32 @@ class CustomTransport(xmlrpclib.Transport):
         return self._connection[1]
 
 
+class StalePage(Exception):
+    """We got a page back from PyPI that doesn't meet our expected serial."""
+
+
 class Master(object):
 
     def __init__(self, url, timeout=10.0):
         self.url = url
         self.timeout = timeout
 
-    def get(self, path, **kw):
+    def get(self, path, required_serial, **kw):
+        logging.debug('Getting {}@{}'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
         headers = {'User-Agent': USER_AGENT}
-        if 'headers' in kw:
-            headers.update(kw.pop('headers'))
         r = requests.get(path, timeout=self.timeout,
                          headers=headers, **kw)
         r.raise_for_status()
+        # The PYPI-LAST-SERIAL header allows us to identify cached entries,
+        # e.g. via the public CDN or private, transparent mirrors and avoid us
+        # injecting stale entries into the mirror without noticing.
+        got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
+        if got_serial < required_serial:
+            raise StalePage(
+                "Expected PyPI serial {} for request {} but got {}".
+                format(required_serial, path, got_serial))
         return r
 
     def rpc(self):
@@ -68,21 +83,21 @@ class Master(object):
     def xmlrpc_url(self):
         return '{}/pypi/'.format(self.url)
 
-    def list_packages(self):
-        return self.rpc().list_packages()
+    # Both list package data retrieval methods return a dictionary with package
+    # names and the newest serial that they have received changes.
+    def all_packages(self):
+        return self.rpc().list_packages_with_serial()
 
-    def changed_packages(self, serial):
-        changelog = self.rpc().changelog_since_serial(serial)
-        last_serial = serial
-        if changelog:
-            last_serial = changelog[-1][-1]
-        return (change[0] for change in changelog), last_serial
+    def changed_packages(self, last_serial):
+        changelog = self.rpc().changelog_since_serial(last_serial)
+        packages = {}
+        for package, version, time, action, serial in changelog:
+            if serial > packages.get(package, 0):
+                packages[package] = serial
+        return packages
 
     def package_releases(self, package):
         return self.rpc().package_releases(package, True)
 
     def release_urls(self, package, version):
         return self.rpc().release_urls(package, version)
-
-    def get_current_serial(self):
-        return self.rpc().changelog_last_serial()
