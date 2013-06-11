@@ -1,6 +1,5 @@
 import contextlib
 import hashlib
-import logging
 import os
 import os.path
 import pkg_resources
@@ -18,17 +17,6 @@ def user_agent():
     return template.format(**locals())
 
 USER_AGENT = user_agent()
-
-
-def setup_logging():
-    ch = logging.StreamHandler()
-    formatter = logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s')
-    ch.setFormatter(formatter)
-    logger = logging.getLogger('bandersnatch')
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(ch)
-    return ch
 
 
 def hash(path, function='md5'):

@@ -1,9 +1,11 @@
 from . import utils
+from .master import StalePage
 import glob
 import hashlib
 import logging
 import os.path
 import shutil
+import time
 import urllib
 import urllib2
 
@@ -12,8 +14,12 @@ logger = logging.getLogger(__name__)
 
 class Package(object):
 
-    def __init__(self, name, mirror):
+    tries = 0
+    sleep_on_stale = 1
+
+    def __init__(self, name, serial, mirror):
         self.name = name
+        self.serial = serial
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
         self.quoted_name = urllib2.quote(self.encoded_name)
@@ -45,16 +51,32 @@ class Package(object):
         return self.package_directories + [self.simple_directory]
 
     def sync(self):
+        self.tries += 1
         try:
-            logger.info(u'Syncing package: {}'.format(self.name))
+            logger.info(u'Syncing package: {}@{}'.format(
+                        self.name, self.serial))
             self.releases = self.mirror.master.package_releases(self.name)
             if not self.releases:
                 self.delete()
                 return
             self.sync_release_files()
             self.sync_simple_page()
+        except StalePage:
+            logger.error(u'Stale serial for package {}'.format(
+                self.name))
+            # Give CDN a chance to update.
+            if self.tries < 3:
+                time.sleep(self.sleep_on_stale)
+                self.sleep_on_stale *= 2
+                self.mirror.retry_later(self)
+                return
+            logger.error(
+                'Stale serial for {}@{} not updating. Giving up.'
+                .format(self.name, self.serial))
+            self.mirror.errors = True
         except Exception:
-            logger.exception(u'Error syncing package: {}'.format(self.name))
+            logger.exception(u'Error syncing package: {}@{}'.format(
+                self.name, self.serial))
             self.mirror.errors = True
         else:
             self.mirror.record_finished_package(self.name)
@@ -76,7 +98,8 @@ class Package(object):
         # The trailing slash is important: there are packages that have a
         # trailing '?' that will get eaten by the webserver even if we urlquote
         # it properly. Yay. :/
-        r = self.mirror.master.get('/simple/{}/'.format(self.quoted_name))
+        r = self.mirror.master.get(
+            '/simple/{}/'.format(self.quoted_name), self.serial)
 
         if not os.path.exists(self.simple_directory):
             os.makedirs(self.simple_directory)
@@ -85,7 +108,8 @@ class Package(object):
         with utils.rewrite(simple_page) as f:
             f.write(r.content)
 
-        r = self.mirror.master.get('/serversig/{}/'.format(self.quoted_name))
+        r = self.mirror.master.get(
+            '/serversig/{}/'.format(self.quoted_name), self.serial)
         with utils.rewrite(self.serversig_file) as f:
             f.write(r.content)
 
@@ -129,7 +153,7 @@ class Package(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        r = self.mirror.master.get(url, stream=True)
+        r = self.mirror.master.get(url, self.serial, stream=True)
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):

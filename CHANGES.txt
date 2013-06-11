@@ -3,6 +3,10 @@
 
 - Mark up requirement of Python 2.7 (#19)
 
+- Fix dealing with new CDN cache issues. Thanks to @dstufft for making PyPI
+  support mirrors again.
+
+- Improve test coverage.
 
 1.0.1 (2013-04-18)
 ------------------

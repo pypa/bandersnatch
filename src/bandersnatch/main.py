@@ -1,6 +1,7 @@
 import ConfigParser
 import argparse
 import bandersnatch.apache_stats
+import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.utils
@@ -9,7 +10,6 @@ import logging
 import os.path
 import shutil
 import sys
-
 
 logger = logging.getLogger(__name__)
 
@@ -29,21 +29,24 @@ def mirror(config):
 
 
 def update_stats(config):
+    # Ensure the mirror directory exists
     targetdir = config.get('mirror', 'directory')
-
     if not os.path.exists(targetdir):
         logger.error(
             'Mirror directory {} does not exist. '
             'Please run `bandersnatch mirror` first.'.format(targetdir))
+        sys.exit(1)
 
+    # Ensure the mirror's web directory exists
     targetdir = os.path.join(targetdir, 'web')
-
     if not os.path.exists(targetdir):
         logger.error('Directory {} does not exist. '
                      'Is this a mirror?'.format(targetdir))
+        sys.exit(1)
 
+    # Ensure the mirror's statistics directory exists
     targetdir = os.path.join(targetdir, 'local-stats')
-    if not os.path.exists(targetdir):
+    if not os.path.exists(targetdir,):
         logger.info('Creating statistics directory {}.'.format(targetdir))
         os.mkdir(targetdir)
         os.mkdir(os.path.join(targetdir, 'days'))
@@ -55,7 +58,7 @@ def update_stats(config):
 
 
 def main():
-    bandersnatch.utils.setup_logging()
+    bandersnatch.log.setup_logging()
 
     parser = argparse.ArgumentParser(
         description='PyPI PEP 381 mirroring client.')

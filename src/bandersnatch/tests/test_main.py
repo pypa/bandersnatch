@@ -48,3 +48,54 @@ def test_main_reads_config_values(mirror_mock):
             'stop_on_error': False,
             'workers': 3} == kwargs
     assert mirror_mock().synchronize.called
+
+
+@pytest.fixture
+def tmpconfig(tmpdir):
+    default = os.path.dirname(bandersnatch.__file__) + '/default.conf'
+    with open(str(tmpdir/'bandersnatch.conf'), 'w') as f:
+        config = open(default).read()
+        config = config.replace('/srv/pypi', str(tmpdir/'pypi'))
+        f.write(config)
+    return tmpdir
+
+
+def test_main_stats_requires_mirror_dir(caplog, tmpconfig):
+    sys.argv = ['bandersnatch', '-c', str(tmpconfig / 'bandersnatch.conf'),
+                'update-stats']
+    with pytest.raises(SystemExit):
+        main()
+    assert '/pypi does not exist' in caplog.text()
+    assert 'Please run' in caplog.text()
+
+
+def test_main_stats_requires_web_dir(caplog, tmpconfig):
+    sys.argv = ['bandersnatch', '-c', str(tmpconfig / 'bandersnatch.conf'),
+                'update-stats']
+    os.mkdir(str(tmpconfig/'pypi'))
+    with pytest.raises(SystemExit):
+        main()
+    assert '/web does not exist' in caplog.text()
+    assert 'Is this a mirror?' in caplog.text()
+
+
+def test_main_stats_creates_stats_dir(caplog, tmpconfig):
+    sys.argv = ['bandersnatch', '-c', str(tmpconfig / 'bandersnatch.conf'),
+                'update-stats']
+    os.mkdir(str(tmpconfig/'pypi'))
+    os.mkdir(str(tmpconfig/'pypi/web'))
+    main()
+    assert os.path.exists(str(tmpconfig/'pypi/web/local-stats'))
+    assert os.path.exists(str(tmpconfig/'pypi/web/local-stats/days'))
+    assert 'Creating statistics directory' in caplog.text()
+
+
+def test_main_stats_uses_existing_dirs(caplog, tmpconfig):
+    sys.argv = ['bandersnatch', '-c', str(tmpconfig / 'bandersnatch.conf'),
+                'update-stats']
+    os.mkdir(str(tmpconfig/'pypi'))
+    os.mkdir(str(tmpconfig/'pypi/web'))
+    os.mkdir(str(tmpconfig/'pypi/web/local-stats'))
+    os.mkdir(str(tmpconfig/'pypi/web/local-stats/days'))
+    main()
+    assert 'Creating statistics directory' not in caplog.text()

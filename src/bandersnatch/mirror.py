@@ -72,15 +72,15 @@ class Mirror(object):
         self.now = datetime.datetime.utcnow()
 
         self.determine_packages_to_sync()
-        if self.target_serial != self.synced_serial:
-            self.sync_packages()
-            self.sync_index_page()
+        self.sync_packages()
+        self.sync_index_page()
         self.wrapup_successful_sync()
 
     def determine_packages_to_sync(self):
         # In case we don't find any changes we will stay on the currently
         # synced serial.
         self.target_serial = self.synced_serial
+        self.packages_to_sync = {}
         logger.info(u'Current mirror serial: {}'.format(self.synced_serial))
 
         if os.path.exists(self.todolist):
@@ -88,39 +88,43 @@ class Mirror(object):
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
-            todo = open(self.todolist).readlines()
-            self.target_serial = todo.pop(0).strip()
-            todo = [x.decode('utf-8').strip() for x in todo]
+            saved_todo = iter(open(self.todolist))
+            self.target_serial = int(saved_todo.next().strip())
+            for line in saved_todo:
+                package, serial = line.strip().split()
+                self.packages_to_sync[package.decode('utf-8')] = int(serial)
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
             # those two calls.
-            self.target_serial = self.master.get_current_serial()
-            todo = self.master.list_packages()
+            self.packages_to_sync.update(self.master.all_packages())
+            self.target_serial = max(
+                [self.synced_serial] + list(self.packages_to_sync.values()))
         else:
             logger.info(u'Syncing based on changelog.')
-            todo, self.target_serial = self.master.changed_packages(
-                self.synced_serial)
+            self.packages_to_sync.update(
+                self.master.changed_packages(self.synced_serial))
+            self.target_serial = max(
+                [self.synced_serial] + list(self.packages_to_sync.values()))
             # We can avoid downloading the main index page if we don't have
             # anything todo at all during a changelog-based sync.
-            self.need_index_sync = bool(todo)
-
-        self.packages_to_sync = set(todo)
+            self.need_index_sync = bool(self.packages_to_sync)
 
         logger.info(u'Trying to reach serial: {}'.format(self.target_serial))
         logger.info(u'{} packages to sync.'.format(len(self.packages_to_sync)))
 
     def sync_packages(self):
-        queue = Queue.Queue()
+        self.queue = Queue.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
-            queue.put(Package(name, self))
+            serial = self.packages_to_sync[name]
+            self.queue.put(Package(name, serial, self))
 
-        # This is a rather complicated setup just to keep Ctrl-C working.
-        # Otherwise I'd use multiprocessing.pool
-        workers = [Worker(queue) for i in range(20)]
+        # This is more complicated than obviously needed to keep Ctrl-C
+        # working.  Otherwise I'd use multiprocessing.pool.
+        workers = [Worker(self.queue) for i in range(20)]
         for worker in workers:
             worker.daemon = True
             worker.start()
@@ -133,23 +137,28 @@ class Mirror(object):
                 if not worker.isAlive():
                     workers.remove(worker)
 
+    def retry_later(self, package):
+        self.queue.put(package)
+
     def record_finished_package(self, name):
         with self._finish_lock:
-            self.packages_to_sync.remove(name)
+            del self.packages_to_sync[name]
             with open(self.todolist, 'wb') as f:
-                todo = [str(self.target_serial)]
-                todo.extend(self.packages_to_sync)
-                todo = [x.encode('utf-8') for x in todo]
+                todo = list(self.packages_to_sync.items())
+                todo = ['{} {}'.format(name_.encode('utf-8'), str(serial))
+                        for name_, serial in todo]
+                f.write('{}\n'.format(self.target_serial))
                 f.write('\n'.join(todo))
 
     def sync_index_page(self):
         if not self.need_index_sync:
             return
         logger.info(u'Syncing global index page.')
-        r = self.master.get('/simple')
+        r = self.master.get('/simple', self.target_serial)
         index_page = os.path.join(self.webdir, 'simple', 'index.html')
         with rewrite(index_page) as f:
             f.write(r.content)
+        # Remember: the master simple page is not signed via /serversig.
 
     def wrapup_successful_sync(self):
         if self.errors:
@@ -189,7 +198,27 @@ class Mirror(object):
     def statusfile(self):
         return os.path.join(self.homedir, "status")
 
+    @property
+    def generationfile(self):
+        return os.path.join(self.homedir, "generation")
+
     def _load(self):
+        # Simple generation mechanism to suppor transparent software
+        # updates.
+        if not os.path.exists(self.generationfile):
+            logger.info(u'Generation file missing. '
+                        u'Reinitialising status files.')
+            # This is basically the 'install' generation: anything previous to
+            # release 1.0.2.
+            for path in [self.statusfile, self.todolist]:
+                if os.path.exists(path):
+                    os.unlink(path)
+            # We're now at status file generation "2"
+            open(self.generationfile, 'w').write('2')
+        else:
+            # Put future migration here.
+            assert open(self.generationfile, 'r').read().strip() == '2'
+        # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')
             return
