@@ -98,6 +98,10 @@ class Package(object):
         # The trailing slash is important: there are packages that have a
         # trailing '?' that will get eaten by the webserver even if we urlquote
         # it properly. Yay. :/
+        # XXX this could be a 404 if a newer version on PyPI already deleted
+        # all releases and thus the master already answers with 404 but we're
+        # trying to reach an older serial. In that case we should just silently
+        # approve of this, as long as the serial of the master is correct.
         r = self.mirror.master.get(
             '/simple/{}/'.format(self.quoted_name), self.serial)
 
