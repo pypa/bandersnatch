@@ -56,7 +56,7 @@ class Master(object):
         self.timeout = timeout
 
     def get(self, path, required_serial, **kw):
-        logging.debug('Getting {}@{}'.format(path, required_serial))
+        logger.debug('Getting {}@{}'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
         headers = {'User-Agent': USER_AGENT}
