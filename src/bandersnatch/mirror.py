@@ -71,10 +71,26 @@ class Mirror(object):
         logger.info('Syncing with {}.'.format(self.master.url))
         self.now = datetime.datetime.utcnow()
 
+        self.cleanup()
         self.determine_packages_to_sync()
         self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
+
+    def cleanup(self):
+        """Does a couple of cleanup tasks to ensure consistent data for later
+        processing."""
+        if os.path.exists(self.todolist):
+            try:
+                saved_todo = iter(open(self.todolist))
+                int(saved_todo.next().strip())
+            except (StopIteration, ValueError):
+                # The todo list was inconsistent. This may happen if we get
+                # killed e.g. by the timeout wrapper. Just remove it - we'll
+                # just have to do whatever happened since the last successful
+                # sync.
+                logger.info(u'Removing inconsistent todo list.')
+                os.unlink(self.todolist)
 
     def determine_packages_to_sync(self):
         # In case we don't find any changes we will stay on the currently

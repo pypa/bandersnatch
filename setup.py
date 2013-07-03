@@ -21,6 +21,8 @@ setup(name='bandersnatch',
           'pytest-capturelog',
           'pytest-codecheckers',
           'pytest-cov',
+          'pytest-timeout',
+          'blessings',
           'requests',
           ],
       entry_points="""
@@ -35,6 +37,8 @@ setup(name='bandersnatch',
                 update_stable_tag = bandersnatch.release:update_stable_tag
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
+            [pytest11]
+            greenbar = bandersnatch.greenbar
       """,
       classifiers=[
           'Programming Language :: Python :: 2.7'])
