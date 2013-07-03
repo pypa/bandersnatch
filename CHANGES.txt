@@ -1,6 +1,13 @@
 1.0.2 (unreleased)
 ------------------
 
+- Add a py.test plugin to actually show a green bar. Hopefully will be
+  integrated into py.test in the near future.
+
+- Fix dealing with inconsistent todo files: empty files or with an incorrect
+  header will just be deleted and processing resumes at the last known good
+  state.
+
 - Mark up requirement of Python 2.7 (#19)
 
 - Fix dealing with new CDN cache issues. Thanks to @dstufft for making PyPI
