@@ -4,8 +4,10 @@ syntax:glob
 *.swp
 .*~
 .Python
+.cache
 .coverage
 .installed.cfg
+.mr.developer.cfg
 MANIFEST
 bin
 build

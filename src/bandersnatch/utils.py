@@ -52,5 +52,9 @@ def rewrite(filename):
     os.close(fd)
     with open(filename_tmp, 'w') as f:
         yield f
+    if not os.path.exists(filename_tmp):
+        # Allow our clients to remove the file in case it doesn't want it to be
+        # put in place actually but also doesn't want to error out.
+        return
     os.chmod(filename_tmp, 0100644)
     os.rename(filename_tmp, filename)

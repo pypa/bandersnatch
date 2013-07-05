@@ -1,4 +1,5 @@
 from bandersnatch.package import Package
+import Queue
 import mock
 import os.path
 
@@ -268,7 +269,7 @@ def test_package_sync_does_not_touch_existing_local_file(
     assert old_stat == new_stat
 
 
-def test_sync_does_not_keep_download_with_incorrect_checksum(
+def test_sync_incorrect_download_with_current_serial_fails(
         mirror, requests):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = ['0.1']
@@ -284,3 +285,48 @@ def test_sync_does_not_keep_download_with_incorrect_checksum(
     package.sync()
 
     assert not os.path.exists('web/packages/any/f/foo/foo.zip')
+    assert mirror.errors
+
+
+def test_sync_incorrect_download_with_old_serials_retries(
+        mirror, requests):
+    mirror.master.package_releases = mock.Mock()
+    mirror.master.package_releases.return_value = ['0.1']
+    mirror.master.release_urls = mock.Mock()
+    mirror.master.release_urls.return_value = [
+        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
+
+    requests.prepare('not release content', 9)
+
+    mirror.packages_to_sync = set(['foo'])
+    mirror.queue = Queue.Queue()
+    package = Package('foo', 10, mirror)
+    package.sync()
+
+    assert not os.path.exists('web/packages/any/f/foo/foo.zip')
+    assert not mirror.errors
+    assert list(mirror.queue.queue) == [package]
+
+
+def test_sync_does_not_fail_on_package_data_too_new(
+        mirror, requests):
+    mirror.master.package_releases = mock.Mock()
+    mirror.master.package_releases.return_value = ['0.1']
+    mirror.master.release_urls = mock.Mock()
+    mirror.master.release_urls.return_value = [
+        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
+
+    requests.prepare('not release content', 11)
+    requests.prepare('the simple page', '10')
+    requests.prepare('the server signature', '10')
+
+    mirror.packages_to_sync = dict(foo=10)
+    package = Package('foo', 10, mirror)
+    package.sync()
+
+    assert not os.path.exists('web/packages/any/f/foo/foo.zip')
+
+    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/serversig/foo').read() == 'the server signature'

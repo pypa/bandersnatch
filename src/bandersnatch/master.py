@@ -56,7 +56,7 @@ class Master(object):
         self.timeout = timeout
 
     def get(self, path, required_serial, **kw):
-        logger.debug('Getting {}@{}'.format(path, required_serial))
+        logger.debug('Getting {} (serial {})'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
         headers = {'User-Agent': USER_AGENT}
@@ -66,11 +66,16 @@ class Master(object):
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
         # injecting stale entries into the mirror without noticing.
-        got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
-        if got_serial < required_serial:
-            raise StalePage(
-                "Expected PyPI serial {} for request {} but got {}".
-                format(required_serial, path, got_serial))
+        if required_serial is not None:
+            # I am not making required_serial an optional argument because I
+            # want you to think really hard before passing in None. This is a
+            # really important check to achieve consistency and you should only
+            # leave it out if you know what you're doing.
+            got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
+            if got_serial < required_serial:
+                raise StalePage(
+                    "Expected PyPI serial {} for request {} but got {}".
+                    format(required_serial, path, got_serial))
         return r
 
     def rpc(self):

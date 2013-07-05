@@ -71,13 +71,12 @@ class Mirror(object):
         logger.info('Syncing with {}.'.format(self.master.url))
         self.now = datetime.datetime.utcnow()
 
-        self.cleanup()
         self.determine_packages_to_sync()
         self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
 
-    def cleanup(self):
+    def _cleanup(self):
         """Does a couple of cleanup tasks to ensure consistent data for later
         processing."""
         if os.path.exists(self.todolist):
@@ -208,6 +207,7 @@ class Mirror(object):
                 'Another instance seems to be running.'.format(
                     self.lockfile.name))
 
+        self._cleanup()
         self._load()
 
     @property

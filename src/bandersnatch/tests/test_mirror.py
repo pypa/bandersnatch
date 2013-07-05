@@ -1,6 +1,5 @@
 from bandersnatch import utils
 from bandersnatch.mirror import Mirror
-from bandersnatch.master import StalePage
 import mock
 import os.path
 import pytest
@@ -20,6 +19,28 @@ def test_mirror_loads_serial(tmpdir):
         status.write('1234')
     m = Mirror(str(tmpdir), mock.Mock())
     assert m.synced_serial == 1234
+
+
+def test_mirror_removes_empty_todo_list(tmpdir):
+    with open(str(tmpdir/'generation'), 'w') as generation:
+        generation.write('2')
+    with open(str(tmpdir/'status'), 'w') as status:
+        status.write('1234')
+    with open(str(tmpdir/'todo'), 'w') as status:
+        status.write('')
+    Mirror(str(tmpdir), mock.Mock())
+    assert not os.path.exists(str(tmpdir/'todo'))
+
+
+def test_mirror_removes_broken_todo_list(tmpdir):
+    with open(str(tmpdir/'generation'), 'w') as generation:
+        generation.write('2')
+    with open(str(tmpdir/'status'), 'w') as status:
+        status.write('1234')
+    with open(str(tmpdir/'todo'), 'w') as status:
+        status.write('foo')
+    Mirror(str(tmpdir), mock.Mock())
+    assert not os.path.exists(str(tmpdir/'todo'))
 
 
 def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir):
@@ -101,6 +122,7 @@ def test_mirror_sync_package(mirror, master_mock):
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
+    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
     release_download.iter_content.return_value = iter('the release content')
     simple_page = mock.Mock()
     simple_page.content = 'the simple page'
@@ -135,9 +157,13 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
         {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    def release_download_stale():
-        raise StalePage()
+    release_download_stale = mock.Mock()
+    release_download_stale.headers = {'X-PYPI-LAST-SERIAL': 0}
+    release_download_stale.iter_content.return_value = iter(
+        'not release content')
+
     release_download = mock.Mock()
+    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
     release_download.iter_content.return_value = iter('the release content')
     simple_page = mock.Mock()
     simple_page.content = 'the simple page'
@@ -146,7 +172,7 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
     simple_index_page = mock.Mock()
     simple_index_page.content = 'the index page'
 
-    responses = iter([release_download_stale,
+    responses = iter([lambda: release_download_stale,
                       lambda: release_download,
                       lambda: simple_page,
                       lambda: serversig,
@@ -175,6 +201,7 @@ def test_mirror_sync_package_error_no_early_exit(
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
+    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
     release_download.iter_content.return_value = iter('the release content')
     simple_page = mock.Mock()
     simple_page.content = 'the simple page'
@@ -214,6 +241,7 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock):
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
+    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
     release_download.iter_content.return_value = iter('the release content')
     simple_page = mock.Mock()
     simple_page.content = 'the simple page'
