@@ -66,10 +66,6 @@ def test_mirror_empty_master_gets_index(mirror, master_mock):
     mirror.master = master_mock
     mirror.master.all_packages.return_value = {}
 
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
-    master_mock.get.return_value = simple_index_page
-
     mirror.synchronize()
 
     assert """\
@@ -80,17 +76,15 @@ def test_mirror_empty_master_gets_index(mirror, master_mock):
 /serversig
 /simple
 /simple/index.html""" == utils.find(mirror.webdir)
-    assert open('web/simple/index.html').read() == 'the index page'
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+</body></html>"""
     assert open('status').read() == '0'
 
 
 def test_mirror_empty_resume_from_todo_list(mirror, master_mock):
     mirror.master = master_mock
-
     mirror.master.package_releases.return_value = []
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
-    master_mock.get.return_value = simple_index_page
 
     with open('todo', 'w') as todo:
         todo.write('20\nfoobar 10')
@@ -109,7 +103,9 @@ def test_mirror_empty_resume_from_todo_list(mirror, master_mock):
 /web/serversig
 /web/simple
 /web/simple/index.html""" == utils.find(mirror.homedir)
-    assert open('web/simple/index.html').read() == 'the index page'
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+</body></html>"""
     assert open('status').read() == '20'
 
 
@@ -128,13 +124,10 @@ def test_mirror_sync_package(mirror, master_mock):
     simple_page.content = 'the simple page'
     serversig = mock.Mock()
     serversig.content = 'the server signature'
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
 
     responses = iter([release_download,
                       simple_page,
-                      serversig,
-                      simple_index_page])
+                      serversig])
     master_mock.get.side_effect = lambda *args, **kw: responses.next()
 
     mirror.synchronize()
@@ -145,7 +138,10 @@ def test_mirror_sync_package(mirror, master_mock):
 /serversig/foo
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
-    assert open('web/simple/index.html').read() == 'the index page'
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+<a href="foo/">foo</a><br/>
+</body></html>"""
     assert open('status').read() == '1'
 
 
@@ -169,14 +165,11 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
     simple_page.content = 'the simple page'
     serversig = mock.Mock()
     serversig.content = 'the server signature'
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
 
     responses = iter([lambda: release_download_stale,
                       lambda: release_download,
                       lambda: simple_page,
-                      lambda: serversig,
-                      lambda: simple_index_page])
+                      lambda: serversig])
     master_mock.get.side_effect = lambda *args, **kw: responses.next()()
 
     mirror.synchronize()
@@ -187,7 +180,11 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
 /serversig/foo
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
-    assert open('web/simple/index.html').read() == 'the index page'
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+<a href="foo/">foo</a><br/>
+</body></html>"""
+
     assert open('status').read() == '1'
 
 
@@ -207,13 +204,10 @@ def test_mirror_sync_package_error_no_early_exit(
     simple_page.content = 'the simple page'
     serversig = mock.Mock()
     serversig.content = 'the server signature'
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
 
     responses = iter([release_download,
                       simple_page,
-                      serversig,
-                      simple_index_page])
+                      serversig])
     master_mock.get.side_effect = lambda *args, **kw: responses.next()
 
     mirror.errors = True
@@ -227,7 +221,10 @@ def test_mirror_sync_package_error_no_early_exit(
 /web/serversig/foo
 /web/simple/foo/index.html
 /web/simple/index.html""" == utils.find(mirror.homedir, dirs=False)
-    assert open('web/simple/index.html').read() == 'the index page'
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+<a href="foo/">foo</a><br/>
+</body></html>"""
 
     assert open('todo').read() == '1\n'
 
@@ -247,13 +244,10 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock):
     simple_page.content = 'the simple page'
     serversig = mock.Mock()
     serversig.content = 'the server signature'
-    simple_index_page = mock.Mock()
-    simple_index_page.content = 'the index page'
 
     responses = iter([release_download,
                       simple_page,
-                      serversig,
-                      simple_index_page])
+                      serversig])
     master_mock.get.side_effect = lambda *args, **kw: responses.next()
 
     with open('web/simple/index.html', 'wb') as index:

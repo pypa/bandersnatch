@@ -168,12 +168,16 @@ class Mirror(object):
     def sync_index_page(self):
         if not self.need_index_sync:
             return
-        logger.info(u'Syncing global index page.')
-        r = self.master.get('/simple', self.target_serial)
-        index_page = os.path.join(self.webdir, 'simple', 'index.html')
-        with rewrite(index_page) as f:
-            f.write(r.content)
-        # Remember: the master simple page is not signed via /serversig.
+        logger.info(u'Generating global index page.')
+        simple_dir = os.path.join(self.webdir, 'simple')
+        with rewrite(os.path.join(simple_dir, 'index.html')) as f:
+            f.write('<html><head><title>Simple Index</title></head><body>\n')
+            for pkg in os.listdir(simple_dir):
+                if not os.path.isdir(os.path.join(simple_dir, pkg)):
+                    continue
+                # We're really trusty that this is all encoded in UTF-8. :/
+                f.write('<a href="{}/">{}</a><br/>\n'.format(pkg, pkg))
+            f.write('</body></html>')
 
     def wrapup_successful_sync(self):
         if self.errors:

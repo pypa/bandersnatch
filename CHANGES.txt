@@ -1,6 +1,9 @@
 1.0.2 (unreleased)
 ------------------
 
+- Generate the index simple page ourselves: its not signed anyway and helps
+  PyPI caching more aggressively.
+
 - Add a py.test plugin to actually show a green bar. Hopefully will be
   integrated into py.test in the near future.
 
