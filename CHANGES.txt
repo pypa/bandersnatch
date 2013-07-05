@@ -1,0 +1,73 @@
+1.0.2 (unreleased)
+------------------
+
+- Generate the index simple page ourselves: its not signed anyway and helps
+  PyPI caching more aggressively.
+
+- Add a py.test plugin to actually show a green bar. Hopefully will be
+  integrated into py.test in the near future.
+
+- Fix dealing with inconsistent todo files: empty files or with an incorrect
+  header will just be deleted and processing resumes at the last known good
+  state.
+
+- Mark up requirement of Python 2.7 (#19)
+
+- Fix dealing with new CDN cache issues. Thanks to @dstufft for making PyPI
+  support mirrors again.
+
+- Improve test coverage.
+
+1.0.1 (2013-04-18)
+------------------
+
+- Fix packaging: include default config file. (Thanks to Jannis Leidel)
+
+
+1.0 (2013-04-09)
+----------------
+
+- Update pip install documentation to use the a URL for referring to the
+  requirements.txt directly.
+
+- Adjust buildout and jenkins job to stop fighting over the distribute version
+  to install.
+
+1.0rc6 (2013-04-09)
+-------------------
+
+- Hopefully fixed updating the stable tag when releasing.
+
+
+1.0rc5 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc4 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc3 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc2 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc1 (2013-04-09)
+-------------------
+
+- Initial release. Massive rewrite of pep381client.
