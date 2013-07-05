@@ -53,7 +53,7 @@ class Package(object):
     def sync(self):
         self.tries += 1
         try:
-            logger.info(u'Syncing package: {}@{}'.format(
+            logger.info(u'Syncing package: {} (serial {})'.format(
                         self.name, self.serial))
             self.releases = self.mirror.master.package_releases(self.name)
             if not self.releases:
@@ -71,7 +71,7 @@ class Package(object):
                 self.mirror.retry_later(self)
                 return
             logger.error(
-                'Stale serial for {}@{} not updating. Giving up.'
+                'Stale serial for {} ({}) not updating. Giving up.'
                 .format(self.name, self.serial))
             self.mirror.errors = True
         except Exception:
@@ -157,16 +157,44 @@ class Package(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        r = self.mirror.master.get(url, self.serial, stream=True)
+        # Very special handling for the serial of package files here:
+        # PyPI does not invalidate all files of a package when a package
+        # changes. This means that we have to track the md5sum *and* the serial
+        # in pair.
+        #
+        # Basically the following combinations can happen:
+        #   A) incorrect md5sum + current serial: error
+        #   B) incorrect md5sum + old serial: error
+        #   C) incorrect md5sum + new serial: remove file but ignore that we
+        #      had an error, catch up in future run
+        #   D) correct md5sum: don't care about the serial
+        r = self.mirror.master.get(url, required_serial=None, stream=True)
+        download_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):
                 checksum.update(chunk)
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
-            if existing_hash != md5sum:
-                raise ValueError('{} has hash {} instead of {}'.format(
-                    url, existing_hash, md5sum))
+            if existing_hash == md5sum:
+                # Case D: correct md5sum, accept without looking at the serial
+                pass
+            elif download_serial > self.serial:
+                # Case C: incorrect md5sum, newer serial. Remove but continue
+                os.unlink(f.name)
+            elif download_serial < self.serial:
+                # Case A: incorrect md5sum, old serial. Complain and ask for
+                # retry.
+                raise StalePage(
+                    'Inconsistent file. {} has hash {} instead of {} '
+                    'and serial {} instead of {}.'.format(
+                    url, existing_hash, md5sum, download_serial, self.serial))
+            else:
+                # Case B: incorrect md5sum, current serial. Give up.
+                raise ValueError(
+                    'Inconsistent file. {} has hash {} instead of {} '
+                    'and serial {} instead of {}.'.format(
+                    url, existing_hash, md5sum, download_serial, self.serial))
 
     def delete(self):
         logger.info(u'Deleting package: {}'.format(self.name))
