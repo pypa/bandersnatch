@@ -73,7 +73,7 @@ class Master(object):
             # leave it out if you know what you're doing.
             got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
             if got_serial < required_serial:
-	        logger.debug(
+                logger.debug(
                     "Expected PyPI serial {} for request {} but got {}".
                     format(required_serial, path, got_serial))
                 raise StalePage(
