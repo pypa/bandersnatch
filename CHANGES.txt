@@ -1,4 +1,4 @@
-1.0.2 (unreleased)
+1.0.2 (2013-07-08)
 ------------------
 
 - Generate the index simple page ourselves: its not signed anyway and helps
