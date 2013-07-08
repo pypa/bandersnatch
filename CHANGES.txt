@@ -1,4 +1,4 @@
-1.0.3 (unreleased)
+1.0.3 (2013-07-08)
 ------------------
 
 - Fix brownbag release with broken 'stable' tag and missing requirements.txt
