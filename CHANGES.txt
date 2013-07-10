@@ -1,4 +1,4 @@
-1.0.4 (unreleased)
+1.0.4 (2013-07-10)
 ------------------
 
 - Slight brownbag release: the requirements.txt accidentally included a
