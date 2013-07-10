@@ -114,6 +114,18 @@ everything against the master PyPI::
 Be aware, that full syncs likely take hours depending on PyPIs performance and
 your network latency and bandwidth.
 
+Operational notes
+=================
+
+The PyPI has a quite extensive list of packages that we need to maintain in a
+flat directory. Filesystems with small limits on the number of sub-directories
+per directory can run into a problem like this::
+
+  2013-07-09 16:11:33,331 ERROR: Error syncing package: zweb@802449
+  OSError: [Errno 31] Too many links: '../pypi/web/simple/zweb'
+
+Specifically we recommend to avoid using ext3. Ext4 and newer does not have the
+limitation of 32k sub-directories.
 
 Migrating from pep381client
 ===========================
