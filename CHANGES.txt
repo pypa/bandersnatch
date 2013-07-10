@@ -1,8 +1,8 @@
 1.0.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
-
+- Slight brownbag release: the requirements.txt accidentally included a
+  development version of py.test due to my usage of mr.developer.
 
 1.0.3 (2013-07-08)
 ------------------

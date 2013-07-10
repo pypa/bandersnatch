@@ -4,7 +4,7 @@ pyrepl==0.8.4
 py==1.4.14
 pyflakes==0.6.1
 pep8==1.4.5
-pytest==2.4.0.dev5
+pytest==2.3.5
 cov-core==1.7
 execnet==1.1
 fancycompleter==0.4
