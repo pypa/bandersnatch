@@ -1,7 +1,7 @@
 1.0.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Move from distribute back to setuptools.
 
 
 1.0.4 (2013-07-10)

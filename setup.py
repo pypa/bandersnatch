@@ -15,7 +15,7 @@ setup(name='bandersnatch',
       package_dir={'': 'src'},
       include_package_data=True,
       install_requires=[
-          'distribute',
+          'setuptools',
           'mock',
           'pytest',
           'pytest-capturelog',
