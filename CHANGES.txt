@@ -1,6 +1,9 @@
 1.0.5 (unreleased)
 ------------------
 
+- Refactor lock acquisition to avoid shadowing exceptions when creating the
+  lockfile vs. acquiring the lock.
+
 - Move from distribute back to setuptools.
 
 

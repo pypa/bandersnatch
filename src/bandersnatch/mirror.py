@@ -202,8 +202,8 @@ class Mirror(object):
                 logger.info(u'Setting up mirror directory: {}'.format(path))
                 os.makedirs(path)
 
+        self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
         try:
-            self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
             fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
             raise RuntimeError(
