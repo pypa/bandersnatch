@@ -1,4 +1,4 @@
-1.0.5 (unreleased)
+1.0.5 (2013-07-25)
 ------------------
 
 - Refactor lock acquisition to avoid shadowing exceptions when creating the
