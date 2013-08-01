@@ -139,7 +139,7 @@ class Mirror(object):
 
         # This is more complicated than obviously needed to keep Ctrl-C
         # working.  Otherwise I'd use multiprocessing.pool.
-        workers = [Worker(self.queue) for i in range(20)]
+        workers = [Worker(self.queue) for i in range(self.workers)]
         for worker in workers:
             worker.daemon = True
             worker.start()
