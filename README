@@ -22,6 +22,11 @@ Installation
 The following instructions will place the bandersnatch executable in a
 virtualenv under ``bandersnatch/bin/bandersnatch``.
 
+.. note::
+
+    bandersnatch requires Python 2.7.
+
+
 pip
 ---
 
