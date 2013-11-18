@@ -160,7 +160,7 @@ class Mirror(object):
             del self.packages_to_sync[name]
             with open(self.todolist, 'wb') as f:
                 todo = list(self.packages_to_sync.items())
-                todo = ['{0} {0}'.format(name_.encode('utf-8'), str(serial))
+                todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
                         for name_, serial in todo]
                 f.write('{0}\n'.format(self.target_serial))
                 f.write('\n'.join(todo))
@@ -176,7 +176,7 @@ class Mirror(object):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
                 # We're really trusty that this is all encoded in UTF-8. :/
-                f.write('<a href="{0}/">{0}</a><br/>\n'.format(pkg, pkg))
+                f.write('<a href="{0}/">{1}</a><br/>\n'.format(pkg, pkg))
             f.write('</body></html>')
 
     def wrapup_successful_sync(self):
