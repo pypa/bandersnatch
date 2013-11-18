@@ -15,6 +15,8 @@ class CustomTransport(xmlrpclib.Transport):
         xmlrpclib.Transport.__init__(self)
         self.timeout = timeout
         self.ssl = ssl
+        if not hasattr(self, '_connection'):
+            self._connection = None
 
     def make_connection(self, host):
         # Partially copied from xmlrpclib.py because its inheritance model is
