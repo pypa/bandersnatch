@@ -2,6 +2,7 @@ from .utils import USER_AGENT
 import httplib
 import logging
 import requests
+import sys
 import xmlrpclib
 
 
@@ -43,6 +44,10 @@ class CustomTransport(xmlrpclib.Transport):
                     "your version of httplib doesn't support HTTPS")
             self._connection = host, httplib.HTTPSConnection(
                 chost, None, **(x509 or {}))
+            if sys.version_info < (2, 7):
+                if not hasattr(self._connection[1], 'getreply'):
+                    self._connection = host, httplib.HTTPS(
+                        chost, None, **(x509 or {}))
 
         return self._connection[1]
 
