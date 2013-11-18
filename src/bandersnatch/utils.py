@@ -13,7 +13,7 @@ def user_agent():
     system = ' '.join([system[0], system[2], system[4]])
     version = pkg_resources.require("bandersnatch")[0].version
     python = sys.subversion[0]
-    python += ' {}.{}.{}-{}{}'.format(*sys.version_info)
+    python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
     return template.format(**locals())
 
 USER_AGENT = user_agent()
