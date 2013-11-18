@@ -33,21 +33,21 @@ def update_stats(config):
     targetdir = config.get('mirror', 'directory')
     if not os.path.exists(targetdir):
         logger.error(
-            'Mirror directory {} does not exist. '
+            'Mirror directory {0} does not exist. '
             'Please run `bandersnatch mirror` first.'.format(targetdir))
         sys.exit(1)
 
     # Ensure the mirror's web directory exists
     targetdir = os.path.join(targetdir, 'web')
     if not os.path.exists(targetdir):
-        logger.error('Directory {} does not exist. '
+        logger.error('Directory {0} does not exist. '
                      'Is this a mirror?'.format(targetdir))
         sys.exit(1)
 
     # Ensure the mirror's statistics directory exists
     targetdir = os.path.join(targetdir, 'local-stats')
     if not os.path.exists(targetdir,):
-        logger.info('Creating statistics directory {}.'.format(targetdir))
+        logger.info('Creating statistics directory {0}.'.format(targetdir))
         os.mkdir(targetdir)
         os.mkdir(os.path.join(targetdir, 'days'))
 
@@ -85,14 +85,14 @@ def main():
     # Prepare default config file if needed.
     default_config = os.path.join(os.path.dirname(__file__), 'default.conf')
     if not os.path.exists(args.config):
-        logger.warning('Config file \'{}\' missing, creating default config.'.
+        logger.warning('Config file \'{0}\' missing, creating default config.'.
                        format(args.config))
         logger.warning(
             'Please review the config file, then run \'bandersnatch\' again.')
         try:
             shutil.copy(default_config, args.config)
         except IOError, e:
-            logger.error('Could not create config file: {}'.format(str(e)))
+            logger.error('Could not create config file: {0}'.format(str(e)))
         sys.exit(1)
 
     config = ConfigParser.ConfigParser()

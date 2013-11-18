@@ -27,13 +27,13 @@ class Package(object):
 
     @property
     def package_directories(self):
-        expr = '{}/packages/*/{}/{}'.format(
+        expr = '{0}/packages/*/{1}/{2}'.format(
             self.mirror.webdir, self.encoded_first, self.encoded_name)
         return glob.glob(expr)
 
     @property
     def package_files(self):
-        expr = '{}/packages/*/{}/{}/*'.format(
+        expr = '{0}/packages/*/{1}/{2}/*'.format(
             self.mirror.webdir, self.encoded_first, self.encoded_name)
         return glob.glob(expr)
 
@@ -53,7 +53,7 @@ class Package(object):
     def sync(self):
         self.tries += 1
         try:
-            logger.info(u'Syncing package: {} (serial {})'.format(
+            logger.info(u'Syncing package: {0} (serial {1})'.format(
                         self.name, self.serial))
             self.releases = self.mirror.master.package_releases(self.name)
             if not self.releases:
@@ -62,7 +62,7 @@ class Package(object):
             self.sync_release_files()
             self.sync_simple_page()
         except StalePage:
-            logger.error(u'Stale serial for package {}'.format(
+            logger.error(u'Stale serial for package {0}'.format(
                 self.name))
             # Give CDN a chance to update.
             if self.tries < 3:
@@ -71,11 +71,11 @@ class Package(object):
                 self.mirror.retry_later(self)
                 return
             logger.error(
-                'Stale serial for {} ({}) not updating. Giving up.'
+                'Stale serial for {0} ({1}) not updating. Giving up.'
                 .format(self.name, self.serial))
             self.mirror.errors = True
         except Exception:
-            logger.exception(u'Error syncing package: {}@{}'.format(
+            logger.exception(u'Error syncing package: {0}@{1}'.format(
                 self.name, self.serial))
             self.mirror.errors = True
         else:
@@ -94,7 +94,7 @@ class Package(object):
             self.download_file(release_file['url'], release_file['md5_digest'])
 
     def sync_simple_page(self):
-        logger.info(u'Syncing index page: {}'.format(self.name))
+        logger.info(u'Syncing index page: {0}'.format(self.name))
         # The trailing slash is important: there are packages that have a
         # trailing '?' that will get eaten by the webserver even if we urlquote
         # it properly. Yay. :/
@@ -103,7 +103,7 @@ class Package(object):
         # trying to reach an older serial. In that case we should just silently
         # approve of this, as long as the serial of the master is correct.
         r = self.mirror.master.get(
-            '/simple/{}/'.format(self.quoted_name), self.serial)
+            '/simple/{0}/'.format(self.quoted_name), self.serial)
 
         if not os.path.exists(self.simple_directory):
             os.makedirs(self.simple_directory)
@@ -113,7 +113,7 @@ class Package(object):
             f.write(r.content)
 
         r = self.mirror.master.get(
-            '/serversig/{}/'.format(self.quoted_name), self.serial)
+            '/serversig/{0}/'.format(self.quoted_name), self.serial)
         with utils.rewrite(self.serversig_file) as f:
             f.write(r.content)
 
@@ -121,7 +121,7 @@ class Package(object):
         path = url.replace(self.mirror.master.url, '')
         path = urllib.unquote(path)
         if not path.startswith('/packages'):
-            raise RuntimeError('Got invalid download URL: {}'.format(url))
+            raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
         return os.path.join(self.mirror.webdir, path.encode('utf-8'))
 
@@ -133,7 +133,7 @@ class Package(object):
         existing_files = list(self.package_files)
         to_remove = set(existing_files) - set(master_files)
         for filename in to_remove:
-            logger.info('Removing deleted file {}'.format(filename))
+            logger.info('Removing deleted file {0}'.format(filename))
             os.unlink(filename)
 
     def download_file(self, url, md5sum):
@@ -146,12 +146,12 @@ class Package(object):
                 return
             else:
                 logger.info(
-                    'Checksum mismatch with local file {}: '
-                    'expected {} got {}, will re-download.'.format(
+                    'Checksum mismatch with local file {0}: '
+                    'expected {1} got {2}, will re-download.'.format(
                         path, md5sum, existing_hash))
                 os.unlink(path)
 
-        logger.info(u'Downloading: {}'.format(url))
+        logger.info(u'Downloading: {0}'.format(url))
 
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
@@ -186,18 +186,18 @@ class Package(object):
                 # Case A: incorrect md5sum, old serial. Complain and ask for
                 # retry.
                 raise StalePage(
-                    'Inconsistent file. {} has hash {} instead of {} '
-                    'and serial {} instead of {}.'.format(
+                    'Inconsistent file. {0} has hash {1} instead of {2} '
+                    'and serial {3} instead of {4}.'.format(
                     url, existing_hash, md5sum, download_serial, self.serial))
             else:
                 # Case B: incorrect md5sum, current serial. Give up.
                 raise ValueError(
-                    'Inconsistent file. {} has hash {} instead of {} '
-                    'and serial {} instead of {}.'.format(
+                    'Inconsistent file. {0} has hash {1} instead of {2} '
+                    'and serial {3} instead of {4}.'.format(
                     url, existing_hash, md5sum, download_serial, self.serial))
 
     def delete(self):
-        logger.info(u'Deleting package: {}'.format(self.name))
+        logger.info(u'Deleting package: {0}'.format(self.name))
         for directory in self.directories:
             if not os.path.exists(directory):
                 continue

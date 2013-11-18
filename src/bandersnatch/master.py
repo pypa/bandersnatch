@@ -56,7 +56,7 @@ class Master(object):
         self.timeout = timeout
 
     def get(self, path, required_serial, **kw):
-        logger.debug('Getting {} (serial {})'.format(path, required_serial))
+        logger.debug('Getting {0} (serial {1})'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
         headers = {'User-Agent': USER_AGENT}
@@ -74,10 +74,10 @@ class Master(object):
             got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
             if got_serial < required_serial:
                 logger.debug(
-                    "Expected PyPI serial {} for request {} but got {}".
+                    "Expected PyPI serial {0} for request {1} but got {2}".
                     format(required_serial, path, got_serial))
                 raise StalePage(
-                    "Expected PyPI serial {} for request {} but got {}".
+                    "Expected PyPI serial {0} for request {1} but got {2}".
                     format(required_serial, path, got_serial))
         return r
 
@@ -89,7 +89,7 @@ class Master(object):
 
     @property
     def xmlrpc_url(self):
-        return '{}/pypi/'.format(self.url)
+        return '{0}/pypi/'.format(self.url)
 
     # Both list package data retrieval methods return a dictionary with package
     # names and the newest serial that they have received changes.

@@ -47,7 +47,7 @@ class Mirror(object):
 
     def __init__(self, homedir, master, stop_on_error=False, workers=3,
                  delete_packages=True):
-        logger.info('{}'.format(USER_AGENT))
+        logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
         self.master = master
         self.stop_on_error = stop_on_error
@@ -68,7 +68,7 @@ class Mirror(object):
         return os.path.join(self.homedir, 'todo')
 
     def synchronize(self):
-        logger.info('Syncing with {}.'.format(self.master.url))
+        logger.info('Syncing with {0}.'.format(self.master.url))
         self.now = datetime.datetime.utcnow()
 
         self.determine_packages_to_sync()
@@ -96,7 +96,7 @@ class Mirror(object):
         # synced serial.
         self.target_serial = self.synced_serial
         self.packages_to_sync = {}
-        logger.info(u'Current mirror serial: {}'.format(self.synced_serial))
+        logger.info(u'Current mirror serial: {0}'.format(self.synced_serial))
 
         if os.path.exists(self.todolist):
             # We started a sync previously and left a todo list as well as the
@@ -126,8 +126,8 @@ class Mirror(object):
             # anything todo at all during a changelog-based sync.
             self.need_index_sync = bool(self.packages_to_sync)
 
-        logger.info(u'Trying to reach serial: {}'.format(self.target_serial))
-        logger.info(u'{} packages to sync.'.format(len(self.packages_to_sync)))
+        logger.info(u'Trying to reach serial: {0}'.format(self.target_serial))
+        logger.info(u'{0} packages to sync.'.format(len(self.packages_to_sync)))
 
     def sync_packages(self):
         self.queue = Queue.Queue()
@@ -160,9 +160,9 @@ class Mirror(object):
             del self.packages_to_sync[name]
             with open(self.todolist, 'wb') as f:
                 todo = list(self.packages_to_sync.items())
-                todo = ['{} {}'.format(name_.encode('utf-8'), str(serial))
+                todo = ['{0} {0}'.format(name_.encode('utf-8'), str(serial))
                         for name_, serial in todo]
-                f.write('{}\n'.format(self.target_serial))
+                f.write('{0}\n'.format(self.target_serial))
                 f.write('\n'.join(todo))
 
     def sync_index_page(self):
@@ -176,7 +176,7 @@ class Mirror(object):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
                 # We're really trusty that this is all encoded in UTF-8. :/
-                f.write('<a href="{}/">{}</a><br/>\n'.format(pkg, pkg))
+                f.write('<a href="{0}/">{0}</a><br/>\n'.format(pkg, pkg))
             f.write('</body></html>')
 
     def wrapup_successful_sync(self):
@@ -185,7 +185,7 @@ class Mirror(object):
         self.synced_serial = self.target_serial
         if os.path.exists(self.todolist):
             os.unlink(self.todolist)
-        logger.info(u'New mirror serial: {}'.format(self.synced_serial))
+        logger.info(u'New mirror serial: {0}'.format(self.synced_serial))
         last_modified = os.path.join(self.homedir, "web", "last-modified")
         with rewrite(last_modified) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
@@ -199,7 +199,7 @@ class Mirror(object):
                      'web/local-stats/days'):
             path = os.path.join(self.homedir, path)
             if not os.path.exists(path):
-                logger.info(u'Setting up mirror directory: {}'.format(path))
+                logger.info(u'Setting up mirror directory: {0}'.format(path))
                 os.makedirs(path)
 
         self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')
@@ -207,7 +207,7 @@ class Mirror(object):
             fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except IOError:
             raise RuntimeError(
-                'Could not acquire lock on {}. '
+                'Could not acquire lock on {0}. '
                 'Another instance seems to be running.'.format(
                     self.lockfile.name))
 
