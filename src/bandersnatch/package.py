@@ -188,13 +188,15 @@ class Package(object):
                 raise StalePage(
                     'Inconsistent file. {0} has hash {1} instead of {2} '
                     'and serial {3} instead of {4}.'.format(
-                    url, existing_hash, md5sum, download_serial, self.serial))
+                        url, existing_hash, md5sum, download_serial,
+                        self.serial))
             else:
                 # Case B: incorrect md5sum, current serial. Give up.
                 raise ValueError(
                     'Inconsistent file. {0} has hash {1} instead of {2} '
                     'and serial {3} instead of {4}.'.format(
-                    url, existing_hash, md5sum, download_serial, self.serial))
+                        url, existing_hash, md5sum, download_serial,
+                        self.serial))
 
     def delete(self):
         logger.info(u'Deleting package: {0}'.format(self.name))
