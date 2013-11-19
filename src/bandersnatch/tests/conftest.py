@@ -69,7 +69,8 @@ def mirror_mock(request):
 
 @pytest.fixture
 def httplib(request):
-    to_patch = ['httplib.HTTPConnection', 'httplib.HTTPSConnection']
+    to_patch = ['httplib.HTTPConnection', 'httplib.HTTPSConnection',
+                'httplib.HTTP', 'httplib.HTTPS']
     mocks = {}
     patchers = {}
     for p in to_patch:
@@ -87,8 +88,11 @@ def httplib(request):
 def no_https(request):
     import httplib
     httpsconn = httplib.HTTPSConnection
+    https = httplib.HTTPS
     del httplib.HTTPSConnection
+    del httplib.HTTPS
 
     def tearDown():
         httplib.HTTPSConnection = httpsconn
+        httplib.HTTPS = https
     request.addfinalizer(tearDown)
