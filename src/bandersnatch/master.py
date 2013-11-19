@@ -9,6 +9,29 @@ import xmlrpclib
 logger = logging.getLogger(__name__)
 
 
+def _get_connector(ssl=False):
+    if ssl:
+        try:
+            if sys.version_info < (2, 7):
+                httplib.HTTPS
+            else:
+                httplib.HTTPSConnection
+        except AttributeError:
+            raise NotImplementedError(
+                "your version of httplib doesn't support HTTPS")
+
+        if sys.version_info < (2, 7):
+            return httplib.HTTPS
+        else:
+            return httplib.HTTPSConnection
+
+    else:
+        if sys.version_info < (2, 7):
+            return httplib.HTTP
+        else:
+            return httplib.HTTPConnection
+
+
 class CustomTransport(xmlrpclib.Transport):
     """This transport adds a custom user agent string and timeout handling."""
 
@@ -33,21 +56,8 @@ class CustomTransport(xmlrpclib.Transport):
         self._extra_headers = [('User-Agent', USER_AGENT)]
 
         # store the host argument along with the connection object
-        if not self.ssl:
-            self._connection = host, httplib.HTTPConnection(
-                chost, timeout=self.timeout)
-        else:
-            try:
-                httplib.HTTPSConnection
-            except AttributeError:
-                raise NotImplementedError(
-                    "your version of httplib doesn't support HTTPS")
-            self._connection = host, httplib.HTTPSConnection(
-                chost, None, **(x509 or {}))
-            if sys.version_info < (2, 7):
-                if not hasattr(self._connection[1], 'getreply'):
-                    self._connection = host, httplib.HTTPS(
-                        chost, None, **(x509 or {}))
+        self._connection = host, _get_connector(ssl=self.ssl)(
+            chost, None, **(x509 or {}))
 
         return self._connection[1]
 

@@ -1,5 +1,6 @@
 from bandersnatch.master import Master, StalePage
 import pytest
+import sys
 import xmlrpclib
 
 
@@ -53,16 +54,24 @@ def test_transport_creates_new_http_connection(httplib):
     from bandersnatch.master import CustomTransport
     t = CustomTransport()
     t.make_connection('localhost')
-    assert (t.make_connection('localhost') is
-            httplib['httplib.HTTPConnection']())
+    if sys.version_info < (2, 7):
+        assert (t.make_connection('localhost') is
+                httplib['httplib.HTTP']())
+    else:
+        assert (t.make_connection('localhost') is
+                httplib['httplib.HTTPConnection']())
 
 
 def test_transport_creates_new_https_connection(httplib):
     from bandersnatch.master import CustomTransport
     t = CustomTransport(ssl=True)
     t.make_connection('localhost')
-    assert (t.make_connection('localhost') is
-            httplib['httplib.HTTPSConnection']())
+    if sys.version_info < (2, 7):
+        assert (t.make_connection('localhost') is
+                httplib['httplib.HTTPS']())
+    else:
+        assert (t.make_connection('localhost') is
+                httplib['httplib.HTTPSConnection']())
 
 
 def test_transport_raises_on_missing_https_implementation(no_https):
