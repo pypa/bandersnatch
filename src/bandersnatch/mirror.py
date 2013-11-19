@@ -127,7 +127,8 @@ class Mirror(object):
             self.need_index_sync = bool(self.packages_to_sync)
 
         logger.info(u'Trying to reach serial: {0}'.format(self.target_serial))
-        logger.info(u'{0} packages to sync.'.format(len(self.packages_to_sync)))
+        pkg_count = len(self.packages_to_sync)
+        logger.info(u'{0} packages to sync.'.format(pkg_count))
 
     def sync_packages(self):
         self.queue = Queue.Queue()
