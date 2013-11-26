@@ -1,7 +1,7 @@
-1.0.6 (unreleased)
-------------------
+1.1 (unreleased)
+----------------
 
-- Nothing changed yet.
+- Made code Python 2.6 compatible. Thanks to @ewdurbin for the pull request.
 
 
 1.0.5 (2013-07-25)
