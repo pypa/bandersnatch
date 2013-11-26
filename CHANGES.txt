@@ -1,4 +1,4 @@
-1.1 (unreleased)
+1.1 (2013-11-26)
 ----------------
 
 - Made code Python 2.6 compatible. Thanks to @ewdurbin for the pull request.
