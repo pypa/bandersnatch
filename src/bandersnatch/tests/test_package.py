@@ -174,8 +174,7 @@ def test_package_sync_downloads_release_file(
         'the release content')
 
 
-def test_package_download_rejects_non_package_directory_links(
-        mirror, requests):
+def test_package_download_rejects_non_package_directory_links(mirror):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = ['0.1']
     mirror.master.release_urls = mock.Mock()

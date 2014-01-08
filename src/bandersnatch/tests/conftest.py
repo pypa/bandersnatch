@@ -35,10 +35,12 @@ def stop_std_logging(request, capfd):
 
 
 @pytest.fixture
-def master():
+def master(requests):
     from bandersnatch.master import Master
     master = Master('http://pypi.example.com')
     master.rpc = mock.Mock()
+    master.session = mock.Mock()
+    master.session.get = requests
     return master
 
 
