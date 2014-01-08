@@ -1,7 +1,8 @@
 1.2 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Potential performance improvement: use requests' session object to allow HTTP
+  pipelining. Thanks to Wouter Bolsterlee for the recommendation in #39.
 
 
 1.1 (2013-11-26)

@@ -71,14 +71,15 @@ class Master(object):
     def __init__(self, url, timeout=10.0):
         self.url = url
         self.timeout = timeout
+        self.session = requests.Session()
 
     def get(self, path, required_serial, **kw):
         logger.debug('Getting {0} (serial {1})'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
         headers = {'User-Agent': USER_AGENT}
-        r = requests.get(path, timeout=self.timeout,
-                         headers=headers, **kw)
+        r = self.session.get(path, timeout=self.timeout,
+                             headers=headers, **kw)
         r.raise_for_status()
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
