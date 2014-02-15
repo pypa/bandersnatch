@@ -24,7 +24,8 @@ setup(name='bandersnatch',
           'pytest-timeout',
           'pytest-cache',
           'requests',
-          'pdbpp'
+          'pdbpp',
+          'xmlrpc2'
           ],
       entry_points="""
             [console_scripts]

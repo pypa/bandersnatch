@@ -1,16 +1,20 @@
 from bandersnatch.master import Master, StalePage
+import xmlrpc2
 import pytest
-import sys
-import xmlrpclib
 
 
 def test_rpc_factory():
-    master = Master('http://pypi.example.com')
-    assert isinstance(master.rpc(), xmlrpclib.ServerProxy)
+    master = Master('https://pypi.example.com')
+    assert isinstance(master.rpc(), xmlrpc2.client.Client)
+
+
+def test_disallow_http():
+    with pytest.raises(ValueError):
+        Master('http://pypi.example.com')
 
 
 def test_rpc_url(master):
-    assert master.xmlrpc_url == 'http://pypi.example.com/pypi/'
+    assert master.xmlrpc_url == 'https://pypi.example.com/pypi/'
 
 
 def test_all_packages(master):
@@ -41,44 +45,6 @@ def test_package_releases(master):
 
 def test_release_urls(master):
     master.release_urls('foobar', '0.1')
-
-
-def test_transport_reuses_connection():
-    from bandersnatch.master import CustomTransport
-    t = CustomTransport()
-    t._connection = ('localhost', 'existing-connection')
-    assert t.make_connection('localhost') == 'existing-connection'
-
-
-def test_transport_creates_new_http_connection(httplib):
-    from bandersnatch.master import CustomTransport
-    t = CustomTransport()
-    t.make_connection('localhost')
-    if sys.version_info < (2, 7):
-        assert (t.make_connection('localhost') is
-                httplib['httplib.HTTP']())
-    else:
-        assert (t.make_connection('localhost') is
-                httplib['httplib.HTTPConnection']())
-
-
-def test_transport_creates_new_https_connection(httplib):
-    from bandersnatch.master import CustomTransport
-    t = CustomTransport(ssl=True)
-    t.make_connection('localhost')
-    if sys.version_info < (2, 7):
-        assert (t.make_connection('localhost') is
-                httplib['httplib.HTTPS']())
-    else:
-        assert (t.make_connection('localhost') is
-                httplib['httplib.HTTPSConnection']())
-
-
-def test_transport_raises_on_missing_https_implementation(no_https):
-    from bandersnatch.master import CustomTransport
-    t = CustomTransport(ssl=True)
-    with pytest.raises(NotImplementedError):
-        t.make_connection('localhost')
 
 
 def test_master_raises_if_serial_too_small(master, requests):

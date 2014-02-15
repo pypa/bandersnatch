@@ -1,65 +1,24 @@
 from .utils import USER_AGENT
-import httplib
 import logging
 import requests
-import sys
-import xmlrpclib
-
+import xmlrpc2
 
 logger = logging.getLogger(__name__)
 
 
-def _get_connector(ssl=False):
-    if ssl:
-        try:
-            if sys.version_info < (2, 7):
-                httplib.HTTPS
-            else:
-                httplib.HTTPSConnection
-        except AttributeError:
-            raise NotImplementedError(
-                "your version of httplib doesn't support HTTPS")
-
-        if sys.version_info < (2, 7):
-            return httplib.HTTPS
-        else:
-            return httplib.HTTPSConnection
-
-    else:
-        if sys.version_info < (2, 7):
-            return httplib.HTTP
-        else:
-            return httplib.HTTPConnection
-
-
-class CustomTransport(xmlrpclib.Transport):
+class CustomTransport(xmlrpc2.client.HTTPSTransport):
     """This transport adds a custom user agent string and timeout handling."""
 
-    def __init__(self, ssl=False, timeout=10.0):
-        xmlrpclib.Transport.__init__(self)
+    def __init__(self, timeout=10.0):
+        xmlrpc2.client.HTTPSTransport.__init__(self)
         self.timeout = timeout
-        self.ssl = ssl
-        if not hasattr(self, '_connection'):
-            self._connection = None
+        self.session.headers.update({"User-Agent": USER_AGENT,
+                                     "Content-Type": "text/xml"})
 
-    def make_connection(self, host):
-        # Partially copied from xmlrpclib.py because its inheritance model is
-        # inconvenient.
-
-        # return an existing connection if possible.  This allows
-        # HTTP/1.1 keep-alive.
-        if self._connection and host == self._connection[0]:
-            return self._connection[1]
-
-        # create an HTTP connection object from a host descriptor
-        chost, self._extra_headers, x509 = self.get_host_info(host)
-        self._extra_headers = [('User-Agent', USER_AGENT)]
-
-        # store the host argument along with the connection object
-        self._connection = host, _get_connector(ssl=self.ssl)(
-            chost, None, **(x509 or {}))
-
-        return self._connection[1]
+    def request(self, uri, body):
+        resp = self.session.post(uri, body, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.content
 
 
 class StalePage(Exception):
@@ -70,16 +29,18 @@ class Master(object):
 
     def __init__(self, url, timeout=10.0):
         self.url = url
+        if self.url.startswith('http://'):
+            logger.error("Master URL {0} is not https scheme".format(url))
+            raise ValueError("Master URL {0} is not https scheme".format(url))
         self.timeout = timeout
         self.session = requests.Session()
+        self.session.headers.update({'User-Agent': USER_AGENT})
 
     def get(self, path, required_serial, **kw):
         logger.debug('Getting {0} (serial {1})'.format(path, required_serial))
         if not path.startswith(self.url):
             path = self.url + path
-        headers = {'User-Agent': USER_AGENT}
-        r = self.session.get(path, timeout=self.timeout,
-                             headers=headers, **kw)
+        r = self.session.get(path, timeout=self.timeout, **kw)
         r.raise_for_status()
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
@@ -100,10 +61,9 @@ class Master(object):
         return r
 
     def rpc(self):
-        # This is a function as a wrapper to make it thread-safe.
-        use_ssl = self.xmlrpc_url.startswith('https:')
-        t = CustomTransport(ssl=use_ssl, timeout=self.timeout)
-        return xmlrpclib.ServerProxy(self.xmlrpc_url, transport=t)
+        transports = [CustomTransport(timeout=self.timeout)]
+        return xmlrpc2.client.Client(uri=self.xmlrpc_url,
+                                     transports=transports)
 
     @property
     def xmlrpc_url(self):
@@ -123,7 +83,7 @@ class Master(object):
         return packages
 
     def package_releases(self, package):
-        return self.rpc().package_releases(package, True)
+        return self.rpc().package_releases(unicode(package), True)
 
     def release_urls(self, package, version):
-        return self.rpc().release_urls(package, version)
+        return self.rpc().release_urls(unicode(package), version)

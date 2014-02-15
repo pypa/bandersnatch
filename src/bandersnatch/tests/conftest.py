@@ -37,7 +37,7 @@ def stop_std_logging(request, capfd):
 @pytest.fixture
 def master(requests):
     from bandersnatch.master import Master
-    master = Master('http://pypi.example.com')
+    master = Master('https://pypi.example.com')
     master.rpc = mock.Mock()
     master.session = mock.Mock()
     master.session.get = requests
@@ -54,7 +54,7 @@ def mirror(tmpdir, master, monkeypatch):
 @pytest.fixture
 def master_mock():
     master = mock.Mock()
-    master.url = 'http://pypi.example.com'
+    master.url = 'https://pypi.example.com'
     return master
 
 
@@ -67,34 +67,3 @@ def mirror_mock(request):
         patcher.stop()
     request.addfinalizer(tearDown)
     return mirror
-
-
-@pytest.fixture
-def httplib(request):
-    to_patch = ['httplib.HTTPConnection', 'httplib.HTTPSConnection',
-                'httplib.HTTP', 'httplib.HTTPS']
-    mocks = {}
-    patchers = {}
-    for p in to_patch:
-        patchers[p] = mock.patch(p)
-        mocks[p] = patchers[p].start()
-
-    def tearDown():
-        for p in patchers.values():
-            p.stop()
-    request.addfinalizer(tearDown)
-    return mocks
-
-
-@pytest.fixture
-def no_https(request):
-    import httplib
-    httpsconn = httplib.HTTPSConnection
-    https = httplib.HTTPS
-    del httplib.HTTPSConnection
-    del httplib.HTTPS
-
-    def tearDown():
-        httplib.HTTPSConnection = httpsconn
-        httplib.HTTPS = https
-    request.addfinalizer(tearDown)

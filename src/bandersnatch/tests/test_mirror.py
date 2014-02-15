@@ -114,7 +114,7 @@ def test_mirror_sync_package(mirror, master_mock):
     mirror.master.all_packages.return_value = {'foo': 1}
     mirror.master.package_releases.return_value = ['0.1']
     mirror.master.release_urls.return_value = [
-        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
@@ -150,7 +150,7 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
     mirror.master.all_packages.return_value = {'foo': 1}
     mirror.master.package_releases.return_value = ['0.1']
     mirror.master.release_urls.return_value = [
-        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download_stale = mock.Mock()
@@ -194,7 +194,7 @@ def test_mirror_sync_package_error_no_early_exit(
     mirror.master.all_packages.return_value = {'foo': 1}
     mirror.master.package_releases.return_value = ['0.1']
     mirror.master.release_urls.return_value = [
-        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
@@ -234,7 +234,7 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock):
     mirror.master.all_packages.return_value = {'foo': 1}
     mirror.master.package_releases.return_value = ['0.1']
     mirror.master.release_urls.return_value = [
-        {'url': 'http://pypi.example.com/packages/any/f/foo/foo.zip',
+        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     release_download = mock.Mock()
