@@ -82,6 +82,12 @@ class Master(object):
                 packages[package] = serial
         return packages
 
+    # The unicode calls in the next two methods here are a stop-gap to tell
+    # xmlrpc2 (or better: six) that we don't want base64 encoding because this
+    # is text and not a binary string. PyPI currently dies when presented with
+    # base64 as it uses the SimpleXMLRPCServer code and gets handed an
+    # xmlrpclib.Binary instance (for crying out loud).
+
     def package_releases(self, package):
         return self.rpc().package_releases(unicode(package), True)
 
