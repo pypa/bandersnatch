@@ -24,7 +24,7 @@ virtualenv under ``bandersnatch/bin/bandersnatch``.
 
 .. note::
 
-    bandersnatch requires Python 2.7.
+    bandersnatch requires Python 2.7 or 2.6.
 
 
 pip
