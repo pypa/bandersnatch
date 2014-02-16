@@ -12,7 +12,7 @@ wmctrl==0.1
 Pygments==1.6
 python-dateutil==2.2
 six==1.5.2
-setuptools==0.8
+setuptools==2.2
 mock==1.0.1
 pytest-capturelog==0.7
 pytest-codecheckers==0.2
