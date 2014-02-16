@@ -1,4 +1,4 @@
-1.3 (unreleased)
+1.3 (2014-02-16)
 ----------------
 
 - Move to xmlrpc2 to get SSL verification on XML-RPC calls, too. (Fixes #40 and
