@@ -14,13 +14,23 @@ def requests(request):
     responses = []
 
     def prepare(content, serial):
+        if isinstance(content, Exception):
+            responses.append(content)
+            return
         download = mock.Mock()
         download.iter_content.return_value = iter(content)
         download.content = content
+        download.json.return_value = content
         download.headers = {'X-PYPI-LAST-SERIAL': str(serial)}
         responses.append(download)
     requests.prepare = prepare
-    requests.side_effect = lambda *args, **kw: responses.pop(0)
+
+    def side_effect(*args, **kw):
+        result = responses.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+    requests.side_effect = side_effect
     return requests
 
 
@@ -49,13 +59,6 @@ def mirror(tmpdir, master, monkeypatch):
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror
     return Mirror(str(tmpdir), master)
-
-
-@pytest.fixture
-def master_mock():
-    master = mock.Mock()
-    master.url = 'https://pypi.example.com'
-    return master
 
 
 @pytest.fixture

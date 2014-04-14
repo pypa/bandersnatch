@@ -1,13 +1,15 @@
 from . import utils
 from .master import StalePage
+from urllib import unquote
+from urllib2 import quote
 import glob
 import hashlib
 import logging
 import os.path
+import requests
 import shutil
 import time
-import urllib
-import urllib2
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,7 @@ class Package(object):
         self.serial = serial
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
-        self.quoted_name = urllib2.quote(self.encoded_name)
+        self.quoted_name = quote(self.encoded_name)
         self.mirror = mirror
 
     @property
@@ -55,10 +57,15 @@ class Package(object):
         try:
             logger.info(u'Syncing package: {0} (serial {1})'.format(
                         self.name, self.serial))
-            self.releases = self.mirror.master.package_releases(self.name)
-            if not self.releases:
-                self.delete()
-                return
+            try:
+                package_info = self.mirror.master.get(
+                    '/pypi/{0}/json'.format(self.name), self.serial)
+            except requests.HTTPError as e:
+                if e.response.status_code == '404':
+                    self.delete()
+                    return
+                raise
+            self.releases = package_info.json()['releases']
             self.sync_release_files()
             self.sync_simple_page()
         except StalePage:
@@ -84,9 +91,8 @@ class Package(object):
     def sync_release_files(self):
         release_files = []
 
-        for release in self.releases:
-            release_files.extend(self.mirror.master.release_urls(
-                self.name, release))
+        for release in self.releases.values():
+            release_files.extend(release)
 
         self.purge_files(release_files)
 
@@ -119,7 +125,7 @@ class Package(object):
 
     def _file_url_to_local_path(self, url):
         path = url.replace(self.mirror.master.url, '')
-        path = urllib.unquote(path)
+        path = unquote(path)
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
