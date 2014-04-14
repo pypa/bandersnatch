@@ -32,19 +32,11 @@ def test_changed_packages_with_changes(master):
         ('foobar', '1', 0, 'added', 17),
         ('baz', '2', 1, 'updated', 18),
         ('foobar', '1', 0, 'changed', 20),
-        # The server usually just hands our monotonous serials in the
+        # The server usually just hands out monotonous serials in the
         # changelog. This verifies that we don't fail even with garbage input.
         ('foobar', '1', 0, 'changed', 19)]
     changes = master.changed_packages(4)
     assert changes == {'baz': 18, 'foobar': 20}
-
-
-def test_package_releases(master):
-    master.package_releases('foobar')
-
-
-def test_release_urls(master):
-    master.release_urls('foobar', '0.1')
 
 
 def test_master_raises_if_serial_too_small(master, requests):

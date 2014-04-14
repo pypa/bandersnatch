@@ -1,7 +1,8 @@
 from bandersnatch.package import Package
-import Queue
+from requests import HTTPError
 import mock
 import os.path
+import Queue
 
 
 def touch_files(paths):
@@ -35,9 +36,13 @@ def test_package_directories_and_files_with_existing_stuff(mirror):
                      '/packages/any/f/foo/foo.zip']
 
 
-def test_package_sync_no_releases_deletes_package(mirror):
+def test_package_sync_404_json_info_deletes_package(mirror, requests):
     mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = []
+    mirror.master.package_releases.return_value = {}
+
+    response = mock.Mock()
+    response.status_code = '404'
+    requests.prepare(HTTPError(response=response), 0)
 
     paths = ['web/packages/2.4/f/foo/foo.zip',
              'web/serversig/foo',
@@ -85,9 +90,13 @@ def test_package_sync_gives_up_after_3_stale_responses(
     assert 'not updating. Giving up' in caplog.text()
 
 
-def test_package_sync_no_releases_deletes_package_race_condition(mirror):
+def test_package_sync_no_releases_deletes_package_race_condition(
+        mirror, requests):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = []
+    response = mock.Mock()
+    response.status_code = '404'
+    requests.prepare(HTTPError(response=response), 0)
 
     # web/simple/foo/index.html is always expected to exist. we don't fail if
     # it doesn't, though. Good for testing the race condition in the delete
@@ -106,11 +115,8 @@ def test_package_sync_no_releases_deletes_package_race_condition(mirror):
 
 def test_package_sync_with_release_no_files_syncs_simple_page(
         mirror, requests):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
 
+    requests.prepare({'releases': {}}, '10')
     requests.prepare('the simple page', '10')
     requests.prepare('the server signature', '10')
 
@@ -122,12 +128,8 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
     assert open('web/serversig/foo').read() == 'the server signature'
 
 
-def test_package_sync_simple_page_with_existing_dir(
-        mirror, requests):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
+def test_package_sync_simple_page_with_existing_dir(mirror, requests):
+    requests.prepare({'releases': {'0.1': []}}, '10')
     requests.prepare('the simple page', '10')
     requests.prepare('the server signature', '10')
 
@@ -155,15 +157,12 @@ def test_package_sync_with_error_keeps_it_on_todo_list(
     assert 'foo' in mirror.packages_to_sync
 
 
-def test_package_sync_downloads_release_file(
-        mirror, requests):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
-
+def test_package_sync_downloads_release_file(mirror, requests):
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare('the release content', 10)
 
     mirror.packages_to_sync = set(['foo'])
@@ -193,10 +192,7 @@ def test_package_download_rejects_non_package_directory_links(mirror):
 def test_sync_deletes_superfluous_files_on_deleting_mirror(mirror, requests):
     touch_files(['web/packages/2.4/f/foo/foo.zip'])
 
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
+    requests.prepare({'releases': {'0.1': []}}, 10)
 
     mirror.packages_to_sync = set(['foo'])
     package = Package('foo', 10, mirror)
@@ -221,15 +217,12 @@ def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror, requests):
     assert os.path.exists('web/packages/2.4/f/foo/foo.zip')
 
 
-def test_package_sync_replaces_mismatching_local_files(
-        mirror, requests):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
-
+def test_package_sync_replaces_mismatching_local_files(mirror, requests):
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
@@ -308,15 +301,12 @@ def test_sync_incorrect_download_with_old_serials_retries(
     assert list(mirror.queue.queue) == [package]
 
 
-def test_sync_does_not_fail_on_package_data_too_new(
-        mirror, requests):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
-
+def test_sync_does_not_fail_on_package_data_too_new(mirror, requests):
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare('not release content', 11)
     requests.prepare('the simple page', '10')
     requests.prepare('the server signature', '10')

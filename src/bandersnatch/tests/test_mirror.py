@@ -3,6 +3,7 @@ from bandersnatch.mirror import Mirror
 import mock
 import os.path
 import pytest
+from requests import HTTPError
 
 
 def test_limit_workers():
@@ -62,8 +63,8 @@ def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
     Mirror(os.path.join(mirror.homedir+'/test'), mirror.master)
 
 
-def test_mirror_empty_master_gets_index(mirror, master_mock):
-    mirror.master = master_mock
+def test_mirror_empty_master_gets_index(mirror):
+    mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {}
 
     mirror.synchronize()
@@ -82,9 +83,10 @@ def test_mirror_empty_master_gets_index(mirror, master_mock):
     assert open('status').read() == '0'
 
 
-def test_mirror_empty_resume_from_todo_list(mirror, master_mock):
-    mirror.master = master_mock
-    mirror.master.package_releases.return_value = []
+def test_mirror_empty_resume_from_todo_list(mirror, requests):
+    response = mock.Mock()
+    response.status_code = '404'
+    requests.prepare(HTTPError(response=response), 10)
 
     with open('todo', 'w') as todo:
         todo.write('20\nfoobar 10')
@@ -109,26 +111,19 @@ def test_mirror_empty_resume_from_todo_list(mirror, master_mock):
     assert open('status').read() == '20'
 
 
-def test_mirror_sync_package(mirror, master_mock):
-    mirror.master = master_mock
+def test_mirror_sync_package(mirror, requests):
+    mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    release_download = mock.Mock()
-    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
-    release_download.iter_content.return_value = iter('the release content')
-    simple_page = mock.Mock()
-    simple_page.content = 'the simple page'
-    serversig = mock.Mock()
-    serversig.content = 'the server signature'
+    requests.prepare({
+        'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    responses = iter([release_download,
-                      simple_page,
-                      serversig])
-    master_mock.get.side_effect = lambda *args, **kw: responses.next()
+    requests.prepare(iter('the release content'), 1)
+    requests.prepare('the simple page', 1)
+    requests.prepare('the server signature', 1)
 
     mirror.synchronize()
 
@@ -145,32 +140,24 @@ def test_mirror_sync_package(mirror, master_mock):
     assert open('status').read() == '1'
 
 
-def test_mirror_sync_package_with_retry(mirror, master_mock):
-    mirror.master = master_mock
+def test_mirror_sync_package_with_retry(mirror, requests):
+
+    mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    release_download_stale = mock.Mock()
-    release_download_stale.headers = {'X-PYPI-LAST-SERIAL': 0}
-    release_download_stale.iter_content.return_value = iter(
-        'not release content')
+    requests.prepare(
+        {'releases': {'0.1': [
+            {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+             'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
+    requests.prepare(iter('not release content'), 0)
 
-    release_download = mock.Mock()
-    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
-    release_download.iter_content.return_value = iter('the release content')
-    simple_page = mock.Mock()
-    simple_page.content = 'the simple page'
-    serversig = mock.Mock()
-    serversig.content = 'the server signature'
-
-    responses = iter([lambda: release_download_stale,
-                      lambda: release_download,
-                      lambda: simple_page,
-                      lambda: serversig])
-    master_mock.get.side_effect = lambda *args, **kw: responses.next()()
+    requests.prepare(
+        {'releases': {'0.1': [
+            {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+             'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
+    requests.prepare(iter('the release content'), 1)
+    requests.prepare('the simple page', 1)
+    requests.prepare('the server signature', 1)
 
     mirror.synchronize()
 
@@ -188,27 +175,19 @@ def test_mirror_sync_package_with_retry(mirror, master_mock):
     assert open('status').read() == '1'
 
 
-def test_mirror_sync_package_error_no_early_exit(
-        mirror, master_mock):
-    mirror.master = master_mock
+def test_mirror_sync_package_error_no_early_exit(mirror, requests):
+    mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    release_download = mock.Mock()
-    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
-    release_download.iter_content.return_value = iter('the release content')
-    simple_page = mock.Mock()
-    simple_page.content = 'the simple page'
-    serversig = mock.Mock()
-    serversig.content = 'the server signature'
+    requests.prepare(
+        {'releases': {
+            '0.1': [{
+                'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    responses = iter([release_download,
-                      simple_page,
-                      serversig])
-    master_mock.get.side_effect = lambda *args, **kw: responses.next()
+    requests.prepare(iter('the release content'), 1)
+    requests.prepare('the simple page', 1)
+    requests.prepare('the server signature', 1)
 
     mirror.errors = True
     mirror.synchronize()
@@ -229,26 +208,19 @@ def test_mirror_sync_package_error_no_early_exit(
     assert open('todo').read() == '1\n'
 
 
-def test_mirror_sync_package_error_early_exit(mirror, master_mock):
-    mirror.master = master_mock
+def test_mirror_sync_package_error_early_exit(mirror, requests):
+    mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
-    mirror.master.package_releases.return_value = ['0.1']
-    mirror.master.release_urls.return_value = [
-        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    release_download = mock.Mock()
-    release_download.headers = {'X-PYPI-LAST-SERIAL': 1}
-    release_download.iter_content.return_value = iter('the release content')
-    simple_page = mock.Mock()
-    simple_page.content = 'the simple page'
-    serversig = mock.Mock()
-    serversig.content = 'the server signature'
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    responses = iter([release_download,
-                      simple_page,
-                      serversig])
-    master_mock.get.side_effect = lambda *args, **kw: responses.next()
+    requests.prepare(iter('the release content'), 1)
+    requests.prepare('the simple page', 1)
+    requests.prepare('the server signature page', 1)
 
     with open('web/simple/index.html', 'wb') as index:
         index.write('old index')
@@ -270,8 +242,9 @@ def test_mirror_sync_package_error_early_exit(mirror, master_mock):
 
 
 def test_mirror_serial_current_no_sync_of_packages_and_index_page(
-        mirror, master_mock):
-    mirror.master = master_mock
+        mirror, requests):
+
+    mirror.master.changed_packages = mock.Mock()
     mirror.master.changed_packages.return_value = {}
     mirror.synced_serial = 1
 
