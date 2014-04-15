@@ -1,11 +1,9 @@
-import ConfigParser
 import argparse
-import bandersnatch.apache_stats
 import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.utils
-import glob
+import ConfigParser
 import logging
 import os.path
 import shutil
@@ -28,35 +26,6 @@ def mirror(config):
     mirror.synchronize()
 
 
-def update_stats(config):
-    # Ensure the mirror directory exists
-    targetdir = config.get('mirror', 'directory')
-    if not os.path.exists(targetdir):
-        logger.error(
-            'Mirror directory {0} does not exist. '
-            'Please run `bandersnatch mirror` first.'.format(targetdir))
-        sys.exit(1)
-
-    # Ensure the mirror's web directory exists
-    targetdir = os.path.join(targetdir, 'web')
-    if not os.path.exists(targetdir):
-        logger.error('Directory {0} does not exist. '
-                     'Is this a mirror?'.format(targetdir))
-        sys.exit(1)
-
-    # Ensure the mirror's statistics directory exists
-    targetdir = os.path.join(targetdir, 'local-stats')
-    if not os.path.exists(targetdir,):
-        logger.info('Creating statistics directory {0}.'.format(targetdir))
-        os.mkdir(targetdir)
-        os.mkdir(os.path.join(targetdir, 'days'))
-
-    logs = config.get('statistics', 'access-log-pattern')
-    logs = glob.glob(logs)
-    # Keep as dotted name to support mocking.
-    bandersnatch.apache_stats.update_stats(targetdir, logs)
-
-
 def main():
     bandersnatch.log.setup_logging()
 
@@ -72,13 +41,6 @@ def main():
         help='Performs a one-time synchronization with '
              'the PyPI master server.')
     p.set_defaults(func=mirror)
-
-    # `update-stats` command
-    p = subparsers.add_parser(
-        'update-stats',
-        help='Process the access log files and package up access statistics '
-             'for aggregation on the PyPI master.')
-    p.set_defaults(func=update_stats)
 
     args = parser.parse_args()
 
