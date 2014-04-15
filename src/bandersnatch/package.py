@@ -61,7 +61,7 @@ class Package(object):
                 package_info = self.mirror.master.get(
                     '/pypi/{0}/json'.format(self.name), self.serial)
             except requests.HTTPError as e:
-                if e.response.status_code == '404':
+                if e.response.status_code == 404:
                     self.delete()
                     return
                 raise
