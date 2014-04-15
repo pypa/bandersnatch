@@ -41,7 +41,7 @@ def test_package_sync_404_json_info_deletes_package(mirror, requests):
     mirror.master.package_releases.return_value = {}
 
     response = mock.Mock()
-    response.status_code = '404'
+    response.status_code = 404
     requests.prepare(HTTPError(response=response), 0)
 
     paths = ['web/packages/2.4/f/foo/foo.zip',
@@ -95,7 +95,7 @@ def test_package_sync_no_releases_deletes_package_race_condition(
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = []
     response = mock.Mock()
-    response.status_code = '404'
+    response.status_code = 404
     requests.prepare(HTTPError(response=response), 0)
 
     # web/simple/foo/index.html is always expected to exist. we don't fail if

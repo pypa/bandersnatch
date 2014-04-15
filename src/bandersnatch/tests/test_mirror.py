@@ -85,7 +85,7 @@ def test_mirror_empty_master_gets_index(mirror):
 
 def test_mirror_empty_resume_from_todo_list(mirror, requests):
     response = mock.Mock()
-    response.status_code = '404'
+    response.status_code = 404
     requests.prepare(HTTPError(response=response), 10)
 
     with open('todo', 'w') as todo:
