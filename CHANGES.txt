@@ -1,4 +1,4 @@
-1.4 (unreleased)
+1.4 (2014-04-15)
 ----------------
 
 - Move towards replacing the XMLRPC API with JSON to make our requests
