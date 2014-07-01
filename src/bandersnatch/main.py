@@ -60,4 +60,7 @@ def main():
     config = ConfigParser.ConfigParser()
     config.read([default_config, args.config])
 
+    if config.has_option('mirror', 'log-config'):
+        logging.config.fileConfig(os.path.expanduser(log_config))
+
     args.func(config)
