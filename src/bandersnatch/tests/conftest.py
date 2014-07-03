@@ -70,3 +70,14 @@ def mirror_mock(request):
         patcher.stop()
     request.addfinalizer(tearDown)
     return mirror
+
+
+@pytest.fixture
+def logging_mock(request):
+    patcher = mock.patch('logging.config.fileConfig')
+    logger = patcher.start()
+
+    def tearDown():
+        patcher.stop()
+    request.addfinalizer(tearDown)
+    return logger

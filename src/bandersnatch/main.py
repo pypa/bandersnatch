@@ -5,6 +5,7 @@ import bandersnatch.mirror
 import bandersnatch.utils
 import ConfigParser
 import logging
+import logging.config
 import os.path
 import shutil
 import sys
@@ -59,5 +60,9 @@ def main():
 
     config = ConfigParser.ConfigParser()
     config.read([default_config, args.config])
+
+    if config.has_option('mirror', 'log-config'):
+        logging.config.fileConfig(
+            os.path.expanduser(config.get('mirror', 'log-config')))
 
     args.func(config)
