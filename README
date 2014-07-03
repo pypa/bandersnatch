@@ -36,7 +36,7 @@ This installs the latest stable, released version.
 
   $ virtualenv-2.7 bandersnatch
   $ cd bandersnatch
-  $ bin/pip install -r https://bitbucket.org/ctheune/bandersnatch/raw/stable/requirements.txt
+  $ bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
 
 
 zc.buildout
@@ -47,7 +47,7 @@ buildout again to choose a specific release.
 
 ::
 
-  $ hg clone https://bitbucket.org/ctheune/bandersnatch
+  $ hg clone https://bitbucket.org/pypa/bandersnatch
   $ cd bandersnatch
   $ virtualenv-2.7 .
   $ bin/python bootstrap.py
@@ -68,7 +68,8 @@ Configuration
 Webserver
 ---------
 
-Configure your webserver to serve the ``web/`` sub-directory of the mirror. For nginx it should look something like this::
+Configure your webserver to serve the ``web/`` sub-directory of the mirror.
+For nginx it should look something like this::
 
     server {
         listen 127.0.0.1:80;
@@ -158,17 +159,7 @@ Contact
 =======
 
 If you have questions or comments, please submit a bug report to
-http://bitbucket.org/ctheune/bandersnatch/issues/new.
-
-Also, I'm reading the `distutils sig
-<http://mail.python.org/mailman/listinfo/distutils-sig>`_ mailing list.
-
-Support this project
-====================
-
-If you'd like to support my work on PyPI mirrors, please consider a `gittip
-<https://www.gittip.com/theuni/>`_. I'm planning to run a couple more
-international mirrors if I get enough support.
+http://bitbucket.org/pypa/bandersnatch/issues/new.
 
 
 Kudos
