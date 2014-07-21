@@ -8,7 +8,7 @@ from requests import HTTPError
 
 def test_limit_workers():
     try:
-        Mirror(None, None, workers=51)
+        Mirror(None, None, workers=11)
     except ValueError:
         pass
 
