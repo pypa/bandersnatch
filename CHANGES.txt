@@ -1,4 +1,4 @@
-1.5 (unreleased)
+1.5 (2014-07-21)
 ----------------
 
 - Delete broken tests that I forgot to remove.
