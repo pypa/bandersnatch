@@ -3,6 +3,7 @@
 
 - Delete broken tests that I forgot to remove.
 
+- Reduce the officially sanctioned maximum number of connections.
 
 1.4 (2014-04-15)
 ----------------

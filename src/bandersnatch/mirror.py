@@ -53,9 +53,9 @@ class Mirror(object):
         self.stop_on_error = stop_on_error
         self.delete_packages = delete_packages
         self.workers = workers
-        if self.workers > 50:
+        if self.workers > 10:
             raise ValueError(
-                'Downloading with more than 50 workers is not allowed.')
+                'Downloading with more than 10 workers is not allowed.')
         self._bootstrap()
         self._finish_lock = threading.RLock()
 
