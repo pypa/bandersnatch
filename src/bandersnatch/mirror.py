@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import threading
+import pkg_resources
 
 
 logger = logging.getLogger(__name__)
@@ -173,7 +174,10 @@ class Mirror(object):
         simple_dir = os.path.join(self.webdir, 'simple')
         with rewrite(os.path.join(simple_dir, 'index.html')) as f:
             f.write('<html><head><title>Simple Index</title></head><body>\n')
-            for pkg in os.listdir(simple_dir):
+            for pkg in sorted(set(
+                    # Filter out all of the "non" normalized names here
+                    pkg_resources.safe_name(x).lower()
+                    for x in os.listdir(simple_dir))):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
                 # We're really trusty that this is all encoded in UTF-8. :/
