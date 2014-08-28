@@ -9,6 +9,7 @@ import os.path
 import requests
 import shutil
 import time
+import pkg_resources
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,9 @@ class Package(object):
     def __init__(self, name, serial, mirror):
         self.name = name
         self.serial = serial
+        self.normalized_name = (
+            pkg_resources.safe_name(name).lower().encode("utf-8")
+        )
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
         self.quoted_name = quote(self.encoded_name)
@@ -42,6 +46,10 @@ class Package(object):
     @property
     def simple_directory(self):
         return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
+
+    @property
+    def normalized_simple_directory(self):
+        return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
 
     @property
     def serversig_file(self):
@@ -111,11 +119,25 @@ class Package(object):
         r = self.mirror.master.get(
             '/simple/{0}/'.format(self.quoted_name), self.serial)
 
-        if not os.path.exists(self.simple_directory):
-            os.makedirs(self.simple_directory)
+        # This exists for compatability with pip 1.5 which will not fallback
+        # to /simple/ to determine what URL to get packages from, but will just
+        # fail. Once pip 1.6 is old enough to be considered a "minimum" this
+        # can be removed.
+        if self.simple_directory != self.normalized_simple_directory:
+            if not os.path.exists(self.simple_directory):
+                os.makedirs(self.simple_directory)
+            simple_page = os.path.join(self.simple_directory, 'index.html')
+            with utils.rewrite(simple_page) as f:
+                f.write(r.content)
 
-        simple_page = os.path.join(self.simple_directory, 'index.html')
-        with utils.rewrite(simple_page) as f:
+        if not os.path.exists(self.normalized_simple_directory):
+            os.makedirs(self.normalized_simple_directory)
+
+        normalized_simple_page = os.path.join(
+            self.normalized_simple_directory,
+            'index.html',
+        )
+        with utils.rewrite(normalized_simple_page) as f:
             f.write(r.content)
 
         r = self.mirror.master.get(
