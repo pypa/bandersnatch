@@ -19,8 +19,11 @@ class Worker(threading.Thread):
         self.queue = queue
 
     def run(self):
-        while not self.queue.empty():
-            package = self.queue.get()
+        while True:
+            try:
+                package = self.queue.get(timeout=0.5)
+            except Queue.Empty:
+                break
             package.sync()
 
 
