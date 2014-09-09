@@ -1,0 +1,5 @@
+Making a release
+----------------
+
+* Tests green?
+* run ``bin/fullrelease``

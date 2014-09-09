@@ -1,0 +1,135 @@
+1.6 (unreleased)
+----------------
+
+- Nothing changed yet.
+
+
+1.5 (2014-07-21)
+----------------
+
+- Delete broken tests that I forgot to remove.
+
+- Reduce the officially sanctioned maximum number of connections.
+
+1.4 (2014-04-15)
+----------------
+
+- Move towards replacing the XMLRPC API with JSON to make our requests
+  cacheable. Also reduces the amount of requests needed dramatically.
+
+- Remove apache stats script as this information is no longer being used anyway.
+
+1.3 (2014-02-16)
+----------------
+
+- Move to xmlrpc2 to get SSL verification on XML-RPC calls, too. (Fixes #40 and
+  big thanks to @ewdurbin)
+
+1.2 (2014-01-08)
+----------------
+
+- Potential performance improvement: use requests' session object to allow HTTP
+  pipelining. Thanks to Wouter Bolsterlee for the recommendation in #39.
+
+
+1.1 (2013-11-26)
+----------------
+
+- Made code Python 2.6 compatible. Thanks to @ewdurbin for the pull request.
+
+
+1.0.5 (2013-07-25)
+------------------
+
+- Refactor lock acquisition to avoid shadowing exceptions when creating the
+  lockfile vs. acquiring the lock.
+
+- Move from distribute back to setuptools.
+
+
+1.0.4 (2013-07-10)
+------------------
+
+- Slight brownbag release: the requirements.txt accidentally included a
+  development version of py.test due to my usage of mr.developer.
+
+1.0.3 (2013-07-08)
+------------------
+
+- Fix brownbag release with broken 'stable' tag and missing requirements.txt
+  update.
+
+
+1.0.2 (2013-07-08)
+------------------
+
+- Generate the index simple page ourselves: its not signed anyway and helps
+  PyPI caching more aggressively.
+
+- Add a py.test plugin to actually show a green bar. Hopefully will be
+  integrated into py.test in the near future.
+
+- Fix dealing with inconsistent todo files: empty files or with an incorrect
+  header will just be deleted and processing resumes at the last known good
+  state.
+
+- Mark up requirement of Python 2.7 (#19)
+
+- Fix dealing with new CDN cache issues. Thanks to @dstufft for making PyPI
+  support mirrors again.
+
+- Improve test coverage.
+
+1.0.1 (2013-04-18)
+------------------
+
+- Fix packaging: include default config file. (Thanks to Jannis Leidel)
+
+
+1.0 (2013-04-09)
+----------------
+
+- Update pip install documentation to use the a URL for referring to the
+  requirements.txt directly.
+
+- Adjust buildout and jenkins job to stop fighting over the distribute version
+  to install.
+
+1.0rc6 (2013-04-09)
+-------------------
+
+- Hopefully fixed updating the stable tag when releasing.
+
+
+1.0rc5 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc4 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc3 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc2 (2013-04-09)
+-------------------
+
+- Experiment with zest.releaser integration to automatically generate
+  requirements.txt during release process.
+
+
+1.0rc1 (2013-04-09)
+-------------------
+
+- Initial release. Massive rewrite of pep381client.
