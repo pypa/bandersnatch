@@ -21,7 +21,7 @@ class Worker(threading.Thread):
     def run(self):
         while True:
             try:
-                package = self.queue.get(timeout=0.5)
+                package = self.queue.get_nowait()
             except Queue.Empty:
                 break
             package.sync()
