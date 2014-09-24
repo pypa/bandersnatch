@@ -89,7 +89,6 @@ def test_mirror_empty_master_gets_index(mirror):
 /local-stats
 /local-stats/days
 /packages
-/serversig
 /simple
 /simple/index.html""" == utils.find(mirror.webdir)
     assert open('web/simple/index.html').read() == """\
@@ -117,7 +116,6 @@ def test_mirror_empty_resume_from_todo_list(mirror, requests):
 /web/local-stats
 /web/local-stats/days
 /web/packages
-/web/serversig
 /web/simple
 /web/simple/index.html""" == utils.find(mirror.homedir)
     assert open('web/simple/index.html').read() == """\
@@ -138,14 +136,12 @@ def test_mirror_sync_package(mirror, requests):
 
     requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
-    requests.prepare('the server signature', 1)
 
     mirror.synchronize()
 
     assert """\
 /last-modified
 /packages/any/f/foo/foo.zip
-/serversig/foo
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
     assert open('web/simple/index.html').read() == """\
@@ -172,14 +168,12 @@ def test_mirror_sync_package_with_retry(mirror, requests):
              'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
     requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
-    requests.prepare('the server signature', 1)
 
     mirror.synchronize()
 
     assert """\
 /last-modified
 /packages/any/f/foo/foo.zip
-/serversig/foo
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
     assert open('web/simple/index.html').read() == """\
@@ -202,7 +196,6 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
 
     requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
-    requests.prepare('the server signature', 1)
 
     mirror.errors = True
     mirror.synchronize()
@@ -212,7 +205,6 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
 /generation
 /todo
 /web/packages/any/f/foo/foo.zip
-/web/serversig/foo
 /web/simple/foo/index.html
 /web/simple/index.html""" == utils.find(mirror.homedir, dirs=False)
     assert open('web/simple/index.html').read() == """\
@@ -235,7 +227,6 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
 
     requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
-    requests.prepare('the server signature page', 1)
 
     with open('web/simple/index.html', 'wb') as index:
         index.write('old index')
@@ -249,7 +240,6 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
 /generation
 /todo
 /web/packages/any/f/foo/foo.zip
-/web/serversig/foo
 /web/simple/foo/index.html
 /web/simple/index.html""" == utils.find(mirror.homedir, dirs=False)
     assert open('web/simple/index.html').read() == 'old index'
