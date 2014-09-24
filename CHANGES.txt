@@ -1,5 +1,5 @@
-1.6.1 (unreleased)
-----------------
+1.6.1 (2014-09-24)
+------------------
 
 - Create a new generation to enforce a full sync when upgrading.
   This is required to get the canonical names for all packages.
