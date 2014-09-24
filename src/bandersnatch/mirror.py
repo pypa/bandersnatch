@@ -230,22 +230,32 @@ class Mirror(object):
     def generationfile(self):
         return os.path.join(self.homedir, "generation")
 
+    def _reset_mirror_status(self):
+        for path in [self.statusfile, self.todolist]:
+            if os.path.exists(path):
+                os.unlink(path)
+
     def _load(self):
-        # Simple generation mechanism to suppor transparent software
+        # Simple generation mechanism to support transparent software
         # updates.
         if not os.path.exists(self.generationfile):
             logger.info(u'Generation file missing. '
                         u'Reinitialising status files.')
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
-            for path in [self.statusfile, self.todolist]:
-                if os.path.exists(path):
-                    os.unlink(path)
-            # We're now at status file generation "2"
-            open(self.generationfile, 'w').write('2')
+            self._reset_mirror_status()
+            # We're now at status file generation "3"
+            open(self.generationfile, 'w').write('3')
         else:
-            # Put future migration here.
-            assert open(self.generationfile, 'r').read().strip() == '2'
+            generation = open(self.generationfile, 'r').read().strip()
+            if generation == '2':
+                # In generation 2 -> 3 we changed the way we generate simple
+                # page package directory names. Simply run a full update.
+                self._reset_mirror_status()
+                open(self.generationfile, 'w').write('3')
+                return
+            else:
+                assert generation == '3'
         # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')
