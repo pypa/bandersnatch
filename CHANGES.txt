@@ -1,8 +1,11 @@
 1.6 (unreleased)
 ----------------
 
+- Implement canonical package directory names to support an upcoming PIP
+  release and other tools. (Thanks to @dstufft)
+
 - Fix a race condition where workers could get stuck indefinitely waiting for
-  another item in a depleted queue. (Thanks to hongqn).
+  another item in a depleted queue. (Thanks to hongqn)
 
 1.5 (2014-07-21)
 ----------------
