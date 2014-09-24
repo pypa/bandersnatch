@@ -128,7 +128,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
     assert open('web/serversig/foo').read() == 'the server signature'
 
 
-def test_package_sync_with_cannonical_simple_page(mirror, requests):
+def test_package_sync_with_canonical_simple_page(mirror, requests):
 
     requests.prepare({'releases': {}}, '10')
     requests.prepare('the simple page', '10')
