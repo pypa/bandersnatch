@@ -1,4 +1,4 @@
-1.6 (unreleased)
+1.6 (2014-09-24)
 ----------------
 
 - Implement canonical package directory names to support an upcoming PIP
