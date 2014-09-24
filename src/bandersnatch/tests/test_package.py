@@ -128,6 +128,20 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
     assert open('web/serversig/foo').read() == 'the server signature'
 
 
+def test_package_sync_with_cannonical_simple_page(mirror, requests):
+
+    requests.prepare({'releases': {}}, '10')
+    requests.prepare('the simple page', '10')
+    requests.prepare('the server signature', '10')
+
+    mirror.packages_to_sync = {'Foo': 10}
+    package = Package('Foo', 10, mirror)
+    package.sync()
+
+    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/serversig/foo').read() == 'the server signature'
+
+
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     requests.prepare({'releases': {'0.1': []}}, '10')
     requests.prepare('the simple page', '10')
