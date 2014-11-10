@@ -140,10 +140,9 @@ class Package(object):
         with utils.rewrite(normalized_simple_page) as f:
             f.write(r.content)
 
-        r = self.mirror.master.get(
-            '/serversig/{0}/'.format(self.quoted_name), self.serial)
-        with utils.rewrite(self.serversig_file) as f:
-            f.write(r.content)
+        # Remove the /serversig page if it exists
+        if os.path.exists(self.serversig_file):
+            os.unlink(self.serversig_file)
 
     def _file_url_to_local_path(self, url):
         path = url.replace(self.mirror.master.url, '')

@@ -44,9 +44,7 @@ def test_package_sync_404_json_info_deletes_package(mirror, requests):
     response.status_code = 404
     requests.prepare(HTTPError(response=response), 0)
 
-    paths = ['web/packages/2.4/f/foo/foo.zip',
-             'web/serversig/foo',
-             'web/simple/foo/index.html']
+    paths = ['web/packages/2.4/f/foo/foo.zip', 'web/simple/foo/index.html']
     touch_files(paths)
 
     package = Package('foo', 10, mirror)
@@ -101,8 +99,7 @@ def test_package_sync_no_releases_deletes_package_race_condition(
     # web/simple/foo/index.html is always expected to exist. we don't fail if
     # it doesn't, though. Good for testing the race condition in the delete
     # function.
-    paths = ['web/packages/2.4/f/foo/foo.zip',
-             'web/serversig/foo']
+    paths = ['web/packages/2.4/f/foo/foo.zip']
     touch_files(paths)
 
     package = Package('foo', 10, mirror)
@@ -118,34 +115,29 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
 
     requests.prepare({'releases': {}}, '10')
     requests.prepare('the simple page', '10')
-    requests.prepare('the server signature', '10')
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
     package.sync()
 
     assert open('web/simple/foo/index.html').read() == 'the simple page'
-    assert open('web/serversig/foo').read() == 'the server signature'
 
 
 def test_package_sync_with_canonical_simple_page(mirror, requests):
 
     requests.prepare({'releases': {}}, '10')
     requests.prepare('the simple page', '10')
-    requests.prepare('the server signature', '10')
 
     mirror.packages_to_sync = {'Foo': 10}
     package = Package('Foo', 10, mirror)
     package.sync()
 
     assert open('web/simple/foo/index.html').read() == 'the simple page'
-    assert open('web/serversig/foo').read() == 'the server signature'
 
 
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     requests.prepare({'releases': {'0.1': []}}, '10')
     requests.prepare('the simple page', '10')
-    requests.prepare('the server signature', '10')
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
@@ -153,7 +145,6 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     package.sync()
 
     assert open('web/simple/foo/index.html').read() == 'the simple page'
-    assert open('web/serversig/foo').read() == 'the server signature'
 
 
 def test_package_sync_with_error_keeps_it_on_todo_list(
@@ -323,7 +314,6 @@ def test_sync_does_not_fail_on_package_data_too_new(mirror, requests):
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare('not release content', 11)
     requests.prepare('the simple page', '10')
-    requests.prepare('the server signature', '10')
 
     mirror.packages_to_sync = dict(foo=10)
     package = Package('foo', 10, mirror)
@@ -332,4 +322,21 @@ def test_sync_does_not_fail_on_package_data_too_new(mirror, requests):
     assert not os.path.exists('web/packages/any/f/foo/foo.zip')
 
     assert open('web/simple/foo/index.html').read() == 'the simple page'
-    assert open('web/serversig/foo').read() == 'the server signature'
+
+
+def test_sync_deletes_serversig(mirror, requests):
+    requests.prepare({'releases': {'0.1': []}}, '10')
+    requests.prepare('the simple page', '10')
+
+    mirror.packages_to_sync = {'foo': 10}
+    package = Package('foo', 10, mirror)
+    os.makedirs(package.simple_directory)
+    os.makedirs(os.path.join(package.mirror.webdir, 'serversig'))
+    open(package.serversig_file, "w").close()
+
+    assert os.path.exists(package.serversig_file)
+
+    package.sync()
+
+    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert not os.path.exists(package.serversig_file)
