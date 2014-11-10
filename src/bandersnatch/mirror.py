@@ -203,7 +203,6 @@ class Mirror(object):
         for path in ('',
                      'web/simple',
                      'web/packages',
-                     'web/serversig',
                      'web/local-stats/days'):
             path = os.path.join(self.homedir, path)
             if not os.path.exists(path):
