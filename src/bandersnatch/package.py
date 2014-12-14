@@ -74,6 +74,7 @@ class Package(object):
                     return
                 raise
             self.releases = package_info.json()['releases']
+            self.fetch_simple_page()
             self.sync_release_files()
             self.sync_simple_page()
         except StalePage:
@@ -107,8 +108,8 @@ class Package(object):
         for release_file in release_files:
             self.download_file(release_file['url'], release_file['md5_digest'])
 
-    def sync_simple_page(self):
-        logger.info(u'Syncing index page: {0}'.format(self.name))
+    def fetch_simple_page(self):
+        logger.info(u'Fetching index page: {0}'.format(self.name))
         # The trailing slash is important: there are packages that have a
         # trailing '?' that will get eaten by the webserver even if we urlquote
         # it properly. Yay. :/
@@ -118,7 +119,10 @@ class Package(object):
         # approve of this, as long as the serial of the master is correct.
         r = self.mirror.master.get(
             '/simple/{0}/'.format(self.quoted_name), self.serial)
+        self.simple_page_content = r.content
 
+    def sync_simple_page(self):
+        logger.info(u'Storing index page: {0}'.format(self.name))
         # This exists for compatability with pip 1.5 which will not fallback
         # to /simple/ to determine what URL to get packages from, but will just
         # fail. Once pip 1.6 is old enough to be considered a "minimum" this
@@ -128,7 +132,7 @@ class Package(object):
                 os.makedirs(self.simple_directory)
             simple_page = os.path.join(self.simple_directory, 'index.html')
             with utils.rewrite(simple_page) as f:
-                f.write(r.content)
+                f.write(self.simple_page_content)
 
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
@@ -138,7 +142,7 @@ class Package(object):
             'index.html',
         )
         with utils.rewrite(normalized_simple_page) as f:
-            f.write(r.content)
+            f.write(self.simple_page_content)
 
         # Remove the /serversig page if it exists
         if os.path.exists(self.serversig_file):
