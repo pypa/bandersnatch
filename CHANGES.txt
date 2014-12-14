@@ -1,7 +1,7 @@
 1.7 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Stop syncing serversig files and even start removing them.
 
 
 1.6.1 (2014-09-24)
