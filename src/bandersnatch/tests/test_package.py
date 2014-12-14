@@ -168,9 +168,10 @@ def test_package_sync_downloads_release_file(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
+    requests.prepare('the index page', 10)
     requests.prepare('the release content', 10)
 
-    mirror.packages_to_sync = set(['foo'])
+    mirror.packages_to_sync = dict(foo=None)
     package = Package('foo', 10, mirror)
     package.sync()
 
@@ -198,8 +199,9 @@ def test_sync_deletes_superfluous_files_on_deleting_mirror(mirror, requests):
     touch_files(['web/packages/2.4/f/foo/foo.zip'])
 
     requests.prepare({'releases': {'0.1': []}}, 10)
+    requests.prepare('the simple page', 10)
 
-    mirror.packages_to_sync = set(['foo'])
+    mirror.packages_to_sync = dict(foo=None)
     package = Package('foo', 10, mirror)
     package.sync()
 
@@ -228,13 +230,14 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
+    requests.prepare('the index page', 10)
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
     with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
         f.write('this is not the release content')
 
-    mirror.packages_to_sync = set(['foo'])
+    mirror.packages_to_sync = {'foo': None}
     package = Package('foo', 10, mirror)
     package.sync()
 
@@ -312,8 +315,8 @@ def test_sync_does_not_fail_on_package_data_too_new(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('not release content', 11)
     requests.prepare('the simple page', '10')
+    requests.prepare('not release content', 11)
 
     mirror.packages_to_sync = dict(foo=10)
     package = Package('foo', 10, mirror)
