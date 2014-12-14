@@ -1,11 +1,10 @@
 from . import utils
 from .master import StalePage
-from urllib import unquote
-from urllib2 import quote
+from six.moves.urllib.parse import quote, unquote
 import glob
 import hashlib
 import logging
-import os.path
+import os
 import requests
 import shutil
 import time

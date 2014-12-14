@@ -1,6 +1,6 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
-import Queue
+import six.moves.queue as Queue
 import datetime
 import fcntl
 import logging
@@ -86,7 +86,7 @@ class Mirror(object):
         if os.path.exists(self.todolist):
             try:
                 saved_todo = iter(open(self.todolist))
-                int(saved_todo.next().strip())
+                int(next(saved_todo).strip())
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
@@ -108,7 +108,7 @@ class Mirror(object):
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
             saved_todo = iter(open(self.todolist))
-            self.target_serial = int(saved_todo.next().strip())
+            self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
                 self.packages_to_sync[package.decode('utf-8')] = int(serial)
@@ -264,4 +264,4 @@ class Mirror(object):
 
     def _save(self):
         with open(self.statusfile, "wb") as f:
-            f.write(str(self.synced_serial))
+            f.write(str(self.synced_serial).encode('ascii'))

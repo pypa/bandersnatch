@@ -1,8 +1,8 @@
 from bandersnatch.package import Package
 from requests import HTTPError
 import mock
-import os.path
-import Queue
+import os
+import six.moves.queue as Queue
 
 
 def touch_files(paths):
