@@ -1,14 +1,17 @@
 syntax:glob
+
 *.egg-info
 *.pyc
+*.sublime*
 *.swp
 .*~
-.Python
 .cache
 .coverage
+.DS_Store
 .installed.cfg
 .mr.developer.cfg
-MANIFEST
+.Python
+.tox
 bin
 build
 develop-eggs
@@ -17,6 +20,5 @@ eggs
 htmlcov
 include
 lib
+MANIFEST
 web
-.tox
-*.sublime*
