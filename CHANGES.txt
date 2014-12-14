@@ -1,6 +1,9 @@
 1.7 (unreleased)
 ----------------
 
+- Fix #54 by reordering the simple index page and file fetching
+  parts. Thanks @dstufft for the inspiration.
+
 - Stop syncing serversig files and even start removing them.
 
 
