@@ -1,4 +1,4 @@
-1.7 (unreleased)
+1.7 (2014-12-14)
 ----------------
 
 - Fix #54 by reordering the simple index page and file fetching
