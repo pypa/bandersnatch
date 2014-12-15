@@ -44,16 +44,24 @@ class Package(object):
 
     @property
     def simple_directory(self):
-        return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
+        return os.path.join(
+            self.mirror.webdir.encode('utf-8'),
+            b'simple',
+            self.encoded_name)
 
     @property
     def normalized_simple_directory(self):
-        return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
+        return os.path.join(
+            self.mirror.webdir.encode('utf-8'),
+            b'simple',
+            self.normalized_name)
 
     @property
     def serversig_file(self):
         return os.path.join(
-            self.mirror.webdir, 'serversig', self.encoded_name)
+            self.mirror.webdir.encode('utf-8'),
+            b'serversig',
+            self.encoded_name)
 
     @property
     def directories(self):
@@ -125,7 +133,7 @@ class Package(object):
         if self.simple_directory != self.normalized_simple_directory:
             if not os.path.exists(self.simple_directory):
                 os.makedirs(self.simple_directory)
-            simple_page = os.path.join(self.simple_directory, 'index.html')
+            simple_page = os.path.join(self.simple_directory, b'index.html')
             with utils.rewrite(simple_page) as f:
                 f.write(r.content)
 
@@ -134,7 +142,7 @@ class Package(object):
 
         normalized_simple_page = os.path.join(
             self.normalized_simple_directory,
-            'index.html',
+            b'index.html',
         )
         with utils.rewrite(normalized_simple_page) as f:
             f.write(r.content)
@@ -149,7 +157,9 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
-        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
+        return os.path.join(
+            self.mirror.webdir.encode('utf-8'),
+            path.encode('utf-8'))
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
@@ -199,7 +209,7 @@ class Package(object):
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):
-                checksum.update(chunk)
+                checksum.update(chunk.encode('utf-8'))
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:

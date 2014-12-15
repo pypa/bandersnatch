@@ -111,7 +111,9 @@ class Mirror(object):
             self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
-                self.packages_to_sync[package.decode('utf-8')] = int(serial)
+                if hasattr(package, 'decode'):
+                    package = package.decode('utf-8')
+                self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
@@ -167,8 +169,8 @@ class Mirror(object):
                 todo = list(self.packages_to_sync.items())
                 todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
                         for name_, serial in todo]
-                f.write('{0}\n'.format(self.target_serial))
-                f.write('\n'.join(todo))
+                f.write('{0}\n'.format(self.target_serial).encode('utf-8'))
+                f.write('\n'.join(todo).encode('utf-8'))
 
     def sync_index_page(self):
         if not self.need_index_sync:
