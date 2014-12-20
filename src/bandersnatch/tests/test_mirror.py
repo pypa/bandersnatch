@@ -133,9 +133,8 @@ def test_mirror_sync_package(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-
-    requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
+    requests.prepare(iter('the release content'), 1)
 
     mirror.synchronize()
 
@@ -160,14 +159,15 @@ def test_mirror_sync_package_with_retry(mirror, requests):
         {'releases': {'0.1': [
             {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
              'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
+    requests.prepare('the simple page', 1)
     requests.prepare(iter('not release content'), 0)
 
     requests.prepare(
         {'releases': {'0.1': [
             {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
              'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
+    requests.prepare(iter('the release content'), 1)
 
     mirror.synchronize()
 
@@ -194,8 +194,8 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
                 'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
+    requests.prepare(iter('the release content'), 1)
 
     mirror.errors = True
     mirror.synchronize()
@@ -224,9 +224,8 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-
-    requests.prepare(iter('the release content'), 1)
     requests.prepare('the simple page', 1)
+    requests.prepare(iter('the release content'), 1)
 
     with open('web/simple/index.html', 'wb') as index:
         index.write('old index')

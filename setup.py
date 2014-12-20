@@ -3,14 +3,14 @@
 from setuptools import setup, find_packages
 
 setup(name='bandersnatch',
-      version='1.7.dev0',
+      version='1.8.dev0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
       author='Christian Theune',
       author_email='ct@gocept.com',
       license='Academic Free License, version 3',
-      url='http://bitbucket.org/ctheune/bandersnatch/',
+      url='http://bitbucket.org/pypa/bandersnatch/',
       packages=find_packages('src'),
       package_dir={'': 'src'},
       include_package_data=True,
