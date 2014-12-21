@@ -1,8 +1,8 @@
 from bandersnatch.package import Package
 from requests import HTTPError
 import mock
-import os.path
-import Queue
+import os
+import six.moves.queue as Queue
 
 
 def touch_files(paths):
@@ -234,7 +234,7 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
-    with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
+    with open('web/packages/any/f/foo/foo.zip', 'w') as f:
         f.write('this is not the release content')
 
     mirror.packages_to_sync = {'foo': None}
@@ -257,7 +257,7 @@ def test_package_sync_does_not_touch_existing_local_file(
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
-    with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
+    with open('web/packages/any/f/foo/foo.zip', 'w') as f:
         f.write('the release content')
     old_stat = os.stat('web/packages/any/f/foo/foo.zip')
 

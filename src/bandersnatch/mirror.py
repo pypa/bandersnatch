@@ -1,8 +1,9 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
-import Queue
+import six.moves.queue as Queue
 import datetime
 import fcntl
+import io
 import logging
 import os
 import sys
@@ -86,7 +87,7 @@ class Mirror(object):
         if os.path.exists(self.todolist):
             try:
                 saved_todo = iter(open(self.todolist))
-                int(saved_todo.next().strip())
+                int(next(saved_todo).strip())
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
@@ -107,11 +108,11 @@ class Mirror(object):
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
-            saved_todo = iter(open(self.todolist))
-            self.target_serial = int(saved_todo.next().strip())
+            saved_todo = iter(io.open(self.todolist, encoding='utf-8'))
+            self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
-                self.packages_to_sync[package.decode('utf-8')] = int(serial)
+                self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
@@ -163,12 +164,12 @@ class Mirror(object):
     def record_finished_package(self, name):
         with self._finish_lock:
             del self.packages_to_sync[name]
-            with open(self.todolist, 'wb') as f:
+            with io.open(self.todolist, 'w', encoding='utf-8') as f:
                 todo = list(self.packages_to_sync.items())
-                todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
+                todo = ['{0} {1}'.format(name_, str(serial))
                         for name_, serial in todo]
-                f.write('{0}\n'.format(self.target_serial))
-                f.write('\n'.join(todo))
+                f.write(u'{0}\n'.format(self.target_serial))
+                f.write(u'\n'.join(todo))
 
     def sync_index_page(self):
         if not self.need_index_sync:
@@ -263,5 +264,5 @@ class Mirror(object):
             self.synced_serial = int(f.read().strip())
 
     def _save(self):
-        with open(self.statusfile, "wb") as f:
+        with open(self.statusfile, "w") as f:
             f.write(str(self.synced_serial))

@@ -1,7 +1,7 @@
 import contextlib
 import hashlib
 import os
-import os.path
+import platform
 import pkg_resources
 import sys
 import tempfile
@@ -12,7 +12,7 @@ def user_agent():
     system = os.uname()
     system = ' '.join([system[0], system[2], system[4]])
     version = pkg_resources.require("bandersnatch")[0].version
-    python = sys.subversion[0]
+    python = platform.python_implementation()
     python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
     return template.format(**locals())
 
@@ -21,7 +21,7 @@ USER_AGENT = user_agent()
 
 def hash(path, function='md5'):
     h = getattr(hashlib, function)()
-    for line in open(path):
+    for line in open(path, 'rb'):
         h.update(line)
     return h.hexdigest()
 
@@ -56,5 +56,5 @@ def rewrite(filename):
         # Allow our clients to remove the file in case it doesn't want it to be
         # put in place actually but also doesn't want to error out.
         return
-    os.chmod(filename_tmp, 0100644)
+    os.chmod(filename_tmp, 0o100644)
     os.rename(filename_tmp, filename)

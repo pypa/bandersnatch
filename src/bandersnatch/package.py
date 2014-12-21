@@ -1,11 +1,10 @@
 from . import utils
 from .master import StalePage
-from urllib import unquote
-from urllib2 import quote
+from six.moves.urllib.parse import quote, unquote
 import glob
 import hashlib
 import logging
-import os.path
+import os
 import requests
 import shutil
 import time
@@ -23,29 +22,24 @@ class Package(object):
     def __init__(self, name, serial, mirror):
         self.name = name
         self.serial = serial
-        self.normalized_name = (
-            pkg_resources.safe_name(name).lower().encode("utf-8")
-        )
-        self.encoded_name = self.name.encode('utf-8')
-        self.encoded_first = self.name[0].encode('utf-8')
-        self.quoted_name = quote(self.encoded_name)
+        self.normalized_name = pkg_resources.safe_name(name).lower()
         self.mirror = mirror
 
     @property
     def package_directories(self):
         expr = '{0}/packages/*/{1}/{2}'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def package_files(self):
         expr = '{0}/packages/*/{1}/{2}/*'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def simple_directory(self):
-        return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
+        return os.path.join(self.mirror.webdir, 'simple', self.name)
 
     @property
     def normalized_simple_directory(self):
@@ -53,8 +47,7 @@ class Package(object):
 
     @property
     def serversig_file(self):
-        return os.path.join(
-            self.mirror.webdir, 'serversig', self.encoded_name)
+        return os.path.join(self.mirror.webdir, 'serversig', self.name)
 
     @property
     def directories(self):
@@ -118,7 +111,7 @@ class Package(object):
         # trying to reach an older serial. In that case we should just silently
         # approve of this, as long as the serial of the master is correct.
         r = self.mirror.master.get(
-            '/simple/{0}/'.format(self.quoted_name), self.serial)
+            '/simple/{0}/'.format(quote(self.name)), self.serial)
         self.simple_page_content = r.content
 
     def sync_simple_page(self):
@@ -154,7 +147,7 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
-        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
+        return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
@@ -204,7 +197,7 @@ class Package(object):
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64*1024):
-                checksum.update(chunk)
+                checksum.update(chunk.encode('utf-8'))
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:

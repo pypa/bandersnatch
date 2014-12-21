@@ -227,7 +227,7 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     requests.prepare('the simple page', 1)
     requests.prepare(iter('the release content'), 1)
 
-    with open('web/simple/index.html', 'wb') as index:
+    with open('web/simple/index.html', 'w') as index:
         index.write('old index')
     mirror.errors = True
     mirror.stop_on_error = True

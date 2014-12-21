@@ -1,6 +1,5 @@
 from bandersnatch.utils import hash, rewrite
 import os
-import os.path
 import pytest
 
 
@@ -17,7 +16,7 @@ def test_rewrite(tmpdir, monkeypatch):
         f.write('csdf')
     assert open('sample').read() == 'csdf'
     mode = os.stat('sample').st_mode
-    assert oct(mode) == "0100644"
+    assert oct(mode) in ("0100644", "0o100644")
 
 
 def test_rewrite_fails(tmpdir, monkeypatch):
