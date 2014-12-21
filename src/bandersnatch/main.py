@@ -5,6 +5,7 @@ import bandersnatch.mirror
 import bandersnatch.utils
 import six.moves.configparser as ConfigParser
 import logging
+import logging.config
 import os
 import shutil
 import sys
