@@ -22,46 +22,32 @@ class Package(object):
     def __init__(self, name, serial, mirror):
         self.name = name
         self.serial = serial
-        self.normalized_name = (
-            pkg_resources.safe_name(name).lower().encode("utf-8")
-        )
-        self.encoded_name = self.name.encode('utf-8')
-        self.encoded_first = self.name[0].encode('utf-8')
-        self.quoted_name = quote(self.encoded_name)
+        self.normalized_name = pkg_resources.safe_name(name).lower()
         self.mirror = mirror
 
     @property
     def package_directories(self):
         expr = '{0}/packages/*/{1}/{2}'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def package_files(self):
         expr = '{0}/packages/*/{1}/{2}/*'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def simple_directory(self):
-        return os.path.join(
-            self.mirror.webdir.encode('utf-8'),
-            b'simple',
-            self.encoded_name)
+        return os.path.join(self.mirror.webdir, 'simple', self.name)
 
     @property
     def normalized_simple_directory(self):
-        return os.path.join(
-            self.mirror.webdir.encode('utf-8'),
-            b'simple',
-            self.normalized_name)
+        return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
 
     @property
     def serversig_file(self):
-        return os.path.join(
-            self.mirror.webdir.encode('utf-8'),
-            b'serversig',
-            self.encoded_name)
+        return os.path.join(self.mirror.webdir, 'serversig', self.name)
 
     @property
     def directories(self):
@@ -124,7 +110,7 @@ class Package(object):
         # trying to reach an older serial. In that case we should just silently
         # approve of this, as long as the serial of the master is correct.
         r = self.mirror.master.get(
-            '/simple/{0}/'.format(self.quoted_name), self.serial)
+            '/simple/{0}/'.format(quote(self.name)), self.serial)
 
         # This exists for compatability with pip 1.5 which will not fallback
         # to /simple/ to determine what URL to get packages from, but will just
@@ -133,7 +119,7 @@ class Package(object):
         if self.simple_directory != self.normalized_simple_directory:
             if not os.path.exists(self.simple_directory):
                 os.makedirs(self.simple_directory)
-            simple_page = os.path.join(self.simple_directory, b'index.html')
+            simple_page = os.path.join(self.simple_directory, 'index.html')
             with utils.rewrite(simple_page) as f:
                 f.write(r.content)
 
@@ -142,7 +128,7 @@ class Package(object):
 
         normalized_simple_page = os.path.join(
             self.normalized_simple_directory,
-            b'index.html',
+            'index.html',
         )
         with utils.rewrite(normalized_simple_page) as f:
             f.write(r.content)
@@ -157,9 +143,7 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
-        return os.path.join(
-            self.mirror.webdir.encode('utf-8'),
-            path.encode('utf-8'))
+        return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:

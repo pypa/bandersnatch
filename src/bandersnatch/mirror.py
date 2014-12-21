@@ -3,6 +3,7 @@ from .utils import rewrite, USER_AGENT
 import six.moves.queue as Queue
 import datetime
 import fcntl
+import io
 import logging
 import os
 import sys
@@ -107,12 +108,10 @@ class Mirror(object):
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
-            saved_todo = iter(open(self.todolist))
+            saved_todo = iter(io.open(self.todolist, encoding='utf-8'))
             self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
-                if hasattr(package, 'decode'):
-                    package = package.decode('utf-8')
                 self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
@@ -165,12 +164,12 @@ class Mirror(object):
     def record_finished_package(self, name):
         with self._finish_lock:
             del self.packages_to_sync[name]
-            with open(self.todolist, 'wb') as f:
+            with io.open(self.todolist, 'w', encoding='utf-8') as f:
                 todo = list(self.packages_to_sync.items())
-                todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
+                todo = ['{0} {1}'.format(name_, str(serial))
                         for name_, serial in todo]
-                f.write('{0}\n'.format(self.target_serial).encode('utf-8'))
-                f.write('\n'.join(todo).encode('utf-8'))
+                f.write(u'{0}\n'.format(self.target_serial))
+                f.write(u'\n'.join(todo))
 
     def sync_index_page(self):
         if not self.need_index_sync:
@@ -265,5 +264,5 @@ class Mirror(object):
             self.synced_serial = int(f.read().strip())
 
     def _save(self):
-        with open(self.statusfile, "wb") as f:
-            f.write(str(self.synced_serial).encode('ascii'))
+        with open(self.statusfile, "w") as f:
+            f.write(str(self.synced_serial))

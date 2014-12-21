@@ -231,8 +231,8 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
-    with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
-        f.write(b'this is not the release content')
+    with open('web/packages/any/f/foo/foo.zip', 'w') as f:
+        f.write('this is not the release content')
 
     mirror.packages_to_sync = set(['foo'])
     package = Package('foo', 10, mirror)
@@ -254,8 +254,8 @@ def test_package_sync_does_not_touch_existing_local_file(
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
-    with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
-        f.write(b'the release content')
+    with open('web/packages/any/f/foo/foo.zip', 'w') as f:
+        f.write('the release content')
     old_stat = os.stat('web/packages/any/f/foo/foo.zip')
 
     mirror.packages_to_sync = set(['foo'])

@@ -21,8 +21,8 @@ USER_AGENT = user_agent()
 
 def hash(path, function='md5'):
     h = getattr(hashlib, function)()
-    for line in open(path):
-        h.update(line.encode('utf-8'))
+    for line in open(path, 'rb'):
+        h.update(line)
     return h.hexdigest()
 
 
@@ -48,10 +48,7 @@ def find(root, dirs=True):
 def rewrite(filename):
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
-    dir = os.path.dirname(filename)
-    if hasattr(dir, 'decode'):
-        dir = dir.decode('utf-8')
-    fd, filename_tmp = tempfile.mkstemp(dir=dir)
+    fd, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
     os.close(fd)
     with open(filename_tmp, 'w') as f:
         yield f
