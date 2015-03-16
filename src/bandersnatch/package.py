@@ -188,22 +188,26 @@ class Package(object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        # Very special handling for the serial of package files here:
-        # We do not need to track a serial for packages as changed to PyPI
-        # generally promise that there is only ever a single valid content
-        # for a particular file and it either exists or doesn't.
+        # Even more special handling for the serial of package files here:
+        # We do not need to track a serial for package files
+        # as PyPI generally only allows a file to be uploaded once
+        # and then maybe deleted. Re-uploading (and thus changing the hash)
+        # is only allowed in extremely rare cases with intervention from the
+        # PyPI admins.
         r = self.mirror.master.get(url, required_serial=None, stream=True)
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
-            for chunk in r.iter_content(chunk_size=64*1024):
+            for chunk in r.iter_content(chunk_size=64 * 1024):
                 checksum.update(chunk)
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:
-                # Case D: correct md5sum, accept without looking at the serial
+                # Good case: the file we got matches the checksum we expected
                 pass
             else:
-                # Case B: incorrect md5sum, current serial. Give up.
+                # Bad case: the file we got does not match the expected
+                # checksum. Even if this should be the rare case of a
+                # re-upload this will fix itself in a later run.
                 raise ValueError(
                     'Inconsistent file. {0} has hash {1} instead of {2}.'
                     .format(url, existing_hash, md5sum))
