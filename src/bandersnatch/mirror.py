@@ -253,8 +253,14 @@ class Mirror(object):
                 self._reset_mirror_status()
                 open(self.generationfile, 'w').write('3')
                 return
+            if generation == '3':
+                # Generation 3->4 is intended to counter a data bug on PyPI.
+                # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
+                self._reset_mirror_status()
+                open(self.generationfile, 'w').write('4')
+                return
             else:
-                assert generation == '3'
+                assert generation == '4'
         # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')

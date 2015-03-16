@@ -15,7 +15,7 @@ def test_limit_workers():
 
 def test_mirror_loads_serial(tmpdir):
     with open(str(tmpdir/'generation'), 'w') as generation:
-        generation.write('3')
+        generation.write('4')
     with open(str(tmpdir/'status'), 'w') as status:
         status.write('1234')
     m = Mirror(str(tmpdir), mock.Mock())
