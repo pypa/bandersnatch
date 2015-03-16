@@ -17,4 +17,4 @@ pytest-timeout==0.4
 pytest-cache==1.0
 requests==2.5.0
 xmlrpc2==0.3.1
-bandersnatch==1.8
+bandersnatch==1.9.dev0
