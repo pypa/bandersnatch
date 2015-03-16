@@ -1,4 +1,4 @@
-1.8 (unreleased)
+1.8 (2015-03-16)
 ----------------
 
 - Don't require a X-PyPI-Last-Serial header on file downloads.
