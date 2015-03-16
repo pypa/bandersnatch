@@ -1,7 +1,11 @@
 1.8 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Don't require a X-PyPI-Last-Serial header on file downloads.
+  (Thanks to @dstufft.)
+
+- Increase our generation to help mirrors recover potential
+  setuptools corruption after some data bug on PyPI.
 
 
 1.7 (2014-12-14)
