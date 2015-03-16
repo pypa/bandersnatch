@@ -309,22 +309,22 @@ def test_sync_incorrect_download_with_old_serials_retries(
     assert list(mirror.queue.queue) == [package]
 
 
-def test_sync_does_not_fail_on_package_data_too_new(mirror, requests):
-    requests.prepare(
-        {'releases': {
-            '0.1': [
-                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('the simple page', '10')
+def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
+    mirror.master.package_releases = mock.Mock()
+    mirror.master.package_releases.return_value = ['0.1']
+    mirror.master.release_urls = mock.Mock()
+    mirror.master.release_urls.return_value = [
+        {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+         'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
+
     requests.prepare('not release content', 11)
 
-    mirror.packages_to_sync = dict(foo=10)
+    mirror.packages_to_sync = set(['foo'])
     package = Package('foo', 10, mirror)
     package.sync()
 
     assert not os.path.exists('web/packages/any/f/foo/foo.zip')
-
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert mirror.errors
 
 
 def test_sync_deletes_serversig(mirror, requests):

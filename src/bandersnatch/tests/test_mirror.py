@@ -150,40 +150,6 @@ def test_mirror_sync_package(mirror, requests):
     assert open('status').read() == '1'
 
 
-def test_mirror_sync_package_with_retry(mirror, requests):
-
-    mirror.master.all_packages = mock.Mock()
-    mirror.master.all_packages.return_value = {'foo': 1}
-
-    requests.prepare(
-        {'releases': {'0.1': [
-            {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-             'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare('the simple page', 1)
-    requests.prepare(iter('not release content'), 0)
-
-    requests.prepare(
-        {'releases': {'0.1': [
-            {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-             'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare('the simple page', 1)
-    requests.prepare(iter('the release content'), 1)
-
-    mirror.synchronize()
-
-    assert """\
-/last-modified
-/packages/any/f/foo/foo.zip
-/simple/foo/index.html
-/simple/index.html""" == utils.find(mirror.webdir, dirs=False)
-    assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-<a href="foo/">foo</a><br/>
-</body></html>"""
-
-    assert open('status').read() == '1'
-
-
 def test_mirror_sync_package_error_no_early_exit(mirror, requests):
     mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
