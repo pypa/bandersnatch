@@ -66,3 +66,5 @@ def main():
             os.path.expanduser(config.get('mirror', 'log-config')))
 
     args.func(config)
+
+    return config
