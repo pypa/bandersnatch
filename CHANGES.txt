@@ -1,7 +1,8 @@
 1.9 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fix a long standing, misunderstood bug: a non-deleting mirror would
+  delete packages if they were fully removed from PyPI. (#61)
 
 
 1.8 (2015-03-16)

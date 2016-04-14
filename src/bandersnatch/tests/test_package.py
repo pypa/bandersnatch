@@ -55,6 +55,27 @@ def test_package_sync_404_json_info_deletes_package(mirror, requests):
         assert not os.path.exists(path)
 
 
+def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
+        mirror, requests):
+    mirror.delete_packages = False
+    mirror.master.package_releases = mock.Mock()
+    mirror.master.package_releases.return_value = {}
+
+    response = mock.Mock()
+    response.status_code = 404
+    requests.prepare(HTTPError(response=response), 0)
+
+    paths = ['web/packages/2.4/f/foo/foo.zip', 'web/simple/foo/index.html']
+    touch_files(paths)
+
+    package = Package('foo', 10, mirror)
+    package.sync()
+
+    for path in paths:
+        path = os.path.join(path)
+        assert os.path.exists(path)
+
+
 def test_package_sync_gives_up_after_3_stale_responses(
         caplog, mirror, requests):
     mirror.master.package_releases = mock.Mock()

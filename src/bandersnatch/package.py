@@ -213,6 +213,8 @@ class Package(object):
                     .format(url, existing_hash, md5sum))
 
     def delete(self):
+        if not self.mirror.delete_packages:
+            return
         logger.info(u'Deleting package: {0}'.format(self.name))
         for directory in self.directories:
             if not os.path.exists(directory):
