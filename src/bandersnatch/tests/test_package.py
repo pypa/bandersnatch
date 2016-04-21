@@ -135,37 +135,71 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
         mirror, requests):
 
     requests.prepare({'releases': {}}, '10')
-    requests.prepare('the simple page', '10')
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1></body></html>'
+    )
 
 
 def test_package_sync_with_canonical_simple_page(mirror, requests):
 
     requests.prepare({'releases': {}}, '10')
-    requests.prepare('the simple page', '10')
 
     mirror.packages_to_sync = {'Foo': 10}
     package = Package('Foo', 10, mirror)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for Foo</title></head><body>'
+        b'<h1>Links for Foo</h1></body></html>'
+    )
+
+
+def test_package_sync_simple_page_with_files(mirror, requests):
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'},
+                {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
+                 'filename': 'foo.whl',
+                 'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
+    requests.prepare('the release content', 10)
+    requests.prepare('another release content', 10)
+
+    mirror.packages_to_sync = {'foo': 10}
+    package = Package('foo', 10, mirror)
+    package.sync()
+
+    assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1>'
+        b'<a href="../../packages/2.7/f/foo/foo.whl'
+        b'#md5=6bd3ddc295176f4dca196b5eb2c4d858">foo.whl</a>'
+        b'<a href="../../packages/any/f/foo/foo.zip'
+        b'#md5=b6bcb391b040c4468262706faf9d3cce">foo.zip</a>'
+        b'</body></html>'
+    )
 
 
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     requests.prepare({'releases': {'0.1': []}}, '10')
-    requests.prepare('the simple page', '10')
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
     os.makedirs(package.simple_directory)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1></body></html>'
+    )
 
 
 def test_package_sync_with_error_keeps_it_on_todo_list(
@@ -188,8 +222,8 @@ def test_package_sync_downloads_release_file(mirror, requests):
         {'releases': {
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('the index page', 10)
     requests.prepare('the release content', 10)
 
     mirror.packages_to_sync = dict(foo=None)
@@ -250,8 +284,8 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
         {'releases': {
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('the index page', 10)
     requests.prepare('the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
@@ -350,7 +384,6 @@ def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
 
 def test_sync_deletes_serversig(mirror, requests):
     requests.prepare({'releases': {'0.1': []}}, '10')
-    requests.prepare('the simple page', '10')
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
@@ -362,5 +395,8 @@ def test_sync_deletes_serversig(mirror, requests):
 
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1></body></html>'
+    )
     assert not os.path.exists(package.serversig_file)
