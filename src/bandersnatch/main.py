@@ -28,8 +28,6 @@ def mirror(config):
 
 
 def main():
-    bandersnatch.log.setup_logging()
-
     parser = argparse.ArgumentParser(
         description='PyPI PEP 381 mirroring client.')
     parser.add_argument('-c', '--config', default='/etc/bandersnatch.conf',
@@ -61,9 +59,7 @@ def main():
     config = ConfigParser.ConfigParser()
     config.read([default_config, args.config])
 
-    if config.has_option('mirror', 'log-config'):
-        logging.config.fileConfig(
-            os.path.expanduser(config.get('mirror', 'log-config')))
+    bandersnatch.log.setup_logging(config)
 
     args.func(config)
 
