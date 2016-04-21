@@ -1,4 +1,4 @@
-1.9 (unreleased)
+1.9 (2016-04-21)
 ----------------
 
 - Fix a long standing, misunderstood bug: a non-deleting mirror would
