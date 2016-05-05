@@ -14,7 +14,7 @@ def test_disallow_http():
 
 
 def test_rpc_url(master):
-    assert master.xmlrpc_url == 'https://pypi.example.com/pypi/'
+    assert master.xmlrpc_url == 'https://pypi.example.com/pypi'
 
 
 def test_all_packages(master):
