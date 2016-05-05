@@ -67,7 +67,7 @@ class Master(object):
 
     @property
     def xmlrpc_url(self):
-        return '{0}/pypi/'.format(self.url)
+        return '{0}/pypi'.format(self.url)
 
     # Both list package data retrieval methods return a dictionary with package
     # names and the newest serial that they have received changes.
