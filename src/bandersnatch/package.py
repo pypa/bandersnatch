@@ -177,7 +177,7 @@ class Package(object):
         return "../.." + parsed.path
 
     def _file_url_to_local_path(self, url):
-        path = url.replace(self.mirror.master.url, '')
+        path = urlparse.urlparse(url).path
         path = unquote(path)
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
