@@ -38,7 +38,7 @@ class Master(object):
 
     def get(self, path, required_serial, **kw):
         logger.debug('Getting {0} (serial {1})'.format(path, required_serial))
-        if not path.startswith(self.url):
+        if not path.startswith(("https://", "http://")):
             path = self.url + path
         r = self.session.get(path, timeout=self.timeout, **kw)
         r.raise_for_status()
