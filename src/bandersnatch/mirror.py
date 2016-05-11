@@ -7,7 +7,8 @@ import logging
 import os
 import sys
 import threading
-import pkg_resources
+
+from packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
@@ -179,7 +180,7 @@ class Mirror(object):
             f.write('<html><head><title>Simple Index</title></head><body>\n')
             for pkg in sorted(set(
                     # Filter out all of the "non" normalized names here
-                    pkg_resources.safe_name(x).lower()
+                    canonicalize_name(x)
                     for x in os.listdir(simple_dir))):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
@@ -243,8 +244,8 @@ class Mirror(object):
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
             self._reset_mirror_status()
-            # We're now at status file generation "3"
-            open(self.generationfile, 'w').write('3')
+            # We're now at status file generation "5"
+            open(self.generationfile, 'w').write('5')
         else:
             generation = open(self.generationfile, 'r').read().strip()
             if generation == '2':
@@ -259,8 +260,14 @@ class Mirror(object):
                 self._reset_mirror_status()
                 open(self.generationfile, 'w').write('4')
                 return
+            if generation == '4':
+                # Generation 4->5 is intended to ensure that we have PEP 503
+                # compatible /simple/ URLs generated for everything.
+                self._reset_mirror_status()
+                open(self.generationfile, 'w').write('5')
+                return
             else:
-                assert generation == '4'
+                assert generation == '5'
         # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')
