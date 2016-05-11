@@ -1,7 +1,9 @@
 1.11 (unreleased)
 -----------------
 
-- Nothing changed yet.
+- Fix an edge case: IO errors while marking off packages as "done"
+  could result in crashing workers that would result in bandersnatch
+  getting stuck. Thanks @wjjt!
 
 
 1.10.0.1 (2016-05-11)
