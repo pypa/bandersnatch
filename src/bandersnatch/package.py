@@ -10,6 +10,7 @@ import os.path
 import requests
 import shutil
 import time
+import pkg_resources
 
 from packaging.utils import canonicalize_name
 
@@ -26,6 +27,9 @@ class Package(object):
         self.name = name
         self.serial = serial
         self.normalized_name = canonicalize_name(name).encode("utf-8")
+        # This is really only useful for pip 8.0 -> 8.1.1
+        self.normalized_name_legacy = \
+            pkg_resources.safe_name(name).lower().encode("utf-8")
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
         self.quoted_name = quote(self.encoded_name)
@@ -50,6 +54,11 @@ class Package(object):
     @property
     def normalized_simple_directory(self):
         return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
+
+    @property
+    def normalized_legacy_simple_directory(self):
+        return os.path.join(
+            self.mirror.webdir, 'simple', self.normalized_name_legacy)
 
     @property
     def serversig_file(self):
@@ -152,6 +161,22 @@ class Package(object):
             if not os.path.exists(self.simple_directory):
                 os.makedirs(self.simple_directory)
             simple_page = os.path.join(self.simple_directory, 'index.html')
+            with utils.rewrite(simple_page) as f:
+                f.write(simple_page_content)
+
+        # This exists for compatability with pip 8.0 to 8.1.1 which did not
+        # correctly implement PEP 503 wrt to normalization and so needs a
+        # partially directory to get. Once pip 8.1.2 is old enough to be
+        # considered "minimum" this can be removed.
+        if (self.simple_directory != self.normalized_legacy_simple_directory
+                and self.normalized_simple_directory
+                    != self.normalized_legacy_simple_directory):
+            if not os.path.exists(self.normalized_legacy_simple_directory):
+                os.makedirs(self.normalized_legacy_simple_directory)
+            simple_page = os.path.join(
+                self.normalized_legacy_simple_directory,
+                'index.html',
+            )
             with utils.rewrite(simple_page) as f:
                 f.write(simple_page_content)
 
