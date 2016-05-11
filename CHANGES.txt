@@ -1,7 +1,19 @@
 1.10 (unreleased)
 -----------------
 
-- Nothing changed yet.
+This is release is massively supported by @dstufft getting bandersnatch
+back in sync with current packaging ecosystem changes. All clap your hands
+now, please.
+
+- Refactor the generation update code to avoid weird update paths
+  due to, well, my personal kink: overcomplication.
+
+- Generate the simple index ourselves instead of copying it from PyPI.
+
+- Support files hosted on a separate domain.
+
+- Implement PEP 503 normalization rules while also providing support
+  for legacy and very legacy clients.
 
 
 1.9 (2016-04-21)
