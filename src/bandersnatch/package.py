@@ -85,6 +85,7 @@ class Package(object):
             self.releases = package_info.json()['releases']
             self.sync_release_files()
             self.sync_simple_page()
+            self.mirror.record_finished_package(self.name)
         except StalePage:
             logger.error(u'Stale serial for package {0}'.format(
                 self.name))
@@ -102,8 +103,6 @@ class Package(object):
             logger.exception(u'Error syncing package: {0}@{1}'.format(
                 self.name, self.serial))
             self.mirror.errors = True
-        else:
-            self.mirror.record_finished_package(self.name)
 
     def sync_release_files(self):
         release_files = []

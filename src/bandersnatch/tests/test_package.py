@@ -425,3 +425,21 @@ def test_sync_deletes_serversig(mirror, requests):
         b'<h1>Links for foo</h1></body></html>'
     )
     assert not os.path.exists(package.serversig_file)
+
+
+def test_survives_exceptions_from_record_finished_package(mirror, requests):
+    def record_finished_package(self, name):
+        import errno
+        raise IOError(errno.EBADF, 'Some transient error?')
+
+    requests.prepare({'releases': {}}, '10')
+    requests.prepare('the simple page', '10')
+
+    mirror.packages_to_sync = {'Foo': 10}
+    mirror.record_finished_package = record_finished_package
+
+    package = Package('Foo', 10, mirror)
+    package.sync()
+
+    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert mirror.errors
