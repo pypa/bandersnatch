@@ -7,7 +7,8 @@ import logging
 import os
 import sys
 import threading
-import pkg_resources
+
+from packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
@@ -179,7 +180,7 @@ class Mirror(object):
             f.write('<html><head><title>Simple Index</title></head><body>\n')
             for pkg in sorted(set(
                     # Filter out all of the "non" normalized names here
-                    pkg_resources.safe_name(x).lower()
+                    canonicalize_name(x)
                     for x in os.listdir(simple_dir))):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
