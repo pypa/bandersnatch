@@ -17,6 +17,7 @@ setup(name='bandersnatch',
       install_requires=[
           'setuptools',
           'mock',
+          'packaging>=16.2',
           'pytest',
           'pytest-capturelog',
           'pytest-codecheckers',

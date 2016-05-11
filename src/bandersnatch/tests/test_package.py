@@ -160,6 +160,31 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
     )
 
 
+def test_package_sync_with_normalized_simple_page(mirror, requests):
+
+    requests.prepare({'releases': {}}, '10')
+
+    mirror.packages_to_sync = {'Foo.bar-thing_other': 10}
+    package = Package('Foo.bar-thing_other', 10, mirror)
+    package.sync()
+
+    # PEP 503 normalization
+    assert open('web/simple/foo-bar-thing-other/index.html').read() == (
+        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
+        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
+    )
+    # Legacy partial normalization as implemented by pip prior to 8.1.2
+    assert open('web/simple/foo.bar-thing-other/index.html').read() == (
+        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
+        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
+    )
+    # Legacy unnormalized as implemented by pip prior to 6.0
+    assert open('web/simple/Foo.bar-thing_other/index.html').read() == (
+        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
+        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
+    )
+
+
 def test_package_sync_simple_page_with_files(mirror, requests):
     requests.prepare(
         {'releases': {
