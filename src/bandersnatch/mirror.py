@@ -7,7 +7,8 @@ import logging
 import os
 import sys
 import threading
-import pkg_resources
+
+from packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
@@ -179,7 +180,7 @@ class Mirror(object):
             f.write('<html><head><title>Simple Index</title></head><body>\n')
             for pkg in sorted(set(
                     # Filter out all of the "non" normalized names here
-                    pkg_resources.safe_name(x).lower()
+                    canonicalize_name(x)
                     for x in os.listdir(simple_dir))):
                 if not os.path.isdir(os.path.join(simple_dir, pkg)):
                     continue
@@ -237,7 +238,7 @@ class Mirror(object):
     def _load(self):
         # Simple generation mechanism to support transparent software
         # updates.
-        CURRENT_GENERATION = 4  # noqa
+        CURRENT_GENERATION = 5  # noqa
         try:
             generation = int(open(self.generationfile, 'r').read().strip())
         except IOError:
@@ -247,13 +248,15 @@ class Mirror(object):
             # release 1.0.2.
             self._reset_mirror_status()
             generation = CURRENT_GENERATION
-        if generation in [2, 3]:
+        if generation in [2, 3, 4]:
             # In generation 2 -> 3 we changed the way we generate simple
             # page package directory names. Simply run a full update.
             # Generation 3->4 is intended to counter a data bug on PyPI.
             # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
+            # Generation 4->5 is intended to ensure that we have PEP 503
+            # compatible /simple/ URLs generated for everything.
             self._reset_mirror_status()
-            generation = 4
+            generation = 5
         assert generation == CURRENT_GENERATION
         open(self.generationfile, 'w').write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
