@@ -428,12 +428,11 @@ def test_sync_deletes_serversig(mirror, requests):
 
 
 def test_survives_exceptions_from_record_finished_package(mirror, requests):
-    def record_finished_package(self, name):
+    def record_finished_package(name):
         import errno
         raise IOError(errno.EBADF, 'Some transient error?')
 
     requests.prepare({'releases': {}}, '10')
-    requests.prepare('the simple page', '10')
 
     mirror.packages_to_sync = {'Foo': 10}
     mirror.record_finished_package = record_finished_package
@@ -441,5 +440,8 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
     package = Package('Foo', 10, mirror)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == 'the simple page'
+    assert open('web/simple/foo/index.html').read() == """\
+<html><head><title>Links for Foo</title></head><body><h1>Links for Foo</h1>\
+</body></html>\
+"""
     assert mirror.errors
