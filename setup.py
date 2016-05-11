@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='bandersnatch',
-      version='1.9.dev0',
+      version='	.dev0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
@@ -17,6 +17,7 @@ setup(name='bandersnatch',
       install_requires=[
           'setuptools',
           'mock',
+          'packaging>=16.2',
           'pytest',
           'pytest-capturelog',
           'pytest-codecheckers',

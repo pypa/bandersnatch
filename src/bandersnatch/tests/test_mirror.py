@@ -15,7 +15,7 @@ def test_limit_workers():
 
 def test_mirror_loads_serial(tmpdir):
     with open(str(tmpdir/'generation'), 'w') as generation:
-        generation.write('4')
+        generation.write('5')
     with open(str(tmpdir/'status'), 'w') as status:
         status.write('1234')
     m = Mirror(str(tmpdir), mock.Mock())
@@ -34,7 +34,22 @@ def test_mirror_generation_3_resets_status_files(tmpdir):
     assert m.synced_serial is 0
     assert not os.path.exists(str(tmpdir/'todo'))
     assert not os.path.exists(str(tmpdir/'status'))
-    assert open(str(tmpdir/'generation'), 'r').read() == '3'
+    assert open(str(tmpdir/'generation'), 'r').read() == '5'
+
+
+def test_mirror_generation_4_resets_status_files(tmpdir):
+    with open(str(tmpdir/'generation'), 'w') as generation:
+        generation.write('4')
+    with open(str(tmpdir/'status'), 'w') as status:
+        status.write('1234')
+    with open(str(tmpdir/'todo'), 'w') as status:
+        status.write('asdf')
+
+    m = Mirror(str(tmpdir), mock.Mock())
+    assert m.synced_serial is 0
+    assert not os.path.exists(str(tmpdir/'todo'))
+    assert not os.path.exists(str(tmpdir/'status'))
+    assert open(str(tmpdir/'generation'), 'r').read() == '5'
 
 
 def test_mirror_removes_empty_todo_list(tmpdir):
@@ -67,7 +82,7 @@ def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir):
     Mirror(str(tmpdir), mock.Mock())
     assert not os.path.exists(str(tmpdir/'todo'))
     assert not os.path.exists(str(tmpdir/'status'))
-    assert open(str(tmpdir/'generation')).read().strip() == '3'
+    assert open(str(tmpdir/'generation')).read().strip() == '5'
 
 
 def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
@@ -132,8 +147,8 @@ def test_mirror_sync_package(mirror, requests):
         'releases': {
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare('the simple page', 1)
     requests.prepare(iter('the release content'), 1)
 
     mirror.synchronize()
@@ -158,9 +173,9 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
         {'releases': {
             '0.1': [{
                 'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                'filename': 'foo.zip',
                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    requests.prepare('the simple page', 1)
     requests.prepare(iter('the release content'), 1)
 
     mirror.errors = True
@@ -189,8 +204,8 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
         {'releases': {
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare('the simple page', 1)
     requests.prepare(iter('the release content'), 1)
 
     with open('web/simple/index.html', 'wb') as index:
