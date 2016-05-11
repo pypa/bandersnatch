@@ -1,4 +1,4 @@
-1.10 (unreleased)
+1.10 (2016-05-11)
 -----------------
 
 This is release is massively supported by @dstufft getting bandersnatch
