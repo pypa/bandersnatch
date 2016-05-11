@@ -10,7 +10,8 @@ import os.path
 import requests
 import shutil
 import time
-import pkg_resources
+
+from packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
@@ -24,9 +25,7 @@ class Package(object):
     def __init__(self, name, serial, mirror):
         self.name = name
         self.serial = serial
-        self.normalized_name = (
-            pkg_resources.safe_name(name).lower().encode("utf-8")
-        )
+        self.normalized_name = canonicalize_name(name).encode("utf-8")
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
         self.quoted_name = quote(self.encoded_name)
