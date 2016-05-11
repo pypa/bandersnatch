@@ -1,7 +1,9 @@
-1.11 (unreleased)
+1.10.0.1 (unreleased)
 -----------------
 
-- Nothing changed yet.
+- Brownbag release for re-upload. My train's Wifi broke while uploading
+  ending up with a partial file on PyPI. Can your train service do better
+  than mine?
 
 
 1.10 (2016-05-11)
