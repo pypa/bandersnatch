@@ -237,30 +237,25 @@ class Mirror(object):
     def _load(self):
         # Simple generation mechanism to support transparent software
         # updates.
-        if not os.path.exists(self.generationfile):
+        CURRENT_GENERATION = 4  # noqa
+        try:
+            generation = int(open(self.generationfile, 'r').read().strip())
+        except IOError:
             logger.info(u'Generation file missing. '
                         u'Reinitialising status files.')
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
             self._reset_mirror_status()
-            # We're now at status file generation "3"
-            open(self.generationfile, 'w').write('3')
-        else:
-            generation = open(self.generationfile, 'r').read().strip()
-            if generation == '2':
-                # In generation 2 -> 3 we changed the way we generate simple
-                # page package directory names. Simply run a full update.
-                self._reset_mirror_status()
-                open(self.generationfile, 'w').write('3')
-                return
-            if generation == '3':
-                # Generation 3->4 is intended to counter a data bug on PyPI.
-                # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
-                self._reset_mirror_status()
-                open(self.generationfile, 'w').write('4')
-                return
-            else:
-                assert generation == '4'
+            generation = CURRENT_GENERATION
+        if generation in [2, 3]:
+            # In generation 2 -> 3 we changed the way we generate simple
+            # page package directory names. Simply run a full update.
+            # Generation 3->4 is intended to counter a data bug on PyPI.
+            # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
+            self._reset_mirror_status()
+            generation = 4
+        assert generation == CURRENT_GENERATION
+        open(self.generationfile, 'w').write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')

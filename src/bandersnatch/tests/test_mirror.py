@@ -34,7 +34,7 @@ def test_mirror_generation_3_resets_status_files(tmpdir):
     assert m.synced_serial is 0
     assert not os.path.exists(str(tmpdir/'todo'))
     assert not os.path.exists(str(tmpdir/'status'))
-    assert open(str(tmpdir/'generation'), 'r').read() == '3'
+    assert open(str(tmpdir/'generation'), 'r').read() == '4'
 
 
 def test_mirror_removes_empty_todo_list(tmpdir):
@@ -67,7 +67,7 @@ def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir):
     Mirror(str(tmpdir), mock.Mock())
     assert not os.path.exists(str(tmpdir/'todo'))
     assert not os.path.exists(str(tmpdir/'status'))
-    assert open(str(tmpdir/'generation')).read().strip() == '3'
+    assert open(str(tmpdir/'generation')).read().strip() == '4'
 
 
 def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
