@@ -62,6 +62,13 @@ def mirror(tmpdir, master, monkeypatch):
 
 
 @pytest.fixture
+def mirror_hash_index(tmpdir, master, monkeypatch):
+    monkeypatch.chdir(tmpdir)
+    from bandersnatch.mirror import Mirror
+    return Mirror(str(tmpdir), master, hash_index=True)
+
+
+@pytest.fixture
 def mirror_mock(request):
     patcher = mock.patch('bandersnatch.mirror.Mirror')
     mirror = patcher.start()

@@ -226,6 +226,33 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     assert open('todo').read() == '1\n'
 
 
+def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
+    mirror_hash_index.master.all_packages = mock.Mock()
+    mirror_hash_index.master.all_packages.return_value = {'foo': 1}
+
+    requests.prepare({
+        'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
+
+    requests.prepare(iter('the release content'), 1)
+
+    mirror_hash_index.synchronize()
+
+    assert """\
+/last-modified
+/packages/any/f/foo/foo.zip
+/simple/f/foo/index.html
+/simple/index.html""" == utils.find(mirror_hash_index.webdir, dirs=False)
+    assert open('web/simple/index.html').read() == """\
+<html><head><title>Simple Index</title></head><body>
+<a href="foo/">foo</a><br/>
+</body></html>"""
+    assert open('status').read() == '1'
+
+
 def test_mirror_serial_current_no_sync_of_packages_and_index_page(
         mirror, requests):
 

@@ -76,6 +76,26 @@ def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
         assert os.path.exists(path)
 
 
+def test_package_sync_404_json_info_deletes_package_with_hash(
+        mirror_hash_index, requests):
+    mirror_hash_index.master.package_releases = mock.Mock()
+    mirror_hash_index.master.package_releases.return_value = {}
+
+    response = mock.Mock()
+    response.status_code = 404
+    requests.prepare(HTTPError(response=response), 0)
+
+    paths = ['web/packages/2.4/f/foo/foo.zip', 'web/simple/f/foo/index.html']
+    touch_files(paths)
+
+    package = Package('foo', 10, mirror_hash_index)
+    package.sync()
+
+    for path in paths:
+        path = os.path.join(path)
+        assert not os.path.exists(path)
+
+
 def test_package_sync_gives_up_after_3_stale_responses(
         caplog, mirror, requests):
     mirror.master.package_releases = mock.Mock()
@@ -140,7 +160,24 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
     package = Package('foo', 10, mirror)
     package.sync()
 
+    assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1></body></html>'
+    )
+
+
+def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
+        mirror_hash_index, requests):
+
+    requests.prepare({'releases': {}}, '10')
+
+    mirror_hash_index.packages_to_sync = {'foo': 10}
+    package = Package('foo', 10, mirror_hash_index)
+    package.sync()
+
+    assert not os.path.exists('web/simple/foo/index.html')
+    assert open('web/simple/f/foo/index.html').read() == (
         b'<html><head><title>Links for foo</title></head><body>'
         b'<h1>Links for foo</h1></body></html>'
     )
@@ -154,7 +191,23 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
     package = Package('Foo', 10, mirror)
     package.sync()
 
+    assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for Foo</title></head><body>'
+        b'<h1>Links for Foo</h1></body></html>'
+    )
+
+
+def test_package_sync_with_canonical_simple_page_with_hash(
+        mirror_hash_index, requests):
+
+    requests.prepare({'releases': {}}, '10')
+    mirror_hash_index.packages_to_sync = {'Foo': 10}
+    package = Package('Foo', 10, mirror_hash_index)
+    package.sync()
+
+    assert not os.path.exists('web/simple/foo/index.html')
+    assert open('web/simple/f/foo/index.html').read() == (
         b'<html><head><title>Links for Foo</title></head><body>'
         b'<h1>Links for Foo</h1></body></html>'
     )
@@ -221,7 +274,24 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     os.makedirs(package.simple_directory)
     package.sync()
 
+    assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
+        b'<html><head><title>Links for foo</title></head><body>'
+        b'<h1>Links for foo</h1></body></html>'
+    )
+
+
+def test_package_sync_simple_page_with_existing_dir_with_hash(
+        mirror_hash_index, requests):
+    requests.prepare({'releases': {'0.1': []}}, '10')
+
+    mirror_hash_index.packages_to_sync = {'foo': 10}
+    package = Package('foo', 10, mirror_hash_index)
+    os.makedirs(package.simple_directory)
+    package.sync()
+
+    assert not os.path.exists('web/simple/foo/index.html')
+    assert open('web/simple/f/foo/index.html').read() == (
         b'<html><head><title>Links for foo</title></head><body>'
         b'<h1>Links for foo</h1></body></html>'
     )
