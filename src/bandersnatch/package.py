@@ -164,29 +164,24 @@ class Package(object):
             with utils.rewrite(simple_page) as f:
                 f.write(simple_page_content)
 
-        # This exists for compatability with pip 8.0 to 8.1.1 which did not
-        # correctly implement PEP 503 wrt to normalization and so needs a
-        # partially directory to get. Once pip 8.1.2 is old enough to be
-        # considered "minimum" this can be removed.
-        if (self.simple_directory != self.normalized_legacy_simple_directory
-                and self.normalized_simple_directory
-                    != self.normalized_legacy_simple_directory):
-            if not os.path.exists(self.normalized_legacy_simple_directory):
-                os.makedirs(self.normalized_legacy_simple_directory)
-            simple_page = os.path.join(
-                self.normalized_legacy_simple_directory,
-                'index.html',
-            )
-            with utils.rewrite(simple_page) as f:
-                f.write(simple_page_content)
+            # This exists for compatibility with pip 8.0 to 8.1.1 which did not
+            # correctly implement PEP 503 wrt to normalization and so needs a
+            # partially directory to get. Once pip 8.1.2 is old enough to be
+            # considered "minimum" this can be removed.
+            if (self.normalized_simple_directory !=
+                    self.normalized_legacy_simple_directory):
+                if not os.path.exists(self.normalized_legacy_simple_directory):
+                    os.makedirs(self.normalized_legacy_simple_directory)
+                simple_page = os.path.join(
+                    self.normalized_legacy_simple_directory, 'index.html')
+                with utils.rewrite(simple_page) as f:
+                    f.write(simple_page_content)
 
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
 
         normalized_simple_page = os.path.join(
-            self.normalized_simple_directory,
-            'index.html',
-        )
+            self.normalized_simple_directory, 'index.html')
         with utils.rewrite(normalized_simple_page) as f:
             f.write(simple_page_content)
 
