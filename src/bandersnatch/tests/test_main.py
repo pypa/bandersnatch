@@ -46,6 +46,7 @@ def test_main_reads_config_values(mirror_mock):
     assert isinstance(master, bandersnatch.master.Master)
     assert {'delete_packages': True,
             'stop_on_error': False,
+            'hash_index': False,
             'workers': 3} == kwargs
     assert mirror_mock().synchronize.called
 

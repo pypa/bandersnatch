@@ -51,12 +51,13 @@ class Mirror(object):
     now = None
 
     def __init__(self, homedir, master, stop_on_error=False, workers=3,
-                 delete_packages=True):
+                 delete_packages=True, hash_index=False):
         logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
         self.master = master
         self.stop_on_error = stop_on_error
         self.delete_packages = delete_packages
+        self.hash_index = hash_index
         self.workers = workers
         if self.workers > 10:
             raise ValueError(
@@ -178,14 +179,22 @@ class Mirror(object):
         simple_dir = os.path.join(self.webdir, 'simple')
         with rewrite(os.path.join(simple_dir, 'index.html')) as f:
             f.write('<html><head><title>Simple Index</title></head><body>\n')
-            for pkg in sorted(set(
-                    # Filter out all of the "non" normalized names here
-                    canonicalize_name(x)
-                    for x in os.listdir(simple_dir))):
-                if not os.path.isdir(os.path.join(simple_dir, pkg)):
-                    continue
-                # We're really trusty that this is all encoded in UTF-8. :/
-                f.write('<a href="{0}/">{1}</a><br/>\n'.format(pkg, pkg))
+            if self.hash_index:
+                subdirs = [os.path.join(simple_dir, x)
+                           for x in os.listdir(simple_dir)]
+                subdirs = [x for x in subdirs if os.path.isdir(x)]
+            else:
+                subdirs = [simple_dir]
+
+            for subdir in subdirs:
+                for pkg in sorted(set(
+                        # Filter out all of the "non" normalized names here
+                        canonicalize_name(x)
+                        for x in os.listdir(subdir))):
+                    if not os.path.isdir(os.path.join(subdir, pkg)):
+                        continue
+                    # We're really trusty that this is all encoded in UTF-8. :/
+                    f.write('<a href="{0}/">{1}</a><br/>\n'.format(pkg, pkg))
             f.write('</body></html>')
 
     def wrapup_successful_sync(self):

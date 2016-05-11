@@ -23,7 +23,8 @@ def mirror(config):
         config.get('mirror', 'directory'), master,
         stop_on_error=config.getboolean('mirror', 'stop-on-error'),
         workers=config.getint('mirror', 'workers'),
-        delete_packages=config.getboolean('mirror', 'delete-packages'))
+        delete_packages=config.getboolean('mirror', 'delete-packages'),
+        hash_index=config.getboolean('mirror', 'hash-index'))
     mirror.synchronize()
 
 

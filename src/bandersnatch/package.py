@@ -30,6 +30,10 @@ class Package(object):
         # This is really only useful for pip 8.0 -> 8.1.1
         self.normalized_name_legacy = \
             pkg_resources.safe_name(name).lower().encode("utf-8")
+        # Note that normalized_name[0] == normalized_name_legacy[0]
+        # since the issue; just normalization of special chars like
+        # - & . was affected.  We use this for hash-index
+        self.normalized_first = self.normalized_name[0]
         self.encoded_name = self.name.encode('utf-8')
         self.encoded_first = self.name[0].encode('utf-8')
         self.quoted_name = quote(self.encoded_name)
@@ -49,14 +53,24 @@ class Package(object):
 
     @property
     def simple_directory(self):
+        if self.mirror.hash_index:
+            return os.path.join(self.mirror.webdir, 'simple',
+                                self.encoded_first, self.encoded_name)
         return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
 
     @property
     def normalized_simple_directory(self):
+        if self.mirror.hash_index:
+            return os.path.join(self.mirror.webdir, 'simple',
+                                self.normalized_first, self.normalized_name)
         return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
 
     @property
     def normalized_legacy_simple_directory(self):
+        if self.mirror.hash_index:
+            return os.path.join(self.mirror.webdir, 'simple',
+                                self.normalized_first,
+                                self.normalized_name_legacy)
         return os.path.join(
             self.mirror.webdir, 'simple', self.normalized_name_legacy)
 
