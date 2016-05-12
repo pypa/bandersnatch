@@ -160,6 +160,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
     package = Package('foo', 10, mirror)
     package.sync()
 
+    # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
         b'<html><head><title>Links for foo</title></head><body>'
@@ -191,6 +192,7 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
     package = Package('Foo', 10, mirror)
     package.sync()
 
+    # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
         b'<html><head><title>Links for Foo</title></head><body>'
@@ -274,6 +276,7 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     os.makedirs(package.simple_directory)
     package.sync()
 
+    # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
     assert open('web/simple/foo/index.html').read() == (
         b'<html><head><title>Links for foo</title></head><body>'

@@ -172,6 +172,35 @@ class Mirror(object):
                 f.write('{0}\n'.format(self.target_serial))
                 f.write('\n'.join(todo))
 
+    def get_simple_dirs(self, simple_dir):
+        """Return a list of simple index directories that should be searched
+        for package indexes when compiling the main index page."""
+        if self.hash_index:
+            # We are using index page directory hashing, so the directory
+            # format is /simple/f/foo/.  We want to return a list of dirs
+            # like "simple/f".
+            subdirs = [os.path.join(simple_dir, x)
+                       for x in os.listdir(simple_dir)]
+            subdirs = [x for x in subdirs if os.path.isdir(x)]
+        else:
+            # This is the traditional layout of /simple/foo/.  We should
+            # return a single directory, "simple".
+            subdirs = [simple_dir]
+        return subdirs
+
+    def find_package_indexes_in_dir(self, simple_dir):
+        """Given a directory that contains simple packages indexes, return
+        a sorted list of normalized package names.  This presumes every
+        directory within is a simple package index directory."""
+        packages = sorted(set(
+            # Filter out all of the "non" normalized names here
+            canonicalize_name(x)
+            for x in os.listdir(simple_dir)))
+        # Package indexes must be in directories, so ignore anything else.
+        packages = [x for x in packages
+                    if os.path.isdir(os.path.join(simple_dir, x))]
+        return packages
+
     def sync_index_page(self):
         if not self.need_index_sync:
             return
@@ -179,20 +208,10 @@ class Mirror(object):
         simple_dir = os.path.join(self.webdir, 'simple')
         with rewrite(os.path.join(simple_dir, 'index.html')) as f:
             f.write('<html><head><title>Simple Index</title></head><body>\n')
-            if self.hash_index:
-                subdirs = [os.path.join(simple_dir, x)
-                           for x in os.listdir(simple_dir)]
-                subdirs = [x for x in subdirs if os.path.isdir(x)]
-            else:
-                subdirs = [simple_dir]
-
-            for subdir in subdirs:
-                for pkg in sorted(set(
-                        # Filter out all of the "non" normalized names here
-                        canonicalize_name(x)
-                        for x in os.listdir(subdir))):
-                    if not os.path.isdir(os.path.join(subdir, pkg)):
-                        continue
+            # This will either be the simple dir, or if we are using index
+            # directory hashing, a list of subdirs to process.
+            for subdir in self.get_simple_dirs(simple_dir):
+                for pkg in self.find_package_indexes_in_dir(subdir):
                     # We're really trusty that this is all encoded in UTF-8. :/
                     f.write('<a href="{0}/">{1}</a><br/>\n'.format(pkg, pkg))
             f.write('</body></html>')
