@@ -1,4 +1,4 @@
-1.11 (unreleased)
+1.11 (2016-05-18)
 -----------------
 
 - Add option to dir-hash index files. See
