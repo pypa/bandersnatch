@@ -1,6 +1,10 @@
 1.11 (unreleased)
 -----------------
 
+- Add option to dir-hash index files. See
+  https://bitbucket.org/pypa/bandersnatch/pull-requests/22/add-option-to-dir-hash-index-files for a lot more information. Thanks
+  @iwienand!
+
 - Fix an edge case: IO errors while marking off packages as "done"
   could result in crashing workers that would result in bandersnatch
   getting stuck. Thanks @wjjt!
