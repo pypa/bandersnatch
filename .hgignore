@@ -22,3 +22,4 @@ include
 lib
 MANIFEST
 web
+pip-selfcheck.json
