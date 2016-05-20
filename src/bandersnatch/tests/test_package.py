@@ -162,10 +162,12 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1></body></html>'
-    )
+    assert open('web/simple/foo/index.html').read() == b"""\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
@@ -178,10 +180,12 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     package.sync()
 
     assert not os.path.exists('web/simple/foo/index.html')
-    assert open('web/simple/f/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1></body></html>'
-    )
+    assert open('web/simple/f/foo/index.html').read() == b"""\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_with_canonical_simple_page(mirror, requests):
@@ -194,10 +198,12 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == (
-        b'<html><head><title>Links for Foo</title></head><body>'
-        b'<h1>Links for Foo</h1></body></html>'
-    )
+    assert open('web/simple/foo/index.html').read() == b"""\
+<html><head><title>Links for Foo</title></head><body>
+<h1>Links for Foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_with_canonical_simple_page_with_hash(
@@ -209,10 +215,12 @@ def test_package_sync_with_canonical_simple_page_with_hash(
     package.sync()
 
     assert not os.path.exists('web/simple/foo/index.html')
-    assert open('web/simple/f/foo/index.html').read() == (
-        b'<html><head><title>Links for Foo</title></head><body>'
-        b'<h1>Links for Foo</h1></body></html>'
-    )
+    assert open('web/simple/f/foo/index.html').read() == b"""\
+<html><head><title>Links for Foo</title></head><body>
+<h1>Links for Foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_with_normalized_simple_page(mirror, requests):
@@ -224,20 +232,28 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
     package.sync()
 
     # PEP 503 normalization
-    assert open('web/simple/foo-bar-thing-other/index.html').read() == (
-        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
-        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
-    )
+    assert open('web/simple/foo-bar-thing-other/index.html').read() == b"""\
+<html><head><title>Links for Foo.bar-thing_other</title></head><body>
+<h1>Links for Foo.bar-thing_other</h1>
+
+</body></html>\
+"""
+
     # Legacy partial normalization as implemented by pip prior to 8.1.2
-    assert open('web/simple/foo.bar-thing-other/index.html').read() == (
-        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
-        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
-    )
+    assert open('web/simple/foo.bar-thing-other/index.html').read() == b"""\
+<html><head><title>Links for Foo.bar-thing_other</title></head><body>
+<h1>Links for Foo.bar-thing_other</h1>
+
+</body></html>\
+"""
+
     # Legacy unnormalized as implemented by pip prior to 6.0
-    assert open('web/simple/Foo.bar-thing_other/index.html').read() == (
-        b'<html><head><title>Links for Foo.bar-thing_other</title></head>'
-        b'<body><h1>Links for Foo.bar-thing_other</h1></body></html>'
-    )
+    assert open('web/simple/Foo.bar-thing_other/index.html').read() == b"""\
+<html><head><title>Links for Foo.bar-thing_other</title></head><body>
+<h1>Links for Foo.bar-thing_other</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_simple_page_with_files(mirror, requests):
@@ -257,15 +273,15 @@ def test_package_sync_simple_page_with_files(mirror, requests):
     package = Package('foo', 10, mirror)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1>'
-        b'<a href="../../packages/2.7/f/foo/foo.whl'
-        b'#md5=6bd3ddc295176f4dca196b5eb2c4d858">foo.whl</a>'
-        b'<a href="../../packages/any/f/foo/foo.zip'
-        b'#md5=b6bcb391b040c4468262706faf9d3cce">foo.zip</a>'
-        b'</body></html>'
-    )
+    assert open('web/simple/foo/index.html').read() == b"""\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+<a href="../../packages/2.7/f/foo/foo.whl#md5=\
+6bd3ddc295176f4dca196b5eb2c4d858">foo.whl</a><br/>
+<a href="../../packages/any/f/foo/foo.zip#md5=\
+b6bcb391b040c4468262706faf9d3cce">foo.zip</a><br/>
+</body></html>\
+"""
 
 
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
@@ -278,10 +294,12 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1></body></html>'
-    )
+    assert open('web/simple/foo/index.html').read() == b"""\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_simple_page_with_existing_dir_with_hash(
@@ -294,10 +312,12 @@ def test_package_sync_simple_page_with_existing_dir_with_hash(
     package.sync()
 
     assert not os.path.exists('web/simple/foo/index.html')
-    assert open('web/simple/f/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1></body></html>'
-    )
+    assert open('web/simple/f/foo/index.html').read() == """\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+
+</body></html>\
+"""
 
 
 def test_package_sync_with_error_keeps_it_on_todo_list(
@@ -493,10 +513,12 @@ def test_sync_deletes_serversig(mirror, requests):
 
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == (
-        b'<html><head><title>Links for foo</title></head><body>'
-        b'<h1>Links for foo</h1></body></html>'
-    )
+    assert open('web/simple/foo/index.html').read() == (b"""\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+
+</body></html>\
+""")
     assert not os.path.exists(package.serversig_file)
 
 
@@ -514,7 +536,9 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
     package.sync()
 
     assert open('web/simple/foo/index.html').read() == """\
-<html><head><title>Links for Foo</title></head><body><h1>Links for Foo</h1>\
+<html><head><title>Links for Foo</title></head><body>
+<h1>Links for Foo</h1>
+
 </body></html>\
 """
     assert mirror.errors
