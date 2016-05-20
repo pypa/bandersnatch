@@ -136,8 +136,8 @@ class Package(object):
             b'<head>'
             b'<title>Links for %(name)s</title>'
             b'</head>'
-            b'<body>'
-            b'<h1>Links for %(name)s</h1>'
+            b'<body>\n'
+            b'<h1>Links for %(name)s</h1>\n'
         ) % {"name": self.name}
 
         # Get a list of all of the files.
@@ -146,8 +146,8 @@ class Package(object):
             release_files.extend(release)
         release_files.sort(key=lambda x: x["url"])
 
-        simple_page_content += b"".join([
-            b'<a href="%(url)s#md5=%(hash)s">%(filename)s</a>' % {
+        simple_page_content += b'\n'.join([
+            b'<a href="%(url)s#md5=%(hash)s">%(filename)s</a><br/>' % {
                 "url": self._file_url_to_local_url(r["url"]),
                 "hash": r["md5_digest"],
                 "filename": r["filename"],
@@ -155,7 +155,7 @@ class Package(object):
             for r in release_files
         ])
 
-        simple_page_content += b'</body></html>'
+        simple_page_content += b'\n</body></html>'
 
         return simple_page_content
 
