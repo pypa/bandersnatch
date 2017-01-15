@@ -126,7 +126,7 @@ def test_package_sync_gives_up_after_3_stale_responses(
     assert mirror.errors
     assert mirror.queue.put.call_count == 2
 
-    assert 'not updating. Giving up' in caplog.text()
+    assert 'not updating. Giving up' in caplog.text
 
 
 def test_package_sync_no_releases_deletes_package_race_condition(

@@ -20,7 +20,7 @@ def test_main_create_config(caplog, tmpdir):
                 'mirror']
     with pytest.raises(SystemExit):
         main()
-    assert 'creating default config' in caplog.text()
+    assert 'creating default config' in caplog.text
     assert os.path.exists(str(tmpdir / 'bandersnatch.conf'))
 
 
@@ -30,8 +30,8 @@ def test_main_cant_create_config(caplog, tmpdir):
                 'mirror']
     with pytest.raises(SystemExit):
         main()
-    assert 'creating default config' in caplog.text()
-    assert 'Could not create config file' in caplog.text()
+    assert 'creating default config' in caplog.text
+    assert 'Could not create config file' in caplog.text
     assert not os.path.exists(str(tmpdir / 'bandersnatch.conf'))
 
 
