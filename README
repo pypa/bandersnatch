@@ -49,10 +49,7 @@ buildout again to choose a specific release.
 
   $ hg clone https://bitbucket.org/pypa/bandersnatch
   $ cd bandersnatch
-  $ virtualenv-2.7 .
-  $ bin/python bootstrap.py
-  $ bin/buildout
-
+  $ ./bootstrap.sh
 
 Configuration
 =============
