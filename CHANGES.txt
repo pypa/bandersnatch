@@ -1,7 +1,11 @@
-1.11.1 (unreleased)
+1.12 (unreleased)
 -------------------
 
 - Make the package-specific simple pages human-readable again. Fixes #71.
+
+- General update of our dependencies to pave the road for Python 3 support.
+
+- Drop support for Python 2.6.
 
 
 1.11 (2016-05-18)
