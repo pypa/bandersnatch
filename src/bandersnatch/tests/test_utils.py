@@ -2,6 +2,13 @@ from bandersnatch.utils import hash, rewrite
 import os
 import os.path
 import pytest
+import six
+
+
+if six.PY2:
+    expected_octal_perms = "0100644"
+else:
+    expected_octal_perms = "0o100644"
 
 
 def test_hash():
@@ -17,7 +24,7 @@ def test_rewrite(tmpdir, monkeypatch):
         f.write('csdf')
     assert open('sample').read() == 'csdf'
     mode = os.stat('sample').st_mode
-    assert oct(mode) == "0100644"
+    assert oct(mode) == expected_octal_perms
 
 
 def test_rewrite_fails(tmpdir, monkeypatch):

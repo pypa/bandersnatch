@@ -2,7 +2,12 @@ from bandersnatch.package import Package
 from requests import HTTPError
 import mock
 import os.path
-import Queue
+
+# Py23 Fun
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
 
 def touch_files(paths):
@@ -162,7 +167,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page(
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == b"""\
+    assert open('web/simple/foo/index.html').read() == """\
 <html><head><title>Links for foo</title></head><body>
 <h1>Links for foo</h1>
 
@@ -180,7 +185,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     package.sync()
 
     assert not os.path.exists('web/simple/foo/index.html')
-    assert open('web/simple/f/foo/index.html').read() == b"""\
+    assert open('web/simple/f/foo/index.html').read() == """\
 <html><head><title>Links for foo</title></head><body>
 <h1>Links for foo</h1>
 
@@ -198,7 +203,7 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == b"""\
+    assert open('web/simple/foo/index.html').read() == """\
 <html><head><title>Links for Foo</title></head><body>
 <h1>Links for Foo</h1>
 
@@ -215,7 +220,7 @@ def test_package_sync_with_canonical_simple_page_with_hash(
     package.sync()
 
     assert not os.path.exists('web/simple/foo/index.html')
-    assert open('web/simple/f/foo/index.html').read() == b"""\
+    assert open('web/simple/f/foo/index.html').read() == """\
 <html><head><title>Links for Foo</title></head><body>
 <h1>Links for Foo</h1>
 
@@ -232,7 +237,7 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
     package.sync()
 
     # PEP 503 normalization
-    assert open('web/simple/foo-bar-thing-other/index.html').read() == b"""\
+    assert open('web/simple/foo-bar-thing-other/index.html').read() == """\
 <html><head><title>Links for Foo.bar-thing_other</title></head><body>
 <h1>Links for Foo.bar-thing_other</h1>
 
@@ -240,7 +245,7 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
 """
 
     # Legacy partial normalization as implemented by pip prior to 8.1.2
-    assert open('web/simple/foo.bar-thing-other/index.html').read() == b"""\
+    assert open('web/simple/foo.bar-thing-other/index.html').read() == """\
 <html><head><title>Links for Foo.bar-thing_other</title></head><body>
 <h1>Links for Foo.bar-thing_other</h1>
 
@@ -248,7 +253,7 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
 """
 
     # Legacy unnormalized as implemented by pip prior to 6.0
-    assert open('web/simple/Foo.bar-thing_other/index.html').read() == b"""\
+    assert open('web/simple/Foo.bar-thing_other/index.html').read() == """\
 <html><head><title>Links for Foo.bar-thing_other</title></head><body>
 <h1>Links for Foo.bar-thing_other</h1>
 
@@ -273,7 +278,7 @@ def test_package_sync_simple_page_with_files(mirror, requests):
     package = Package('foo', 10, mirror)
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == b"""\
+    assert open('web/simple/foo/index.html').read() == """\
 <html><head><title>Links for foo</title></head><body>
 <h1>Links for foo</h1>
 <a href="../../packages/2.7/f/foo/foo.whl#md5=\
@@ -294,7 +299,7 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists('web/simple/f/foo/index.html')
-    assert open('web/simple/foo/index.html').read() == b"""\
+    assert open('web/simple/foo/index.html').read() == """\
 <html><head><title>Links for foo</title></head><body>
 <h1>Links for foo</h1>
 
@@ -408,7 +413,7 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
 
     os.makedirs('web/packages/any/f/foo')
     with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
-        f.write('this is not the release content')
+        f.write(b'this is not the release content')
 
     mirror.packages_to_sync = {'foo': None}
     package = Package('foo', 10, mirror)
@@ -431,7 +436,7 @@ def test_package_sync_does_not_touch_existing_local_file(
 
     os.makedirs('web/packages/any/f/foo')
     with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
-        f.write('the release content')
+        f.write(b'the release content')
     old_stat = os.stat('web/packages/any/f/foo/foo.zip')
 
     mirror.packages_to_sync = set(['foo'])
@@ -513,7 +518,7 @@ def test_sync_deletes_serversig(mirror, requests):
 
     package.sync()
 
-    assert open('web/simple/foo/index.html').read() == (b"""\
+    assert open('web/simple/foo/index.html').read() == ("""\
 <html><head><title>Links for foo</title></head><body>
 <h1>Links for foo</h1>
 
