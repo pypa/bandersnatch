@@ -1,14 +1,20 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
-import Queue
 import datetime
 import fcntl
 import logging
 import os
+import six
 import sys
 import threading
 
 from packaging.utils import canonicalize_name
+
+# Py23 Fun
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
 
 logger = logging.getLogger(__name__)
@@ -88,7 +94,7 @@ class Mirror(object):
         if os.path.exists(self.todolist):
             try:
                 saved_todo = iter(open(self.todolist))
-                int(saved_todo.next().strip())
+                int(next(saved_todo).strip())
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
@@ -110,10 +116,10 @@ class Mirror(object):
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
             saved_todo = iter(open(self.todolist))
-            self.target_serial = int(saved_todo.next().strip())
+            self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
-                self.packages_to_sync[package.decode('utf-8')] = int(serial)
+                self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
             logger.info(u'Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
@@ -169,8 +175,8 @@ class Mirror(object):
                 todo = list(self.packages_to_sync.items())
                 todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
                         for name_, serial in todo]
-                f.write('{0}\n'.format(self.target_serial))
-                f.write('\n'.join(todo))
+                f.write('{0}\n'.format(self.target_serial).encode("utf-8"))
+                f.write(b'\n'.join(todo))
 
     def get_simple_dirs(self, simple_dir):
         """Return a list of simple index directories that should be searched
@@ -296,4 +302,9 @@ class Mirror(object):
 
     def _save(self):
         with open(self.statusfile, "wb") as f:
-            f.write(str(self.synced_serial))
+            if six.PY2:
+                synced_serial = str(self.synced_serial)
+            else:
+                synced_serial = bytes(self.synced_serial)
+                synced_serial = b'0' if not synced_serial else synced_serial
+            f.write(synced_serial)

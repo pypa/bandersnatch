@@ -162,7 +162,7 @@ def test_mirror_sync_package(mirror, requests):
 <html><head><title>Simple Index</title></head><body>
 <a href="foo/">foo</a><br/>
 </body></html>"""
-    assert open('status').read() == '1'
+    assert open('status', 'rb').read() == b'1'
 
 
 def test_mirror_sync_package_error_no_early_exit(mirror, requests):
@@ -209,7 +209,7 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     requests.prepare(iter('the release content'), 1)
 
     with open('web/simple/index.html', 'wb') as index:
-        index.write('old index')
+        index.write(b'old index')
     mirror.errors = True
     mirror.stop_on_error = True
     with pytest.raises(SystemExit):

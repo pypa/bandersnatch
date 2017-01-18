@@ -3,12 +3,17 @@ import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.utils
-import ConfigParser
 import logging
 import logging.config
 import os.path
 import shutil
 import sys
+
+# Py23 Fun
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +60,7 @@ def main():
             'Please review the config file, then run \'bandersnatch\' again.')
         try:
             shutil.copy(default_config, args.config)
-        except IOError, e:
+        except IOError as e:
             logger.error('Could not create config file: {0}'.format(str(e)))
         sys.exit(1)
 

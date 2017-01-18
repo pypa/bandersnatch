@@ -1,8 +1,5 @@
 from . import utils
 from .master import StalePage
-import urlparse
-from urllib import unquote
-from urllib2 import quote
 import glob
 import hashlib
 import logging
@@ -11,6 +8,10 @@ import requests
 import shutil
 import time
 import pkg_resources
+
+# Py23 Fun
+import six.moves.urllib.parse as urlparse
+from six.moves.urllib.parse import (quote, unquote)
 
 from packaging.utils import canonicalize_name
 
@@ -55,29 +56,34 @@ class Package(object):
     def simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                self.encoded_first, self.encoded_name)
-        return os.path.join(self.mirror.webdir, 'simple', self.encoded_name)
+                                self.encoded_first.decode("utf-8"),
+                                self.encoded_name.decode("utf-8"))
+        return os.path.join(self.mirror.webdir, 'simple',
+                            self.encoded_name.decode('utf-8'))
 
     @property
     def normalized_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                self.normalized_first, self.normalized_name)
-        return os.path.join(self.mirror.webdir, 'simple', self.normalized_name)
+                                str(self.normalized_first),
+                                self.normalized_name.decode("utf-8"))
+        return os.path.join(self.mirror.webdir, 'simple',
+                            self.normalized_name.decode("utf-8"))
 
     @property
     def normalized_legacy_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                self.normalized_first,
-                                self.normalized_name_legacy)
+                                str(self.normalized_first),
+                                str(self.normalized_name_legacy))
         return os.path.join(
-            self.mirror.webdir, 'simple', self.normalized_name_legacy)
+            self.mirror.webdir, 'simple',
+            self.normalized_name_legacy.decode("utf-8"))
 
     @property
     def serversig_file(self):
         return os.path.join(
-            self.mirror.webdir, 'serversig', self.encoded_name)
+            self.mirror.webdir, 'serversig', self.encoded_name.decode('utf-8'))
 
     @property
     def directories(self):
@@ -132,13 +138,13 @@ class Package(object):
     def generate_simple_page(self):
         # Generate the header of our simple page.
         simple_page_content = (
-            b'<html>'
-            b'<head>'
-            b'<title>Links for %(name)s</title>'
-            b'</head>'
-            b'<body>\n'
-            b'<h1>Links for %(name)s</h1>\n'
-        ) % {"name": self.name}
+            '<html>'
+            '<head>'
+            '<title>Links for {0}</title>'
+            '</head>'
+            '<body>\n'
+            '<h1>Links for {0}</h1>\n'
+        ).format(self.name).encode('utf-8')
 
         # Get a list of all of the files.
         release_files = []
@@ -147,11 +153,11 @@ class Package(object):
         release_files.sort(key=lambda x: x["url"])
 
         simple_page_content += b'\n'.join([
-            b'<a href="%(url)s#md5=%(hash)s">%(filename)s</a><br/>' % {
-                "url": self._file_url_to_local_url(r["url"]),
-                "hash": r["md5_digest"],
-                "filename": r["filename"],
-            }
+            '<a href="{0}#md5={1}">{2}</a><br/>'.format(
+                self._file_url_to_local_url(r['url']),
+                r["md5_digest"],
+                r["filename"],
+            ).encode('utf-8')
             for r in release_files
         ])
 
@@ -175,7 +181,7 @@ class Package(object):
                 os.makedirs(self.simple_directory)
             simple_page = os.path.join(self.simple_directory, 'index.html')
             with utils.rewrite(simple_page) as f:
-                f.write(simple_page_content)
+                f.write(simple_page_content.decode("utf-8"))
 
             # This exists for compatibility with pip 8.0 to 8.1.1 which did not
             # correctly implement PEP 503 wrt to normalization and so needs a
@@ -188,7 +194,7 @@ class Package(object):
                 simple_page = os.path.join(
                     self.normalized_legacy_simple_directory, 'index.html')
                 with utils.rewrite(simple_page) as f:
-                    f.write(simple_page_content)
+                    f.write(simple_page_content.decode("utf-8"))
 
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
@@ -196,7 +202,7 @@ class Package(object):
         normalized_simple_page = os.path.join(
             self.normalized_simple_directory, 'index.html')
         with utils.rewrite(normalized_simple_page) as f:
-            f.write(simple_page_content)
+            f.write(simple_page_content.decode("utf-8"))
 
         # Remove the /serversig page if it exists
         if os.path.exists(self.serversig_file):
@@ -214,7 +220,8 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
-        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
+#        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
+        return os.path.join(self.mirror.webdir, path)  # COOPER
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
@@ -258,7 +265,7 @@ class Package(object):
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
-                checksum.update(chunk)
+                checksum.update(chunk.encode('utf-8'))
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:
