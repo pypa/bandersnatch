@@ -268,14 +268,16 @@ class Package(object):
         # and then maybe deleted. Re-uploading (and thus changing the hash)
         # is only allowed in extremely rare cases with intervention from the
         # PyPI admins.
+        # Py3 sometimes has requests lib return bytes. Need to handle that
         r = self.mirror.master.get(url, required_serial=None, stream=True)
         checksum = hashlib.md5()
-        with utils.rewrite(path) as f:
+        with utils.rewrite(path, bytes_write=True) as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
-                if six.PY2:
-                    checksum.update(chunk)
-                else:
-                    checksum.update(chunk.encode('utf-8'))
+                # Avoid double encoding in Py2
+                if six.PY3:
+                    if isinstance(chunk, str):
+                        chunk = chunk.encode('utf-8')
+                checksum.update(chunk)
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:

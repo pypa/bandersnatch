@@ -25,8 +25,8 @@ USER_AGENT = user_agent()
 
 def hash(path, function='md5'):
     h = getattr(hashlib, function)()
-    for line in open(path):
-        h.update(line.encode('utf-8'))
+    for line in open(path, 'rb'):
+        h.update(line)
     return h.hexdigest()
 
 
@@ -49,12 +49,18 @@ def find(root, dirs=True):
 
 
 @contextlib.contextmanager
-def rewrite(filename):
+def rewrite(filename, bytes_write=False):
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
     fd, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
     os.close(fd)
-    with open(filename_tmp, 'w') as f:
+
+    # Py3 - We may want to write bytes
+    # requests lib will sometimes give us raw bytes
+    # e.g. for tar.bz2 - 4Suite-XML-1.0rc4.tar.bz2
+    open_mode = 'wb' if bytes_write else 'w'
+
+    with open(filename_tmp, open_mode) as f:
         yield f
     if not os.path.exists(filename_tmp):
         # Allow our clients to remove the file in case it doesn't want it to be
