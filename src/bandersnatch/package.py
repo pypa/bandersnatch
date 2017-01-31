@@ -6,6 +6,7 @@ import logging
 import os.path
 import requests
 import shutil
+import six
 import time
 import pkg_resources
 
@@ -27,7 +28,10 @@ class Package(object):
     def __init__(self, name, serial, mirror):
         self.name = name
         self.serial = serial
-        self.normalized_name = canonicalize_name(name).encode("utf-8")
+        self.normalized_name = canonicalize_name(name)
+        # Make sure this is always a str
+        if isinstance(self.normalized_name, bytes):
+            self.normalized_name = self.normalized_name.decode("utf-8")
         # This is really only useful for pip 8.0 -> 8.1.1
         self.normalized_name_legacy = \
             pkg_resources.safe_name(name).lower().encode("utf-8")
@@ -43,13 +47,17 @@ class Package(object):
     @property
     def package_directories(self):
         expr = '{0}/packages/*/{1}/{2}'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.encoded_first.decode('utf-8'),
+            self.encoded_name.decode('utf-8')
+        )
         return glob.glob(expr)
 
     @property
     def package_files(self):
         expr = '{0}/packages/*/{1}/{2}/*'.format(
-            self.mirror.webdir, self.encoded_first, self.encoded_name)
+            self.mirror.webdir, self.encoded_first.decode('utf-8'),
+            self.encoded_name.decode('utf-8')
+        )
         return glob.glob(expr)
 
     @property
@@ -65,17 +73,17 @@ class Package(object):
     def normalized_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                str(self.normalized_first),
-                                self.normalized_name.decode("utf-8"))
+                                self.normalized_first,
+                                self.normalized_name)
         return os.path.join(self.mirror.webdir, 'simple',
-                            self.normalized_name.decode("utf-8"))
+                            self.normalized_name)
 
     @property
     def normalized_legacy_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                str(self.normalized_first),
-                                str(self.normalized_name_legacy))
+                                self.normalized_first,
+                                self.normalized_name_legacy.decode('utf-8'))
         return os.path.join(
             self.mirror.webdir, 'simple',
             self.normalized_name_legacy.decode("utf-8"))
@@ -220,8 +228,7 @@ class Package(object):
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
-#        return os.path.join(self.mirror.webdir, path.encode('utf-8'))
-        return os.path.join(self.mirror.webdir, path)  # COOPER
+        return os.path.join(self.mirror.webdir, path)
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
@@ -265,7 +272,10 @@ class Package(object):
         checksum = hashlib.md5()
         with utils.rewrite(path) as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
-                checksum.update(chunk.encode('utf-8'))
+                if six.PY2:
+                    checksum.update(chunk)
+                else:
+                    checksum.update(chunk.encode('utf-8'))
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
             if existing_hash == md5sum:
