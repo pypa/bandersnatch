@@ -175,7 +175,7 @@ class Mirror(object):
                 todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
                         for name_, serial in todo]
                 f.write('{0}\n'.format(self.target_serial).encode("utf-8"))
-                f.write(b'\n'.join(todo))
+                f.write('\n'.join(todo).encode('utf-8'))
 
     def get_simple_dirs(self, simple_dir):
         """Return a list of simple index directories that should be searched
