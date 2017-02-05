@@ -61,7 +61,7 @@ class Package(object):
         if self.mirror.hash_index:
             return os.path.join(
                 self.mirror.webdir, 'simple',
-                self.normalized_first, self.normalized_name_legacy)
+                self.normalized_name[0], self.normalized_name_legacy)
         return os.path.join(
             self.mirror.webdir, 'simple', self.normalized_name_legacy)
 
