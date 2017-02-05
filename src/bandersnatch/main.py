@@ -3,17 +3,12 @@ import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.utils
+import configparser
 import logging
 import logging.config
 import os.path
 import shutil
 import sys
-
-# Py23 Fun
-try:
-    import ConfigParser
-except ImportError:
-    import configparser as ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +59,7 @@ def main():
             logger.error('Could not create config file: {0}'.format(str(e)))
         sys.exit(1)
 
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read([default_config, args.config])
 
     if config.has_option('mirror', 'log-config'):

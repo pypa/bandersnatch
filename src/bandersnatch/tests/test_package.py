@@ -29,7 +29,7 @@ def test_package_directories_and_files_with_existing_stuff(mirror):
                  'packages/any']:
         path = os.path.join(mirror.webdir, path, pkg_name[0], pkg_name)
         os.makedirs(path)
-        filename = os.path.join(path, pkg_name+'.zip')
+        filename = os.path.join(path, pkg_name + '.zip')
         open(filename, 'wb')
     package = Package(pkg_name, 10, mirror)
     dirs = sorted(package.package_directories)
@@ -108,10 +108,10 @@ def test_package_sync_gives_up_after_3_stale_responses(
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = []
 
-    requests.prepare('the simple page', '10')
-    requests.prepare('the simple page', '10')
-    requests.prepare('the simple page', '10')
-    requests.prepare('the simple page', '10')
+    requests.prepare(b'the simple page', '10')
+    requests.prepare(b'the simple page', '10')
+    requests.prepare(b'the simple page', '10')
+    requests.prepare(b'the simple page', '10')
 
     package = Package('foo', 11, mirror)
     package.sleep_on_stale = 0
@@ -271,8 +271,8 @@ def test_package_sync_simple_page_with_files(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
                  'filename': 'foo.whl',
                  'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
-    requests.prepare('the release content', 10)
-    requests.prepare('another release content', 10)
+    requests.prepare(b'the release content', 10)
+    requests.prepare(b'another release content', 10)
 
     mirror.packages_to_sync = {'foo': 10}
     package = Package('foo', 10, mirror)
@@ -347,7 +347,7 @@ def test_package_sync_downloads_release_file(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('the release content', 10)
+    requests.prepare(b'the release content', 10)
 
     mirror.packages_to_sync = dict(foo=None)
     package = Package('foo', 10, mirror)
@@ -377,7 +377,7 @@ def test_sync_deletes_superfluous_files_on_deleting_mirror(mirror, requests):
     touch_files(['web/packages/2.4/f/foo/foo.zip'])
 
     requests.prepare({'releases': {'0.1': []}}, 10)
-    requests.prepare('the simple page', 10)
+    requests.prepare(b'the simple page', 10)
 
     mirror.packages_to_sync = dict(foo=None)
     package = Package('foo', 10, mirror)
@@ -409,7 +409,7 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
-    requests.prepare('the release content', 10)
+    requests.prepare(b'the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
     with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
@@ -432,7 +432,7 @@ def test_package_sync_does_not_touch_existing_local_file(
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    requests.prepare('the release content', 10)
+    requests.prepare(b'the release content', 10)
 
     os.makedirs('web/packages/any/f/foo')
     with open('web/packages/any/f/foo/foo.zip', 'wb') as f:
@@ -456,7 +456,7 @@ def test_sync_incorrect_download_with_current_serial_fails(
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    requests.prepare('not release content', 10)
+    requests.prepare(b'not release content', 10)
 
     mirror.packages_to_sync = set(['foo'])
     package = Package('foo', 10, mirror)
@@ -475,7 +475,7 @@ def test_sync_incorrect_download_with_old_serials_retries(
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    requests.prepare('not release content', 9)
+    requests.prepare(b'not release content', 9)
 
     mirror.packages_to_sync = set(['foo'])
     mirror.queue = Queue.Queue()
@@ -495,7 +495,7 @@ def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
-    requests.prepare('not release content', 11)
+    requests.prepare(b'not release content', 11)
 
     mirror.packages_to_sync = set(['foo'])
     package = Package('foo', 10, mirror)
