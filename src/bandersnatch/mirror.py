@@ -301,4 +301,9 @@ class Mirror(object):
 
     def _save(self):
         with open(self.statusfile, "wb") as f:
-            f.write(str(self.synced_serial).encode('utf-8'))
+            if six.PY2:
+                synced_serial = str(self.synced_serial)
+            else:
+                synced_serial = bytes(self.synced_serial)
+                synced_serial = b'0' if not synced_serial else synced_serial
+            f.write(synced_serial)
