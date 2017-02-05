@@ -24,7 +24,7 @@ virtualenv under ``bandersnatch/bin/bandersnatch``.
 
 .. note::
 
-    bandersnatch requires Python 2.7
+    bandersnatch requires Python 3.5
 
 
 pip
@@ -34,7 +34,7 @@ This installs the latest stable, released version.
 
 ::
 
-  $ virtualenv-2.7 bandersnatch
+  $ virtualenv --python=python3.5 bandersnatch
   $ cd bandersnatch
   $ bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
 
@@ -96,7 +96,6 @@ Here's a sample that you could place in ``/etc/cron.d/bandersnatch``::
 
     LC_ALL=en_US.utf8
     */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
-    12 * * * * root bandersnatch update-stats |& logger -t bandersnatch[update-stats]
 
 This assumes that you have a ``logger`` utility installed that will convert the
 output of the commands to syslog entries.

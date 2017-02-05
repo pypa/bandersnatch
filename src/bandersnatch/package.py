@@ -1,20 +1,15 @@
 from . import utils
 from .master import StalePage
+from packaging.utils import canonicalize_name
+from urllib.parse import urlparse, unquote
 import glob
 import hashlib
 import logging
 import os.path
+import pkg_resources
 import requests
 import shutil
-import six
 import time
-import pkg_resources
-
-# Py23 Fun
-import six.moves.urllib.parse as urlparse
-from six.moves.urllib.parse import (quote, unquote)
-
-from packaging.utils import canonicalize_name
 
 
 logger = logging.getLogger(__name__)
@@ -29,51 +24,34 @@ class Package(object):
         self.name = name
         self.serial = serial
         self.normalized_name = canonicalize_name(name)
-        # Make sure this is always a str
-        if isinstance(self.normalized_name, bytes):
-            self.normalized_name = self.normalized_name.decode("utf-8")
         # This is really only useful for pip 8.0 -> 8.1.1
-        self.normalized_name_legacy = \
-            pkg_resources.safe_name(name).lower().encode("utf-8")
-        # Note that normalized_name[0] == normalized_name_legacy[0]
-        # since the issue; just normalization of special chars like
-        # - & . was affected.  We use this for hash-index
-        self.normalized_first = self.normalized_name[0]
-        self.encoded_name = self.name.encode('utf-8')
-        self.encoded_first = self.name[0].encode('utf-8')
-        self.quoted_name = quote(self.encoded_name)
+        self.normalized_name_legacy = pkg_resources.safe_name(name).lower()
         self.mirror = mirror
 
     @property
     def package_directories(self):
         expr = '{0}/packages/*/{1}/{2}'.format(
-            self.mirror.webdir, self.encoded_first.decode('utf-8'),
-            self.encoded_name.decode('utf-8')
-        )
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def package_files(self):
         expr = '{0}/packages/*/{1}/{2}/*'.format(
-            self.mirror.webdir, self.encoded_first.decode('utf-8'),
-            self.encoded_name.decode('utf-8')
-        )
+            self.mirror.webdir, self.name[0], self.name)
         return glob.glob(expr)
 
     @property
     def simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                self.encoded_first.decode("utf-8"),
-                                self.encoded_name.decode("utf-8"))
-        return os.path.join(self.mirror.webdir, 'simple',
-                            self.encoded_name.decode('utf-8'))
+                                self.name[0], self.name)
+        return os.path.join(self.mirror.webdir, 'simple', self.name)
 
     @property
     def normalized_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
-                                self.normalized_first,
+                                self.normalized_name[0],
                                 self.normalized_name)
         return os.path.join(self.mirror.webdir, 'simple',
                             self.normalized_name)
@@ -81,17 +59,15 @@ class Package(object):
     @property
     def normalized_legacy_simple_directory(self):
         if self.mirror.hash_index:
-            return os.path.join(self.mirror.webdir, 'simple',
-                                self.normalized_first,
-                                self.normalized_name_legacy.decode('utf-8'))
+            return os.path.join(
+                self.mirror.webdir, 'simple',
+                self.normalized_first, self.normalized_name_legacy)
         return os.path.join(
-            self.mirror.webdir, 'simple',
-            self.normalized_name_legacy.decode("utf-8"))
+            self.mirror.webdir, 'simple', self.normalized_name_legacy)
 
     @property
     def serversig_file(self):
-        return os.path.join(
-            self.mirror.webdir, 'serversig', self.encoded_name.decode('utf-8'))
+        return os.path.join(self.mirror.webdir, 'serversig', self.name)
 
     @property
     def directories(self):
@@ -152,7 +128,7 @@ class Package(object):
             '</head>'
             '<body>\n'
             '<h1>Links for {0}</h1>\n'
-        ).format(self.name).encode('utf-8')
+        ).format(self.name)
 
         # Get a list of all of the files.
         release_files = []
@@ -160,16 +136,15 @@ class Package(object):
             release_files.extend(release)
         release_files.sort(key=lambda x: x["url"])
 
-        simple_page_content += b'\n'.join([
+        simple_page_content += '\n'.join([
             '<a href="{0}#md5={1}">{2}</a><br/>'.format(
                 self._file_url_to_local_url(r['url']),
                 r["md5_digest"],
-                r["filename"],
-            ).encode('utf-8')
+                r["filename"])
             for r in release_files
         ])
 
-        simple_page_content += b'\n</body></html>'
+        simple_page_content += '\n</body></html>'
 
         return simple_page_content
 
@@ -188,8 +163,8 @@ class Package(object):
             if not os.path.exists(self.simple_directory):
                 os.makedirs(self.simple_directory)
             simple_page = os.path.join(self.simple_directory, 'index.html')
-            with utils.rewrite(simple_page) as f:
-                f.write(simple_page_content.decode("utf-8"))
+            with utils.rewrite(simple_page, 'w', encoding='utf-8') as f:
+                f.write(simple_page_content)
 
             # This exists for compatibility with pip 8.0 to 8.1.1 which did not
             # correctly implement PEP 503 wrt to normalization and so needs a
@@ -201,29 +176,29 @@ class Package(object):
                     os.makedirs(self.normalized_legacy_simple_directory)
                 simple_page = os.path.join(
                     self.normalized_legacy_simple_directory, 'index.html')
-                with utils.rewrite(simple_page) as f:
-                    f.write(simple_page_content.decode("utf-8"))
+                with utils.rewrite(simple_page, 'w', encoding='utf-8') as f:
+                    f.write(simple_page_content)
 
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
 
         normalized_simple_page = os.path.join(
             self.normalized_simple_directory, 'index.html')
-        with utils.rewrite(normalized_simple_page) as f:
-            f.write(simple_page_content.decode("utf-8"))
+        with utils.rewrite(normalized_simple_page, 'w', encoding='utf-8') as f:
+            f.write(simple_page_content)
 
         # Remove the /serversig page if it exists
         if os.path.exists(self.serversig_file):
             os.unlink(self.serversig_file)
 
     def _file_url_to_local_url(self, url):
-        parsed = urlparse.urlparse(url)
-        if not parsed.path.startswith("/packages"):
+        parsed = urlparse(url)
+        if not parsed.path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         return "../.." + parsed.path
 
     def _file_url_to_local_path(self, url):
-        path = urlparse.urlparse(url).path
+        path = urlparse(url).path
         path = unquote(path)
         if not path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
@@ -271,12 +246,8 @@ class Package(object):
         # Py3 sometimes has requests lib return bytes. Need to handle that
         r = self.mirror.master.get(url, required_serial=None, stream=True)
         checksum = hashlib.md5()
-        with utils.rewrite(path, bytes_write=True) as f:
+        with utils.rewrite(path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
-                # Avoid double encoding in Py2
-                if six.PY3:
-                    if isinstance(chunk, str):
-                        chunk = chunk.encode('utf-8')
                 checksum.update(chunk)
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
