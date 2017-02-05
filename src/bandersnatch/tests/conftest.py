@@ -18,7 +18,7 @@ def requests(request):
             responses.append(content)
             return
         download = mock.Mock()
-        download.iter_content.return_value = iter(content)
+        download.iter_content.return_value = iter([content])
         download.content = content
         download.json.return_value = content
         download.headers = {'X-PYPI-LAST-SERIAL': str(serial)}

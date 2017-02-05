@@ -8,7 +8,7 @@ setup(name='bandersnatch',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
       author='Christian Theune',
-      author_email='ct@gocept.com',
+      author_email='ct@flyingcircus.io',
       license='Academic Free License, version 3',
       url='http://bitbucket.org/pypa/bandersnatch/',
       packages=find_packages('src'),
@@ -25,7 +25,6 @@ setup(name='bandersnatch',
           'pytest-timeout',
           'pytest-cache',
           'requests',
-          'six',
           'xmlrpc2'],
       entry_points="""
             [console_scripts]
@@ -41,4 +40,4 @@ setup(name='bandersnatch',
                 update_requirements = bandersnatch.release:update_requirements
       """,
       classifiers=[
-          'Programming Language :: Python :: 2.7'])
+          'Programming Language :: Python :: 3.5'])
