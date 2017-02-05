@@ -1,20 +1,13 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
+from packaging.utils import canonicalize_name
 import datetime
 import fcntl
 import logging
 import os
-import six
+import queue
 import sys
 import threading
-
-from packaging.utils import canonicalize_name
-
-# Py23 Fun
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +23,7 @@ class Worker(threading.Thread):
         while True:
             try:
                 package = self.queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 break
             package.sync()
 
@@ -93,7 +86,7 @@ class Mirror(object):
         processing."""
         if os.path.exists(self.todolist):
             try:
-                saved_todo = iter(open(self.todolist))
+                saved_todo = iter(open(self.todolist, encoding='utf-8'))
                 int(next(saved_todo).strip())
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
@@ -115,7 +108,7 @@ class Mirror(object):
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
             logger.info(u'Resuming interrupted sync from local todo list.')
-            saved_todo = iter(open(self.todolist))
+            saved_todo = iter(open(self.todolist, encoding='utf-8'))
             self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
@@ -143,7 +136,7 @@ class Mirror(object):
         logger.info(u'{0} packages to sync.'.format(pkg_count))
 
     def sync_packages(self):
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
@@ -171,12 +164,13 @@ class Mirror(object):
     def record_finished_package(self, name):
         with self._finish_lock:
             del self.packages_to_sync[name]
-            with open(self.todolist, 'wb') as f:
-                todo = list(self.packages_to_sync.items())
-                todo = ['{0} {1}'.format(name_.encode('utf-8'), str(serial))
-                        for name_, serial in todo]
-                f.write('{0}\n'.format(self.target_serial).encode("utf-8"))
-                f.write(b'\n'.join(todo))
+            with open(self.todolist, 'w', encoding='utf-8') as f:
+                # First line is the target serial we're working on.
+                f.write('{0}\n'.format(self.target_serial))
+                # Consecutive lines are the packages we still have to sync
+                todo = ['{0} {1}'.format(name_, serial)
+                        for name_, serial in self.packages_to_sync.items()]
+                f.write('\n'.join(todo))
 
     def get_simple_dirs(self, simple_dir):
         """Return a list of simple index directories that should be searched
@@ -229,9 +223,9 @@ class Mirror(object):
         if os.path.exists(self.todolist):
             os.unlink(self.todolist)
         logger.info(u'New mirror serial: {0}'.format(self.synced_serial))
-        last_modified = os.path.join(self.homedir, "web", "last-modified")
+        last_modified = os.path.join(self.homedir, 'web', 'last-modified')
         with rewrite(last_modified) as f:
-            f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
+            f.write(self.now.strftime('%Y%m%dT%H:%M:%S\n'))
         self._save()
 
     def _bootstrap(self):
@@ -258,11 +252,11 @@ class Mirror(object):
 
     @property
     def statusfile(self):
-        return os.path.join(self.homedir, "status")
+        return os.path.join(self.homedir, 'status')
 
     @property
     def generationfile(self):
-        return os.path.join(self.homedir, "generation")
+        return os.path.join(self.homedir, 'generation')
 
     def _reset_mirror_status(self):
         for path in [self.statusfile, self.todolist]:
@@ -274,7 +268,8 @@ class Mirror(object):
         # updates.
         CURRENT_GENERATION = 5  # noqa
         try:
-            generation = int(open(self.generationfile, 'r').read().strip())
+            with open(self.generationfile, 'r', encoding='ascii') as f:
+                generation = int(f.read().strip())
         except IOError:
             logger.info(u'Generation file missing. '
                         u'Reinitialising status files.')
@@ -292,19 +287,15 @@ class Mirror(object):
             self._reset_mirror_status()
             generation = 5
         assert generation == CURRENT_GENERATION
-        open(self.generationfile, 'w').write(str(CURRENT_GENERATION))
+        with open(self.generationfile, 'w', encoding='ascii') as f:
+            f.write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
         if not os.path.exists(self.statusfile):
             logger.info(u'Status file missing. Starting over.')
             return
-        with open(self.statusfile, "rb") as f:
+        with open(self.statusfile, 'r', encoding='ascii') as f:
             self.synced_serial = int(f.read().strip())
 
     def _save(self):
-        with open(self.statusfile, "wb") as f:
-            if six.PY2:
-                synced_serial = str(self.synced_serial)
-            else:
-                synced_serial = bytes(self.synced_serial)
-                synced_serial = b'0' if not synced_serial else synced_serial
-            f.write(synced_serial)
+        with open(self.statusfile, 'w', encoding='ascii') as f:
+            f.write(str(self.synced_serial))

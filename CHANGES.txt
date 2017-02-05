@@ -1,11 +1,17 @@
-1.12 (unreleased)
--------------------
+2.0 (unreleased)
+----------------
 
 - Make the package-specific simple pages human-readable again. Fixes #71.
 
 - General update of our dependencies to pave the road for Python 3 support.
 
-- Drop support for Python 2.6.
+- Move to Python 3.
+
+  Official support starts with Python 3.5 but might get away with using an
+  earlier version of Python 3 (maybe 3.3 or so). However, we plan to start
+  using Python 3.5 features (like asyncio) in the near future, so please
+  be advised that running with an older version of Python 3 is not
+  a supported option for the long term.
 
 
 1.11 (2016-05-18)

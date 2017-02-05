@@ -149,7 +149,7 @@ def test_mirror_sync_package(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare(iter('the release content'), 1)
+    requests.prepare(b'the release content', 1)
 
     mirror.synchronize()
 
@@ -176,7 +176,7 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
                 'filename': 'foo.zip',
                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    requests.prepare(iter('the release content'), 1)
+    requests.prepare(b'the release content', 1)
 
     mirror.errors = True
     mirror.synchronize()
@@ -206,7 +206,7 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
-    requests.prepare(iter('the release content'), 1)
+    requests.prepare(b'the release content', 1)
 
     with open('web/simple/index.html', 'wb') as index:
         index.write(b'old index')
@@ -237,7 +237,7 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
-    requests.prepare(iter('the release content'), 1)
+    requests.prepare(b'the release content', 1)
 
     mirror_hash_index.synchronize()
 
