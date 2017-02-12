@@ -58,7 +58,7 @@ Configuration
   for you in ``/etc/bandersnatch.conf``.
 * Review ``/etc/bandersnatch.conf`` and adapt to your needs.
 * Run ``bandersnatch mirror`` again. It will populate your mirror with the
-  current status of all PyPI packages - roughly 120GiB (2014-10-23).
+  current status of all PyPI packages - roughly 500GiB (2017-02-12).
   Expect this to grow substantially over time.
 * Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
