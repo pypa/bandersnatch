@@ -144,13 +144,16 @@ per directory can run into a problem like this::
 Specifically we recommend to avoid using ext3. Ext4 and newer does not have the
 limitation of 32k sub-directories.
 
-Migrating from pep381client
-===========================
+Client Compatibility
+--------------------
 
-* remove old status files, but keep actual data (everything under ``web/``)
-* create config file, port command parameters from old cronjobs
-* update cron jobs
+A bandersnatch static mirror is compatible only to the "static",  cacheable
+parts of PyPI that are needed to support package installation. It does not
+support more dynamic APIs of PyPI that maybe be used by various clients for
+other purposes.
 
+An example of an unsupported API is PyPI's XML-RPC interface, which is used
+when running ``pip search``.
 
 Contact
 =======
