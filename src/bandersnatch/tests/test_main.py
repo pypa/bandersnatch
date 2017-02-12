@@ -18,8 +18,7 @@ def test_main_help(capfd):
 def test_main_create_config(caplog, tmpdir):
     sys.argv = ['bandersnatch', '-c', str(tmpdir / 'bandersnatch.conf'),
                 'mirror']
-    with pytest.raises(SystemExit):
-        main()
+    assert main() == 1
     assert 'creating default config' in caplog.text
     assert os.path.exists(str(tmpdir / 'bandersnatch.conf'))
 
@@ -28,8 +27,7 @@ def test_main_cant_create_config(caplog, tmpdir):
     sys.argv = ['bandersnatch',
                 '-c', str(tmpdir / 'foo' / 'bandersnatch.conf'),
                 'mirror']
-    with pytest.raises(SystemExit):
-        main()
+    assert main() == 1
     assert 'creating default config' in caplog.text
     assert 'Could not create config file' in caplog.text
     assert not os.path.exists(str(tmpdir / 'bandersnatch.conf'))
