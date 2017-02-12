@@ -8,7 +8,7 @@ import logging
 import logging.config
 import os.path
 import shutil
-import sys
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ def main():
             shutil.copy(default_config, args.config)
         except IOError as e:
             logger.error('Could not create config file: {0}'.format(str(e)))
-        sys.exit(1)
+        return 1
 
     config = configparser.ConfigParser()
     config.read([default_config, args.config])
@@ -65,7 +65,4 @@ def main():
     if config.has_option('mirror', 'log-config'):
         logging.config.fileConfig(
             os.path.expanduser(config.get('mirror', 'log-config')))
-
     args.func(config)
-
-    return config
