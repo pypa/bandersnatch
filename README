@@ -88,9 +88,7 @@ For nginx it should look something like this::
 Cron jobs
 ---------
 
-You need to set up one cron job to run the mirror itself. If you run a public
-mirror, then you need a second job that will create access statistics for
-aggregation on the master PyPI.
+You need to set up one cron job to run the mirror itself.
 
 Here's a sample that you could place in ``/etc/cron.d/bandersnatch``::
 
