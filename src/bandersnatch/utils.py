@@ -10,7 +10,7 @@ import tempfile
 def user_agent():
     template = 'bandersnatch/{version} ({python}, {system})'
     system = os.uname()
-    system = ' '.join([system[0], system[2], system[4]])
+    system = ' '.join([system[0], system[4]])
     version = pkg_resources.require("bandersnatch")[0].version
     # Support Python 2 + 3 - No sys.subversion in Py3
     try:
