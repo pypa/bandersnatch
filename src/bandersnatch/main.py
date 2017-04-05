@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
@@ -13,7 +14,7 @@ import shutil
 logger = logging.getLogger(__name__)
 
 
-def mirror(config):
+def mirror(loop, config):
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     master = bandersnatch.master.Master(
@@ -25,7 +26,7 @@ def mirror(config):
         workers=config.getint('mirror', 'workers'),
         delete_packages=config.getboolean('mirror', 'delete-packages'),
         hash_index=config.getboolean('mirror', 'hash-index'))
-    mirror.synchronize()
+    mirror.synchronize(loop)
 
 
 def main():
@@ -65,4 +66,6 @@ def main():
     if config.has_option('mirror', 'log-config'):
         logging.config.fileConfig(
             os.path.expanduser(config.get('mirror', 'log-config')))
-    args.func(config)
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(args.func(loop, config))

@@ -8,7 +8,7 @@ setup(name='bandersnatch',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
       author='Christian Theune',
-      author_email='ct@flyingcircus.io',
+      author_email='christian@theune.cc',
       license='Academic Free License, version 3',
       url='http://bitbucket.org/pypa/bandersnatch/',
       packages=find_packages('src'),
