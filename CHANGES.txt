@@ -1,10 +1,6 @@
 2.0 (unreleased)
 ----------------
 
-- Make the package-specific simple pages human-readable again. Fixes #71.
-
-- General update of our dependencies to pave the road for Python 3 support.
-
 - Move to Python 3.
 
   Official support starts with Python 3.5 but might get away with using an
@@ -12,6 +8,16 @@
   using Python 3.5 features (like asyncio) in the near future, so please
   be advised that running with an older version of Python 3 is not
   a supported option for the long term.
+
+- General update of our dependencies to pave the road for Python 3 support.
+
+- Remove residual references to the old "statistics" script that isn't in
+  use any longer.
+
+- Fix return code -- we accidentally returned 1 on successful runs
+  as debugging code was mixed in the main call. Fixes #67.
+
+- Make the package-specific simple pages human-readable again. Fixes #71.
 
 
 1.11 (2016-05-18)
