@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='bandersnatch',
-      version='2.0.0',
+      version='2.0.1.dev0',
       description='Mirroring tool that implements the client (mirror) side of PEP 381',
       long_description='\n\n'.join(
           [open('README').read(), open('CHANGES.txt').read()]),
