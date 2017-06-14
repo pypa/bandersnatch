@@ -1,7 +1,9 @@
 2.0.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix proxy usage. A bug in the usage of requests on our XMLRPC client
+  caused this to break. You can now set *_proxy environment variables
+  and get them picked up properly. Fixes #59.
 
 
 2.0.0 (2017-04-05)

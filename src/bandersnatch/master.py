@@ -14,6 +14,7 @@ class CustomTransport(xmlrpc2.client.HTTPSTransport):
         self.timeout = timeout
         self.session.headers.update({"User-Agent": USER_AGENT,
                                      "Content-Type": "text/xml"})
+        self.session.proxies = requests.compat.getproxies()
 
     def request(self, uri, body):
         resp = self.session.post(uri, body, timeout=self.timeout)
