@@ -25,7 +25,11 @@ def mirror(config):
         workers=config.getint('mirror', 'workers'),
         delete_packages=config.getboolean('mirror', 'delete-packages'),
         hash_index=config.getboolean('mirror', 'hash-index'))
-    mirror.synchronize()
+    changed_packages = mirror.synchronize()
+    logger.info("{0} packages had changes".format(len(changed_packages)))
+    for package_name, changes in changed_packages.items():
+        logger.debug("{0} removed: {1}".format(package_name, changes[0]))
+        logger.debug("{0} added: {1}".format(package_name, changes[1]))
 
 
 def main():
