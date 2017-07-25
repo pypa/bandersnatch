@@ -8,6 +8,7 @@ syntax:glob
 .cache
 .coverage
 .DS_Store
+.eggs
 .installed.cfg
 .mr.developer.cfg
 .Python

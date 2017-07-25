@@ -53,18 +53,22 @@ def find(root, dirs=True):
 
 
 @contextlib.contextmanager
-def rewrite(filename, mode='w', *args, **kw):
+def rewrite(filepath, mode='w', *args, **kw):
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
-    fd, filename_tmp = tempfile.mkstemp(dir=os.path.dirname(filename))
-    os.close(fd)
-
-    with open(filename_tmp, mode, *args, **kw) as f:
+    base_dir = os.path.dirname(filepath)
+    filename = os.path.basename(filepath)
+    # Change naming format to be more friendly with distributed POSIX
+    # filesystems like GlusterFS that hash based on filename
+    # GlusterFS ignore '.' at the start of filenames and this avoid rehashing
+    with tempfile.NamedTemporaryFile(mode=mode, prefix='.{}.'.format(filename),
+                                     delete=False, dir=base_dir, **kw) as f:
+        filepath_tmp = f.name
         yield f
 
-    if not os.path.exists(filename_tmp):
+    if not os.path.exists(filepath_tmp):
         # Allow our clients to remove the file in case it doesn't want it to be
         # put in place actually but also doesn't want to error out.
         return
-    os.chmod(filename_tmp, 0o100644)
-    os.rename(filename_tmp, filename)
+    os.chmod(filepath_tmp, 0o100644)
+    os.rename(filepath_tmp, filepath)
