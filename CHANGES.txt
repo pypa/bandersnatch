@@ -1,9 +1,18 @@
-2.0.1 (unreleased)
+2.1.0 (unreleased)
 ------------------
 
 - Fix proxy usage. A bug in the usage of requests on our XMLRPC client
   caused this to break. You can now set *_proxy environment variables
   and get them picked up properly. Fixes #59.
+
+- Add a dict returned from mirror.synchronize() to show deleted
+  and added files from the last run
+
+- Fix sorting of releases to use filename and not url
+
+- Tweak atomic file writes in utils.rewrite() to prefix the temporary
+  file with the 'hidden' filename of the destination adding more
+  support for hashed POSIX filesystems like GlusterFS.
 
 
 2.0.0 (2017-04-05)
