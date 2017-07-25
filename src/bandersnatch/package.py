@@ -134,7 +134,10 @@ class Package(object):
         release_files = []
         for release in self.releases.values():
             release_files.extend(release)
-        release_files.sort(key=lambda x: x["url"])
+        # Lets sort based on the filename rather than the whole URL
+        release_files.sort(
+            key=lambda x: os.path.basename(urlparse(x["url"]).path)
+        )
 
         simple_page_content += '\n'.join([
             '<a href="{0}#md5={1}">{2}</a><br/>'.format(
