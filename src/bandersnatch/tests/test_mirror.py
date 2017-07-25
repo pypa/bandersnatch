@@ -179,7 +179,7 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
     requests.prepare(b'the release content', 1)
 
     mirror.errors = True
-    mirror.synchronize()
+    changed_packages = mirror.synchronize()
 
     assert """\
 /.lock
@@ -194,6 +194,10 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
 </body></html>"""
 
     assert open('todo').read() == '1\n'
+
+    # Check the returned dict is accurate
+    expected = {'foo': [set(), {'web/packages/any/f/foo/foo.zip'}]}
+    assert changed_packages == expected
 
 
 def test_mirror_sync_package_error_early_exit(mirror, requests):

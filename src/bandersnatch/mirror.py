@@ -28,7 +28,7 @@ class Worker(threading.Thread):
             package.sync()
 
 
-class Mirror(object):
+class Mirror():
 
     homedir = None
 
@@ -64,6 +64,11 @@ class Mirror(object):
         self._bootstrap()
         self._finish_lock = threading.RLock()
 
+        # Lets record and report back the changes we do each run
+        # Format: dict['pkg_name'] = [set(removed), Set[added]
+        # Class Instance variable so each Worker can add their package changes
+        self.altered_packages = {}
+
     @property
     def webdir(self):
         return os.path.join(self.homedir, 'web')
@@ -75,11 +80,16 @@ class Mirror(object):
     def synchronize(self):
         logger.info('Syncing with {0}.'.format(self.master.url))
         self.now = datetime.datetime.utcnow()
+        # Lets ensure we get a new dict each run
+        # - others importing may not reset this like our main.py
+        self.altered_packages = {}
 
         self.determine_packages_to_sync()
         self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
+
+        return self.altered_packages
 
     def _cleanup(self):
         """Does a couple of cleanup tasks to ensure consistent data for later
