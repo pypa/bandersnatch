@@ -1,0 +1,11 @@
+# bandersnatch BitBucker Pipelines config to run Tox Tests
+image: python:3.5.1
+
+pipelines:
+  default:
+    - step:
+        caches:
+          - pip
+        script:
+          - pip install .
+          - tox
