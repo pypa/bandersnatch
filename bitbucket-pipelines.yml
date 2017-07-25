@@ -8,5 +8,5 @@ pipelines:
           - pip
         script:
           - pip install .
-	  - pip install tox
+	      - pip install tox
           - tox
