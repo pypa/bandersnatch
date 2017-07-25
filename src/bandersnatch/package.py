@@ -15,7 +15,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-class Package(object):
+class Package():
 
     tries = 0
     sleep_on_stale = 1
@@ -109,15 +109,24 @@ class Package(object):
             self.mirror.errors = True
 
     def sync_release_files(self):
+        ''' Purge + download files returning files removed + added '''
         release_files = []
 
         for release in self.releases.values():
             release_files.extend(release)
 
-        self.purge_files(release_files)
+        removed_files = self.purge_files(release_files)
 
+        downloaded_files = set()
         for release_file in release_files:
-            self.download_file(release_file['url'], release_file['md5_digest'])
+            downloaded_file = self.download_file(release_file['url'],
+                                                 release_file['md5_digest'])
+            if downloaded_file:
+                downloaded_files.add(os.path.relpath(downloaded_file,
+                                                     self.mirror.homedir))
+
+        self.mirror.altered_packages[self.name] = [removed_files,
+                                                   downloaded_files]
 
     def generate_simple_page(self):
         # Generate the header of our simple page.
@@ -208,14 +217,20 @@ class Package(object):
 
     def purge_files(self, release_files):
         if not self.mirror.delete_packages:
-            return
+            return set()
         master_files = [self._file_url_to_local_path(f['url'])
                         for f in release_files]
         existing_files = list(self.package_files)
         to_remove = set(existing_files) - set(master_files)
+        relative_removed = set()
         for filename in to_remove:
             logger.info('Removing deleted file {0}'.format(filename))
             os.unlink(filename)
+            # Get the relative path for upstream consumers + stats
+            relative_removed.add(os.path.relpath(filename,
+                                 self.mirror.homedir))
+
+        return relative_removed
 
     def download_file(self, url, md5sum):
         path = self._file_url_to_local_path(url)
@@ -224,7 +239,7 @@ class Package(object):
         if os.path.exists(path):
             existing_hash = utils.hash(path)
             if existing_hash == md5sum:
-                return
+                return None
             else:
                 logger.info(
                     'Checksum mismatch with local file {0}: '
@@ -262,6 +277,7 @@ class Package(object):
                 raise ValueError(
                     'Inconsistent file. {0} has hash {1} instead of {2}.'
                     .format(url, existing_hash, md5sum))
+        return path
 
     def delete(self):
         if not self.mirror.delete_packages:
