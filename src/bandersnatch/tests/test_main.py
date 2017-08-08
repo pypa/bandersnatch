@@ -1,6 +1,6 @@
 from bandersnatch.main import main
 import bandersnatch.mirror
-import mock
+import unittest.mock as mock
 import os.path
 import pytest
 import sys

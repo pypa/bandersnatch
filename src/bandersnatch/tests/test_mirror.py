@@ -1,9 +1,11 @@
 from bandersnatch import utils
 from bandersnatch.mirror import Mirror
-import mock
+import unittest.mock as mock
 import os.path
 import pytest
+from pathlib import Path
 from requests import HTTPError
+from tempfile import TemporaryDirectory
 
 
 def test_limit_workers():
@@ -268,3 +270,27 @@ def test_mirror_serial_current_no_sync_of_packages_and_index_page(
 
     assert """\
 /last-modified""" == utils.find(mirror.webdir, dirs=False)
+
+
+def test_find_package_indexes_in_dir_threaded(mirror):
+    directories = (
+        'web/simple/peerme', 'web/simple/click', 'web/simple/zebra',
+        'web/simple/implicit', 'web/simple/pyaib', 'web/simple/setuptools'
+    )
+    with TemporaryDirectory() as td:
+        # Create local mirror first so we '_bootstrap'
+        local_mirror = Mirror(td, mirror.master, stop_on_error=True,
+                              local_io_workers=36)
+        # Create fake file system objects
+        mirror_base = Path(td)
+        for directory in directories:
+            mirror_base.joinpath(directory).mkdir(parents=True, exist_ok=True)
+        with mirror_base.joinpath('web/simple/index.html').open('w') as index:
+            index.write("<html></html>")
+
+        packages = local_mirror.find_package_indexes_in_dir(
+            mirror_base.joinpath('web/simple').as_posix(),
+        )
+        assert 'index.html' not in packages  # This should never be in the list
+        assert len(packages) == 6  # We expect 6 packages with 6 dirs created
+        assert packages[0] == 'click'  # Check sorted - click should be first
