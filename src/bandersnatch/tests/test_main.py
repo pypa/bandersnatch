@@ -1,6 +1,6 @@
 from bandersnatch.main import main
 import bandersnatch.mirror
-import mock
+import unittest.mock as mock
 import os.path
 import pytest
 import sys
@@ -45,7 +45,8 @@ def test_main_reads_config_values(mirror_mock):
     assert {'delete_packages': True,
             'stop_on_error': False,
             'hash_index': False,
-            'workers': 3} == kwargs
+            'workers': 3,
+            'json_save': False} == kwargs
     assert mirror_mock().synchronize.called
 
 

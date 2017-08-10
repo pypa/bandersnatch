@@ -1,13 +1,8 @@
 from bandersnatch.package import Package
 from requests import HTTPError
-import mock
+import unittest.mock as mock
 import os.path
-
-# Py23 Fun
-try:
-    import Queue
-except ImportError:
-    import queue as Queue
+import queue
 
 
 def touch_files(paths):
@@ -478,7 +473,7 @@ def test_sync_incorrect_download_with_old_serials_retries(
     requests.prepare(b'not release content', 9)
 
     mirror.packages_to_sync = set(['foo'])
-    mirror.queue = Queue.Queue()
+    mirror.queue = queue.Queue()
     package = Package('foo', 10, mirror)
     package.sync()
 
