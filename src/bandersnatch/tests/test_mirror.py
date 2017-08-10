@@ -1,9 +1,33 @@
 from bandersnatch import utils
 from bandersnatch.mirror import Mirror
-import mock
+import unittest.mock as mock
 import os.path
 import pytest
 from requests import HTTPError
+
+
+class JsonDict(dict):
+    ''' Class to fake the object returned from requests lib in master.get() '''
+
+    def json(self):
+        return self
+
+    def iter_content(*args, **kwargs):
+        yield b'abcdefg69'
+
+
+# master.get() returned data needs to have a .json() method and iter_content
+FAKE_RELEASE_DATA = JsonDict(
+    releases={
+        '0.1': [
+            {
+                'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                'filename': 'foo.zip',
+                'md5_digest': 'ebdad75ed9a852bbfd9be4c18bf76d00'
+            }
+        ]
+    }
+)
 
 
 def test_limit_workers():
@@ -142,20 +166,22 @@ def test_mirror_empty_resume_from_todo_list(mirror, requests):
 def test_mirror_sync_package(mirror, requests):
     mirror.master.all_packages = mock.Mock()
     mirror.master.all_packages.return_value = {'foo': 1}
+    mirror.json_save = True
+    # Recall bootstrap so we have the json dirs
+    mirror._bootstrap()
 
-    requests.prepare({
-        'releases': {
-            '0.1': [
-                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
-                 'filename': 'foo.zip',
-                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
+    requests.prepare(FAKE_RELEASE_DATA, 1)
     requests.prepare(b'the release content', 1)
 
+    mirror.master.get = mock.Mock()
+    mirror.master.get.return_value = FAKE_RELEASE_DATA
     mirror.synchronize()
 
     assert """\
+/json/foo
 /last-modified
 /packages/any/f/foo/foo.zip
+/pypi/foo/json
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
     assert open('web/simple/index.html').read() == """\

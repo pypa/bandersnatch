@@ -26,7 +26,7 @@ class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
-class Master(object):
+class Master():
 
     def __init__(self, url, timeout=10.0):
         self.url = url

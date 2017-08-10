@@ -4,6 +4,7 @@ from packaging.utils import canonicalize_name
 from urllib.parse import urlparse, unquote
 import glob
 import hashlib
+import json
 import logging
 import os.path
 import pkg_resources
@@ -27,6 +28,14 @@ class Package():
         # This is really only useful for pip 8.0 -> 8.1.1
         self.normalized_name_legacy = pkg_resources.safe_name(name).lower()
         self.mirror = mirror
+
+    @property
+    def json_file(self):
+        return os.path.join(self.mirror.webdir, 'json', self.name)
+
+    @property
+    def json_pypi_symlink(self):
+        return os.path.join(self.mirror.webdir, 'pypi', self.name, 'json')
 
     @property
     def package_directories(self):
@@ -71,28 +80,55 @@ class Package():
 
     @property
     def directories(self):
-        return self.package_directories + [self.simple_directory]
+        return (self.package_directories + [self.simple_directory,
+                os.path.dirname(self.json_pypi_symlink)])
+
+    def save_json_metadata(self, package_info):
+        ''' Take the JSON metadata we just fetched and save to disk '''
+
+        try:
+            with utils.rewrite(self.json_file) as jf:
+                json.dump(package_info, jf, indent=4, sort_keys=True)
+        except Exception as e:
+            logger.error("Unable to write json to {}: {}".format(
+                self.json_file, str(e))
+            )
+            return False
+
+        if not os.path.exists(self.json_pypi_symlink):
+            try:
+                os.mkdir(os.path.dirname(self.json_pypi_symlink))
+            except FileExistsError:
+                pass
+            os.symlink(self.json_file, self.json_pypi_symlink)
+
+        return True
 
     def sync(self):
         self.tries += 1
+        self.json_saved = False
         try:
-            logger.info(u'Syncing package: {0} (serial {1})'.format(
+            logger.info('Syncing package: {0} (serial {1})'.format(
                         self.name, self.serial))
             try:
                 package_info = self.mirror.master.get(
-                    '/pypi/{0}/json'.format(self.name), self.serial)
+                    '/pypi/{0}/json'.format(self.name), self.serial
+                )
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     self.delete()
                     return
                 raise
+
+            if self.mirror.json_save and not self.json_saved:
+                self.json_saved = self.save_json_metadata(package_info.json())
+
             self.releases = package_info.json()['releases']
             self.sync_release_files()
             self.sync_simple_page()
             self.mirror.record_finished_package(self.name)
         except StalePage:
-            logger.error(u'Stale serial for package {0}'.format(
-                self.name))
+            logger.error('Stale serial for package {0}'.format(self.name))
             # Give CDN a chance to update.
             if self.tries < 3:
                 time.sleep(self.sleep_on_stale)
@@ -104,7 +140,7 @@ class Package():
                 .format(self.name, self.serial))
             self.mirror.errors = True
         except Exception:
-            logger.exception(u'Error syncing package: {0}@{1}'.format(
+            logger.exception('Error syncing package: {0}@{1}'.format(
                 self.name, self.serial))
             self.mirror.errors = True
 
@@ -282,10 +318,12 @@ class Package():
     def delete(self):
         if not self.mirror.delete_packages:
             return
-        logger.info(u'Deleting package: {0}'.format(self.name))
+        logger.info('Deleting package: {0}'.format(self.name))
         for directory in self.directories:
             if not os.path.exists(directory):
                 continue
             shutil.rmtree(directory)
         if os.path.exists(self.serversig_file):
             os.unlink(self.serversig_file)
+        if os.path.exists(self.json_file):
+            os.unlink(self.json_file)

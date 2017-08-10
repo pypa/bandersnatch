@@ -7,6 +7,6 @@ pipelines:
         caches:
           - pip
         script:
+          - pip install -r requirements.txt
           - pip install .
-          - pip install tox
           - tox

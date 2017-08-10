@@ -18,13 +18,29 @@ def mirror(config):
     # allow them being patched by mock libraries!
     master = bandersnatch.master.Master(
         config.get('mirror', 'master'),
-        float(config.get('mirror', 'timeout')))
+        config.getfloat('mirror', 'timeout'),
+    )
+
+    # `json` boolean is a new optional option in 2.1.2 - want to support it
+    # not existing in old configs and display an error saying that this will
+    # error in the not to distance release
+    try:
+        json_save = config.getboolean('mirror', 'json')
+    except configparser.NoOptionError:
+        logger.error("Please update your config to include a json "
+                     "boolean in the [mirror] section. Setting to False")
+        json_save = False
+
     mirror = bandersnatch.mirror.Mirror(
-        config.get('mirror', 'directory'), master,
+        config.get('mirror', 'directory'),
+        master,
         stop_on_error=config.getboolean('mirror', 'stop-on-error'),
         workers=config.getint('mirror', 'workers'),
         delete_packages=config.getboolean('mirror', 'delete-packages'),
-        hash_index=config.getboolean('mirror', 'hash-index'))
+        hash_index=config.getboolean('mirror', 'hash-index'),
+        json_save=json_save,
+    )
+
     changed_packages = mirror.synchronize()
     logger.info("{0} packages had changes".format(len(changed_packages)))
     for package_name, changes in changed_packages.items():
@@ -68,5 +84,6 @@ def main():
 
     if config.has_option('mirror', 'log-config'):
         logging.config.fileConfig(
-            os.path.expanduser(config.get('mirror', 'log-config')))
+            os.path.expanduser(config.get('mirror', 'log-config'))
+        )
     args.func(config)
