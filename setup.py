@@ -2,8 +2,7 @@
 
 from setuptools import setup, find_packages
 
-# TODO: Since we don't include test src in main pip package we should
-# exclude these dependences from the install_deps - Need to be better @ tox
+# Naming these to use with tests_require - Bitbucket Pipelines will use requirements.txt for test deps
 test_deps = [
     'flake8',
     'pep8',
@@ -13,11 +12,11 @@ test_deps = [
     'pytest-cov',
     'pytest-timeout',
     'pytest-cache',
+    'setuptools',  # tox tests will fail without this - No idea why yet - @cooperlees
     'tox',
 ]
 
 install_deps = [
-    'setuptools',  # tox tests will fail without this
     'packaging',
     'requests',
     'xmlrpc2',
@@ -25,7 +24,7 @@ install_deps = [
 
 setup(
     name='bandersnatch',
-    version='2.1.1.dev0',
+    version='2.1.2.dev0',
     description='Mirroring tool that implements the client (mirror) side of PEP 381',
     long_description='\n\n'.join(
         [open('README').read(), open('CHANGES.txt').read()]
@@ -37,7 +36,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     include_package_data=True,
-    install_requires=install_deps + test_deps,  # tox seems to need them all specified
+    install_requires=install_deps,
     tests_require=test_deps,
     entry_points="""
             [console_scripts]
