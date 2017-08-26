@@ -6,6 +6,14 @@
 -- bandersnatch symlinks WEB_ROOT/pypi/PKG_NAME/json to WEB_ROOT/json/PKG_NAME
 
 
+2.1.1 (unreleased)
+------------------
+
+- Add local_io_workers for Mirror objects
+-- Allow a concurrent.futures.ThreadPoolExecutor to use glob module to speed
+   up index.html generation
+
+
 2.1.0 (unreleased)
 ------------------
 
