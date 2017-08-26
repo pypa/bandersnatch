@@ -40,6 +40,7 @@ class Mirror():
     errors = None
     packages_to_sync = None
     need_index_sync = True
+    json_save = False  # Wether or not to mirror PyPI JSON metadata to disk
 
     # Stop soon after meeting an error. Continue without updating the
     # mirror's serial if false.
@@ -52,12 +53,22 @@ class Mirror():
     # of it when starting to sync.
     now = None
 
-    def __init__(self, homedir, master, stop_on_error=False, workers=3,
-                 delete_packages=True, hash_index=False, local_io_workers=1):
+    def __init__(
+        self,
+        homedir,
+        master,
+        stop_on_error=False,
+        workers=3,
+        delete_packages=True,
+        hash_index=False,
+        local_io_workers=1,
+        json_save=False
+    ):
         logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
         self.master = master
         self.stop_on_error = stop_on_error
+        self.json_save = json_save
         self.delete_packages = delete_packages
         self.hash_index = hash_index
         self.workers = workers
@@ -167,7 +178,7 @@ class Mirror():
             for worker in workers:
                 worker.join(0.5)
                 if self.stop_on_error and self.errors:
-                    logger.error(u'Exiting early after error.')
+                    logger.error('Exiting early after error.')
                     sys.exit(1)
                 if not worker.isAlive():
                     workers.remove(worker)
@@ -289,13 +300,19 @@ class Mirror():
         self._save()
 
     def _bootstrap(self):
-        for path in ('',
-                     'web/simple',
-                     'web/packages',
-                     'web/local-stats/days'):
+        paths = [
+            '',
+            'web/simple',
+            'web/packages',
+            'web/local-stats/days',
+        ]
+        if self.json_save:
+            logger.debug("Adding json directories to bootstrap")
+            paths.extend(['web/json', 'web/pypi'])
+        for path in paths:
             path = os.path.join(self.homedir, path)
             if not os.path.exists(path):
-                logger.info(u'Setting up mirror directory: {0}'.format(path))
+                logger.info('Setting up mirror directory: {0}'.format(path))
                 os.makedirs(path)
 
         self.lockfile = open(os.path.join(self.homedir, '.lock'), 'wb')

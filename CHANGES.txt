@@ -1,3 +1,11 @@
+2.1.2 (unreleased)
+------------------
+
+- Add saving of JSON metadata grabbed from pypi.facebook.com for syncing (#91)
+-- Can be disabled via config and disabled by default
+-- bandersnatch symlinks WEB_ROOT/pypi/PKG_NAME/json to WEB_ROOT/json/PKG_NAME
+
+
 2.1.0 (unreleased)
 ------------------
 

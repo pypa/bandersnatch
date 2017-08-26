@@ -15,7 +15,6 @@ certifi==2017.7.27.1
 chardet==3.0.4
 python-dateutil==2.6.1
 setuptools==32.2.0
-mock==2.0.0
 packaging==16.8
 pytest-catchlog==1.2.2
 pytest-codecheckers==0.2
@@ -23,5 +22,5 @@ pytest-cov==2.5.1
 pytest-timeout==1.2.0
 pytest-cache==1.0
 requests==2.18.3
+tox==2.7.0
 xmlrpc2==0.3.1
-bandersnatch==2.0.1.dev0
