@@ -1,0 +1,4 @@
+include MANIFEST.in
+include CHANGES.txt
+include requirements.txt
+include src/bandersnatch/default.conf
