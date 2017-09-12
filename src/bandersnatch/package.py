@@ -95,12 +95,14 @@ class Package():
             )
             return False
 
-        if not os.path.exists(self.json_pypi_symlink):
-            try:
-                os.mkdir(os.path.dirname(self.json_pypi_symlink))
-            except FileExistsError:
-                pass
+        symlink_dir = os.path.dirname(self.json_pypi_symlink)
+        if not os.path.exists(symlink_dir):
+            os.mkdir(symlink_dir)
+        try:
+            # If symlink already exists throw a FileExistsError
             os.symlink(self.json_file, self.json_pypi_symlink)
+        except FileExistsError:
+            pass
 
         return True
 
