@@ -48,6 +48,15 @@ def test_mirror_loads_serial(tmpdir):
     assert m.synced_serial == 1234
 
 
+def test_mirror_recovers_from_inconsistent_serial(tmpdir):
+    with open(str(tmpdir/'generation'), 'w') as generation:
+        generation.write('')
+    with open(str(tmpdir/'status'), 'w') as status:
+        status.write('1234')
+    m = Mirror(str(tmpdir), mock.Mock())
+    assert m.synced_serial == 0
+
+
 def test_mirror_generation_3_resets_status_files(tmpdir):
     with open(str(tmpdir/'generation'), 'w') as generation:
         generation.write('2')
@@ -305,8 +314,7 @@ def test_find_package_indexes_in_dir_threaded(mirror):
     )
     with TemporaryDirectory() as td:
         # Create local mirror first so we '_bootstrap'
-        local_mirror = Mirror(td, mirror.master, stop_on_error=True,
-                              local_io_workers=36)
+        local_mirror = Mirror(td, mirror.master, stop_on_error=True)
         # Create fake file system objects
         mirror_base = Path(td)
         for directory in directories:

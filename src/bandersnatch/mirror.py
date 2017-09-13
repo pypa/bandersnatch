@@ -1,11 +1,8 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
 from packaging.utils import canonicalize_name
-from string import ascii_lowercase
-import concurrent.futures
 import datetime
 import fcntl
-import glob
 import logging
 import os
 import queue
@@ -61,7 +58,6 @@ class Mirror():
         workers=3,
         delete_packages=True,
         hash_index=False,
-        local_io_workers=1,
         json_save=False
     ):
         logger.info('{0}'.format(USER_AGENT))
@@ -72,7 +68,6 @@ class Mirror():
         self.delete_packages = delete_packages
         self.hash_index = hash_index
         self.workers = workers
-        self.local_io_workers = local_io_workers
         if self.workers > 10:
             raise ValueError(
                 'Downloading with more than 10 workers is not allowed.')
@@ -213,63 +208,17 @@ class Mirror():
             subdirs = [simple_dir]
         return subdirs
 
-    def _glob_shard(self, shard_char):
-        ''' Lets get dirs for each letter + number in parrallel + canonicalize
-            - really helpful on network filesystems with high latency '''
-        dirs_found = glob.glob('{}*'.format(shard_char))
-        if shard_char == 'i':
-            try:
-                dirs_found.remove('index.html')
-            except ValueError:
-                pass
-        return set(canonicalize_name(x) for x in dirs_found)
-
     def find_package_indexes_in_dir(self, simple_dir):
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
-
-        # Run globs for each letter and number simple packages can be:
-        # - Going to trust that they are all directories (skip stats)
-        #   and just strip out expected index.html for speed here ...
-        if self.local_io_workers > 1:
-            original_dir = os.getcwd()
-            os.chdir(simple_dir)
-            shards = [x for x in ascii_lowercase] + list(range(10))
-            total_shards = len(shards)
-            logger.info("Starting to list over {} shards for {}".format(
-                total_shards, simple_dir,
-            ))
-            unsorted_packages = []
-            with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self.local_io_workers) as executor:
-                glob_futures = {
-                    executor.submit(self._glob_shard, c): c for c in shards
-                }
-
-                finished_shards = 0
-                for future in concurrent.futures.as_completed(glob_futures):
-                    finished_shards += 1
-                    shard = glob_futures[future]
-                    shard_packages = future.result()
-                    logger.info(
-                        'Finished {} shard [{}/{}]'.format(
-                            shard, finished_shards, total_shards,
-                        )
-                    )
-                    unsorted_packages.extend(shard_packages)
-            packages = sorted(unsorted_packages)
-            os.chdir(original_dir)
-            logger.info("Finished grabbing all package indexes")
-        else:
-            # TODO: Remove if Threadpool is faster and reliable
-            packages = sorted(set(
-                # Filter out all of the "non" normalized names here
-                canonicalize_name(x)
-                for x in os.listdir(simple_dir)))
-            # Package indexes must be in directories, so ignore anything else.
-            packages = [x for x in packages
-                        if os.path.isdir(os.path.join(simple_dir, x))]
+        packages = sorted(set(
+            # Filter out all of the "non" normalized names here
+            canonicalize_name(x)
+            for x in os.listdir(simple_dir)))
+        # Package indexes must be in directories, so ignore anything else.
+        packages = [x for x in packages
+                    if os.path.isdir(os.path.join(simple_dir, x))]
         return packages
 
     def sync_index_page(self):
@@ -347,6 +296,11 @@ class Mirror():
         try:
             with open(self.generationfile, 'r', encoding='ascii') as f:
                 generation = int(f.read().strip())
+        except ValueError:
+            logger.info(u'Generation file inconsistent. '
+                        u'Reinitialising status files.')
+            self._reset_mirror_status()
+            generation = CURRENT_GENERATION
         except IOError:
             logger.info(u'Generation file missing. '
                         u'Reinitialising status files.')
