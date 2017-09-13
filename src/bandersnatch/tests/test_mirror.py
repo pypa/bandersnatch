@@ -314,8 +314,7 @@ def test_find_package_indexes_in_dir_threaded(mirror):
     )
     with TemporaryDirectory() as td:
         # Create local mirror first so we '_bootstrap'
-        local_mirror = Mirror(td, mirror.master, stop_on_error=True,
-                              local_io_workers=36)
+        local_mirror = Mirror(td, mirror.master, stop_on_error=True)
         # Create fake file system objects
         mirror_base = Path(td)
         for directory in directories:
