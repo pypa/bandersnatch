@@ -1,4 +1,4 @@
-# bandersnatch BitBucker Pipelines config to run Tox Tests
+# bandersnatch BitBucket pipelines config to run Tox tests
 image: python:3.5.1
 
 pipelines:
