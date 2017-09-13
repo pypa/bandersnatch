@@ -48,6 +48,15 @@ def test_mirror_loads_serial(tmpdir):
     assert m.synced_serial == 1234
 
 
+def test_mirror_recovers_from_inconsistent_serial(tmpdir):
+    with open(str(tmpdir/'generation'), 'w') as generation:
+        generation.write('')
+    with open(str(tmpdir/'status'), 'w') as status:
+        status.write('1234')
+    m = Mirror(str(tmpdir), mock.Mock())
+    assert m.synced_serial == 0
+
+
 def test_mirror_generation_3_resets_status_files(tmpdir):
     with open(str(tmpdir/'generation'), 'w') as generation:
         generation.write('2')

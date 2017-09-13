@@ -347,6 +347,11 @@ class Mirror():
         try:
             with open(self.generationfile, 'r', encoding='ascii') as f:
                 generation = int(f.read().strip())
+        except ValueError:
+            logger.info(u'Generation file inconsistent. '
+                        u'Reinitialising status files.')
+            self._reset_mirror_status()
+            generation = CURRENT_GENERATION
         except IOError:
             logger.info(u'Generation file missing. '
                         u'Reinitialising status files.')
