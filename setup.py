@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 from setuptools import setup, find_packages
+from src.bandersnatch import __version__
 
-# Naming these to use with tests_require - Bitbucket Pipelines will use requirements.txt for test deps
+# Naming these to use with tests_require
+# - Bitbucket Pipelines will use requirements.txt for test deps
 test_deps = [
     'flake8',
     'pep8',
@@ -12,7 +14,7 @@ test_deps = [
     'pytest-cov',
     'pytest-timeout',
     'pytest-cache',
-    'setuptools',  # tox tests will fail without this - No idea why yet - @cooperlees
+    'setuptools',  # tox tests require this - No idea why yet - @cooperlees
     'tox',
 ]
 
@@ -24,8 +26,10 @@ install_deps = [
 
 setup(
     name='bandersnatch',
-    version='2.1.2.dev0',
-    description='Mirroring tool that implements the client (mirror) side of PEP 381',
+    version=__version__,
+    description=(
+        'Mirroring tool that implements the client (mirror) side of PEP 381'
+    ),
     long_description='\n\n'.join(
         [open('README').read(), open('CHANGES.txt').read()]
     ),
@@ -51,5 +55,5 @@ setup(
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
       """,
-      classifiers=['Programming Language :: Python :: 3.5'],
+    classifiers=['Programming Language :: Python :: 3.5'],
 )
