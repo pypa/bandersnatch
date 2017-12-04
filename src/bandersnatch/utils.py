@@ -2,23 +2,21 @@ import contextlib
 import hashlib
 import os
 import os.path
-import pkg_resources
 import sys
 import tempfile
+
+from . import __version__
 
 
 def user_agent():
     template = 'bandersnatch/{version} ({python}, {system})'
+    version = __version__
+    python = sys.implementation.name
+    python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
     system = os.uname()
     system = ' '.join([system[0], system[4]])
-    version = pkg_resources.require("bandersnatch")[0].version
-    # Support Python 2 + 3 - No sys.subversion in Py3
-    try:
-        python = sys.subversion[0]
-    except AttributeError:
-        python = sys.implementation.name
-    python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
     return template.format(**locals())
+
 
 USER_AGENT = user_agent()
 
