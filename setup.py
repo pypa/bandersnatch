@@ -24,7 +24,7 @@ install_deps = [
 
 setup(
     name='bandersnatch',
-    version='2.1.2.dev0',
+    version='2.1.3.dev0',
     description='Mirroring tool that implements the client (mirror) side of PEP 381',
     long_description='\n\n'.join(
         [open('README').read(), open('CHANGES.txt').read()]

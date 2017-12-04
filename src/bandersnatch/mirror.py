@@ -43,6 +43,7 @@ class Mirror():
     # mirror's serial if false.
     stop_on_error = False
 
+    package_blacklist = None
     delete_packages = True
 
     # We are required to leave a 'last changed' timestamp. I'd rather err
@@ -58,7 +59,8 @@ class Mirror():
         workers=3,
         delete_packages=True,
         hash_index=False,
-        json_save=False
+        json_save=False,
+        package_blacklist=None,
     ):
         logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
@@ -67,6 +69,9 @@ class Mirror():
         self.json_save = json_save
         self.delete_packages = delete_packages
         self.hash_index = hash_index
+        self.package_blacklist = package_blacklist if package_blacklist else []
+        if '' in self.package_blacklist:
+            self.package_blacklist.remove('')
         self.workers = workers
         if self.workers > 10:
             raise ValueError(
@@ -116,25 +121,40 @@ class Mirror():
                 logger.info('Removing inconsistent todo list.')
                 os.unlink(self.todolist)
 
+    def _remove_blacklisted_packages(self):
+        """If we have a list of pacakges to never sync remove them in in
+        self.packages_to_sync"""
+        if not self.package_blacklist:
+            logger.debug("No blacklist. Skipping package removal")
+            return
+        if not self.packages_to_sync:
+            logger.debug("No packages_to_sync. Skipping package removal")
+            return
+
+        for package_name in self.package_blacklist:
+            if package_name in self.packages_to_sync:
+                logger.info("{0} is blacklisted".format(package_name))
+                del(self.packages_to_sync[package_name])
+
     def determine_packages_to_sync(self):
         # In case we don't find any changes we will stay on the currently
         # synced serial.
         self.target_serial = self.synced_serial
         self.packages_to_sync = {}
-        logger.info(u'Current mirror serial: {0}'.format(self.synced_serial))
+        logger.info('Current mirror serial: {0}'.format(self.synced_serial))
 
         if os.path.exists(self.todolist):
             # We started a sync previously and left a todo list as well as the
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
-            logger.info(u'Resuming interrupted sync from local todo list.')
+            logger.info('Resuming interrupted sync from local todo list.')
             saved_todo = iter(open(self.todolist, encoding='utf-8'))
             self.target_serial = int(next(saved_todo).strip())
             for line in saved_todo:
                 package, serial = line.strip().split()
                 self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
-            logger.info(u'Syncing all packages.')
+            logger.info('Syncing all packages.')
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
             # those two calls.
@@ -142,7 +162,7 @@ class Mirror():
             self.target_serial = max(
                 [self.synced_serial] + list(self.packages_to_sync.values()))
         else:
-            logger.info(u'Syncing based on changelog.')
+            logger.info('Syncing based on changelog.')
             self.packages_to_sync.update(
                 self.master.changed_packages(self.synced_serial))
             self.target_serial = max(
@@ -151,9 +171,10 @@ class Mirror():
             # anything todo at all during a changelog-based sync.
             self.need_index_sync = bool(self.packages_to_sync)
 
-        logger.info(u'Trying to reach serial: {0}'.format(self.target_serial))
+        self._remove_blacklisted_packages()
+        logger.info('Trying to reach serial: {0}'.format(self.target_serial))
         pkg_count = len(self.packages_to_sync)
-        logger.info(u'{0} packages to sync.'.format(pkg_count))
+        logger.info('{0} packages to sync.'.format(pkg_count))
 
     def sync_packages(self):
         self.queue = queue.Queue()
@@ -242,7 +263,7 @@ class Mirror():
         self.synced_serial = self.target_serial
         if os.path.exists(self.todolist):
             os.unlink(self.todolist)
-        logger.info(u'New mirror serial: {0}'.format(self.synced_serial))
+        logger.info('New mirror serial: {0}'.format(self.synced_serial))
         last_modified = os.path.join(self.homedir, 'web', 'last-modified')
         with rewrite(last_modified) as f:
             f.write(self.now.strftime('%Y%m%dT%H:%M:%S\n'))
@@ -297,13 +318,13 @@ class Mirror():
             with open(self.generationfile, 'r', encoding='ascii') as f:
                 generation = int(f.read().strip())
         except ValueError:
-            logger.info(u'Generation file inconsistent. '
-                        u'Reinitialising status files.')
+            logger.info('Generation file inconsistent. '
+                        'Reinitialising status files.')
             self._reset_mirror_status()
             generation = CURRENT_GENERATION
         except IOError:
-            logger.info(u'Generation file missing. '
-                        u'Reinitialising status files.')
+            logger.info('Generation file missing. '
+                        'Reinitialising status files.')
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
             self._reset_mirror_status()

@@ -31,6 +31,12 @@ def mirror(config):
                      "boolean in the [mirror] section. Setting to False")
         json_save = False
 
+    try:
+        blacklist = config.get('blacklist', 'packages').split('\n')
+    except configparser.NoOptionError:
+        logging.degbug("No packages blacklisted in the config")
+        blacklist = None
+
     mirror = bandersnatch.mirror.Mirror(
         config.get('mirror', 'directory'),
         master,
@@ -39,6 +45,7 @@ def mirror(config):
         delete_packages=config.getboolean('mirror', 'delete-packages'),
         hash_index=config.getboolean('mirror', 'hash-index'),
         json_save=json_save,
+        package_blacklist=blacklist,
     )
 
     changed_packages = mirror.synchronize()
