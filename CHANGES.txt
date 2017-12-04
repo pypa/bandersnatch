@@ -1,6 +1,7 @@
 2.1.3 (unreleased)
 ------------------
 - Change version from using pkg_resources and set it in package __init__.py (#98)
+- Add ability to blacklist packages to sync via conf file
 
 
 2.1.2 (unreleased)
