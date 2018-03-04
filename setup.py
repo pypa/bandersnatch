@@ -55,5 +55,9 @@ setup(
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
       """,
-    classifiers=['Programming Language :: Python :: 3.5'],
+    classifiers=[
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+    ],
 )

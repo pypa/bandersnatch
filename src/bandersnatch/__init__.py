@@ -9,7 +9,7 @@ __version_info__ = namedtuple(
         major=2,
         minor=1,
         micro=3,
-        releaselevel='dev0',
+        releaselevel=None,
         serial=0  # Not currently in use below ...
     )
 
