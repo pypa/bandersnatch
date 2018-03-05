@@ -101,7 +101,7 @@ class Package():
         try:
             # If symlink already exists throw a FileExistsError
             os.symlink(self.json_file, self.json_pypi_symlink)
-        except FileExistsError:
+        except FileExistsError:  # noqa F821
             pass
 
         return True

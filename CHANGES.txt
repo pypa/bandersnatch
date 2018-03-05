@@ -1,7 +1,13 @@
+3.0.0 (Unreleased)
+------------------
+
+- Move to asyncio executors around request calls
+
+
 2.1.3 (2018-03-04)
 ------------------
 
-- Change version from using pkg_resources and set it in package __init__.py. 
+- Change version from using pkg_resources and set it in package __init__.py.
   Fixes #98.
 - Add ability to blacklist packages to sync via conf file. Fixes #100.
 

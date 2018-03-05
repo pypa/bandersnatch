@@ -1,31 +1,28 @@
 from .package import Package
 from .utils import rewrite, USER_AGENT
 from packaging.utils import canonicalize_name
+from threading import RLock
+import asyncio
+import concurrent.futures
 import datetime
 import fcntl
 import logging
 import os
-import queue
-import sys
-import threading
 
 
 logger = logging.getLogger(__name__)
 
 
-class Worker(threading.Thread):
+# TODO: Once we deprecate xml2rpc2 swap to aiohttp
+async def worker(packages, workers):  # noqa E999
+    logger.debug("Starting to sync packages {} at once".format(workers))
+    loop = asyncio.get_event_loop()
+    thread_pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+    sync_coros = []
+    for package in packages:
+        sync_coros.append(loop.run_in_executor(thread_pool, package.sync))
 
-    def __init__(self, queue):
-        super(Worker, self).__init__()
-        self.queue = queue
-
-    def run(self):
-        while True:
-            try:
-                package = self.queue.get_nowait()
-            except queue.Empty:
-                break
-            package.sync()
+    return await asyncio.gather(*sync_coros)
 
 
 class Mirror():
@@ -77,11 +74,11 @@ class Mirror():
             raise ValueError(
                 'Downloading with more than 10 workers is not allowed.')
         self._bootstrap()
-        self._finish_lock = threading.RLock()
+        self._finish_lock = RLock()
 
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
-        # Class Instance variable so each Worker can add their package changes
+        # Class Instance variable so each package can add their changes
         self.altered_packages = {}
 
     @property
@@ -177,27 +174,16 @@ class Mirror():
         logger.info('{0} packages to sync.'.format(pkg_count))
 
     def sync_packages(self):
-        self.queue = queue.Queue()
+        packages = []
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
             serial = self.packages_to_sync[name]
-            self.queue.put(Package(name, serial, self))
+            packages.append(Package(name, serial, self))
 
-        # This is more complicated than obviously needed to keep Ctrl-C
-        # working.  Otherwise I'd use multiprocessing.pool.
-        workers = [Worker(self.queue) for i in range(self.workers)]
-        for worker in workers:
-            worker.daemon = True
-            worker.start()
-        while workers:
-            for worker in workers:
-                worker.join(0.5)
-                if self.stop_on_error and self.errors:
-                    logger.error('Exiting early after error.')
-                    sys.exit(1)
-                if not worker.isAlive():
-                    workers.remove(worker)
+        # Replace threading with asyncio executors for now
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(worker(packages, self.workers))
 
     def retry_later(self, package):
         self.queue.put(package)
@@ -233,10 +219,10 @@ class Mirror():
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
-        packages = sorted(set(
+        packages = sorted({
             # Filter out all of the "non" normalized names here
             canonicalize_name(x)
-            for x in os.listdir(simple_dir)))
+            for x in os.listdir(simple_dir)})
         # Package indexes must be in directories, so ignore anything else.
         packages = [x for x in packages
                     if os.path.isdir(os.path.join(simple_dir, x))]
