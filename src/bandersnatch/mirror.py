@@ -113,6 +113,9 @@ class Mirror():
             try:
                 saved_todo = iter(open(self.todolist, encoding='utf-8'))
                 int(next(saved_todo).strip())
+                for line in saved_todo:
+                    _, serial = line.strip().split()
+                    int(serial)
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
