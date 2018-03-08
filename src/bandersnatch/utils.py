@@ -4,7 +4,7 @@ import os
 import os.path
 import sys
 import tempfile
-import tempfile
+import filecmp
 
 from . import __version__
 
