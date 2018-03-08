@@ -1,5 +1,5 @@
 from .package import Package
-from .utils import rewrite, USER_AGENT
+from .utils import rewrite, USER_AGENT, update_safe
 from packaging.utils import canonicalize_name
 import datetime
 import fcntl
@@ -208,7 +208,7 @@ class Mirror():
     def record_finished_package(self, name):
         with self._finish_lock:
             del self.packages_to_sync[name]
-            with open(self.todolist, 'w', encoding='utf-8') as f:
+            with update_safe(self.todolist, mode='w+', encoding='utf-8') as f:
                 # First line is the target serial we're working on.
                 f.write('{0}\n'.format(self.target_serial))
                 # Consecutive lines are the packages we still have to sync
