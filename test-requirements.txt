@@ -1,0 +1,9 @@
+flake8
+pep8
+pytest
+pytest-codecheckers
+pytest-cov
+pytest-timeout
+pytest-cache
+setuptools
+tox
