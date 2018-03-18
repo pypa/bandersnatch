@@ -1,5 +1,5 @@
 # bandersnatch BitBucket pipelines config to run Tox tests
-image: python:3.5.1
+image: python:3
 
 pipelines:
   default:
@@ -9,5 +9,6 @@ pipelines:
         script:
           - pip install --upgrade pip
           - pip install -r requirements.txt
+          - pip install tox
           - pip install .
           - tox
