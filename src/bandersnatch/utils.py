@@ -73,7 +73,6 @@ def rewrite(filepath, mode='w', *args, **kw):
     os.rename(filepath_tmp, filepath)
 
 
-
 @contextlib.contextmanager
 def update_safe(filename, **kw):
     """Rewrite a file atomically.

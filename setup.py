@@ -3,21 +3,6 @@
 from setuptools import setup, find_packages
 from src.bandersnatch import __version__
 
-# Naming these to use with tests_require
-# - Bitbucket Pipelines will use requirements.txt for test deps
-test_deps = [
-    'flake8',
-    'pep8',
-    'pytest',
-    'pytest-catchlog',
-    'pytest-codecheckers',
-    'pytest-cov',
-    'pytest-timeout',
-    'pytest-cache',
-    'setuptools',  # tox tests require this - No idea why yet - @cooperlees
-    'tox',
-]
-
 install_deps = [
     'packaging',
     'requests',
@@ -41,7 +26,6 @@ setup(
     package_dir={'': 'src'},
     include_package_data=True,
     install_requires=install_deps,
-    tests_require=test_deps,
     entry_points="""
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
