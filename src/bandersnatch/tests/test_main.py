@@ -47,6 +47,7 @@ def test_main_reads_config_values(mirror_mock):
             'hash_index': False,
             'workers': 3,
             'json_save': False,
+            'digest_name': 'sha256',
             'package_blacklist': ['', 'example1', 'example2']} == kwargs
     assert mirror_mock().synchronize.called
 

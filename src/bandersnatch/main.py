@@ -37,6 +37,15 @@ def mirror(config):
         logging.degbug("No packages blacklisted in the config")
         blacklist = None
 
+    try:
+        digest_name = config.get('mirror', 'digest_name')
+    except configparser.NoOptionError:
+        digest_name = "sha256"
+    if digest_name not in ('md5', 'sha256'):
+        logger.error("Supplied digest_name {0} is not supported! Please update"
+                     "digest_name to one of ('sha256', 'md5') in the [mirror]"
+                     "section.")
+
     mirror = bandersnatch.mirror.Mirror(
         config.get('mirror', 'directory'),
         master,
@@ -46,6 +55,7 @@ def mirror(config):
         hash_index=config.getboolean('mirror', 'hash-index'),
         json_save=json_save,
         package_blacklist=blacklist,
+        digest_name=digest_name,
     )
 
     changed_packages = mirror.synchronize()
