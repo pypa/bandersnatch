@@ -25,6 +25,11 @@ FAKE_RELEASE_DATA = JsonDict(
             {
                 'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                 'filename': 'foo.zip',
+                'digests': {
+                    'md5': 'ebdad75ed9a852bbfd9be4c18bf76d00',
+                    'sha256': ('01ba4719c80b6fe911b091a7c05124b64eeece964e09c0'
+                               '58ef8f9805daca546b'),
+                },
                 'md5_digest': 'ebdad75ed9a852bbfd9be4c18bf76d00'
             }
         ]
@@ -151,8 +156,14 @@ def test_mirror_empty_master_gets_index(mirror):
 /simple
 /simple/index.html""" == utils.find(mirror.webdir)
     assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-</body></html>"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+  </head>
+  <body>
+  </body>
+</html>"""
     assert open('status').read() == '0'
 
 
@@ -178,8 +189,14 @@ def test_mirror_empty_resume_from_todo_list(mirror, requests):
 /web/simple
 /web/simple/index.html""" == utils.find(mirror.homedir)
     assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-</body></html>"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+  </head>
+  <body>
+  </body>
+</html>"""
     assert open('status').read() == '20'
 
 
@@ -205,9 +222,15 @@ def test_mirror_sync_package(mirror, requests):
 /simple/foo/index.html
 /simple/index.html""" == utils.find(mirror.webdir, dirs=False)
     assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-<a href="foo/">foo</a><br/>
-</body></html>"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+  </head>
+  <body>
+    <a href="foo/">foo</a><br/>
+  </body>
+</html>"""
     assert open('status', 'rb').read() == b'1'
 
 
@@ -220,6 +243,11 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
             '0.1': [{
                 'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                 'filename': 'foo.zip',
+                'digests': {
+                    'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                    'sha256': ('01ba4719c80b6fe911b091a7c05124b64eeece964e09c0'
+                               '58ef8f9805daca546b'),
+                },
                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
     requests.prepare(b'the release content', 1)
@@ -235,9 +263,15 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
 /web/simple/foo/index.html
 /web/simple/index.html""" == utils.find(mirror.homedir, dirs=False)
     assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-<a href="foo/">foo</a><br/>
-</body></html>"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+  </head>
+  <body>
+    <a href="foo/">foo</a><br/>
+  </body>
+</html>"""
 
     assert open('todo').read() == '1\n'
 
@@ -255,6 +289,11 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
+                 'digests': {
+                     'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('01ba4719c80b6fe911b091a7c05124b64eeece964e09c'
+                                '058ef8f9805daca546b'),
+                 },
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
     requests.prepare(b'the release content', 1)
 
@@ -285,6 +324,11 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
+                 'digests': {
+                     'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('01ba4719c80b6fe911b091a7c05124b64eeece964e09c'
+                                '058ef8f9805daca546b'),
+                 },
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 1)
 
     requests.prepare(b'the release content', 1)
@@ -297,9 +341,15 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
 /simple/f/foo/index.html
 /simple/index.html""" == utils.find(mirror_hash_index.webdir, dirs=False)
     assert open('web/simple/index.html').read() == """\
-<html><head><title>Simple Index</title></head><body>
-<a href="foo/">foo</a><br/>
-</body></html>"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Index</title>
+  </head>
+  <body>
+    <a href="foo/">foo</a><br/>
+  </body>
+</html>"""
     assert open('status').read() == '1'
 
 
