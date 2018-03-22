@@ -243,7 +243,8 @@ class Package():
         parsed = urlparse(url)
         if not parsed.path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
-        return "../.." + parsed.path
+        prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
+        return prefix + parsed.path
 
     def _file_url_to_local_path(self, url):
         path = urlparse(url).path

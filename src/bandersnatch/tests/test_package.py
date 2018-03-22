@@ -256,6 +256,36 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
 """
 
 
+def test_package_sync_simple_page_root_uri(mirror, requests):
+    requests.prepare(
+        {'releases': {
+            '0.1': [
+                {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+                 'filename': 'foo.zip',
+                 'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'},
+                {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
+                 'filename': 'foo.whl',
+                 'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
+    requests.prepare(b'the release content', 10)
+    requests.prepare(b'another release content', 10)
+
+    mirror.packages_to_sync = {'foo': 10}
+    mirror.root_uri = 'https://files.pythonhosted.org'
+    package = Package('foo', 10, mirror)
+    package.sync()
+    mirror.root_uri = None
+
+    assert open('web/simple/foo/index.html').read() == """\
+<html><head><title>Links for foo</title></head><body>
+<h1>Links for foo</h1>
+<a href="https://files.pythonhosted.org/packages/2.7/f/foo/foo.whl#md5=\
+6bd3ddc295176f4dca196b5eb2c4d858">foo.whl</a><br/>
+<a href="https://files.pythonhosted.org/packages/any/f/foo/foo.zip#md5=\
+b6bcb391b040c4468262706faf9d3cce">foo.zip</a><br/>
+</body></html>\
+"""
+
+
 def test_package_sync_simple_page_with_files(mirror, requests):
     requests.prepare(
         {'releases': {

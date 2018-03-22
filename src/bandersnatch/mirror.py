@@ -51,6 +51,12 @@ class Mirror():
     # of it when starting to sync.
     now = None
 
+    # Allow configuring a root_uri to make generated index pages absolute.
+    # This is generally not necessary, but was added for the official internal
+    # PyPI mirror, which requires serving packages from
+    # https://files.pythonhosted.org
+    root_uri = None
+
     def __init__(
         self,
         homedir,
@@ -61,6 +67,7 @@ class Mirror():
         hash_index=False,
         json_save=False,
         package_blacklist=None,
+        root_uri=None,
     ):
         logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
@@ -70,6 +77,7 @@ class Mirror():
         self.delete_packages = delete_packages
         self.hash_index = hash_index
         self.package_blacklist = package_blacklist if package_blacklist else []
+        self.root_uri = root_uri
         if '' in self.package_blacklist:
             self.package_blacklist.remove('')
         self.workers = workers
