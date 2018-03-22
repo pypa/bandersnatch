@@ -32,6 +32,11 @@ def mirror(config):
         json_save = False
 
     try:
+        root_uri = config.get('mirror', 'root_uri')
+    except configparser.NoOptionError:
+        root_uri = None
+
+    try:
         blacklist = config.get('blacklist', 'packages').split('\n')
     except configparser.NoOptionError:
         logging.degbug("No packages blacklisted in the config")
@@ -45,6 +50,7 @@ def mirror(config):
         delete_packages=config.getboolean('mirror', 'delete-packages'),
         hash_index=config.getboolean('mirror', 'hash-index'),
         json_save=json_save,
+        root_uri=root_uri,
         package_blacklist=blacklist,
     )
 
