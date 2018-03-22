@@ -62,8 +62,8 @@ class Mirror():
         delete_packages=True,
         hash_index=False,
         json_save=False,
-        package_blacklist=None,
         digest_name=None,
+        package_blacklist=None,
     ):
         logger.info('{0}'.format(USER_AGENT))
         self.homedir = homedir
