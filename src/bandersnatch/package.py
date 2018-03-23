@@ -169,12 +169,13 @@ class Package():
     def generate_simple_page(self):
         # Generate the header of our simple page.
         simple_page_content = (
-            '<html>'
-            '<head>'
-            '<title>Links for {0}</title>'
-            '</head>'
-            '<body>\n'
-            '<h1>Links for {0}</h1>\n'
+            '<!DOCTYPE html>\n'
+            '<html>\n'
+            '  <head>\n'
+            '    <title>Links for {0}</title>\n'
+            '  </head>\n'
+            '  <body>\n'
+            '    <h1>Links for {0}</h1>\n'
         ).format(self.name)
 
         # Get a list of all of the files.
@@ -184,15 +185,18 @@ class Package():
         # Lets sort based on the filename rather than the whole URL
         release_files.sort(key=lambda x: x["filename"])
 
+        digest_name = self.mirror.digest_name
+
         simple_page_content += '\n'.join([
-            '<a href="{0}#md5={1}">{2}</a><br/>'.format(
+            '    <a href="{0}#{1}={2}">{3}</a><br/>'.format(
                 self._file_url_to_local_url(r['url']),
-                r["md5_digest"],
+                digest_name,
+                r["digests"][digest_name],
                 r["filename"])
             for r in release_files
         ])
 
-        simple_page_content += '\n</body></html>'
+        simple_page_content += '\n  </body>\n</html>'
 
         return simple_page_content
 
