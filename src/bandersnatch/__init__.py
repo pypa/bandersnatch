@@ -7,8 +7,8 @@ __version_info__ = namedtuple(
     'version_info',
     'major minor micro releaselevel serial')(
         major=2,
-        minor=1,
-        micro=3,
+        minor=2,
+        micro=0,
         releaselevel=None,
         serial=0  # Not currently in use below ...
     )
