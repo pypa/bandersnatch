@@ -46,6 +46,8 @@ class Mirror():
     package_blacklist = None
     delete_packages = True
 
+    digest_name = 'sha256'
+
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
     # of it when starting to sync.
@@ -66,6 +68,7 @@ class Mirror():
         delete_packages=True,
         hash_index=False,
         json_save=False,
+        digest_name=None,
         package_blacklist=None,
         root_uri=None,
     ):
@@ -80,6 +83,7 @@ class Mirror():
         self.root_uri = root_uri
         if '' in self.package_blacklist:
             self.package_blacklist.remove('')
+        self.digest_name = digest_name if digest_name else 'sha256'
         self.workers = workers
         if self.workers > 10:
             raise ValueError(
@@ -259,14 +263,21 @@ class Mirror():
         logger.info('Generating global index page.')
         simple_dir = os.path.join(self.webdir, 'simple')
         with rewrite(os.path.join(simple_dir, 'index.html')) as f:
-            f.write('<html><head><title>Simple Index</title></head><body>\n')
+            f.write('<!DOCTYPE html>\n')
+            f.write('<html>\n')
+            f.write('  <head>\n')
+            f.write('    <title>Simple Index</title>\n')
+            f.write('  </head>\n')
+            f.write('  <body>\n')
             # This will either be the simple dir, or if we are using index
             # directory hashing, a list of subdirs to process.
             for subdir in self.get_simple_dirs(simple_dir):
                 for pkg in self.find_package_indexes_in_dir(subdir):
                     # We're really trusty that this is all encoded in UTF-8. :/
-                    f.write('<a href="{0}/">{1}</a><br/>\n'.format(pkg, pkg))
-            f.write('</body></html>')
+                    f.write('    <a href="{0}/">{1}</a><br/>\n'.format(
+                        pkg, pkg
+                    ))
+            f.write('  </body>\n</html>')
 
     def wrapup_successful_sync(self):
         if self.errors:
