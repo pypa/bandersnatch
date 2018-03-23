@@ -304,9 +304,15 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
+                 'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
+                             'sha256': ('87428fc522803d31065e7bce3cf03fe475096'
+                                        '631e5e07bbd7a0fde60c4cf25c7')},
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'},
                 {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
                  'filename': 'foo.whl',
+                 'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
+                             'sha256': ('87428fc522803d31065e7bce3cf03fe475096'
+                                        '631e5e07bbd7a0fde60c4cf25c7')},
                  'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
     requests.prepare(b'the release content', 10)
     requests.prepare(b'another release content', 10)
@@ -318,13 +324,21 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
     mirror.root_uri = None
 
     assert open('web/simple/foo/index.html').read() == """\
-<html><head><title>Links for foo</title></head><body>
-<h1>Links for foo</h1>
-<a href="https://files.pythonhosted.org/packages/2.7/f/foo/foo.whl#md5=\
-6bd3ddc295176f4dca196b5eb2c4d858">foo.whl</a><br/>
-<a href="https://files.pythonhosted.org/packages/any/f/foo/foo.zip#md5=\
-b6bcb391b040c4468262706faf9d3cce">foo.zip</a><br/>
-</body></html>\
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Links for foo</title>
+  </head>
+  <body>
+    <h1>Links for foo</h1>
+    <a href="https://files.pythonhosted.org/packages/2.7/f/foo/foo.whl#sha256=\
+87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\
+">foo.whl</a><br/>
+    <a href="https://files.pythonhosted.org/packages/any/f/foo/foo.zip#sha256=\
+87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\
+">foo.zip</a><br/>
+  </body>
+</html>\
 """
 
 
