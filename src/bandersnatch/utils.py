@@ -22,7 +22,7 @@ def user_agent():
 USER_AGENT = user_agent()
 
 
-def hash(path, function='md5'):
+def hash(path, function='sha256'):
     h = getattr(hashlib, function)()
     with open(path, 'rb') as f:
         while True:
