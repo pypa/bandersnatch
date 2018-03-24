@@ -305,14 +305,14 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
                  'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
-                             'sha256': ('87428fc522803d31065e7bce3cf03fe475096'
-                                        '631e5e07bbd7a0fde60c4cf25c7')},
+                             'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                        '9e87fb0d4e5470a3e4e878bd8cd')},
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'},
                 {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
                  'filename': 'foo.whl',
                  'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
-                             'sha256': ('87428fc522803d31065e7bce3cf03fe475096'
-                                        '631e5e07bbd7a0fde60c4cf25c7')},
+                             'sha256': ('678d78c1ad57455e848081723f7a7a9ff6cdd'
+                                        '859b46e9540f574f0a65eb04b0d')},
                  'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
     requests.prepare(b'the release content', 10)
     requests.prepare(b'another release content', 10)
@@ -332,10 +332,10 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
   <body>
     <h1>Links for foo</h1>
     <a href="https://files.pythonhosted.org/packages/2.7/f/foo/foo.whl#sha256=\
-87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\
+678d78c1ad57455e848081723f7a7a9ff6cdd859b46e9540f574f0a65eb04b0d\
 ">foo.whl</a><br/>
     <a href="https://files.pythonhosted.org/packages/any/f/foo/foo.zip#sha256=\
-87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\
+02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d4e5470a3e4e878bd8cd\
 ">foo.zip</a><br/>
   </body>
 </html>\
@@ -348,14 +348,14 @@ def test_package_sync_simple_page_with_files(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
-                             'sha256': ('87428fc522803d31065e7bce3cf03fe475096'
-                                        '631e5e07bbd7a0fde60c4cf25c7')},
+                             'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                        '9e87fb0d4e5470a3e4e878bd8cd')},
                  'filename': 'foo.zip',
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'},
                 {'url': 'https://pypi.example.com/packages/2.7/f/foo/foo.whl',
                  'digests': {'md5': '6bd3ddc295176f4dca196b5eb2c4d858',
-                             'sha256': ('01ba4719c80b6fe911b091a7c05124b64eeec'
-                                        'e964e09c058ef8f9805daca546b')},
+                             'sha256': ('678d78c1ad57455e848081723f7a7a9ff6cdd'
+                                        '859b46e9540f574f0a65eb04b0d')},
                  'filename': 'foo.whl',
                  'md5_digest': '6bd3ddc295176f4dca196b5eb2c4d858'}]}}, 10)
     requests.prepare(b'the release content', 10)
@@ -374,10 +374,10 @@ def test_package_sync_simple_page_with_files(mirror, requests):
   <body>
     <h1>Links for foo</h1>
     <a href="../../packages/2.7/f/foo/foo.whl#sha256=\
-01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b\
+678d78c1ad57455e848081723f7a7a9ff6cdd859b46e9540f574f0a65eb04b0d\
 ">foo.whl</a><br/>
     <a href="../../packages/any/f/foo/foo.zip#sha256=\
-87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7\
+02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d4e5470a3e4e878bd8cd\
 ">foo.zip</a><br/>
   </body>
 </html>\
@@ -453,6 +453,9 @@ def test_package_sync_downloads_release_file(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
+                 'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                             'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                        '9e87fb0d4e5470a3e4e878bd8cd')},
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare(b'the release content', 10)
 
@@ -470,6 +473,9 @@ def test_package_download_rejects_non_package_directory_links(mirror):
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = [
         {'url': 'https://pypi.example.com/foo/bar/foo/foo.zip',
+         'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                '9e87fb0d4e5470a3e4e878bd8cd')},
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     mirror.packages_to_sync = set(['foo'])
@@ -515,6 +521,9 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
             '0.1': [
                 {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
                  'filename': 'foo.zip',
+                 'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                             'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                        '9e87fb0d4e5470a3e4e878bd8cd')},
                  'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]}}, 10)
     requests.prepare(b'the release content', 10)
 
@@ -537,6 +546,9 @@ def test_package_sync_does_not_touch_existing_local_file(
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = [
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+         'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                '9e87fb0d4e5470a3e4e878bd8cd')},
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     requests.prepare(b'the release content', 10)
@@ -561,6 +573,9 @@ def test_sync_incorrect_download_with_current_serial_fails(
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = [
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+         'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                '9e87fb0d4e5470a3e4e878bd8cd')},
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     requests.prepare(b'not release content', 10)
@@ -580,6 +595,9 @@ def test_sync_incorrect_download_with_old_serials_retries(
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = [
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+         'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                '9e87fb0d4e5470a3e4e878bd8cd')},
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     requests.prepare(b'not release content', 9)
@@ -600,6 +618,9 @@ def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = [
         {'url': 'https://pypi.example.com/packages/any/f/foo/foo.zip',
+         'digests': {'md5': 'b6bcb391b040c4468262706faf9d3cce',
+                     'sha256': ('02db45ea4e09715fbb1ed0fef30d7324db07c'
+                                '9e87fb0d4e5470a3e4e878bd8cd')},
          'md5_digest': 'b6bcb391b040c4468262706faf9d3cce'}]
 
     requests.prepare(b'not release content', 11)
