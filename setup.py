@@ -16,8 +16,9 @@ setup(
         'Mirroring tool that implements the client (mirror) side of PEP 381'
     ),
     long_description='\n\n'.join(
-        [open('README').read(), open('CHANGES.txt').read()]
+        [open('README.md').read(), open('CHANGES.md').read()]
     ),
+    long_description_content_type="text/markdown",
     author='Christian Theune',
     author_email='ct@flyingcircus.io',
     license='Academic Free License, version 3',
