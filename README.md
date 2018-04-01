@@ -1,58 +1,36 @@
-This is a PyPI mirror client according to `PEP 381
-<http://www.python.org/dev/peps/pep-0381/>`_.
+This is a PyPI mirror client according to `PEP 381`
+http://www.python.org/dev/peps/pep-0381/.
 
-
-.. contents::
-
-Build status
-============
-
-bandersnatch
-    .. image:: https://builds.flyingcircus.io/job/bandersnatch/badge/icon
-       :target: https://builds.flyingcircus.io/job/bandersnatch/
-
-Packaging and PIP install
-    .. image:: https://builds.flyingcircus.io/job/bandersnatch-packaging-pip/badge/icon
-       :target: https://builds.flyingcircus.io/job/bandersnatch-packaging-pip/
-
-
-Installation
-============
+## Installation
 
 The following instructions will place the bandersnatch executable in a
-virtualenv under ``bandersnatch/bin/bandersnatch``.
+virtualenv under `bandersnatch/bin/bandersnatch`.
 
-.. note::
-
-    bandersnatch requires Python 3.5
+- bandersnatch **requires** `>= Python 3.5`
 
 
-pip
----
+### pip
 
 This installs the latest stable, released version.
 
-::
-
+```
   $ virtualenv --python=python3.5 bandersnatch
   $ cd bandersnatch
   $ bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
+```
 
-
-zc.buildout
------------
+### zc.buildout
 
 This installs the current development version. Use 'hg up <version>' and run
 buildout again to choose a specific release.
 
-::
-
+```
   $ hg clone https://bitbucket.org/pypa/bandersnatch
   $ cd bandersnatch
   $ ./bootstrap.sh
+```
 
-Configuration
-=============
+## Configuration
 
 * Run ``bandersnatch mirror`` - it will create an empty configuration file
   for you in ``/etc/bandersnatch.conf``.
@@ -63,12 +41,12 @@ Configuration
 * Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
 
-Webserver
----------
+### Webserver
 
 Configure your webserver to serve the ``web/`` sub-directory of the mirror.
 For nginx it should look something like this::
 
+```
     server {
         listen 127.0.0.1:80;
         server_name <mymirrorname>;
@@ -76,50 +54,49 @@ For nginx it should look something like this::
         autoindex on;
         charset utf-8;
     }
+```
 
 * Note that it is a good idea to have your webserver publish the HTML index
-  files correctly with UTF-8 as the carset. The index pages will work without
+  files correctly with UTF-8 as the charset. The index pages will work without
   it but if humans look at the pages the characters will end up looking funny.
 
 * Make sure that the webserver uses UTF-8 to look up unicode path names. nginx
   gets this right by default - not sure about others.
 
 
-Cron jobs
----------
+### Cron jobs
 
 You need to set up one cron job to run the mirror itself.
 
-Here's a sample that you could place in ``/etc/cron.d/bandersnatch``::
+Here's a sample that you could place in `/etc/cron.d/bandersnatch`:
 
+```
     LC_ALL=en_US.utf8
     */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
+```
 
 This assumes that you have a ``logger`` utility installed that will convert the
 output of the commands to syslog entries.
 
 
-Maintenance
-===========
+### Maintenance
 
 bandersnatch does not keep much local state in addition to the mirrored data.
-In general you can just keep rerunning ``bandersnatch mirror`` to make it fix
+In general you can just keep rerunning `bandersnatch mirror` to make it fix
 errors.
 
 If you delete the state files then the next run will force it to check
 everything against the master PyPI::
 
-* delete ``./state`` file and ``./todo`` if they exist in your mirror directory
-* run ``bandersnatch`` mirror to get a full sync
+* delete `./state` file and `./todo` if they exist in your mirror directory
+* run `bandersnatch` mirror to get a full sync
 
 Be aware, that full syncs likely take hours depending on PyPIs performance and
 your network latency and bandwidth.
 
-Operational notes
-=================
+### Operational notes
 
-Case-sensitive filesystem needed
---------------------------------
+#### Case-sensitive filesystem needed
 
 You need to run bandersnatch on a case-sensitive filesystem.
 
@@ -129,8 +106,7 @@ tarring a bandersnatch data directory and moving it to, e.g. Linux with a
 case-sensitive filesystem will lead to inconsistencies. You can fix those by
 deleting the status files and have bandersnatch run a full check on your data.
 
-Many sub-directories needed
----------------------------
+#### Many sub-directories needed
 
 The PyPI has a quite extensive list of packages that we need to maintain in a
 flat directory. Filesystems with small limits on the number of sub-directories
@@ -142,8 +118,7 @@ per directory can run into a problem like this::
 Specifically we recommend to avoid using ext3. Ext4 and newer does not have the
 limitation of 32k sub-directories.
 
-Client Compatibility
---------------------
+#### Client Compatibility
 
 A bandersnatch static mirror is compatible only to the "static",  cacheable
 parts of PyPI that are needed to support package installation. It does not
@@ -151,30 +126,24 @@ support more dynamic APIs of PyPI that maybe be used by various clients for
 other purposes.
 
 An example of an unsupported API is PyPI's XML-RPC interface, which is used
-when running ``pip search``.
+when running `pip search`.
 
-Contact
-=======
+### Contact
 
 If you have questions or comments, please submit a bug report to
 http://bitbucket.org/pypa/bandersnatch/issues/new.
 
 
-Code of Conduct
-===============
+### Code of Conduct
 
 Everyone interacting in the bandersnatch project's codebases, issue trackers,
 chat rooms, and mailing lists is expected to follow the
-`PyPA Code of Conduct`_.
-
-.. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
+[PyPA Code of Conduct](https://www.pypa.io/en/latest/code-of-conduct/).
 
 
-Kudos
-=====
+### Kudos
 
 This client is based on the original pep381client by Martin v. Loewis.
 
-Richard Jones was very patient answering questions at PyCon 2013 and made the
+*Richard Jones* was very patient answering questions at PyCon 2013 and made the
 protocol more reliable by implementing some PyPI enhancements.
-
