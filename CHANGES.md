@@ -1,3 +1,7 @@
+## 2.2.1 (2018-05-01)
+
+- Fix missed MANIFEST.in change for this file :P `Fixes #108` - Thanks **@cooperlees**
+
 ## 2.2.0 (2018-03-28)
 
 - Allow digest_name to be specified. `Fixes #105` - Thanks **@ewdurbin** !
