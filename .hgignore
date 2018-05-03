@@ -13,6 +13,7 @@ syntax:glob
 .mr.developer.cfg
 .Python
 .tox
+.pytest_cache
 bin
 build
 develop-eggs
