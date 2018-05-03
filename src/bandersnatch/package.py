@@ -157,8 +157,10 @@ class Package():
 
         downloaded_files = set()
         for release_file in release_files:
-            downloaded_file = self.download_file(release_file['url'],
-                                                 release_file['md5_digest'])
+            downloaded_file = self.download_file(
+                release_file['url'],
+                release_file['digests']['sha256']
+            )
             if downloaded_file:
                 downloaded_files.add(os.path.relpath(downloaded_file,
                                                      self.mirror.homedir))
@@ -169,12 +171,13 @@ class Package():
     def generate_simple_page(self):
         # Generate the header of our simple page.
         simple_page_content = (
-            '<html>'
-            '<head>'
-            '<title>Links for {0}</title>'
-            '</head>'
-            '<body>\n'
-            '<h1>Links for {0}</h1>\n'
+            '<!DOCTYPE html>\n'
+            '<html>\n'
+            '  <head>\n'
+            '    <title>Links for {0}</title>\n'
+            '  </head>\n'
+            '  <body>\n'
+            '    <h1>Links for {0}</h1>\n'
         ).format(self.name)
 
         # Get a list of all of the files.
@@ -184,15 +187,18 @@ class Package():
         # Lets sort based on the filename rather than the whole URL
         release_files.sort(key=lambda x: x["filename"])
 
+        digest_name = self.mirror.digest_name
+
         simple_page_content += '\n'.join([
-            '<a href="{0}#md5={1}">{2}</a><br/>'.format(
+            '    <a href="{0}#{1}={2}">{3}</a><br/>'.format(
                 self._file_url_to_local_url(r['url']),
-                r["md5_digest"],
+                digest_name,
+                r["digests"][digest_name],
                 r["filename"])
             for r in release_files
         ])
 
-        simple_page_content += '\n</body></html>'
+        simple_page_content += '\n  </body>\n</html>'
 
         return simple_page_content
 
@@ -243,7 +249,8 @@ class Package():
         parsed = urlparse(url)
         if not parsed.path.startswith('/packages'):
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
-        return "../.." + parsed.path
+        prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
+        return prefix + parsed.path
 
     def _file_url_to_local_path(self, url):
         path = urlparse(url).path
@@ -270,19 +277,19 @@ class Package():
 
         return relative_removed
 
-    def download_file(self, url, md5sum):
+    def download_file(self, url, sha256sum):
         path = self._file_url_to_local_path(url)
 
         # Avoid downloading again if we have the file and it matches the hash.
         if os.path.exists(path):
             existing_hash = utils.hash(path)
-            if existing_hash == md5sum:
+            if existing_hash == sha256sum:
                 return None
             else:
                 logger.info(
                     'Checksum mismatch with local file {0}: '
                     'expected {1} got {2}, will re-download.'.format(
-                        path, md5sum, existing_hash))
+                        path, sha256sum, existing_hash))
                 os.unlink(path)
 
         logger.info(u'Downloading: {0}'.format(url))
@@ -299,13 +306,13 @@ class Package():
         # PyPI admins.
         # Py3 sometimes has requests lib return bytes. Need to handle that
         r = self.mirror.master.get(url, required_serial=None, stream=True)
-        checksum = hashlib.md5()
+        checksum = hashlib.sha256()
         with utils.rewrite(path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
                 checksum.update(chunk)
                 f.write(chunk)
             existing_hash = checksum.hexdigest()
-            if existing_hash == md5sum:
+            if existing_hash == sha256sum:
                 # Good case: the file we got matches the checksum we expected
                 pass
             else:
@@ -314,7 +321,7 @@ class Package():
                 # re-upload this will fix itself in a later run.
                 raise ValueError(
                     'Inconsistent file. {0} has hash {1} instead of {2}.'
-                    .format(url, existing_hash, md5sum))
+                    .format(url, existing_hash, sha256sum))
         return path
 
     def delete(self):

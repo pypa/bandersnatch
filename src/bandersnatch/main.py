@@ -1,5 +1,4 @@
 import argparse
-import asyncio
 import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
@@ -33,27 +32,37 @@ def mirror(config):
         json_save = False
 
     try:
+        root_uri = config.get('mirror', 'root_uri')
+    except configparser.NoOptionError:
+        root_uri = None
+
+    try:
         blacklist = config.get('blacklist', 'packages').split('\n')
     except configparser.NoOptionError:
         logging.degbug("No packages blacklisted in the config")
         blacklist = None
 
-    loop = asyncio.get_event_loop()
     try:
-        mirror = bandersnatch.mirror.Mirror(
-            config.get('mirror', 'directory'),
-            master,
-            stop_on_error=config.getboolean('mirror', 'stop-on-error'),
-            workers=config.getint('mirror', 'workers'),
-            delete_packages=config.getboolean('mirror', 'delete-packages'),
-            hash_index=config.getboolean('mirror', 'hash-index'),
-            json_save=json_save,
-            package_blacklist=blacklist,
-        )
-    finally:
-        # Close loop here so it can be left open in mirror.py
-        # This allows other programs to use Mirror() within their asyncio app
-        loop.close()
+        digest_name = config.get('mirror', 'digest_name')
+    except configparser.NoOptionError:
+        digest_name = "sha256"
+    if digest_name not in ('md5', 'sha256'):
+        logger.error("Supplied digest_name {0} is not supported! Please update"
+                     "digest_name to one of ('sha256', 'md5') in the [mirror]"
+                     "section.")
+
+    mirror = bandersnatch.mirror.Mirror(
+        config.get('mirror', 'directory'),
+        master,
+        stop_on_error=config.getboolean('mirror', 'stop-on-error'),
+        workers=config.getint('mirror', 'workers'),
+        delete_packages=config.getboolean('mirror', 'delete-packages'),
+        hash_index=config.getboolean('mirror', 'hash-index'),
+        json_save=json_save,
+        root_uri=root_uri,
+        package_blacklist=blacklist,
+        digest_name=digest_name,
+    )
 
     changed_packages = mirror.synchronize()
     logger.info("{0} packages had changes".format(len(changed_packages)))
