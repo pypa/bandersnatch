@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Once we deprecate xml2rpc2 swap to aiohttp
-async def package_syncer(packages, workers):  # noqa E999
+async def package_syncer(packages, workers, stop_on_error):  # noqa E999
     logger.debug("Starting to sync packages {} at once".format(workers))
     loop = asyncio.get_event_loop()
     thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     sync_coros = []
     for package in packages:
-        sync_coros.append(loop.run_in_executor(thread_pool, package.sync))
+        sync_coros.append(
+            loop.run_in_executor(thread_pool, package.sync, stop_on_error))
 
     return await asyncio.gather(*sync_coros)
 
@@ -200,15 +201,12 @@ class Mirror():
         loop = asyncio.new_event_loop()
         try:
             tasks = loop.run_until_complete(
-                package_syncer(packages, self.workers)
+                package_syncer(packages, self.workers, self.stop_on_error)
             )
             if not tasks:
                 logger.error("Problem with package syncs: {}".format(tasks))
         finally:
             loop.close()
-
-    def retry_later(self, package):
-        self.queue.put(package)
 
     def record_finished_package(self, name):
         with self._finish_lock:
