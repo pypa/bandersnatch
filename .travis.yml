@@ -1,0 +1,16 @@
+language: python
+python:
+  - 3.5
+  - 3.6
+
+install:
+  - pip install --upgrade pip
+  - pip install -r requirements.txt
+  - pip install -r test-requirements.txt
+  - pip install .
+
+script:
+  - tox
+
+matrix:
+  fast_finish: true
