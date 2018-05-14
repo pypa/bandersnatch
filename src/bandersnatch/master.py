@@ -78,7 +78,7 @@ class Master():
     def changed_packages(self, last_serial):
         changelog = self.rpc().changelog_since_serial(last_serial)
         packages = {}
-        for package, version, time, action, serial in changelog:
+        for package, _version, _time, _action, serial in changelog:
             if serial > packages.get(package, 0):
                 packages[package] = serial
         return packages

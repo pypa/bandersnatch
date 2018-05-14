@@ -10,6 +10,7 @@ import os.path
 import pkg_resources
 import requests
 import shutil
+import sys
 import time
 
 
@@ -101,50 +102,60 @@ class Package():
         try:
             # If symlink already exists throw a FileExistsError
             os.symlink(self.json_file, self.json_pypi_symlink)
-        except FileExistsError:
+        except FileExistsError:  # noqa F821
             pass
 
         return True
 
-    def sync(self):
-        self.tries += 1
+    def sync(self, stop_on_error=False, attempts=3):
+        self.tries = 0
         self.json_saved = False
         try:
-            logger.info('Syncing package: {0} (serial {1})'.format(
-                        self.name, self.serial))
-            try:
-                package_info = self.mirror.master.get(
-                    '/pypi/{0}/json'.format(self.name), self.serial
-                )
-            except requests.HTTPError as e:
-                if e.response.status_code == 404:
-                    self.delete()
-                    return
-                raise
+            while self.tries < attempts:
+                try:
+                    logger.info('Syncing package: {0} (serial {1})'.format(
+                                self.name, self.serial))
+                    try:
+                        package_info = self.mirror.master.get(
+                            '/pypi/{0}/json'.format(self.name), self.serial
+                        )
+                    except requests.HTTPError as e:
+                        if e.response.status_code == 404:
+                            self.delete()
+                            return
+                        raise
 
-            if self.mirror.json_save and not self.json_saved:
-                self.json_saved = self.save_json_metadata(package_info.json())
+                    if self.mirror.json_save and not self.json_saved:
+                        self.json_saved = self.save_json_metadata(
+                            package_info.json())
 
-            self.releases = package_info.json()['releases']
-            self.sync_release_files()
-            self.sync_simple_page()
-            self.mirror.record_finished_package(self.name)
-        except StalePage:
-            logger.error('Stale serial for package {0}'.format(self.name))
-            # Give CDN a chance to update.
-            if self.tries < 3:
-                time.sleep(self.sleep_on_stale)
-                self.sleep_on_stale *= 2
-                self.mirror.retry_later(self)
-                return
-            logger.error(
-                'Stale serial for {0} ({1}) not updating. Giving up.'
-                .format(self.name, self.serial))
-            self.mirror.errors = True
+                    self.releases = package_info.json()['releases']
+                    self.sync_release_files()
+                    self.sync_simple_page()
+                    self.mirror.record_finished_package(self.name)
+                    break
+                except StalePage:
+                    self.tries += 1
+                    logger.error(
+                        'Stale serial for package {0} - Attempt {1}'.format(
+                            self.name, self.tries))
+                    # Give CDN a chance to update.
+                    if self.tries < attempts:
+                        time.sleep(self.sleep_on_stale)
+                        self.sleep_on_stale *= 2
+                        continue
+                    logger.error(
+                        'Stale serial for {0} ({1}) not updating. Giving up.'
+                        .format(self.name, self.serial))
+                    self.mirror.errors = True
         except Exception:
             logger.exception('Error syncing package: {0}@{1}'.format(
                 self.name, self.serial))
             self.mirror.errors = True
+
+        if self.mirror.errors and stop_on_error:
+            logger.error('Exiting early after error.')
+            sys.exit(1)
 
     def sync_release_files(self):
         ''' Purge + download files returning files removed + added '''

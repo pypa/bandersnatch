@@ -2,7 +2,6 @@ from bandersnatch.package import Package
 from requests import HTTPError
 import unittest.mock as mock
 import os.path
-import queue
 
 
 def touch_files(paths):
@@ -111,21 +110,9 @@ def test_package_sync_gives_up_after_3_stale_responses(
     package = Package('foo', 11, mirror)
     package.sleep_on_stale = 0
 
-    mirror.queue = mock.Mock()
-
-    package.sync()
-    assert not mirror.errors
-    assert package.tries == 1
-
-    package.sync()
-    assert package.tries == 2
-    assert not mirror.errors
-
     package.sync()
     assert package.tries == 3
     assert mirror.errors
-    assert mirror.queue.put.call_count == 2
-
     assert 'not updating. Giving up' in caplog.text
 
 
@@ -603,13 +590,11 @@ def test_sync_incorrect_download_with_old_serials_retries(
     requests.prepare(b'not release content', 9)
 
     mirror.packages_to_sync = set(['foo'])
-    mirror.queue = queue.Queue()
     package = Package('foo', 10, mirror)
     package.sync()
 
     assert not os.path.exists('web/packages/any/f/foo/foo.zip')
-    assert not mirror.errors
-    assert list(mirror.queue.queue) == [package]
+    assert mirror.errors
 
 
 def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
