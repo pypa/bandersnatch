@@ -1,0 +1,18 @@
+language: python
+
+matrix:
+  fast_finish: true
+  include:
+    - python: 3.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
+
+install:
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install -r test-requirements.txt
+    - pip install .
+
+script:
+    - tox
