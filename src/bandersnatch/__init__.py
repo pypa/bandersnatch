@@ -1,4 +1,4 @@
-# package
+#!/usr/bin/env python3
 
 from collections import namedtuple
 
@@ -6,10 +6,10 @@ from collections import namedtuple
 __version_info__ = namedtuple(
     'version_info',
     'major minor micro releaselevel serial')(
-        major=2,
-        minor=2,
-        micro=1,
-        releaselevel=None,
+        major=3,
+        minor=0,
+        micro=0,
+        releaselevel='dev0',
         serial=0  # Not currently in use below ...
     )
 

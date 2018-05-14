@@ -1,3 +1,8 @@
+## 3.0.0 (Unreleased)
+
+- Move to asyncio executors around request calls
+
+
 ## 2.2.1 (2018-05-01)
 
 - Fix missed MANIFEST.in change for this file :P `Fixes #108` - Thanks **@cooperlees**
