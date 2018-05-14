@@ -9,13 +9,6 @@ So you want to help out? **Awesome**. Go you!
 Please make sure you system has the following:
 
 - Python 3.5 or greater
-- Git installed
-
-### Clone `bandersnatch`
-
-First clone the bandersnatch repo.
-
-- `git clone `
 
 ### Development venv
 
@@ -69,5 +62,3 @@ congratulations :)
 
 *To be completed - @cooper has never used zc.buildout*
 
-* Tests green?
-* run `bin/fullrelease`
