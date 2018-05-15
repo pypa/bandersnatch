@@ -93,3 +93,15 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(
             instance.config['mirror']['master'], 'https://foo.bar.baz'
         )
+
+    def test__multiple__instances_custom__setting__str(self):
+        with open('test.conf', 'w') as testconfig_handle:
+            testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
+        instance1 = BandersnatchConfig()
+        instance1.config_file = 'test.conf'
+        instance1.load_configuration()
+
+        instance2 = BandersnatchConfig()
+        self.assertEqual(
+            instance2.config['mirror']['master'], 'https://foo.bar.baz'
+        )
