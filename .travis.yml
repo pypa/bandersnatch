@@ -7,6 +7,8 @@ matrix:
       env: TOXENV=py35
     - python: 3.6
       env: TOXENV=py36
+    - python: 3.6
+      env: TOXENV=doc_build
 
 install:
     - pip install --upgrade pip

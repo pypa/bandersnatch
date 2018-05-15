@@ -14,7 +14,7 @@ __version_info__ = namedtuple(
     )
 
 if __version_info__.releaselevel:
-    __version__ = '{v.major}.{v.minor}.{v.micro}{v.releaselevel}'.format(
+    __version__ = '{v.major}.{v.minor}.{v.micro}.{v.releaselevel}'.format(
         v=__version_info__
     )
 else:
