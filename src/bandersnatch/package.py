@@ -2,14 +2,12 @@ from . import utils
 from .master import StalePage
 from packaging.utils import canonicalize_name
 from urllib.parse import urlparse, unquote
-import glob
 import hashlib
 import json
 import logging
 import os.path
 import pkg_resources
 import requests
-import shutil
 import sys
 import time
 
@@ -39,18 +37,6 @@ class Package():
         return os.path.join(self.mirror.webdir, 'pypi', self.name, 'json')
 
     @property
-    def package_directories(self):
-        expr = '{0}/packages/*/{1}/{2}'.format(
-            self.mirror.webdir, self.name[0], self.name)
-        return glob.glob(expr)
-
-    @property
-    def package_files(self):
-        expr = '{0}/packages/*/{1}/{2}/*'.format(
-            self.mirror.webdir, self.name[0], self.name)
-        return glob.glob(expr)
-
-    @property
     def simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(self.mirror.webdir, 'simple',
@@ -74,15 +60,6 @@ class Package():
                 self.normalized_name[0], self.normalized_name_legacy)
         return os.path.join(
             self.mirror.webdir, 'simple', self.normalized_name_legacy)
-
-    @property
-    def serversig_file(self):
-        return os.path.join(self.mirror.webdir, 'serversig', self.name)
-
-    @property
-    def directories(self):
-        return (self.package_directories + [self.simple_directory,
-                os.path.dirname(self.json_pypi_symlink)])
 
     def save_json_metadata(self, package_info):
         ''' Take the JSON metadata we just fetched and save to disk '''
@@ -121,7 +98,9 @@ class Package():
                         )
                     except requests.HTTPError as e:
                         if e.response.status_code == 404:
-                            self.delete()
+                            logger.info(
+                                '{0} no longer exists on PyPI'.format(
+                                    self.name))
                             return
                         raise
 
@@ -157,14 +136,14 @@ class Package():
             logger.error('Exiting early after error.')
             sys.exit(1)
 
+    # TODO: async def once we go full asyncio - Have concurrency at the
+    # release file level
     def sync_release_files(self):
         ''' Purge + download files returning files removed + added '''
         release_files = []
 
         for release in self.releases.values():
             release_files.extend(release)
-
-        removed_files = self.purge_files(release_files)
 
         downloaded_files = set()
         for release_file in release_files:
@@ -176,8 +155,7 @@ class Package():
                 downloaded_files.add(os.path.relpath(downloaded_file,
                                                      self.mirror.homedir))
 
-        self.mirror.altered_packages[self.name] = [removed_files,
-                                                   downloaded_files]
+        self.mirror.altered_packages[self.name] = downloaded_files
 
     def generate_simple_page(self):
         # Generate the header of our simple page.
@@ -252,10 +230,6 @@ class Package():
         with utils.rewrite(normalized_simple_page, 'w', encoding='utf-8') as f:
             f.write(simple_page_content)
 
-        # Remove the /serversig page if it exists
-        if os.path.exists(self.serversig_file):
-            os.unlink(self.serversig_file)
-
     def _file_url_to_local_url(self, url):
         parsed = urlparse(url)
         if not parsed.path.startswith('/packages'):
@@ -270,23 +244,6 @@ class Package():
             raise RuntimeError('Got invalid download URL: {0}'.format(url))
         path = path[1:]
         return os.path.join(self.mirror.webdir, path)
-
-    def purge_files(self, release_files):
-        if not self.mirror.delete_packages:
-            return set()
-        master_files = [self._file_url_to_local_path(f['url'])
-                        for f in release_files]
-        existing_files = list(self.package_files)
-        to_remove = set(existing_files) - set(master_files)
-        relative_removed = set()
-        for filename in to_remove:
-            logger.info('Removing deleted file {0}'.format(filename))
-            os.unlink(filename)
-            # Get the relative path for upstream consumers + stats
-            relative_removed.add(os.path.relpath(filename,
-                                 self.mirror.homedir))
-
-        return relative_removed
 
     def download_file(self, url, sha256sum):
         path = self._file_url_to_local_path(url)
@@ -334,16 +291,3 @@ class Package():
                     'Inconsistent file. {0} has hash {1} instead of {2}.'
                     .format(url, existing_hash, sha256sum))
         return path
-
-    def delete(self):
-        if not self.mirror.delete_packages:
-            return
-        logger.info('Deleting package: {0}'.format(self.name))
-        for directory in self.directories:
-            if not os.path.exists(directory):
-                continue
-            shutil.rmtree(directory)
-        if os.path.exists(self.serversig_file):
-            os.unlink(self.serversig_file)
-        if os.path.exists(self.json_file):
-            os.unlink(self.json_file)
