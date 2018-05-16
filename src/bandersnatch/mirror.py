@@ -42,7 +42,6 @@ class Mirror():
     stop_on_error = False
 
     package_blacklist = None
-    delete_packages = True
 
     digest_name = 'sha256'
 
@@ -63,7 +62,6 @@ class Mirror():
         master,
         stop_on_error=False,
         workers=3,
-        delete_packages=True,
         hash_index=False,
         json_save=False,
         digest_name=None,
@@ -75,7 +73,6 @@ class Mirror():
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
-        self.delete_packages = delete_packages
         self.hash_index = hash_index
         self.package_blacklist = package_blacklist if package_blacklist else []
         self.root_uri = root_uri
