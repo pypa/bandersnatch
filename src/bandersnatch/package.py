@@ -1,4 +1,5 @@
 from . import utils
+from .filter import filter_release_plugins
 from .master import StalePage
 from packaging.utils import canonicalize_name
 from urllib.parse import urlparse, unquote
@@ -85,7 +86,9 @@ class Package():
                 os.path.dirname(self.json_pypi_symlink)])
 
     def save_json_metadata(self, package_info):
-        ''' Take the JSON metadata we just fetched and save to disk '''
+        """
+        Take the JSON metadata we just fetched and save to disk
+        """
 
         try:
             with utils.rewrite(self.json_file) as jf:
@@ -125,11 +128,13 @@ class Package():
                             return
                         raise
 
+                    self.releases = package_info.json()['releases']
+                    self._filter_releases()
+
                     if self.mirror.json_save and not self.json_saved:
                         self.json_saved = self.save_json_metadata(
                             package_info.json())
 
-                    self.releases = package_info.json()['releases']
                     self.sync_release_files()
                     self.sync_simple_page()
                     self.mirror.record_finished_package(self.name)
@@ -156,6 +161,21 @@ class Package():
         if self.mirror.errors and stop_on_error:
             logger.error('Exiting early after error.')
             sys.exit(1)
+
+    def _filter_releases(self):
+        """
+        Run the release filtering plugins and remove any packages from the
+        packages_to_sync that match any filters.
+        """
+        versions = list(self.releases.keys())
+        for version in versions:
+            filter = False
+            for plugin in filter_release_plugins():
+                filter = filter or plugin.check_match(
+                    name=self.name, version=version
+                )
+            if filter:
+                del(self.releases[version])
 
     def sync_release_files(self):
         ''' Purge + download files returning files removed + added '''

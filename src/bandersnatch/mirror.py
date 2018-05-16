@@ -42,7 +42,6 @@ class Mirror():
     # mirror's serial if false.
     stop_on_error = False
 
-    package_blacklist = None
     delete_packages = True
 
     digest_name = 'sha256'
@@ -68,7 +67,6 @@ class Mirror():
         hash_index=False,
         json_save=False,
         digest_name=None,
-        package_blacklist=None,
         root_uri=None,
     ):
         logger.info('{0}'.format(USER_AGENT))
@@ -78,10 +76,7 @@ class Mirror():
         self.json_save = json_save
         self.delete_packages = delete_packages
         self.hash_index = hash_index
-        self.package_blacklist = package_blacklist if package_blacklist else []
         self.root_uri = root_uri
-        if '' in self.package_blacklist:
-            self.package_blacklist.remove('')
         self.digest_name = digest_name if digest_name else 'sha256'
         self.workers = workers
         if self.workers > 10:
@@ -135,27 +130,11 @@ class Mirror():
                 logger.info('Removing inconsistent todo list.')
                 os.unlink(self.todolist)
 
-    def _remove_blacklisted_packages(self):
-        """If we have a list of pacakges to never sync remove them in in
-        self.packages_to_sync"""
-        if not self.package_blacklist:
-            logger.debug("No blacklist. Skipping package removal")
-            return
-        if not self.packages_to_sync:
-            logger.debug("No packages_to_sync. Skipping package removal")
-            return
-
-        for package_name in self.package_blacklist:
-            if package_name in self.packages_to_sync:
-                logger.info("{0} is blacklisted".format(package_name))
-                del(self.packages_to_sync[package_name])
-
     def _filter_packages(self):
         """
         Run the package filtering plugins and remove any packages from the
         packages_to_sync that match any filters.
         """
-
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
             for plugin in filter_project_plugins():
@@ -163,6 +142,10 @@ class Mirror():
                     del(self.packages_to_sync[package_name])
 
     def determine_packages_to_sync(self):
+        """
+        Update the self.packages_to_sync to contain packages that need to be
+        synced.
+        """
         # In case we don't find any changes we will stay on the currently
         # synced serial.
         self.target_serial = self.synced_serial

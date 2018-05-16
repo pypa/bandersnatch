@@ -95,15 +95,6 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
     assert open(str(tmpdir/'generation'), 'r').read() == '5'
 
 
-def test_mirror_remove_blacklisted_packages(tmpdir):
-    blacklisted_package = 'example1'
-    m = Mirror(str(tmpdir), mock.Mock(),
-               package_blacklist=[blacklisted_package])
-    m.packages_to_sync = {'example1': None, 'example2': None}
-    m._remove_blacklisted_packages()
-    assert blacklisted_package not in m.packages_to_sync
-
-
 def test_mirror__filter_packages__match(tmpdir):
     """
     Packages that exist in the blacklist should be removed from the list of
