@@ -1,34 +1,55 @@
 """
 Blacklist management
 """
+import pkg_resources
+from collections import defaultdict
 from .configuration import BandersnatchConfig
 
 
-blacklist_project_plugins = []
-blacklist_release_plugins = []
 ENTRYPOINT_GROUP_BASE = 'bandersnatch_filter_plugins'
+loaded_filter_plugins = defaultdict(lambda: [])
 
 
 class Filter(object):
     """
     Base Filter class
     """
-    def __init__(self):
-        self.configuration = BandersnatchConfig()
+    name = 'filter'
+
+    def __init__(self, *args, **kwargs):
+        self.configuration = BandersnatchConfig().config
+        self.initialize_plugin()
+
+    def initialize_plugin(self):
+        """
+        Code to initialize the plugin
+        """
+        pass
+
+    def check_match(self, **kwargs):
+        """
+        Check if the plugin matches based on the arguments provides.
+
+        Returns
+        =======
+        bool:
+            True if the values match a filter rule, False otherwise
+        """
+        return False
 
 
 class FilterProjectPlugin(Filter):
     """
     Plugin that blocks sync operations for an entire project
     """
-    pass
+    name = 'project_plugin'
 
 
 class FilterReleasePlugin(Filter):
     """
     Plugin that blocks the download of specific release files
     """
-    pass
+    name = 'release_plugin'
 
 
 def load_filter_plugins(entrypoint_group):
@@ -45,3 +66,58 @@ def load_filter_plugins(entrypoint_group):
     List of Blacklist:
         A list of objects derived from the Blacklist class
     """
+    global loaded_filter_plugins
+    enabled_plugins = ['all']
+    config = BandersnatchConfig().config
+    try:
+        config_blacklist_plugins = config['blacklist']['plugins']
+    except KeyError:
+        config_blacklist_plugins = None
+    if config_blacklist_plugins:
+        config_plugins = []
+        for plugin in config_blacklist_plugins.split('\n'):
+            plugin = plugin.strip()
+            if plugin:
+                config_plugins.append(plugin)
+        if config_plugins:
+            enabled_plugins = config_plugins
+
+    # If the plugins for the entrypoint_group have been loaded return them
+    cached_plugins = loaded_filter_plugins.get(entrypoint_group)
+    if cached_plugins:
+        return cached_plugins
+
+    plugins = set()  # Use a set to prevent possible duplicates
+    for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
+        plugin_class = entry_point.load()
+        plugin_instance = plugin_class()
+        if 'all' in enabled_plugins or plugin_instance.name in enabled_plugins:
+            plugins.add(plugin_instance)
+
+    loaded_filter_plugins[entrypoint_group] = list(plugins)
+
+    return plugins
+
+
+def filter_project_plugins():
+    """
+    Load and return the release filtering plugin objects
+
+    Returns
+    -------
+    list of bandersnatch.filter.Filter:
+        List of objects drived from the bandersnatch.filter.Filter class
+    """
+    return load_filter_plugins('bandersnatch_filter_plugins.project')
+
+
+def filter_release_plugins():
+    """
+    Load and return the release filtering plugin objects
+
+    Returns
+    -------
+    list of bandersnatch.filter.Filter:
+        List of objects drived from the bandersnatch.filter.Filter class
+    """
+    return load_filter_plugins('bandersnatch_filter_plugins.release')

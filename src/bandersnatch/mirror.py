@@ -1,3 +1,4 @@
+from .filter import filter_project_plugins
 from .package import Package
 from .utils import rewrite, USER_AGENT, update_safe
 from packaging.utils import canonicalize_name
@@ -149,6 +150,18 @@ class Mirror():
                 logger.info("{0} is blacklisted".format(package_name))
                 del(self.packages_to_sync[package_name])
 
+    def _filter_packages(self):
+        """
+        Run the package filtering plugins and remove any packages from the
+        packages_to_sync that match any filters.
+        """
+
+        packages = list(self.packages_to_sync.keys())
+        for package_name in packages:
+            for plugin in filter_project_plugins():
+                if plugin.check_match(name=package_name):
+                    del(self.packages_to_sync[package_name])
+
     def determine_packages_to_sync(self):
         # In case we don't find any changes we will stay on the currently
         # synced serial.
@@ -184,7 +197,7 @@ class Mirror():
             # anything todo at all during a changelog-based sync.
             self.need_index_sync = bool(self.packages_to_sync)
 
-        self._remove_blacklisted_packages()
+        self._filter_packages()
         logger.info('Trying to reach serial: {0}'.format(self.target_serial))
         pkg_count = len(self.packages_to_sync)
         logger.info('{0} packages to sync.'.format(pkg_count))
