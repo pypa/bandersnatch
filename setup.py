@@ -28,11 +28,14 @@ setup(
     include_package_data=True,
     install_requires=install_deps,
     entry_points="""
+            [bandersnatch_filter_plugins.project]
+                blacklist_project = bandersnatch_filter_plugins.blacklist_name:BlacklistProject
+            [bandersnatch_filter_plugins.package]
+                blacklist_release = bandersnatch_filter_plugins.blacklist_name:BlacklistRelease
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
             [zc.buildout]
                 requirements = bandersnatch.buildout:Requirements
-
             [zest.releaser.prereleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
             [zest.releaser.releaser.after]
