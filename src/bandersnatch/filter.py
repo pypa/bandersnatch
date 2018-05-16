@@ -6,7 +6,6 @@ from collections import defaultdict
 from .configuration import BandersnatchConfig
 
 
-ENTRYPOINT_GROUP_BASE = 'bandersnatch_filter_plugins'
 loaded_filter_plugins = defaultdict(lambda: [])
 
 

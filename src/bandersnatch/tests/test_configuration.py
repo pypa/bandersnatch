@@ -42,7 +42,7 @@ class TestBandersnatchConf(TestCase):
         self.assertListEqual(
             options,
             [
-                'delete-packages', 'directory', 'hash-index', 'json', 'master',
+                'directory', 'hash-index', 'json', 'master',
                 'stop-on-error', 'timeout', 'workers'
             ]
         )
