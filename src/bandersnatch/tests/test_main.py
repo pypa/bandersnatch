@@ -42,8 +42,7 @@ def test_main_reads_config_values(mirror_mock):
     (homedir, master), kwargs = mirror_mock.call_args_list[0]
     assert '/srv/pypi' == homedir
     assert isinstance(master, bandersnatch.master.Master)
-    assert {'delete_packages': True,
-            'stop_on_error': False,
+    assert {'stop_on_error': False,
             'hash_index': False,
             'workers': 3,
             'root_uri': None,
@@ -59,7 +58,6 @@ def test_main_reads_custom_config_values(
     main()
     (log_config, kwargs) = logging_mock.call_args_list[0]
     assert log_config == (str(customconfig / 'bandersnatch-log.conf'),)
-    assert not mirror_mock.call_args[1]['delete_packages']
     assert mirror_mock().synchronize.called
 
 
@@ -71,8 +69,6 @@ def customconfig(tmpdir):
     with open(str(tmpdir / 'bandersnatch.conf'), 'w') as f:
         f.write(config)
     config = config.replace('; log-config', 'log-config')
-    config = config.replace('delete-packages = true',
-                            'delete-packages = false')
     config = config.replace(
         '/etc/bandersnatch-log.conf',
         str(tmpdir / 'bandersnatch-log.conf'))

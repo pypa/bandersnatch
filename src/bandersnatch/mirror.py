@@ -42,8 +42,6 @@ class Mirror():
     # mirror's serial if false.
     stop_on_error = False
 
-    delete_packages = True
-
     digest_name = 'sha256'
 
     # We are required to leave a 'last changed' timestamp. I'd rather err
@@ -63,7 +61,6 @@ class Mirror():
         master,
         stop_on_error=False,
         workers=3,
-        delete_packages=True,
         hash_index=False,
         json_save=False,
         digest_name=None,
@@ -74,7 +71,6 @@ class Mirror():
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
-        self.delete_packages = delete_packages
         self.hash_index = hash_index
         self.root_uri = root_uri
         self.digest_name = digest_name if digest_name else 'sha256'
