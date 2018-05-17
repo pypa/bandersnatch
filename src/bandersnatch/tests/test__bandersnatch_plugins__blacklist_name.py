@@ -17,7 +17,7 @@ class TestBlacklistProject(TestCase):
     def setUp(self):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(lambda: [])
+        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self):
@@ -81,7 +81,7 @@ class TestBlacklistRelease(TestCase):
     def setUp(self):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(lambda: [])
+        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self):

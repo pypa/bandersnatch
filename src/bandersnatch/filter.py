@@ -6,7 +6,7 @@ from collections import defaultdict
 from .configuration import BandersnatchConfig
 
 
-loaded_filter_plugins = defaultdict(lambda: [])
+loaded_filter_plugins = defaultdict(list)
 
 
 class Filter(object):
