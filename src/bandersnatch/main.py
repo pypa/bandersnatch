@@ -3,6 +3,7 @@ import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.utils
+import bandersnatch.verify
 import configparser
 import logging
 import logging.config
@@ -70,16 +71,38 @@ def main():
         description='PyPI PEP 381 mirroring client.')
     parser.add_argument('-c', '--config', default='/etc/bandersnatch.conf',
                         help='use configuration file (default: %(default)s)')
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='Turn on extra logging (DEBUG level)')
     subparsers = parser.add_subparsers()
 
     # `mirror` command
-    p = subparsers.add_parser(
+    m = subparsers.add_parser(
         'mirror',
         help='Performs a one-time synchronization with '
              'the PyPI master server.')
-    p.set_defaults(func=mirror)
+    m.set_defaults(op='mirror')
+
+    # `verify` command
+    v = subparsers.add_parser(
+        'verify',
+        help='Read in Metadata and check package file validity',
+    )
+    v.add_argument('--delete', action='store_true', default=False,
+                   help='Enable deletion of packages not active')
+    v.add_argument('--dry-run', action='store_true', default=False,
+                   help='Do not download or delete files')
+    v.add_argument('--json-update', action='store_true', default=False,
+                   help='Enable updating JSON from PyPI')
+    v.add_argument('--workers', type=int, default=0,
+                   help='Number of parallel operations [Default: %(default)s]')
+    v.set_defaults(op='verify')
 
     args = parser.parse_args()
+
+    logging.basicConfig(
+        format=('[%(asctime)s] %(levelname)s: %(message)s ' +
+                '(%(filename)s:%(lineno)d)'),
+        level=logging.DEBUG if args.debug else logging.INFO)
 
     # Prepare default config file if needed.
     default_config = os.path.join(os.path.dirname(__file__), 'default.conf')
@@ -102,4 +125,8 @@ def main():
         logging.config.fileConfig(
             os.path.expanduser(config.get('mirror', 'log-config'))
         )
-    args.func(config)
+
+    if args.op == "verify":
+        bandersnatch.verify.metadata_verify(config, args)
+    else:
+        mirror(config)
