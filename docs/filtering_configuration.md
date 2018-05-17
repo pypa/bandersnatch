@@ -21,13 +21,13 @@ The plugins setting is a list of plugins to enable.
 ```
 
 Example (enable all installed filter plugins):
-``` eval_rst
+``` ini
 [blacklist]
 plugins = all
 ```
 
 Example (only enable filtering of whole projects/packages):
-``` eval_rst
+``` ini
 [blacklist]
 plugins =
     blacklist_project
