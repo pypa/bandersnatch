@@ -12,6 +12,22 @@ bandersnatch.buildout module
     :undoc-members:
     :show-inheritance:
 
+bandersnatch.configuration module
+---------------------------------
+
+.. automodule:: bandersnatch.configuration
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bandersnatch.filter module
+--------------------------
+
+.. automodule:: bandersnatch.filter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 bandersnatch.log module
 -----------------------
 

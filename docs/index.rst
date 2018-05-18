@@ -7,6 +7,8 @@ Contents:
 .. toctree::
     :maxdepth: 3
 
-    CONTRIBUTING.md
-    configuration
+    installation
+    mirror_configuration
+    filtering_configuration
+    CONTRIBUTING
     modules

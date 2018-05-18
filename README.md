@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.org/pypa/bandersnatch.svg?branch=master)](https://travis-ci.org/pypa/bandersnatch)
+[![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
+
+----
+
 This is a PyPI mirror client according to `PEP 381`
 http://www.python.org/dev/peps/pep-0381/.
 
@@ -131,8 +136,7 @@ when running `pip search`.
 ### Contact
 
 If you have questions or comments, please submit a bug report to
-http://bitbucket.org/pypa/bandersnatch/issues/new.
-
+https://github.com/pypa/bandersnatch/issues/new
 
 ### Code of Conduct
 

@@ -1,10 +1,6 @@
-# Configuration
+## Mirror configuration
 
-Bandersnatch uses a ConfigParser format configuration file for configuration.
-
-## Mirror configuration settings
-
-The mirror configuration settings are in a configuration section of the configuratinon file
+The mirror configuration settings are in a configuration section of the configuration file
 named **\[mirror\]**.
 
 This section contains settings to specify how the mirroring software should operate.
@@ -150,41 +146,3 @@ Example:
 [mirror]
 root_uri = https://example.com
 ```
-
-## Blacklist Settings
-
-The blacklist settings are in a configuration section named **\[blacklist\]**,
-this section provides settings to indicate packages that should not be
-mirrored from pypi.
-
-This is useful to avoid syncing broken or malicious packages.
-
-### packages
-
-The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored.
-
-Any packages matching the version specifier will not be downloaded.
-
-Example:
-``` ini
-[blacklist]
-packages =
-    example1
-    example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
-```
-
-### filenames
-
-The filenames setting specifies filenames or filename glob that should not be synced.
-
-This is useful to prevent mirroring package files that are in a format that is not used by
-users of the mirror.
-
-Example:
-```ini
-filenames =
-    *.exe
-    *.msi
-    *.win32.whl
-    *.win_amd64.whl
-````

@@ -37,12 +37,6 @@ def mirror(config):
         root_uri = None
 
     try:
-        blacklist = config.get('blacklist', 'packages').split('\n')
-    except configparser.NoOptionError:
-        logging.degbug("No packages blacklisted in the config")
-        blacklist = None
-
-    try:
         digest_name = config.get('mirror', 'digest_name')
     except configparser.NoOptionError:
         digest_name = "sha256"
@@ -59,7 +53,6 @@ def mirror(config):
         hash_index=config.getboolean('mirror', 'hash-index'),
         json_save=json_save,
         root_uri=root_uri,
-        package_blacklist=blacklist,
         digest_name=digest_name,
     )
 

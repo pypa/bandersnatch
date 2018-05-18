@@ -1,5 +1,8 @@
 from bandersnatch import utils
 from bandersnatch.mirror import Mirror
+from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.filter import filter_project_plugins
+
 import unittest.mock as mock
 import os.path
 import pytest
@@ -92,13 +95,52 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
     assert open(str(tmpdir/'generation'), 'r').read() == '5'
 
 
-def test_mirror_remove_blacklisted_packages(tmpdir):
-    blacklisted_package = 'example1'
-    m = Mirror(str(tmpdir), mock.Mock(),
-               package_blacklist=[blacklisted_package])
-    m.packages_to_sync = {'example1': None, 'example2': None}
-    m._remove_blacklisted_packages()
-    assert blacklisted_package not in m.packages_to_sync
+def test_mirror__filter_packages__match(tmpdir):
+    """
+    Packages that exist in the blacklist should be removed from the list of
+    packages to sync.
+    """
+    test_configuration = """\
+[blacklist]
+packages =
+    example1
+"""
+    with TemporaryDirectory() as tempdir:
+        with open('test.conf', 'w') as testconfig_handle:
+            testconfig_handle.write(test_configuration)
+        config = BandersnatchConfig()
+        config.config_file = os.path.join(tempdir, 'test.conf')
+        config.load_configuration()
+        for plugin in filter_project_plugins():
+            plugin.initialize_plugin()
+        m = Mirror(str(tmpdir), mock.Mock())
+        m.packages_to_sync = {'example1': None, 'example2': None}
+        m._filter_packages()
+        assert 'example1' not in m.packages_to_sync.keys()
+
+
+def test_mirror__filter_packages__nomatch__package_with_spec(tmpdir):
+    """
+    Package lines with a PEP440 spec on them should not be filtered from the
+    list of packages.
+    """
+    test_configuration = """\
+[blacklist]
+packages =
+    example3>2.0.0
+"""
+    with TemporaryDirectory() as tempdir:
+        with open('test.conf', 'w') as testconfig_handle:
+            testconfig_handle.write(test_configuration)
+        config = BandersnatchConfig()
+        config.config_file = os.path.join(tempdir, 'test.conf')
+        config.load_configuration()
+        for plugin in filter_project_plugins():
+            plugin.initialize_plugin()
+        m = Mirror(str(tmpdir), mock.Mock())
+        m.packages_to_sync = {'example1': None, 'example3': None}
+        m._filter_packages()
+        assert 'example3' in m.packages_to_sync.keys()
 
 
 def test_mirror_removes_empty_todo_list(tmpdir):
