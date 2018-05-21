@@ -46,20 +46,3 @@ packages =
     example1
     example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
 ```
-
-### filenames
-
-The filenames setting specifies filenames or filename glob that should not be synced.
-
-This is useful to prevent mirroring package files that are in a format that is not used by
-users of the mirror.
-
-Example:
-```ini
-[blacklist]
-filenames =
-    *.exe
-    *.msi
-    *.win32.whl
-    *.win_amd64.whl
-````
