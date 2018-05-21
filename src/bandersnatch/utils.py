@@ -2,6 +2,7 @@ import contextlib
 import hashlib
 import os
 import os.path
+import platform
 import sys
 import tempfile
 import filecmp
@@ -14,8 +15,8 @@ def user_agent():
     version = __version__
     python = sys.implementation.name
     python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
-    system = os.uname()
-    system = ' '.join([system[0], system[4]])
+    uname = platform.uname()
+    system = ' '.join([uname.system, uname.machine])
     return template.format(**locals())
 
 
