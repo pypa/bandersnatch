@@ -1,6 +1,10 @@
 ## 3.0.0 (Unreleased)
 
 - Move to asyncio executors around request calls
+- Use platform.uname() to support Windows `Fixes #19`
+
+
+* Move to GitHub @ PyCon US 2018 *
 
 
 ## 2.2.1 (2018-05-01)
