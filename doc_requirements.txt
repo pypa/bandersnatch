@@ -9,4 +9,7 @@ zest.releaser
 
 sphinx
 recommonmark
+
+# This is needed for the documentation build to work from read_the_docs.  This isn't needed to build
+# the documentation locally using tox -e doc_build
 docutils==0.12
