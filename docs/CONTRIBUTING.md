@@ -8,10 +8,12 @@ chat rooms, and mailing lists is expected to follow the
 
 ## Getting Started
 
+Bandersnatch is developed using the [GitHub Flow](https://guides.github.com/introduction/flow/)
+
 ### Pre Install
 Please make sure you system has the following:
 
-- Python 3.5 or greater
+- Python 3.6 or greater
 
 ### Development venv
 One way to develop and install all the dependencies of bandersnatch is to use a venv.
@@ -19,13 +21,13 @@ One way to develop and install all the dependencies of bandersnatch is to use a 
 - First create one and upgrade `pip`
 
 ```
-python3 -m venv /path/to/venv
+python3.6 -m venv /path/to/venv
 /path/to/venv/bin/pip install --upgrade pip
 ```
 
 For example:
 ```console
-$ python3 -m venv bandersnatchvenv
+$ python3.6 -m venv bandersnatchvenv
 $ bandersnatchvenv/bin/pip install --upgrade pip
 Collecting pip
   Using cached https://files.pythonhosted.org/packages/0f/74/ecd13431bcc456ed390b44c8a6e917c1820365cbebcb6a8974d1cd045ab4/pip-10.0.1-py2.py3-none-any.whl
