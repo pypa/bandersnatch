@@ -94,7 +94,9 @@ def main():
             logger.error('Could not create config file: {0}'.format(str(e)))
         return 1
 
-    config = BandersnatchConfig(config_file=args.config).config
+    config = configparser.ConfigParser()
+    config.read([default_config, args.config])
+    BandersnatchConfig(config_file=args.config)
 
     if config.has_option('mirror', 'log-config'):
         logging.config.fileConfig(
