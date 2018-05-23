@@ -231,6 +231,17 @@ try:
 except ImportError:
     pass
 
+try:
+    import pypa_theme
+    available_themes.insert(0, 'pypa')
+    available_theme_settings['pypa'] = dict()
+    available_theme_settings['pypa']['theme'] = 'pypa_theme'
+    available_theme_settings['pypa']['path'] = []
+    available_theme_settings['pypa']['options'] = {
+    }
+except ImportError:
+    pass
+
 selected_theme = os.environ.get('SPHINX_THEME', available_themes[0])
 if selected_theme not in available_themes:
     selected_theme = available_themes[0]
