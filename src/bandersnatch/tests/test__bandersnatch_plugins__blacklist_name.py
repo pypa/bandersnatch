@@ -5,6 +5,8 @@ from unittest import TestCase
 
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.master import Master
+from bandersnatch.mirror import Mirror
 
 
 class TestBlacklistProject(TestCase):
@@ -69,6 +71,44 @@ plugins =
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertIn('blacklist_project', names)
+
+    def test__filter__matches__package(self):
+        with open('test.conf', 'w') as testconfig_handle:
+            testconfig_handle.write("""\
+[blacklist]
+plugins =
+    blacklist_project
+packages =
+    foo
+""")
+        instance = BandersnatchConfig()
+        instance.config_file = 'test.conf'
+        instance.load_configuration()
+
+        mirror = Mirror('.', Master(url='https://foo.bar.com'))
+        mirror.packages_to_sync = {'foo': {}}
+        mirror._filter_packages()
+
+        self.assertNotIn('foo', mirror.packages_to_sync.keys())
+
+    def test__filter__nomatch_package(self):
+        with open('test.conf', 'w') as testconfig_handle:
+            testconfig_handle.write("""\
+        [blacklist]
+        plugins =
+            blacklist_project
+        packages =
+            foo
+        """)
+        instance = BandersnatchConfig()
+        instance.config_file = 'test.conf'
+        instance.load_configuration()
+
+        mirror = Mirror('.', Master(url='https://foo.bar.com'))
+        mirror.packages_to_sync = {'foo2': {}}
+        mirror._filter_packages()
+
+        self.assertIn('foo2', mirror.packages_to_sync.keys())
 
 
 class TestBlacklistRelease(TestCase):
