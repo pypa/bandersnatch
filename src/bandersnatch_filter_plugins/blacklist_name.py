@@ -99,7 +99,8 @@ class BlacklistRelease(FilterReleasePlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        self.blacklist_release_requirements = self._determine_filtered_package_requirements()
+        self.blacklist_release_requirements = \
+            self._determine_filtered_package_requirements()
         logger.debug(
             f'Initialized release plugin {self.name!r}, filtering '
             f'{self.blacklist_release_requirements!r}'
@@ -164,7 +165,8 @@ class BlacklistRelease(FilterReleasePlugin):
                 continue
             if version in requirement.specifer:
                 logger.debug(
-                'MATCH: Release {name}=={version} matches specifier {requirement.specifier}'
-            )
+                    'MATCH: Release {name}=={version} matches specifier '
+                    '{requirement.specifier}'
+                )
                 return True
         return False

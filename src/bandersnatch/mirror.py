@@ -135,7 +135,10 @@ class Mirror():
         for package_name in packages:
             for plugin in filter_project_plugins():
                 if plugin.check_match(name=package_name):
-                    logger.info(f'Filtered project {plugin.name}(name={package_name!r})')
+                    logger.info(
+                        f'Filtered project '
+                        f'{plugin.name}(name={package_name!r})'
+                    )
                     del(self.packages_to_sync[package_name])
 
     def determine_packages_to_sync(self):
