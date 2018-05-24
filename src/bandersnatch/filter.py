@@ -1,11 +1,13 @@
 """
 Blacklist management
 """
+import logging
 import pkg_resources
 from collections import defaultdict
 from .configuration import BandersnatchConfig
 
 
+logger = logging.getLogger(__name__)
 loaded_filter_plugins = defaultdict(list)
 
 
@@ -120,3 +122,25 @@ def filter_release_plugins():
         List of objects drived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins('bandersnatch_filter_plugins.release')
+
+
+def is_project_filtered(name: str) -> bool:
+    """
+    Check if a project/package name is filtered
+
+    Parameters
+    ----------
+    name: str
+        The normalized name of the package to check for filtering
+
+    Returns
+    -------
+    bool:
+        True if the package should be filtered False otherwise
+
+    """
+    for plugin in filter_project_plugins():
+        if plugin.check_match(name=name):
+            logger.debug(f'MATCH: Project {name!r} is filtered')
+            return True
+    return False

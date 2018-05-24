@@ -154,6 +154,10 @@ class Package():
                     name=self.name, version=version
                 )
             if filter:
+                logger.debug(
+                    f'Filtered release '
+                    f'{plugin.name}(name={self.name!r}, version={version!r})'
+                )
                 del(self.releases[version])
 
     # TODO: async def once we go full asyncio - Have concurrency at the

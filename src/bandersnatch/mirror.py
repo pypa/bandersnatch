@@ -1,4 +1,4 @@
-from .filter import filter_project_plugins
+from .filter import is_project_filtered
 from .package import Package
 from .utils import rewrite, USER_AGENT, update_safe
 from packaging.utils import canonicalize_name
@@ -128,18 +128,17 @@ class Mirror():
 
     def _filter_packages(self):
         """
-        Run the package filtering plugins and remove any packages from the
-        packages_to_sync that match any filters.
+        Run the package filtering plugins and remove any packages from
+        self.packages_to_sync that match any filters.
         """
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
-            for plugin in filter_project_plugins():
-                if plugin.check_match(name=package_name):
-                    logger.info(
-                        f'Filtered project '
-                        f'{plugin.name}(name={package_name!r})'
-                    )
-                    del(self.packages_to_sync[package_name])
+            if is_project_filtered(package_name):
+                logger.info(
+                    f'Filtered project '
+                    f'name={package_name!r}'
+                )
+                del(self.packages_to_sync[package_name])
 
     def determine_packages_to_sync(self):
         """
