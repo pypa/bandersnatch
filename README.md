@@ -11,7 +11,7 @@ http://www.python.org/dev/peps/pep-0381/.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.5`
+- bandersnatch **requires** `>= Python 3.6`
 
 
 ### pip
@@ -19,9 +19,8 @@ virtualenv under `bandersnatch/bin/bandersnatch`.
 This installs the latest stable, released version.
 
 ```
-  $ virtualenv --python=python3.5 bandersnatch
-  $ cd bandersnatch
-  $ bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
+  $ python3.6 -m venv bandersnatch
+  $ bandersnatch/bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
 ```
 
 ### zc.buildout
@@ -30,12 +29,12 @@ This installs the current development version. Use 'hg up <version>' and run
 buildout again to choose a specific release.
 
 ```
-  $ hg clone https://bitbucket.org/pypa/bandersnatch
+  $ git clone https://github.com/pypa/bandersnatch
   $ cd bandersnatch
   $ ./bootstrap.sh
 ```
 
-## Configuration
+## Quickstart
 
 * Run ``bandersnatch mirror`` - it will create an empty configuration file
   for you in ``/etc/bandersnatch.conf``.
