@@ -35,7 +35,6 @@ class BlacklistProject(FilterProjectPlugin):
         filtered_packages = set()
         try:
             lines = self.configuration['blacklist']['packages']
-            logger.debug('blacklist->packages: %r', lines)
             package_lines = lines.split('\n')
         except KeyError:
             package_lines = []
@@ -45,10 +44,6 @@ class BlacklistProject(FilterProjectPlugin):
                 continue
             package_requirement = Requirement(package_line)
             if package_requirement.specifier:
-                logger.debug(
-                    'Package line %r has a version spec, ignoring',
-                    package_line
-                )
                 continue
             if package_requirement.name != package_line:
                 logger.debug(
@@ -81,10 +76,7 @@ class BlacklistProject(FilterProjectPlugin):
             return False
 
         if name in self.blacklist_package_names:
-            logger.debug(
-                'MATCH: Package %r is in %r', name,
-                self.blacklist_package_names
-            )
+            logger.debug(f'MATCH: Package {name!r} is in the blacklist')
             return True
         return False
 
@@ -118,7 +110,6 @@ class BlacklistRelease(FilterReleasePlugin):
         filtered_requirements = set()
         try:
             lines = self.configuration['blacklist']['packages']
-            logger.debug('blacklist->packages: %r', lines)
             package_lines = lines.split('\n')
         except KeyError:
             package_lines = []
