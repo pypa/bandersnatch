@@ -30,6 +30,7 @@ setup(
     entry_points="""
             [bandersnatch_filter_plugins.project]
                 blacklist_project = bandersnatch_filter_plugins.blacklist_name:BlacklistProject
+                whitelist_project = bandersnatch_filter_plugins.whitelist_name:WhitelistProject
             [bandersnatch_filter_plugins.release]
                 blacklist_release = bandersnatch_filter_plugins.blacklist_name:BlacklistRelease
             [console_scripts]
