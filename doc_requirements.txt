@@ -10,3 +10,6 @@ zest.releaser
 sphinx
 recommonmark
 docutils==0.12
+
+git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
+git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme

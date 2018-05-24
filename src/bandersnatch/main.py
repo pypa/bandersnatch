@@ -8,6 +8,7 @@ import logging
 import logging.config
 import os.path
 import shutil
+from .configuration import BandersnatchConfig
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,7 @@ def main():
 
     config = configparser.ConfigParser()
     config.read([default_config, args.config])
+    BandersnatchConfig(config_file=args.config)
 
     if config.has_option('mirror', 'log-config'):
         logging.config.fileConfig(

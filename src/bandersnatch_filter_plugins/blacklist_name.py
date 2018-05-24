@@ -1,6 +1,7 @@
 import logging
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 from packaging.requirements import Requirement
+from packaging.version import InvalidVersion, Version
 
 
 logger = logging.getLogger(__name__)
@@ -16,8 +17,11 @@ class BlacklistProject(FilterProjectPlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        logger.debug('Initializing the %r plugin', self.name)
         self.blacklist_package_names = self._determine_filtered_package_names()
+        logger.debug(
+            f'Initialized project plugin {self.name!r}, filtering '
+            f'{self.blacklist_package_names!r}'
+        )
 
     def _determine_filtered_package_names(self):
         """
@@ -31,20 +35,15 @@ class BlacklistProject(FilterProjectPlugin):
         filtered_packages = set()
         try:
             lines = self.configuration['blacklist']['packages']
-            logger.debug('blacklist->packages: %r', lines)
             package_lines = lines.split('\n')
         except KeyError:
             package_lines = []
         for package_line in package_lines:
             package_line = package_line.strip()
-            if not package_line:
+            if not package_line or package_line.startswith('#'):
                 continue
             package_requirement = Requirement(package_line)
             if package_requirement.specifier:
-                logger.debug(
-                    'Package line %r has a version spec, ignoring',
-                    package_line
-                )
                 continue
             if package_requirement.name != package_line:
                 logger.debug(
@@ -72,25 +71,54 @@ class BlacklistProject(FilterProjectPlugin):
         bool:
             True if it matches, False otherwise.
         """
-        logger.debug('Running filter plugin %s', self.name)
         name = kwargs.get('name', None)
         if not name:
             return False
 
-        logger.info(
-            'Checking for package %s in %r', name, self.blacklist_package_names
-        )
         if name in self.blacklist_package_names:
-            logger.debug(
-                'MATCH: Package %r is in %r', name,
-                self.blacklist_package_names
-            )
+            logger.debug(f'MATCH: Package {name!r} is in the blacklist')
             return True
         return False
 
 
 class BlacklistRelease(FilterReleasePlugin):
     name = 'blacklist_release'
+
+    def initialize_plugin(self):
+        """
+        Initialize the plugin
+        """
+        # Generate a list of blacklisted packages from the configuration and
+        # store it into self.blacklist_package_names attribute so this
+        # operation doesn't end up in the fastpath.
+        self.blacklist_release_requirements = \
+            self._determine_filtered_package_requirements()
+        logger.debug(
+            f'Initialized release plugin {self.name!r}, filtering '
+            f'{self.blacklist_release_requirements!r}'
+        )
+
+    def _determine_filtered_package_requirements(self):
+        """
+        Parse the configuration file for [blacklist]packages
+
+        Returns
+        -------
+        list of packaging.requirements.Requirement
+            For all PEP440 package specifiers
+        """
+        filtered_requirements = set()
+        try:
+            lines = self.configuration['blacklist']['packages']
+            package_lines = lines.split('\n')
+        except KeyError:
+            package_lines = []
+        for package_line in package_lines:
+            package_line = package_line.strip()
+            if not package_line or package_line.startswith('#'):
+                continue
+            filtered_requirements.add(Requirement(package_line))
+        return list(filtered_requirements)
 
     def check_match(self, **kwargs):
         """
@@ -111,9 +139,25 @@ class BlacklistRelease(FilterReleasePlugin):
             True if it matches, False otherwise.
         """
         name = kwargs.get('name', None)
-        version = kwargs.get('version', None)
+        version_string = kwargs.get('version', None)
 
-        if not name or not version:
+        if not name or not version_string:
             return False
 
+        try:
+            version = Version(version_string)
+        except InvalidVersion:
+            logger.debug(
+                f'Package {name}=={version_string} has an invalid version'
+            )
+            return False
+        for requirement in self.blacklist_release_requirements:
+            if name != requirement.name:
+                continue
+            if version in requirement.specifer:
+                logger.debug(
+                    'MATCH: Release {name}=={version} matches specifier '
+                    '{requirement.specifier}'
+                )
+                return True
         return False
