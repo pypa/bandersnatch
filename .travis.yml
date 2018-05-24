@@ -20,3 +20,8 @@ install:
 
 script:
     - tox
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#bandersnatch"
