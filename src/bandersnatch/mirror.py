@@ -347,7 +347,8 @@ class Mirror():
             # compatible /simple/ URLs generated for everything.
             self._reset_mirror_status()
             generation = 5
-        assert generation == CURRENT_GENERATION
+        if generation != CURRENT_GENERATION:
+            raise RuntimeError(f'Unknown generation {generation} found')
         with open(self.generationfile, 'w', encoding='ascii') as f:
             f.write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
