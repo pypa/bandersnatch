@@ -1,7 +1,9 @@
 import os
+from collections import defaultdict
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import filter_release_plugins, filter_project_plugins
 
@@ -16,6 +18,7 @@ class TestBandersnatchFilter(TestCase):
     def setUp(self):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
+        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self):
@@ -29,7 +32,7 @@ class TestBandersnatchFilter(TestCase):
             testconfig_handle.write("""\
 [blacklist]
 """)
-        builtin_plugin_names = ['blacklist_project']
+        builtin_plugin_names = ['blacklist_project', 'whitelist_project']
         instance = BandersnatchConfig()
         instance.config_file = 'test.conf'
         instance.load_configuration()
