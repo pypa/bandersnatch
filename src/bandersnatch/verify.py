@@ -11,7 +11,10 @@ from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
 
+from bandersnatch.utils import user_agent
 
+
+ASYNC_USER_AGENT = user_agent('aiohttp {}'.format(aiohttp.__version__))
 logger = logging.getLogger(__name__)
 
 
@@ -20,13 +23,17 @@ def _convert_url_to_path(url):
 
 
 async def _get_latest_json(json_path, config):  # noqa: E999
-    url_parts = urlparse(config.master)
-    url = "{}://{}/pypa/{}/json".format(
+    url_parts = urlparse(config.get("mirror", "master"))
+    url = "{}://{}/pypi/{}/json".format(
         url_parts.scheme, url_parts.netloc, json_path.name)
-    logging.debug("Updating {} json from {}".format(json_path.name, url))
-    new_json_path = json_path.parent / "{json_path.name}.new"
+    logger.debug("Updating {} json from {}".format(json_path.name, url))
+    new_json_path = json_path.parent / "{}.new".format(json_path.name)
     await url_fetch(url, new_json_path)
-    os.renme(new_json_path, json_path)
+    if new_json_path.exists():
+        os.rename(new_json_path, json_path)
+        return
+    logger.error("{} does not exist - Did not get new JSON metadata".format(
+        new_json_path.as_posix()))
 
 
 def _sha256_checksum(filename, block_size=65536):
@@ -67,7 +74,7 @@ async def verify(  # noqa: E999
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_file, config)
+            await _get_latest_json(json_full_path, config)
         else:
             logger.info("[DRY RUN] Would of grabbed latest json for {}".format(
                 json_file))
@@ -103,7 +110,9 @@ async def verify(  # noqa: E999
     logger.info("Finished validating {}".format(json_file))
 
 
-async def url_fetch(url, file_path, chunk_size=2048, timeout=60):  # noqa: E999
+async def url_fetch(
+    url, file_path, chunk_size=65536, timeout=60
+):
     logger.info("Fetching {}".format(url))
     loop = asyncio.get_event_loop()
 
@@ -111,7 +120,12 @@ async def url_fetch(url, file_path, chunk_size=2048, timeout=60):  # noqa: E999
         None, partial(file_path.parent.mkdir, parents=True, exist_ok=True),
     )
 
-    async with aiohttp.ClientSession() as session:
+    custom_headers = {"User-Agent": ASYNC_USER_AGENT}
+    skip_headers = {"User-Agent"}
+
+    async with aiohttp.ClientSession(
+        headers=custom_headers, skip_auto_headers=skip_headers,
+    ) as session:
         async with session.get(url, timeout=timeout) as response:
             with file_path.open('wb') as fd:
                 while True:
@@ -160,7 +174,7 @@ def metadata_verify(config, args):
     loop = asyncio.get_event_loop()
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     loop.set_default_executor(executor)
-    logger.debug("Using {} threads".format(workers))
+    logger.debug("Using a {} thread ThreadPoolExecutor".format(workers))
     try:
         if loop.run_until_complete(
             async_verify(

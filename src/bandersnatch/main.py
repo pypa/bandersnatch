@@ -65,8 +65,6 @@ def mirror(config):
 
 
 def main():
-    bandersnatch.log.setup_logging()
-
     parser = argparse.ArgumentParser(
         description='PyPI PEP 381 mirroring client.')
     parser.add_argument('-c', '--config', default='/etc/bandersnatch.conf',
@@ -94,15 +92,12 @@ def main():
     v.add_argument('--json-update', action='store_true', default=False,
                    help='Enable updating JSON from PyPI')
     v.add_argument('--workers', type=int, default=0,
-                   help='Number of parallel operations [Default: %(default)s]')
+                   help='# of parallel iops [Defaults to bandersnatch.conf]')
     v.set_defaults(op='verify')
 
     args = parser.parse_args()
 
-    logging.basicConfig(
-        format=('[%(asctime)s] %(levelname)s: %(message)s ' +
-                '(%(filename)s:%(lineno)d)'),
-        level=logging.DEBUG if args.debug else logging.INFO)
+    bandersnatch.log.setup_logging(args)
 
     # Prepare default config file if needed.
     default_config = os.path.join(os.path.dirname(__file__), 'default.conf')
@@ -130,3 +125,7 @@ def main():
         bandersnatch.verify.metadata_verify(config, args)
     else:
         mirror(config)
+
+
+if __name__ == '__main__':
+    main()
