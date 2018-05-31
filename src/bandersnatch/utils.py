@@ -10,8 +10,10 @@ import filecmp
 from . import __version__
 
 
-def user_agent():
+def user_agent(async_version=''):
     template = 'bandersnatch/{version} ({python}, {system})'
+    if async_version:
+        template += ' ({})'.format(async_version)
     version = __version__
     python = sys.implementation.name
     python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
