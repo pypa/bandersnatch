@@ -4,12 +4,12 @@
 import logging
 
 
-def setup_logging():
+def setup_logging(args):
     ch = logging.StreamHandler()
     formatter = logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s')
     ch.setFormatter(formatter)
     logger = logging.getLogger('bandersnatch')
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
     logger.addHandler(ch)
     return ch

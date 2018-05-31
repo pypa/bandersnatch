@@ -4,6 +4,8 @@ from setuptools import setup, find_packages
 from src.bandersnatch import __version__
 
 install_deps = [
+    'aiodns',
+    'aiohttp',
     'packaging',
     'requests',
     'xmlrpc2',
@@ -46,7 +48,7 @@ setup(
       """,
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 )
