@@ -154,10 +154,10 @@ class BlacklistRelease(FilterReleasePlugin):
         for requirement in self.blacklist_release_requirements:
             if name != requirement.name:
                 continue
-            if version in requirement.specifer:
+            if version in requirement.specifier:
                 logger.debug(
-                    'MATCH: Release {name}=={version} matches specifier '
-                    '{requirement.specifier}'
+                    f'MATCH: Release {name}=={version} matches specifier '
+                    f'{requirement.specifier}'
                 )
                 return True
         return False
