@@ -95,5 +95,6 @@ UNKNOWN.egg-info/
 
 /.idea
 
+/.mypy_cache
 /.pytest_cache
 /docs/html

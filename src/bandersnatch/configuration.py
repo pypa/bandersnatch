@@ -1,14 +1,19 @@
 """
 Module containing classes to access the bandersnatch configuration file
 """
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Type
+
 import pkg_resources
 from configparser import ConfigParser
 
 
 class Singleton(type):  # pragma: no cover
-    _instances = {}
+    _instances: Dict['Singleton', Type] = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Type:
         if cls not in cls._instances:
             cls._instances[cls] = super(
                 Singleton, cls
@@ -17,7 +22,7 @@ class Singleton(type):  # pragma: no cover
 
 
 class BandersnatchConfig(metaclass=Singleton):
-    def __init__(self, config_file=None):
+    def __init__(self, config_file: Optional[str] = None) -> None:
         """
         Bandersnatch configuration class singleton
 
@@ -35,7 +40,7 @@ class BandersnatchConfig(metaclass=Singleton):
         self.config_file = config_file
         self.load_configuration()
 
-    def load_configuration(self):
+    def load_configuration(self) -> None:
         """
         Read the configuration from the configuration files
         """

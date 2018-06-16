@@ -45,7 +45,7 @@ setup(
                 update_stable_tag = bandersnatch.release:update_stable_tag
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
-      """,
+      """,  # noqa
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',

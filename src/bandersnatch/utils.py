@@ -6,11 +6,14 @@ import platform
 import sys
 import tempfile
 import filecmp
+from typing import Any
+from typing import Generator
+from typing import IO
 
 from . import __version__
 
 
-def user_agent(async_version=''):
+def user_agent(async_version: str = '') -> str:
     template = 'bandersnatch/{version} ({python}, {system})'
     if async_version:
         template += ' ({})'.format(async_version)
@@ -25,7 +28,7 @@ def user_agent(async_version=''):
 USER_AGENT = user_agent()
 
 
-def hash(path, function='sha256'):
+def hash(path: str, function: str = 'sha256') -> str:
     h = getattr(hashlib, function)()
     with open(path, 'rb') as f:
         while True:
@@ -36,7 +39,7 @@ def hash(path, function='sha256'):
     return h.hexdigest()
 
 
-def find(root, dirs=True):
+def find(root: str, dirs: bool = True) -> str:
     """A test helper simulating 'find'.
 
     Iterates over directories and filenames, given as relative paths to the
@@ -55,7 +58,9 @@ def find(root, dirs=True):
 
 
 @contextlib.contextmanager
-def rewrite(filepath, mode='w', *args, **kw):
+def rewrite(
+        filepath: str, mode: str = 'w', **kw: Any,
+) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
     base_dir = os.path.dirname(filepath)
@@ -77,7 +82,7 @@ def rewrite(filepath, mode='w', *args, **kw):
 
 
 @contextlib.contextmanager
-def update_safe(filename, **kw):
+def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
     """Rewrite a file atomically.
 
     Clients are allowed to delete the tmpfile to signal that they don't
@@ -89,7 +94,7 @@ def update_safe(filename, **kw):
             prefix=os.path.basename(filename) + '.', **kw) as tf:
         if os.path.exists(filename):
             os.chmod(tf.name, os.stat(filename).st_mode & 0o7777)
-        tf.has_changed = False
+        tf.has_changed = False  # type: ignore
         yield tf
         if not os.path.exists(tf.name):
             return
@@ -99,4 +104,4 @@ def update_safe(filename, **kw):
         os.unlink(filename_tmp)
     else:
         os.rename(filename_tmp, filename)
-        tf.has_changed = True
+        tf.has_changed = True  # type: ignore

@@ -3,10 +3,14 @@ Blacklist management
 """
 import pkg_resources
 from collections import defaultdict
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import List
 from .configuration import BandersnatchConfig
 
 
-loaded_filter_plugins = defaultdict(list)
+loaded_filter_plugins: Dict[str, List['Filter']] = defaultdict(list)
 
 
 class Filter(object):
@@ -15,17 +19,17 @@ class Filter(object):
     """
     name = 'filter'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
         self.initialize_plugin()
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Code to initialize the plugin
         """
         pass
 
-    def check_match(self, **kwargs):
+    def check_match(self, **kwargs: Any) -> bool:
         """
         Check if the plugin matches based on the arguments provides.
 
@@ -51,7 +55,7 @@ class FilterReleasePlugin(Filter):
     name = 'release_plugin'
 
 
-def load_filter_plugins(entrypoint_group):
+def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     """
     Load all blacklist plugins that are registered with pkg_resources
 
@@ -71,7 +75,7 @@ def load_filter_plugins(entrypoint_group):
     try:
         config_blacklist_plugins = config['blacklist']['plugins']
     except KeyError:
-        config_blacklist_plugins = None
+        config_blacklist_plugins = ''
     if config_blacklist_plugins:
         config_plugins = []
         for plugin in config_blacklist_plugins.split('\n'):
@@ -98,7 +102,7 @@ def load_filter_plugins(entrypoint_group):
     return plugins
 
 
-def filter_project_plugins():
+def filter_project_plugins() -> Iterable[Filter]:
     """
     Load and return the release filtering plugin objects
 
@@ -110,7 +114,7 @@ def filter_project_plugins():
     return load_filter_plugins('bandersnatch_filter_plugins.project')
 
 
-def filter_release_plugins():
+def filter_release_plugins() -> Iterable[Filter]:
     """
     Load and return the release filtering plugin objects
 

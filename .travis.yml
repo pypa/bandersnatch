@@ -9,6 +9,8 @@ matrix:
       env: TOXENV=py37
     - python: 3.6
       env: TOXENV=doc_build
+    - python: 3.6
+      env: TOXENV=lint
 
 install:
     - pip install --upgrade pip
@@ -23,3 +25,8 @@ notifications:
   irc:
     channels:
       - "chat.freenode.net#bandersnatch"
+
+cache:
+    directories:
+        - $HOME/.cache/pip
+        - $HOME/.cache/pre-commit
