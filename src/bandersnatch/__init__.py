@@ -16,10 +16,6 @@ class _VersionInfo(NamedTuple):
 
 
 __version_info__ = _VersionInfo(
-    major=3,
-    minor=0,
-    micro=0,
-    releaselevel="dev0",
-    serial=0,  # Not currently in use
+    major=3, minor=0, micro=0, releaselevel="dev0", serial=0  # Not currently in use
 )
 __version__ = __version_info__.version_str
