@@ -14,8 +14,9 @@ class CustomTransport(xmlrpc2.client.HTTPSTransport):
     def __init__(self, timeout=10.0):
         xmlrpc2.client.HTTPSTransport.__init__(self)
         self.timeout = timeout
-        self.session.headers.update({"User-Agent": USER_AGENT,
-                                     "Content-Type": "text/xml"})
+        self.session.headers.update(
+            {"User-Agent": USER_AGENT, "Content-Type": "text/xml"}
+        )
         self.session.proxies = requests.compat.getproxies()
 
     def request(self, uri, body):
@@ -28,19 +29,18 @@ class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
-class Master():
-
+class Master:
     def __init__(self, url, timeout=10.0):
         self.url = url
-        if self.url.startswith('http://'):
-            logger.error("Master URL {0} is not https scheme".format(url))
-            raise ValueError("Master URL {0} is not https scheme".format(url))
+        if self.url.startswith("http://"):
+            logger.error(f"Master URL {url} is not https scheme")
+            raise ValueError(f"Master URL {url} is not https scheme")
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({'User-Agent': USER_AGENT})
+        self.session.headers.update({"User-Agent": USER_AGENT})
 
     def get(self, path, required_serial, **kw):
-        logger.debug('Getting {0} (serial {1})'.format(path, required_serial))
+        logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
         r = self.session.get(path, timeout=self.timeout, **kw)
@@ -53,24 +53,27 @@ class Master():
             # want you to think really hard before passing in None. This is a
             # really important check to achieve consistency and you should only
             # leave it out if you know what you're doing.
-            got_serial = int(r.headers['X-PYPI-LAST-SERIAL'])
+            got_serial = int(r.headers["X-PYPI-LAST-SERIAL"])
             if got_serial < required_serial:
                 logger.debug(
-                    "Expected PyPI serial {0} for request {1} but got {2}".
-                    format(required_serial, path, got_serial))
+                    "Expected PyPI serial {} for request {} but got {}".format(
+                        required_serial, path, got_serial
+                    )
+                )
                 raise StalePage(
-                    "Expected PyPI serial {0} for request {1} but got {2}".
-                    format(required_serial, path, got_serial))
+                    "Expected PyPI serial {} for request {} but got {}".format(
+                        required_serial, path, got_serial
+                    )
+                )
         return r
 
     def rpc(self):
         transports = [CustomTransport(timeout=self.timeout)]
-        return xmlrpc2.client.Client(uri=self.xmlrpc_url,
-                                     transports=transports)
+        return xmlrpc2.client.Client(uri=self.xmlrpc_url, transports=transports)
 
     @property
     def xmlrpc_url(self):
-        return '{0}/pypi'.format(self.url)
+        return f"{self.url}/pypi"
 
     # Both list package data retrieval methods return a dictionary with package
     # names and the newest serial that they have received changes.

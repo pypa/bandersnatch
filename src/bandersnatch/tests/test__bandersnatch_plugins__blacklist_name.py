@@ -13,6 +13,7 @@ class TestBlacklistProject(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
+
     tempdir = None
     cwd = None
 
@@ -29,92 +30,103 @@ class TestBlacklistProject(TestCase):
             self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
 plugins =
     blacklist_project
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ['blacklist_project'])
+        self.assertListEqual(names, ["blacklist_project"])
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__doesnt_load__explicitly__disabled(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
 plugins =
     blacklist_release
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn('blacklist_project', names)
+        self.assertNotIn("blacklist_project", names)
 
     def test__plugin__loads__default(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertIn('blacklist_project', names)
+        self.assertIn("blacklist_project", names)
 
     def test__filter__matches__package(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
 plugins =
     blacklist_project
 packages =
     foo
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
-        mirror = Mirror('.', Master(url='https://foo.bar.com'))
-        mirror.packages_to_sync = {'foo': {}}
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo": {}}
         mirror._filter_packages()
 
-        self.assertNotIn('foo', mirror.packages_to_sync.keys())
+        self.assertNotIn("foo", mirror.packages_to_sync.keys())
 
     def test__filter__nomatch_package(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
         [blacklist]
         plugins =
             blacklist_project
         packages =
             foo
-        """)
+        """
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
-        mirror = Mirror('.', Master(url='https://foo.bar.com'))
-        mirror.packages_to_sync = {'foo2': {}}
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo2": {}}
         mirror._filter_packages()
 
-        self.assertIn('foo2', mirror.packages_to_sync.keys())
+        self.assertIn("foo2", mirror.packages_to_sync.keys())
 
 
 class TestBlacklistRelease(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
+
     tempdir = None
     cwd = None
 
@@ -131,45 +143,51 @@ class TestBlacklistRelease(TestCase):
             self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
 plugins =
     blacklist_release
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ['blacklist_release'])
+        self.assertListEqual(names, ["blacklist_release"])
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__doesnt_load__explicitly__disabled(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
 plugins =
     blacklist_package
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn('blacklist_release', names)
+        self.assertNotIn("blacklist_release", names)
 
     def test__plugin__loads__default(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
-""")
+"""
+            )
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertIn('blacklist_release', names)
+        self.assertIn("blacklist_release", names)

@@ -32,19 +32,24 @@ class TestBandersnatchConf(TestCase):
     def test__single_config__default__all_sections_present(self):
         instance = BandersnatchConfig()
         # All default values should at least be present and be the write types
-        for section in ['mirror', 'blacklist']:
+        for section in ["mirror", "blacklist"]:
             self.assertIn(section, instance.config.sections())
 
     def test__single_config__default__mirror__setting_attributes(self):
         instance = BandersnatchConfig()
-        options = [option for option in instance.config['mirror']]
+        options = [option for option in instance.config["mirror"]]
         options.sort()
         self.assertListEqual(
             options,
             [
-                'directory', 'hash-index', 'json', 'master',
-                'stop-on-error', 'timeout', 'workers'
-            ]
+                "directory",
+                "hash-index",
+                "json",
+                "master",
+                "stop-on-error",
+                "timeout",
+                "workers",
+            ],
         )
 
     def test__single_config__default__mirror__setting__types(self):
@@ -53,55 +58,49 @@ class TestBandersnatchConf(TestCase):
         """
         instance = BandersnatchConfig()
         for option, option_type in [
-            ('delete-packages', bool),
-            ('directory', str),
-            ('hash-index', bool),
-            ('json', bool),
-            ('master', str),
-            ('stop-on-error', bool),
-            ('timeout', int),
-            ('workers', int)
+            ("delete-packages", bool),
+            ("directory", str),
+            ("hash-index", bool),
+            ("json", bool),
+            ("master", str),
+            ("stop-on-error", bool),
+            ("timeout", int),
+            ("workers", int),
         ]:
             self.assertIsInstance(
-                option_type(instance.config['mirror'].get(option)), option_type
+                option_type(instance.config["mirror"].get(option)), option_type
             )
 
     def test__single_config__custom__setting__boolean(self):
-        with open('test.conf', 'w') as testconfig_handle:
+        with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\ndelete-packages=false\n")
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
-        self.assertFalse(
-            instance.config['mirror'].getboolean('delete-packages')
-        )
+        self.assertFalse(instance.config["mirror"].getboolean("delete-packages"))
 
     def test__single_config__custom__setting__int(self):
-        with open('test.conf', 'w') as testconfig_handle:
+        with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\ntimeout=999\n")
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
-        self.assertEqual(int(instance.config['mirror']['timeout']), 999)
+        self.assertEqual(int(instance.config["mirror"]["timeout"]), 999)
 
     def test__single_config__custom__setting__str(self):
-        with open('test.conf', 'w') as testconfig_handle:
+        with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
-        self.assertEqual(
-            instance.config['mirror']['master'], 'https://foo.bar.baz'
-        )
+        self.assertEqual(instance.config["mirror"]["master"], "https://foo.bar.baz")
 
     def test__multiple__instances_custom__setting__str(self):
-        with open('test.conf', 'w') as testconfig_handle:
+        with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
         instance1 = BandersnatchConfig()
-        instance1.config_file = 'test.conf'
+        instance1.config_file = "test.conf"
         instance1.load_configuration()
 
         instance2 = BandersnatchConfig()
-        self.assertEqual(
-            instance2.config['mirror']['master'], 'https://foo.bar.baz'
-        )
+        self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")

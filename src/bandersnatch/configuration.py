@@ -8,13 +8,11 @@ import pkg_resources
 
 
 class Singleton(type):  # pragma: no cover
-    _instances: Dict['Singleton', Type] = {}
+    _instances: Dict["Singleton", Type] = {}
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Type:
         if cls not in cls._instances:
-            cls._instances[cls] = super(
-                Singleton, cls
-            ).__call__(*args, **kwargs)
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
@@ -32,7 +30,7 @@ class BandersnatchConfig(metaclass=Singleton):
             Path to the configuration file to use
         """
         self.default_config_file = pkg_resources.resource_filename(
-            'bandersnatch', 'default.conf'
+            "bandersnatch", "default.conf"
         )
         self.config_file = config_file
         self.load_configuration()

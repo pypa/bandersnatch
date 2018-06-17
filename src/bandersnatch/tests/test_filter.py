@@ -12,6 +12,7 @@ class TestBandersnatchFilter(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
+
     tempdir = None
     cwd = None
 
@@ -28,13 +29,15 @@ class TestBandersnatchFilter(TestCase):
             self.tempdir = None
 
     def test__filter_project_plugins__default__loads(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
-""")
-        builtin_plugin_names = ['blacklist_project', 'whitelist_project']
+"""
+            )
+        builtin_plugin_names = ["blacklist_project", "whitelist_project"]
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = filter_project_plugins()
@@ -43,13 +46,15 @@ class TestBandersnatchFilter(TestCase):
             self.assertIn(name, names)
 
     def test__filter_release_plugins__default__loads(self):
-        with open('test.conf', 'w') as testconfig_handle:
-            testconfig_handle.write("""\
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
 [blacklist]
-""")
-        builtin_plugin_names = ['blacklist_release']
+"""
+            )
+        builtin_plugin_names = ["blacklist_release"]
         instance = BandersnatchConfig()
-        instance.config_file = 'test.conf'
+        instance.config_file = "test.conf"
         instance.load_configuration()
 
         plugins = filter_release_plugins()

@@ -11,24 +11,24 @@ from typing import IO, Any, Generator
 from . import __version__
 
 
-def user_agent(async_version: str = '') -> str:
-    template = 'bandersnatch/{version} ({python}, {system})'
+def user_agent(async_version: str = "") -> str:
+    template = "bandersnatch/{version} ({python}, {system})"
     if async_version:
-        template += ' ({})'.format(async_version)
+        template += f" ({async_version})"
     version = __version__
     python = sys.implementation.name
-    python += ' {0}.{1}.{2}-{3}{4}'.format(*sys.version_info)
+    python += " {}.{}.{}-{}{}".format(*sys.version_info)
     uname = platform.uname()
-    system = ' '.join([uname.system, uname.machine])
+    system = " ".join([uname.system, uname.machine])
     return template.format(**locals())
 
 
 USER_AGENT = user_agent()
 
 
-def hash(path: str, function: str = 'sha256') -> str:
+def hash(path: str, function: str = "sha256") -> str:
     h = getattr(hashlib, function)()
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         while True:
             chunk = f.read(128 * 1024)
             if not chunk:
@@ -52,13 +52,11 @@ def find(root: str, dirs: bool = True) -> str:
         for name in names:
             results.append(os.path.join(dirpath, name))
     results.sort()
-    return '\n'.join(result.replace(root, '', 1) for result in results)
+    return "\n".join(result.replace(root, "", 1) for result in results)
 
 
 @contextlib.contextmanager
-def rewrite(
-        filepath: str, mode: str = 'w', **kw: Any,
-) -> Generator[IO, None, None]:
+def rewrite(filepath: str, mode: str = "w", **kw: Any) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
     base_dir = os.path.dirname(filepath)
@@ -66,8 +64,9 @@ def rewrite(
     # Change naming format to be more friendly with distributed POSIX
     # filesystems like GlusterFS that hash based on filename
     # GlusterFS ignore '.' at the start of filenames and this avoid rehashing
-    with tempfile.NamedTemporaryFile(mode=mode, prefix='.{}.'.format(filename),
-                                     delete=False, dir=base_dir, **kw) as f:
+    with tempfile.NamedTemporaryFile(
+        mode=mode, prefix=f".{filename}.", delete=False, dir=base_dir, **kw
+    ) as f:
         filepath_tmp = f.name
         yield f
 
@@ -88,8 +87,11 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
 
     """
     with tempfile.NamedTemporaryFile(
-            dir=os.path.dirname(filename), delete=False,
-            prefix=os.path.basename(filename) + '.', **kw) as tf:
+        dir=os.path.dirname(filename),
+        delete=False,
+        prefix=f"{os.path.basename(filename)}.",
+        **kw,
+    ) as tf:
         if os.path.exists(filename):
             os.chmod(tf.name, os.stat(filename).st_mode & 0o7777)
         tf.has_changed = False  # type: ignore
@@ -97,8 +99,7 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
         if not os.path.exists(tf.name):
             return
         filename_tmp = tf.name
-    if (os.path.exists(filename) and
-            filecmp.cmp(filename, filename_tmp, shallow=False)):
+    if os.path.exists(filename) and filecmp.cmp(filename, filename_tmp, shallow=False):
         os.unlink(filename_tmp)
     else:
         os.rename(filename_tmp, filename)
