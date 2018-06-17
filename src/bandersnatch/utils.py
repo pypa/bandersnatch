@@ -89,7 +89,7 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
     with tempfile.NamedTemporaryFile(
         dir=os.path.dirname(filename),
         delete=False,
-        prefix=os.path.basename(filename) + ".",
+        prefix=f"{os.path.basename(filename)}.",
         **kw,
     ) as tf:
         if os.path.exists(filename):

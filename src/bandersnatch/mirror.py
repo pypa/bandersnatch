@@ -326,11 +326,11 @@ class Mirror:
             with open(self.generationfile, "r", encoding="ascii") as f:
                 generation = int(f.read().strip())
         except ValueError:
-            logger.info("Generation file inconsistent. " "Reinitialising status files.")
+            logger.info("Generation file inconsistent. Reinitialising status files.")
             self._reset_mirror_status()
             generation = CURRENT_GENERATION
         except IOError:
-            logger.info("Generation file missing. " "Reinitialising status files.")
+            logger.info("Generation file missing. Reinitialising status files.")
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
             self._reset_mirror_status()

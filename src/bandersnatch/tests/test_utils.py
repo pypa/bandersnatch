@@ -10,10 +10,10 @@ def test_hash():
     sample = os.path.join(os.path.dirname(__file__), "sample")
     assert hash(sample, function="md5") == "125765989403df246cecb48fa3e87ff8"
     assert hash(sample, function="sha256") == (
-        "95c07c174663ebff531eed59b326eb" "b3fa95f418f680349fc33b07dfbcf2" "9f18"
+        "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18"
     )
     assert hash(sample) == (
-        "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc" "33b07dfbcf29f18"
+        "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18"
     )
 
 
