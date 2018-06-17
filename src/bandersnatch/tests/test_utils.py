@@ -1,7 +1,9 @@
-from bandersnatch.utils import hash, rewrite, user_agent
 import os
 import os.path
+
 import pytest
+
+from bandersnatch.utils import hash, rewrite, user_agent
 
 
 def test_hash():

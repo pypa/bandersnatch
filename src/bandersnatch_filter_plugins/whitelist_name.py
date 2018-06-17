@@ -1,6 +1,6 @@
 import logging
-from bandersnatch.filter import FilterProjectPlugin
 
+from bandersnatch.filter import FilterProjectPlugin
 
 logger = logging.getLogger(__name__)
 

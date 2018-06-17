@@ -1,15 +1,16 @@
-from .filter import filter_project_plugins
-from .package import Package
-from .utils import rewrite, USER_AGENT, update_safe
-from packaging.utils import canonicalize_name
-from threading import RLock
 import asyncio
 import concurrent.futures
 import datetime
 import fcntl
 import logging
 import os
+from threading import RLock
 
+from packaging.utils import canonicalize_name
+
+from .filter import filter_project_plugins
+from .package import Package
+from .utils import USER_AGENT, rewrite, update_safe
 
 logger = logging.getLogger(__name__)
 

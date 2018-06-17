@@ -1,7 +1,9 @@
-from .utils import USER_AGENT
 import logging
+
 import requests
 import xmlrpc2
+
+from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
 

@@ -1,16 +1,17 @@
 import argparse
-import bandersnatch.log
-import bandersnatch.master
-import bandersnatch.mirror
-import bandersnatch.utils
-import bandersnatch.verify
 import configparser
 import logging
 import logging.config
 import os.path
 import shutil
-from .configuration import BandersnatchConfig
 
+import bandersnatch.log
+import bandersnatch.master
+import bandersnatch.mirror
+import bandersnatch.utils
+import bandersnatch.verify
+
+from .configuration import BandersnatchConfig
 
 logger = logging.getLogger(__name__)
 

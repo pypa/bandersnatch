@@ -1,18 +1,17 @@
-import aiohttp
 import asyncio
 import concurrent.futures
-import json
 import hashlib
+import json
 import logging
 import os
-
 from functools import partial
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
 
-from bandersnatch.utils import user_agent
+import aiohttp
 
+from bandersnatch.utils import user_agent
 
 ASYNC_USER_AGENT = user_agent('aiohttp {}'.format(aiohttp.__version__))
 logger = logging.getLogger(__name__)

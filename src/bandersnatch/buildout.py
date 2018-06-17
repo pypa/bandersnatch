@@ -1,4 +1,5 @@
 import os.path
+
 import pkg_resources
 
 
@@ -6,7 +7,7 @@ class Requirements(object):
     """Generate a pip compatible requirements.txt from our working set based on
     the 'bandersnatch' requirement."""
 
-    def __init__(self, buildout, name, options):
+    def __init__(self, buildout, name, options) -> None:
         self.name, self.options = name, options
         options['path'] = os.path.join(
             buildout['buildout']['directory'], 'requirements.txt')

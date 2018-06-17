@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
 from src.bandersnatch import __version__
 
 install_deps = [
@@ -45,7 +46,7 @@ setup(
                 update_stable_tag = bandersnatch.release:update_stable_tag
             [zest.releaser.postreleaser.after]
                 update_requirements = bandersnatch.release:update_requirements
-      """,
+      """,  # noqa
     classifiers=[
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',

@@ -246,7 +246,7 @@ selected_theme = os.environ.get('SPHINX_THEME', available_themes[0])
 if selected_theme not in available_themes:
     selected_theme = available_themes[0]
     print('SPHINX_THEME is not installed, using %r theme' % selected_theme)
-    
+
 html_theme = available_theme_settings[selected_theme]['theme']
 html_theme_path = available_theme_settings[selected_theme]['path']
 if available_theme_settings[selected_theme].get('options', None):

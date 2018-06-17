@@ -1,8 +1,9 @@
 import logging
-from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
+
 from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
 
+from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
 logger = logging.getLogger(__name__)
 

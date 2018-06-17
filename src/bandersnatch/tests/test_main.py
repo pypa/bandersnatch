@@ -1,9 +1,11 @@
-from bandersnatch.main import main
-import bandersnatch.mirror
-import unittest.mock as mock
 import os.path
-import pytest
 import sys
+import unittest.mock as mock
+
+import pytest
+
+import bandersnatch.mirror
+from bandersnatch.main import main
 
 
 def test_main_help(capfd):
