@@ -1,14 +1,15 @@
+import os.path
+import unittest.mock as mock
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pytest
+from requests import HTTPError
+
 from bandersnatch import utils
-from bandersnatch.mirror import Mirror
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import filter_project_plugins
-
-import unittest.mock as mock
-import os.path
-import pytest
-from pathlib import Path
-from requests import HTTPError
-from tempfile import TemporaryDirectory
+from bandersnatch.mirror import Mirror
 
 
 class JsonDict(dict):

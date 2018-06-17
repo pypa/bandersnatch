@@ -1,14 +1,12 @@
 import contextlib
+import filecmp
 import hashlib
 import os
 import os.path
 import platform
 import sys
 import tempfile
-import filecmp
-from typing import Any
-from typing import Generator
-from typing import IO
+from typing import IO, Any, Generator
 
 from . import __version__
 

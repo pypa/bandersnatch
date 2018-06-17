@@ -1,14 +1,12 @@
 """
 Blacklist management
 """
-import pkg_resources
 from collections import defaultdict
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import List
-from .configuration import BandersnatchConfig
+from typing import Any, Dict, Iterable, List
 
+import pkg_resources
+
+from .configuration import BandersnatchConfig
 
 loaded_filter_plugins: Dict[str, List['Filter']] = defaultdict(list)
 

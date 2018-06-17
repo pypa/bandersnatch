@@ -1,7 +1,8 @@
-from typing import Dict
-from zest.releaser.utils import execute_command
 import logging
 import os
+from typing import Dict
+
+from zest.releaser.utils import execute_command
 
 logger = logging.getLogger(__name__)
 

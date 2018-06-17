@@ -1,6 +1,7 @@
-from bandersnatch.master import Master, StalePage
-import xmlrpc2
 import pytest
+import xmlrpc2
+
+from bandersnatch.master import Master, StalePage
 
 
 def test_rpc_factory():

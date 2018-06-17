@@ -1,7 +1,9 @@
-from bandersnatch.package import Package
-from requests import HTTPError
-import unittest.mock as mock
 import os.path
+import unittest.mock as mock
+
+from requests import HTTPError
+
+from bandersnatch.package import Package
 
 
 def touch_files(paths):

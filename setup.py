@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
 from src.bandersnatch import __version__
 
 install_deps = [

@@ -1,17 +1,18 @@
-from . import utils
-from .filter import filter_release_plugins
-from .master import StalePage
-from packaging.utils import canonicalize_name
-from urllib.parse import urlparse, unquote
 import hashlib
 import json
 import logging
 import os.path
-import pkg_resources
-import requests
 import sys
 import time
+from urllib.parse import unquote, urlparse
 
+import pkg_resources
+import requests
+from packaging.utils import canonicalize_name
+
+from . import utils
+from .filter import filter_release_plugins
+from .master import StalePage
 
 logger = logging.getLogger(__name__)
 

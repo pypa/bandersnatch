@@ -1,4 +1,5 @@
 import os.path
+
 import pkg_resources
 
 

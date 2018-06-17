@@ -5,7 +5,7 @@ from unittest import TestCase
 
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
-from bandersnatch.filter import filter_release_plugins, filter_project_plugins
+from bandersnatch.filter import filter_project_plugins, filter_release_plugins
 
 
 class TestBandersnatchFilter(TestCase):

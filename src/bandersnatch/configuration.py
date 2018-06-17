@@ -1,13 +1,10 @@
 """
 Module containing classes to access the bandersnatch configuration file
 """
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Type
+from configparser import ConfigParser
+from typing import Any, Dict, Optional, Type
 
 import pkg_resources
-from configparser import ConfigParser
 
 
 class Singleton(type):  # pragma: no cover
