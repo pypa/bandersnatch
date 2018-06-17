@@ -11,11 +11,15 @@ class _VersionInfo(NamedTuple):
 
     @property
     def version_str(self) -> str:
-        extra = f".{self.releaselevel}" if self.releaselevel else ""
-        return f"{self.major}.{self.minor}.{self.micro}.{extra}"
+        release_level = f".{self.releaselevel}" if self.releaselevel else ""
+        return f"{self.major}.{self.minor}.{self.micro}{release_level}"
 
 
 __version_info__ = _VersionInfo(
-    major=3, minor=0, micro=0, releaselevel="dev0", serial=0  # Not currently in use
+    major=3,
+    minor=0,
+    micro=0,
+    releaselevel="dev0",
+    serial=0  # Not currently in use with Bandersnatch versioning
 )
 __version__ = __version_info__.version_str
