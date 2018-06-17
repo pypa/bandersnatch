@@ -33,14 +33,14 @@ class Master:
     def __init__(self, url, timeout=10.0):
         self.url = url
         if self.url.startswith("http://"):
-            logger.error("Master URL {0} is not https scheme".format(url))
-            raise ValueError("Master URL {0} is not https scheme".format(url))
+            logger.error(f"Master URL {url} is not https scheme")
+            raise ValueError(f"Master URL {url} is not https scheme")
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT})
 
     def get(self, path, required_serial, **kw):
-        logger.debug("Getting {0} (serial {1})".format(path, required_serial))
+        logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
         r = self.session.get(path, timeout=self.timeout, **kw)
@@ -56,12 +56,12 @@ class Master:
             got_serial = int(r.headers["X-PYPI-LAST-SERIAL"])
             if got_serial < required_serial:
                 logger.debug(
-                    "Expected PyPI serial {0} for request {1} but got {2}".format(
+                    "Expected PyPI serial {} for request {} but got {}".format(
                         required_serial, path, got_serial
                     )
                 )
                 raise StalePage(
-                    "Expected PyPI serial {0} for request {1} but got {2}".format(
+                    "Expected PyPI serial {} for request {} but got {}".format(
                         required_serial, path, got_serial
                     )
                 )
@@ -73,7 +73,7 @@ class Master:
 
     @property
     def xmlrpc_url(self):
-        return "{0}/pypi".format(self.url)
+        return f"{self.url}/pypi"
 
     # Both list package data retrieval methods return a dictionary with package
     # names and the newest serial that they have received changes.

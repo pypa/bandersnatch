@@ -97,20 +97,14 @@ class Package:
         try:
             while self.tries < attempts:
                 try:
-                    logger.info(
-                        "Syncing package: {0} (serial {1})".format(
-                            self.name, self.serial
-                        )
-                    )
+                    logger.info(f"Syncing package: {self.name} (serial {self.serial})")
                     try:
                         package_info = self.mirror.master.get(
-                            "/pypi/{0}/json".format(self.name), self.serial
+                            f"/pypi/{self.name}/json", self.serial
                         )
                     except requests.HTTPError as e:
                         if e.response.status_code == 404:
-                            logger.info(
-                                "{0} no longer exists on PyPI".format(self.name)
-                            )
+                            logger.info(f"{self.name} no longer exists on PyPI")
                             return
                         raise
 
@@ -127,7 +121,7 @@ class Package:
                 except StalePage:
                     self.tries += 1
                     logger.error(
-                        "Stale serial for package {0} - Attempt {1}".format(
+                        "Stale serial for package {} - Attempt {}".format(
                             self.name, self.tries
                         )
                     )
@@ -137,15 +131,13 @@ class Package:
                         self.sleep_on_stale *= 2
                         continue
                     logger.error(
-                        "Stale serial for {0} ({1}) not updating. Giving up.".format(
+                        "Stale serial for {} ({}) not updating. Giving up.".format(
                             self.name, self.serial
                         )
                     )
                     self.mirror.errors = True
         except Exception:
-            logger.exception(
-                "Error syncing package: {0}@{1}".format(self.name, self.serial)
-            )
+            logger.exception(f"Error syncing package: {self.name}@{self.serial}")
             self.mirror.errors = True
 
         if self.mirror.errors and stop_on_error:
@@ -209,7 +201,7 @@ class Package:
 
         simple_page_content += "\n".join(
             [
-                '    <a href="{0}#{1}={2}">{3}</a><br/>'.format(
+                '    <a href="{}#{}={}">{}</a><br/>'.format(
                     self._file_url_to_local_url(r["url"]),
                     digest_name,
                     r["digests"][digest_name],
@@ -224,7 +216,7 @@ class Package:
         return simple_page_content
 
     def sync_simple_page(self):
-        logger.info("Storing index page: {0}".format(self.name))
+        logger.info(f"Storing index page: {self.name}")
 
         # We need to generate the actual content that we're going to be saving
         # to disk for our index files.
@@ -269,7 +261,7 @@ class Package:
     def _file_url_to_local_url(self, url):
         parsed = urlparse(url)
         if not parsed.path.startswith("/packages"):
-            raise RuntimeError("Got invalid download URL: {0}".format(url))
+            raise RuntimeError(f"Got invalid download URL: {url}")
         prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
         return prefix + parsed.path
 
@@ -277,7 +269,7 @@ class Package:
         path = urlparse(url).path
         path = unquote(path)
         if not path.startswith("/packages"):
-            raise RuntimeError("Got invalid download URL: {0}".format(url))
+            raise RuntimeError(f"Got invalid download URL: {url}")
         path = path[1:]
         return os.path.join(self.mirror.webdir, path)
 
@@ -291,14 +283,14 @@ class Package:
                 return None
             else:
                 logger.info(
-                    "Checksum mismatch with local file {0}: "
-                    "expected {1} got {2}, will re-download.".format(
+                    "Checksum mismatch with local file {}: "
+                    "expected {} got {}, will re-download.".format(
                         path, sha256sum, existing_hash
                     )
                 )
                 os.unlink(path)
 
-        logger.info("Downloading: {0}".format(url))
+        logger.info(f"Downloading: {url}")
 
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
@@ -326,7 +318,7 @@ class Package:
                 # checksum. Even if this should be the rare case of a
                 # re-upload this will fix itself in a later run.
                 raise ValueError(
-                    "Inconsistent file. {0} has hash {1} instead of {2}.".format(
+                    "Inconsistent file. {} has hash {} instead of {}.".format(
                         url, existing_hash, sha256sum
                     )
                 )

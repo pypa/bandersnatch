@@ -13,7 +13,7 @@ import aiohttp
 
 from bandersnatch.utils import user_agent
 
-ASYNC_USER_AGENT = user_agent("aiohttp {}".format(aiohttp.__version__))
+ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +26,8 @@ async def _get_latest_json(json_path, config):  # noqa: E999
     url = "{}://{}/pypi/{}/json".format(
         url_parts.scheme, url_parts.netloc, json_path.name
     )
-    logger.debug("Updating {} json from {}".format(json_path.name, url))
-    new_json_path = json_path.parent / "{}.new".format(json_path.name)
+    logger.debug(f"Updating {json_path.name} json from {url}")
+    new_json_path = json_path.parent / f"{json_path.name}.new"
     await url_fetch(url, new_json_path)
     if new_json_path.exists():
         os.rename(new_json_path, json_path)
@@ -70,15 +70,13 @@ async def verify(  # noqa: E999
     json_base = Path(mirror_base) / "web/json"
     json_full_path = json_base / json_file
     loop = asyncio.get_event_loop()
-    logger.info("Parsing {}".format(json_file))
+    logger.info(f"Parsing {json_file}")
 
     if args.json_update:
         if not args.dry_run:
             await _get_latest_json(json_full_path, config)
         else:
-            logger.info(
-                "[DRY RUN] Would of grabbed latest json for {}".format(json_file)
-            )
+            logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
     with json_full_path.open("r") as jfp:
         pkg = json.load(jfp)
@@ -107,11 +105,11 @@ async def verify(  # noqa: E999
 
             all_package_files.append(pkg_file)
 
-    logger.info("Finished validating {}".format(json_file))
+    logger.info(f"Finished validating {json_file}")
 
 
 async def url_fetch(url, file_path, chunk_size=65536, timeout=60):
-    logger.info("Fetching {}".format(url))
+    logger.info(f"Fetching {url}")
     loop = asyncio.get_event_loop()
 
     await loop.run_in_executor(
@@ -154,11 +152,11 @@ def metadata_verify(config, args):
     json_base = os.path.join(mirror_base, "web", "json")
     workers = args.workers or config.getint("mirror", "workers")
 
-    logger.info("Starting verify for {} with {} workers".format(mirror_base, workers))
+    logger.info(f"Starting verify for {mirror_base} with {workers} workers")
     try:
         json_files = os.listdir(json_base)
     except FileExistsError as fee:  # noqa: F821
-        logger.error("Metadata base dir {} does not exist: {}".format(json_base, fee))
+        logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2
     if not json_files:
         logger.error("No JSON metadata files found. Can not verify")
@@ -169,7 +167,7 @@ def metadata_verify(config, args):
     loop = asyncio.get_event_loop()
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     loop.set_default_executor(executor)
-    logger.debug("Using a {} thread ThreadPoolExecutor".format(workers))
+    logger.debug(f"Using a {workers} thread ThreadPoolExecutor")
     try:
         if loop.run_until_complete(
             async_verify(config, all_package_files, mirror_base, json_files, args)

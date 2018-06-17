@@ -63,9 +63,9 @@ def mirror(config):
     )
 
     changed_packages = mirror.synchronize()
-    logger.info("{0} packages had changes".format(len(changed_packages)))
+    logger.info("{} packages had changes".format(len(changed_packages)))
     for package_name, changes in changed_packages.items():
-        logger.debug("{0} added: {1}".format(package_name, changes))
+        logger.debug(f"{package_name} added: {changes}")
 
 
 def main():
@@ -128,14 +128,12 @@ def main():
     # Prepare default config file if needed.
     default_config = os.path.join(os.path.dirname(__file__), "default.conf")
     if not os.path.exists(args.config):
-        logger.warning(
-            "Config file '{0}' missing, creating default config.".format(args.config)
-        )
+        logger.warning(f"Config file '{args.config}' missing, creating default config.")
         logger.warning("Please review the config file, then run 'bandersnatch' again.")
         try:
             shutil.copy(default_config, args.config)
         except IOError as e:
-            logger.error("Could not create config file: {0}".format(str(e)))
+            logger.error("Could not create config file: {}".format(str(e)))
         return 1
 
     config = configparser.ConfigParser()

@@ -14,10 +14,10 @@ from . import __version__
 def user_agent(async_version: str = "") -> str:
     template = "bandersnatch/{version} ({python}, {system})"
     if async_version:
-        template += " ({})".format(async_version)
+        template += f" ({async_version})"
     version = __version__
     python = sys.implementation.name
-    python += " {0}.{1}.{2}-{3}{4}".format(*sys.version_info)
+    python += " {}.{}.{}-{}{}".format(*sys.version_info)
     uname = platform.uname()
     system = " ".join([uname.system, uname.machine])
     return template.format(**locals())
@@ -65,7 +65,7 @@ def rewrite(filepath: str, mode: str = "w", **kw: Any) -> Generator[IO, None, No
     # filesystems like GlusterFS that hash based on filename
     # GlusterFS ignore '.' at the start of filenames and this avoid rehashing
     with tempfile.NamedTemporaryFile(
-        mode=mode, prefix=".{}.".format(filename), delete=False, dir=base_dir, **kw
+        mode=mode, prefix=f".{filename}.", delete=False, dir=base_dir, **kw
     ) as f:
         filepath_tmp = f.name
         yield f
