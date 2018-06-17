@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class WhitelistProject(FilterProjectPlugin):
-    name = 'whitelist_project'
+    name = "whitelist_project"
 
     def initialize_plugin(self):
         """
@@ -15,11 +15,10 @@ class WhitelistProject(FilterProjectPlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        self.whitelist_package_names = \
-            self._determine_unfiltered_package_names()
+        self.whitelist_package_names = self._determine_unfiltered_package_names()
         logger.debug(
-            f'Initialized project plugin {self.name!r}, filtering '
-            f'{self.whitelist_package_names!r}'
+            f"Initialized project plugin {self.name!r}, filtering "
+            f"{self.whitelist_package_names!r}"
         )
 
     def _determine_unfiltered_package_names(self):
@@ -33,16 +32,16 @@ class WhitelistProject(FilterProjectPlugin):
         # are not applicable for this plugin.
         unfiltered_packages = set()
         try:
-            lines = self.configuration['whitelist']['packages']
-            package_lines = lines.split('\n')
+            lines = self.configuration["whitelist"]["packages"]
+            package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
         for package_line in package_lines:
             package_line = package_line.strip()
-            if not package_line or package_line.startswith('#'):
+            if not package_line or package_line.startswith("#"):
                 continue
             unfiltered_packages.add(package_line)
-        logger.debug('Project whitelist is %r', list(unfiltered_packages))
+        logger.debug("Project whitelist is %r", list(unfiltered_packages))
         return list(unfiltered_packages)
 
     def check_match(self, **kwargs):
@@ -64,11 +63,11 @@ class WhitelistProject(FilterProjectPlugin):
         if not self.whitelist_package_names:
             return False
 
-        name = kwargs.get('name', None)
+        name = kwargs.get("name", None)
         if not name:
             return False
 
         if name in self.whitelist_package_names:
-            logger.debug(f'MATCH: Package {name!r} is in the whitelist')
+            logger.debug(f"MATCH: Package {name!r} is in the whitelist")
             return False
         return True

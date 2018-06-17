@@ -8,14 +8,15 @@ import pkg_resources
 
 from .configuration import BandersnatchConfig
 
-loaded_filter_plugins: Dict[str, List['Filter']] = defaultdict(list)
+loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
 class Filter(object):
     """
     Base Filter class
     """
-    name = 'filter'
+
+    name = "filter"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
@@ -43,14 +44,16 @@ class FilterProjectPlugin(Filter):
     """
     Plugin that blocks sync operations for an entire project
     """
-    name = 'project_plugin'
+
+    name = "project_plugin"
 
 
 class FilterReleasePlugin(Filter):
     """
     Plugin that blocks the download of specific release files
     """
-    name = 'release_plugin'
+
+    name = "release_plugin"
 
 
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
@@ -68,15 +71,15 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
         A list of objects derived from the Blacklist class
     """
     global loaded_filter_plugins
-    enabled_plugins = ['all']
+    enabled_plugins = ["all"]
     config = BandersnatchConfig().config
     try:
-        config_blacklist_plugins = config['blacklist']['plugins']
+        config_blacklist_plugins = config["blacklist"]["plugins"]
     except KeyError:
-        config_blacklist_plugins = ''
+        config_blacklist_plugins = ""
     if config_blacklist_plugins:
         config_plugins = []
-        for plugin in config_blacklist_plugins.split('\n'):
+        for plugin in config_blacklist_plugins.split("\n"):
             plugin = plugin.strip()
             if plugin:
                 config_plugins.append(plugin)
@@ -92,7 +95,7 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
         plugin_class = entry_point.load()
         plugin_instance = plugin_class()
-        if 'all' in enabled_plugins or plugin_instance.name in enabled_plugins:
+        if "all" in enabled_plugins or plugin_instance.name in enabled_plugins:
             plugins.add(plugin_instance)
 
     loaded_filter_plugins[entrypoint_group] = list(plugins)
@@ -109,7 +112,7 @@ def filter_project_plugins() -> Iterable[Filter]:
     list of bandersnatch.filter.Filter:
         List of objects drived from the bandersnatch.filter.Filter class
     """
-    return load_filter_plugins('bandersnatch_filter_plugins.project')
+    return load_filter_plugins("bandersnatch_filter_plugins.project")
 
 
 def filter_release_plugins() -> Iterable[Filter]:
@@ -121,4 +124,4 @@ def filter_release_plugins() -> Iterable[Filter]:
     list of bandersnatch.filter.Filter:
         List of objects drived from the bandersnatch.filter.Filter class
     """
-    return load_filter_plugins('bandersnatch_filter_plugins.release')
+    return load_filter_plugins("bandersnatch_filter_plugins.release")

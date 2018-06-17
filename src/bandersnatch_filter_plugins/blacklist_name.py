@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class BlacklistProject(FilterProjectPlugin):
-    name = 'blacklist_project'
+    name = "blacklist_project"
 
     def initialize_plugin(self):
         """
@@ -20,8 +20,8 @@ class BlacklistProject(FilterProjectPlugin):
         # operation doesn't end up in the fastpath.
         self.blacklist_package_names = self._determine_filtered_package_names()
         logger.debug(
-            f'Initialized project plugin {self.name!r}, filtering '
-            f'{self.blacklist_package_names!r}'
+            f"Initialized project plugin {self.name!r}, filtering "
+            f"{self.blacklist_package_names!r}"
         )
 
     def _determine_filtered_package_names(self):
@@ -35,25 +35,26 @@ class BlacklistProject(FilterProjectPlugin):
         # are not applicable for this plugin.
         filtered_packages = set()
         try:
-            lines = self.configuration['blacklist']['packages']
-            package_lines = lines.split('\n')
+            lines = self.configuration["blacklist"]["packages"]
+            package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
         for package_line in package_lines:
             package_line = package_line.strip()
-            if not package_line or package_line.startswith('#'):
+            if not package_line or package_line.startswith("#"):
                 continue
             package_requirement = Requirement(package_line)
             if package_requirement.specifier:
                 continue
             if package_requirement.name != package_line:
                 logger.debug(
-                    'Package line %r does not requirement name %r',
-                    package_line, package_requirement.name
+                    "Package line %r does not requirement name %r",
+                    package_line,
+                    package_requirement.name,
                 )
                 continue
             filtered_packages.add(package_line)
-        logger.debug('Project blacklist is %r', list(filtered_packages))
+        logger.debug("Project blacklist is %r", list(filtered_packages))
         return list(filtered_packages)
 
     def check_match(self, **kwargs):
@@ -72,18 +73,18 @@ class BlacklistProject(FilterProjectPlugin):
         bool:
             True if it matches, False otherwise.
         """
-        name = kwargs.get('name', None)
+        name = kwargs.get("name", None)
         if not name:
             return False
 
         if name in self.blacklist_package_names:
-            logger.debug(f'MATCH: Package {name!r} is in the blacklist')
+            logger.debug(f"MATCH: Package {name!r} is in the blacklist")
             return True
         return False
 
 
 class BlacklistRelease(FilterReleasePlugin):
-    name = 'blacklist_release'
+    name = "blacklist_release"
 
     def initialize_plugin(self):
         """
@@ -92,11 +93,12 @@ class BlacklistRelease(FilterReleasePlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        self.blacklist_release_requirements = \
+        self.blacklist_release_requirements = (
             self._determine_filtered_package_requirements()
+        )
         logger.debug(
-            f'Initialized release plugin {self.name!r}, filtering '
-            f'{self.blacklist_release_requirements!r}'
+            f"Initialized release plugin {self.name!r}, filtering "
+            f"{self.blacklist_release_requirements!r}"
         )
 
     def _determine_filtered_package_requirements(self):
@@ -110,13 +112,13 @@ class BlacklistRelease(FilterReleasePlugin):
         """
         filtered_requirements = set()
         try:
-            lines = self.configuration['blacklist']['packages']
-            package_lines = lines.split('\n')
+            lines = self.configuration["blacklist"]["packages"]
+            package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
         for package_line in package_lines:
             package_line = package_line.strip()
-            if not package_line or package_line.startswith('#'):
+            if not package_line or package_line.startswith("#"):
                 continue
             filtered_requirements.add(Requirement(package_line))
         return list(filtered_requirements)
@@ -139,8 +141,8 @@ class BlacklistRelease(FilterReleasePlugin):
         bool:
             True if it matches, False otherwise.
         """
-        name = kwargs.get('name', None)
-        version_string = kwargs.get('version', None)
+        name = kwargs.get("name", None)
+        version_string = kwargs.get("version", None)
 
         if not name or not version_string:
             return False
@@ -148,17 +150,15 @@ class BlacklistRelease(FilterReleasePlugin):
         try:
             version = Version(version_string)
         except InvalidVersion:
-            logger.debug(
-                f'Package {name}=={version_string} has an invalid version'
-            )
+            logger.debug(f"Package {name}=={version_string} has an invalid version")
             return False
         for requirement in self.blacklist_release_requirements:
             if name != requirement.name:
                 continue
             if version in requirement.specifier:
                 logger.debug(
-                    f'MATCH: Release {name}=={version} matches specifier '
-                    f'{requirement.specifier}'
+                    f"MATCH: Release {name}=={version} matches specifier "
+                    f"{requirement.specifier}"
                 )
                 return True
         return False

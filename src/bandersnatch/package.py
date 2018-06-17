@@ -17,7 +17,7 @@ from .master import StalePage
 logger = logging.getLogger(__name__)
 
 
-class Package():
+class Package:
 
     tries = 0
     sleep_on_stale = 1
@@ -32,36 +32,39 @@ class Package():
 
     @property
     def json_file(self):
-        return os.path.join(self.mirror.webdir, 'json', self.name)
+        return os.path.join(self.mirror.webdir, "json", self.name)
 
     @property
     def json_pypi_symlink(self):
-        return os.path.join(self.mirror.webdir, 'pypi', self.name, 'json')
+        return os.path.join(self.mirror.webdir, "pypi", self.name, "json")
 
     @property
     def simple_directory(self):
         if self.mirror.hash_index:
-            return os.path.join(self.mirror.webdir, 'simple',
-                                self.name[0], self.name)
-        return os.path.join(self.mirror.webdir, 'simple', self.name)
+            return os.path.join(self.mirror.webdir, "simple", self.name[0], self.name)
+        return os.path.join(self.mirror.webdir, "simple", self.name)
 
     @property
     def normalized_simple_directory(self):
         if self.mirror.hash_index:
-            return os.path.join(self.mirror.webdir, 'simple',
-                                self.normalized_name[0],
-                                self.normalized_name)
-        return os.path.join(self.mirror.webdir, 'simple',
-                            self.normalized_name)
+            return os.path.join(
+                self.mirror.webdir,
+                "simple",
+                self.normalized_name[0],
+                self.normalized_name,
+            )
+        return os.path.join(self.mirror.webdir, "simple", self.normalized_name)
 
     @property
     def normalized_legacy_simple_directory(self):
         if self.mirror.hash_index:
             return os.path.join(
-                self.mirror.webdir, 'simple',
-                self.normalized_name[0], self.normalized_name_legacy)
-        return os.path.join(
-            self.mirror.webdir, 'simple', self.normalized_name_legacy)
+                self.mirror.webdir,
+                "simple",
+                self.normalized_name[0],
+                self.normalized_name_legacy,
+            )
+        return os.path.join(self.mirror.webdir, "simple", self.normalized_name_legacy)
 
     def save_json_metadata(self, package_info):
         """
@@ -72,8 +75,8 @@ class Package():
             with utils.rewrite(self.json_file) as jf:
                 json.dump(package_info, jf, indent=4, sort_keys=True)
         except Exception as e:
-            logger.error("Unable to write json to {}: {}".format(
-                self.json_file, str(e))
+            logger.error(
+                "Unable to write json to {}: {}".format(self.json_file, str(e))
             )
             return False
 
@@ -94,26 +97,28 @@ class Package():
         try:
             while self.tries < attempts:
                 try:
-                    logger.info('Syncing package: {0} (serial {1})'.format(
-                                self.name, self.serial))
+                    logger.info(
+                        "Syncing package: {0} (serial {1})".format(
+                            self.name, self.serial
+                        )
+                    )
                     try:
                         package_info = self.mirror.master.get(
-                            '/pypi/{0}/json'.format(self.name), self.serial
+                            "/pypi/{0}/json".format(self.name), self.serial
                         )
                     except requests.HTTPError as e:
                         if e.response.status_code == 404:
                             logger.info(
-                                '{0} no longer exists on PyPI'.format(
-                                    self.name))
+                                "{0} no longer exists on PyPI".format(self.name)
+                            )
                             return
                         raise
 
-                    self.releases = package_info.json()['releases']
+                    self.releases = package_info.json()["releases"]
                     self._filter_releases()
 
                     if self.mirror.json_save and not self.json_saved:
-                        self.json_saved = self.save_json_metadata(
-                            package_info.json())
+                        self.json_saved = self.save_json_metadata(package_info.json())
 
                     self.sync_release_files()
                     self.sync_simple_page()
@@ -122,24 +127,29 @@ class Package():
                 except StalePage:
                     self.tries += 1
                     logger.error(
-                        'Stale serial for package {0} - Attempt {1}'.format(
-                            self.name, self.tries))
+                        "Stale serial for package {0} - Attempt {1}".format(
+                            self.name, self.tries
+                        )
+                    )
                     # Give CDN a chance to update.
                     if self.tries < attempts:
                         time.sleep(self.sleep_on_stale)
                         self.sleep_on_stale *= 2
                         continue
                     logger.error(
-                        'Stale serial for {0} ({1}) not updating. Giving up.'
-                        .format(self.name, self.serial))
+                        "Stale serial for {0} ({1}) not updating. Giving up.".format(
+                            self.name, self.serial
+                        )
+                    )
                     self.mirror.errors = True
         except Exception:
-            logger.exception('Error syncing package: {0}@{1}'.format(
-                self.name, self.serial))
+            logger.exception(
+                "Error syncing package: {0}@{1}".format(self.name, self.serial)
+            )
             self.mirror.errors = True
 
         if self.mirror.errors and stop_on_error:
-            logger.error('Exiting early after error.')
+            logger.error("Exiting early after error.")
             sys.exit(1)
 
     def _filter_releases(self):
@@ -151,16 +161,14 @@ class Package():
         for version in versions:
             filter = False
             for plugin in filter_release_plugins():
-                filter = filter or plugin.check_match(
-                    name=self.name, version=version
-                )
+                filter = filter or plugin.check_match(name=self.name, version=version)
             if filter:
-                del(self.releases[version])
+                del (self.releases[version])
 
     # TODO: async def once we go full asyncio - Have concurrency at the
     # release file level
     def sync_release_files(self):
-        ''' Purge + download files returning files removed + added '''
+        """ Purge + download files returning files removed + added """
         release_files = []
 
         for release in self.releases.values():
@@ -169,25 +177,25 @@ class Package():
         downloaded_files = set()
         for release_file in release_files:
             downloaded_file = self.download_file(
-                release_file['url'],
-                release_file['digests']['sha256']
+                release_file["url"], release_file["digests"]["sha256"]
             )
             if downloaded_file:
-                downloaded_files.add(os.path.relpath(downloaded_file,
-                                                     self.mirror.homedir))
+                downloaded_files.add(
+                    os.path.relpath(downloaded_file, self.mirror.homedir)
+                )
 
         self.mirror.altered_packages[self.name] = downloaded_files
 
     def generate_simple_page(self):
         # Generate the header of our simple page.
         simple_page_content = (
-            '<!DOCTYPE html>\n'
-            '<html>\n'
-            '  <head>\n'
-            '    <title>Links for {0}</title>\n'
-            '  </head>\n'
-            '  <body>\n'
-            '    <h1>Links for {0}</h1>\n'
+            "<!DOCTYPE html>\n"
+            "<html>\n"
+            "  <head>\n"
+            "    <title>Links for {0}</title>\n"
+            "  </head>\n"
+            "  <body>\n"
+            "    <h1>Links for {0}</h1>\n"
         ).format(self.name)
 
         # Get a list of all of the files.
@@ -199,21 +207,24 @@ class Package():
 
         digest_name = self.mirror.digest_name
 
-        simple_page_content += '\n'.join([
-            '    <a href="{0}#{1}={2}">{3}</a><br/>'.format(
-                self._file_url_to_local_url(r['url']),
-                digest_name,
-                r["digests"][digest_name],
-                r["filename"])
-            for r in release_files
-        ])
+        simple_page_content += "\n".join(
+            [
+                '    <a href="{0}#{1}={2}">{3}</a><br/>'.format(
+                    self._file_url_to_local_url(r["url"]),
+                    digest_name,
+                    r["digests"][digest_name],
+                    r["filename"],
+                )
+                for r in release_files
+            ]
+        )
 
-        simple_page_content += '\n  </body>\n</html>'
+        simple_page_content += "\n  </body>\n</html>"
 
         return simple_page_content
 
     def sync_simple_page(self):
-        logger.info(u'Storing index page: {0}'.format(self.name))
+        logger.info("Storing index page: {0}".format(self.name))
 
         # We need to generate the actual content that we're going to be saving
         # to disk for our index files.
@@ -226,43 +237,47 @@ class Package():
         if self.simple_directory != self.normalized_simple_directory:
             if not os.path.exists(self.simple_directory):
                 os.makedirs(self.simple_directory)
-            simple_page = os.path.join(self.simple_directory, 'index.html')
-            with utils.rewrite(simple_page, 'w', encoding='utf-8') as f:
+            simple_page = os.path.join(self.simple_directory, "index.html")
+            with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
 
             # This exists for compatibility with pip 8.0 to 8.1.1 which did not
             # correctly implement PEP 503 wrt to normalization and so needs a
             # partially directory to get. Once pip 8.1.2 is old enough to be
             # considered "minimum" this can be removed.
-            if (self.normalized_simple_directory !=
-                    self.normalized_legacy_simple_directory):
+            if (
+                self.normalized_simple_directory
+                != self.normalized_legacy_simple_directory
+            ):
                 if not os.path.exists(self.normalized_legacy_simple_directory):
                     os.makedirs(self.normalized_legacy_simple_directory)
                 simple_page = os.path.join(
-                    self.normalized_legacy_simple_directory, 'index.html')
-                with utils.rewrite(simple_page, 'w', encoding='utf-8') as f:
+                    self.normalized_legacy_simple_directory, "index.html"
+                )
+                with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                     f.write(simple_page_content)
 
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
 
         normalized_simple_page = os.path.join(
-            self.normalized_simple_directory, 'index.html')
-        with utils.rewrite(normalized_simple_page, 'w', encoding='utf-8') as f:
+            self.normalized_simple_directory, "index.html"
+        )
+        with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
             f.write(simple_page_content)
 
     def _file_url_to_local_url(self, url):
         parsed = urlparse(url)
-        if not parsed.path.startswith('/packages'):
-            raise RuntimeError('Got invalid download URL: {0}'.format(url))
+        if not parsed.path.startswith("/packages"):
+            raise RuntimeError("Got invalid download URL: {0}".format(url))
         prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
         return prefix + parsed.path
 
     def _file_url_to_local_path(self, url):
         path = urlparse(url).path
         path = unquote(path)
-        if not path.startswith('/packages'):
-            raise RuntimeError('Got invalid download URL: {0}'.format(url))
+        if not path.startswith("/packages"):
+            raise RuntimeError("Got invalid download URL: {0}".format(url))
         path = path[1:]
         return os.path.join(self.mirror.webdir, path)
 
@@ -276,12 +291,14 @@ class Package():
                 return None
             else:
                 logger.info(
-                    'Checksum mismatch with local file {0}: '
-                    'expected {1} got {2}, will re-download.'.format(
-                        path, sha256sum, existing_hash))
+                    "Checksum mismatch with local file {0}: "
+                    "expected {1} got {2}, will re-download.".format(
+                        path, sha256sum, existing_hash
+                    )
+                )
                 os.unlink(path)
 
-        logger.info(u'Downloading: {0}'.format(url))
+        logger.info("Downloading: {0}".format(url))
 
         dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
@@ -296,7 +313,7 @@ class Package():
         # Py3 sometimes has requests lib return bytes. Need to handle that
         r = self.mirror.master.get(url, required_serial=None, stream=True)
         checksum = hashlib.sha256()
-        with utils.rewrite(path, 'wb') as f:
+        with utils.rewrite(path, "wb") as f:
             for chunk in r.iter_content(chunk_size=64 * 1024):
                 checksum.update(chunk)
                 f.write(chunk)
@@ -309,6 +326,8 @@ class Package():
                 # checksum. Even if this should be the rare case of a
                 # re-upload this will fix itself in a later run.
                 raise ValueError(
-                    'Inconsistent file. {0} has hash {1} instead of {2}.'
-                    .format(url, existing_hash, sha256sum))
+                    "Inconsistent file. {0} has hash {1} instead of {2}.".format(
+                        url, existing_hash, sha256sum
+                    )
+                )
         return path

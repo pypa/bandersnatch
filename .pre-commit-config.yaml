@@ -8,6 +8,11 @@ repos:
     -   id: check-added-large-files
     -   id: flake8
         exclude: ^docs/conf.py$
+-   repo: https://github.com/ambv/black
+    rev: 18.6b2
+    hooks:
+    -   id: black
+        args: [--py36]
 -   repo: https://github.com/asottile/seed-isort-config
     rev: v1.0.1
     hooks:
