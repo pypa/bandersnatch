@@ -23,9 +23,7 @@ def _convert_url_to_path(url):
 
 async def _get_latest_json(json_path, config):  # noqa: E999
     url_parts = urlparse(config.get("mirror", "master"))
-    url = "{}://{}/pypi/{}/json".format(
-        url_parts.scheme, url_parts.netloc, json_path.name
-    )
+    url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
     await url_fetch(url, new_json_path)
@@ -33,9 +31,7 @@ async def _get_latest_json(json_path, config):  # noqa: E999
         os.rename(new_json_path, json_path)
         return
     logger.error(
-        "{} does not exist - Did not get new JSON metadata".format(
-            new_json_path.as_posix()
-        )
+        f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
     )
 
 
@@ -55,17 +51,23 @@ def _recursive_find_file(files, base_dir):
 
 
 def _unlink_parent_dir(path):
-    logger.info("unlink {}".format(path.as_posix()))
+    logger.info(f"unlink {path.as_posix()}")
     path.unlink()
     try:
         path.parent.rmdir()
-        logger.info("rmdir {}".format(path.parent.as_posix()))
+        logger.info(f"rmdir {path.parent.as_posix()}")
     except OSError as oe:
-        logger.debug("Did not remove {}: {}".format(path.parent.as_posix(), str(oe)))
+        logger.debug(f"Did not remove {path.parent.as_posix()}: {str(oe)}")
 
 
 async def verify(  # noqa: E999
-    config, json_file, mirror_base, all_package_files, args, releases_key="releases"
+    config,
+    json_file,
+    mirror_base,
+    all_package_files,
+    args,
+    executor,
+    releases_key="releases",
 ):
     json_base = Path(mirror_base) / "web/json"
     json_full_path = json_base / json_file
@@ -86,21 +88,20 @@ async def verify(  # noqa: E999
             pkg_file = Path(mirror_base) / "web" / _convert_url_to_path(jpkg["url"])
             if not pkg_file.exists():
                 if not args.dry_run:
-                    await url_fetch(jpkg["url"], pkg_file)
+                    await url_fetch(jpkg["url"], pkg_file, executor)
                 else:
-                    logger.info("{} would be fetched".format(jpkg["url"]))
+                    logger.info(f"{jpkg['url']} would be fetched")
 
             calc_sha256 = await loop.run_in_executor(
-                None, _sha256_checksum, pkg_file.as_posix()
+                executor, _sha256_checksum, pkg_file.as_posix()
             )
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
-                    await verify(json_file, mirror_base)
+                    await url_fetch(jpkg["url"], pkg_file, executor)
                 else:
                     logger.info(
-                        "[DRY RUN] {} has a sha256 mismatch. Would "
-                        + "redownload recursively".format(jpkg["info"]["name"])
+                        f"[DRY RUN] {jpkg['info']['name']} has a sha256 mismatch."
                     )
 
             all_package_files.append(pkg_file)
@@ -108,12 +109,12 @@ async def verify(  # noqa: E999
     logger.info(f"Finished validating {json_file}")
 
 
-async def url_fetch(url, file_path, chunk_size=65536, timeout=60):
+async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
     logger.info(f"Fetching {url}")
     loop = asyncio.get_event_loop()
 
     await loop.run_in_executor(
-        None, partial(file_path.parent.mkdir, parents=True, exist_ok=True)
+        executor, partial(file_path.parent.mkdir, parents=True, exist_ok=True)
     )
 
     custom_headers = {"User-Agent": ASYNC_USER_AGENT}
@@ -132,68 +133,64 @@ async def url_fetch(url, file_path, chunk_size=65536, timeout=60):
 
 
 async def async_verify(  # noqa: E999
-    config, all_package_files, mirror_base, json_files, args
-) -> int:
+    config, all_package_files, mirror_base, json_files, args, executor
+) -> None:
     coros = []
     logger.debug("Loading JSON files to verify")
     for json_file in json_files:
-        coros.append(verify(config, json_file, mirror_base, all_package_files, args))
+        coros.append(
+            verify(config, json_file, mirror_base, all_package_files, args, executor)
+        )
 
     logger.debug("Gathering all the verify threads")
     await asyncio.gather(*coros)
 
-    return 0
 
-
-def metadata_verify(config, args):
+async def metadata_verify(config, args):
     """ Crawl all saved JSON metadata or online to check we have all packages
         if delete - generate a diff of unowned files  """
+    all_package_files = []
+    loop = asyncio.get_event_loop()
     mirror_base = config.get("mirror", "directory")
     json_base = os.path.join(mirror_base, "web", "json")
     workers = args.workers or config.getint("mirror", "workers")
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
     logger.info(f"Starting verify for {mirror_base} with {workers} workers")
     try:
-        json_files = os.listdir(json_base)
+        json_files = await loop.run_in_executor(executor, os.listdir, json_base)
     except FileExistsError as fee:  # noqa: F821
         logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2
     if not json_files:
         logger.error("No JSON metadata files found. Can not verify")
         return 3
-    logger.debug("Found {} objects in {}".format(len(json_files), json_base))
 
-    all_package_files = []
-    loop = asyncio.get_event_loop()
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
-    loop.set_default_executor(executor)
+    logger.debug(f"Found {len(json_files)} objects in {json_base}")
     logger.debug(f"Using a {workers} thread ThreadPoolExecutor")
-    try:
-        if loop.run_until_complete(
-            async_verify(config, all_package_files, mirror_base, json_files, args)
-        ):
-            logger.error("Problem with the verification")
+    await async_verify(
+        config, all_package_files, mirror_base, json_files, args, executor
+    )
 
-        packages_path = Path(mirror_base) / "web/packages"
-        all_fs_files = set()
-        _recursive_find_file(all_fs_files, packages_path)
+    packages_path = Path(mirror_base) / "web/packages"
+    all_fs_files = set()
+    await loop.run_in_executor(
+        executor, _recursive_find_file, all_fs_files, packages_path
+    )
 
-        all_package_files_set = set(all_package_files)
-        unowned_files = all_fs_files - all_package_files_set
-        logger.info(
-            "We have {} files. {} unowned files".format(
-                len(all_package_files_set), len(unowned_files)
-            )
-        )
-        if args.dry_run:
-            print("[DRY RUN] Unowned file list:", file=stderr)
-            for f in sorted(unowned_files):
-                print(f)
-            return 0
+    all_package_files_set = set(all_package_files)
+    unowned_files = all_fs_files - all_package_files_set
+    logger.info(
+        f"We have {len(all_package_files_set)} files. "
+        + f"{len(unowned_files)} unowned files"
+    )
+    if args.dry_run and unowned_files:
+        print("[DRY RUN] Unowned file list:", file=stderr)
+        for f in sorted(unowned_files):
+            print(f)
+        return 0
 
-        del_coros = []
-        for file_path in unowned_files:
-            del_coros.append(loop.run_in_executor(None, _unlink_parent_dir, file_path))
-        loop.run_until_complete(asyncio.gather(*del_coros))
-    finally:
-        loop.close()
+    del_coros = []
+    for file_path in unowned_files:
+        del_coros.append(loop.run_in_executor(executor, _unlink_parent_dir, file_path))
+    await asyncio.gather(*del_coros)

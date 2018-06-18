@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import configparser
 import logging
 import logging.config
@@ -146,7 +147,11 @@ def main():
         )
 
     if args.op == "verify":
-        bandersnatch.verify.metadata_verify(config, args)
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(bandersnatch.verify.metadata_verify(config, args))
+        finally:
+            loop.close()
     else:
         mirror(config)
 
