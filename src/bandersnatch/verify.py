@@ -21,7 +21,7 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config):  # noqa: E999
+async def _get_latest_json(json_path, config):
     url_parts = urlparse(config.get("mirror", "master"))
     url = "{}://{}/pypi/{}/json".format(
         url_parts.scheme, url_parts.netloc, json_path.name
@@ -64,7 +64,7 @@ def _unlink_parent_dir(path):
         logger.debug("Did not remove {}: {}".format(path.parent.as_posix(), str(oe)))
 
 
-async def verify(  # noqa: E999
+async def verify(
     config, json_file, mirror_base, all_package_files, args, releases_key="releases"
 ):
     json_base = Path(mirror_base) / "web/json"
@@ -131,9 +131,7 @@ async def url_fetch(url, file_path, chunk_size=65536, timeout=60):
                     fd.write(chunk)
 
 
-async def async_verify(  # noqa: E999
-    config, all_package_files, mirror_base, json_files, args
-) -> int:
+async def async_verify(config, all_package_files, mirror_base, json_files, args) -> int:
     coros = []
     logger.debug("Loading JSON files to verify")
     for json_file in json_files:
@@ -155,7 +153,7 @@ def metadata_verify(config, args):
     logger.info(f"Starting verify for {mirror_base} with {workers} workers")
     try:
         json_files = os.listdir(json_base)
-    except FileExistsError as fee:  # noqa: F821
+    except FileExistsError as fee:
         logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2
     if not json_files:
