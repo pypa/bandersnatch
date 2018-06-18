@@ -10,8 +10,9 @@ packaging==17.1
 pycares==2.3.0
 pyparsing==2.2.0
 python-dateutil==2.7.3
-requests==2.18.4
+requests==2.19.1
+setuptools==39.2.0
 six==1.11.0
-urllib3==1.22
+urllib3==1.23
 xmlrpc2==0.3.1
 yarl==1.2.4

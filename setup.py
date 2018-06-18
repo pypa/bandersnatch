@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 from src.bandersnatch import __version__
 
-install_deps = ["aiodns", "aiohttp", "packaging", "requests", "xmlrpc2"]
+install_deps = ["aiodns", "aiohttp", "packaging", "requests", "setuptools", "xmlrpc2"]
 
 setup(
     name="bandersnatch",
