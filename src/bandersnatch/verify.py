@@ -21,7 +21,7 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config):  # noqa: E999
+async def _get_latest_json(json_path, config):
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
@@ -60,7 +60,8 @@ def _unlink_parent_dir(path):
         logger.debug(f"Did not remove {path.parent.as_posix()}: {str(oe)}")
 
 
-async def verify(  # noqa: E999
+
+async def verify(
     config,
     json_file,
     mirror_base,
@@ -132,7 +133,8 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
                     fd.write(chunk)
 
 
-async def async_verify(  # noqa: E999
+
+async def async_verify(
     config, all_package_files, mirror_base, json_files, args, executor
 ) -> None:
     coros = []
@@ -159,7 +161,7 @@ async def metadata_verify(config, args):
     logger.info(f"Starting verify for {mirror_base} with {workers} workers")
     try:
         json_files = await loop.run_in_executor(executor, os.listdir, json_base)
-    except FileExistsError as fee:  # noqa: F821
+    except FileExistsError as fee:
         logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2
     if not json_files:
