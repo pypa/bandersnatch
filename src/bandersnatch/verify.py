@@ -60,7 +60,6 @@ def _unlink_parent_dir(path):
         logger.debug(f"Did not remove {path.parent.as_posix()}: {str(oe)}")
 
 
-
 async def verify(
     config,
     json_file,
@@ -131,7 +130,6 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
                     if not chunk:
                         break
                     fd.write(chunk)
-
 
 
 async def async_verify(
