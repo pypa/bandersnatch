@@ -87,10 +87,12 @@ async def verify(
         for jpkg in pkg[releases_key][release_version]:
             pkg_file = Path(mirror_base) / "web" / _convert_url_to_path(jpkg["url"])
             if not pkg_file.exists():
-                if not args.dry_run:
-                    await url_fetch(jpkg["url"], pkg_file, executor)
-                else:
+                if args.dry_run:
                     logger.info(f"{jpkg['url']} would be fetched")
+                    all_package_files.append(pkg_file)
+                    continue
+                else:
+                    await url_fetch(jpkg["url"], pkg_file, executor)
 
             calc_sha256 = await loop.run_in_executor(
                 executor, _sha256_checksum, pkg_file.as_posix()
