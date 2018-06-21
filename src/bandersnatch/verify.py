@@ -16,6 +16,8 @@ from bandersnatch.utils import user_agent
 ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
 
+_VERIFIERS_COUNT = 3
+
 
 def _convert_url_to_path(url):
     return urlparse(url).path[1:]
@@ -143,7 +145,8 @@ async def async_verify(config, all_package_files, mirror_base, json_files, args,
             json_file = q.get_nowait()
             await verify(config, json_file, mirror_base, all_package_files, args, executor)
 
-    await consume(queue)
+    consumers = [consume(queue)] * _VERIFIERS_COUNT
+    await asyncio.gather(*consumers)
 
 
 async def metadata_verify(config, args):
