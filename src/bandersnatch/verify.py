@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
-
+from asyncio.queues import Queue
 import aiohttp
 
 from bandersnatch.utils import user_agent
@@ -139,8 +139,9 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 async def async_verify(
     config, all_package_files, mirror_base, json_files, args, executor
 ) -> None:
-    queue = asyncio.Queue()
-    [queue.put_nowait(json_file) for json_file in json_files]
+    queue = Queue()
+    for jf in json_files:
+        queue.put_nowait(jf)
 
     async def consume(q: asyncio.Queue):
         while not q.empty():
