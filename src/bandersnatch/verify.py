@@ -136,14 +136,18 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
                     fd.write(chunk)
 
 
-async def async_verify(config, all_package_files, mirror_base, json_files, args, executor) -> None:
+async def async_verify(
+    config, all_package_files, mirror_base, json_files, args, executor
+) -> None:
     queue = asyncio.Queue()
     [queue.put_nowait(json_file) for json_file in json_files]
 
     async def consume(q: asyncio.Queue):
         while not q.empty():
             json_file = q.get_nowait()
-            await verify(config, json_file, mirror_base, all_package_files, args, executor)
+            await verify(
+                config, json_file, mirror_base, all_package_files, args, executor
+            )
 
     consumers = [consume(queue)] * _VERIFIERS_COUNT
     await asyncio.gather(*consumers)
