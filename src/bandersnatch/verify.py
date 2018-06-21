@@ -134,18 +134,16 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
                     fd.write(chunk)
 
 
-async def async_verify(
-    config, all_package_files, mirror_base, json_files, args, executor
-) -> None:
-    coros = []
-    logger.debug("Loading JSON files to verify")
-    for json_file in json_files:
-        coros.append(
-            verify(config, json_file, mirror_base, all_package_files, args, executor)
-        )
+async def async_verify(config, all_package_files, mirror_base, json_files, args, executor) -> None:
+    queue = asyncio.Queue()
+    [queue.put_nowait(json_file) for json_file in json_files]
 
-    logger.debug("Gathering all the verify threads")
-    await asyncio.gather(*coros)
+    async def consume(q: asyncio.Queue):
+        while not q.empty():
+            json_file = q.get_nowait()
+            await verify(config, json_file, mirror_base, all_package_files, args, executor)
+
+    await consume(queue)
 
 
 async def metadata_verify(config, args):
