@@ -4,13 +4,14 @@ import hashlib
 import json
 import logging
 import os
+from asyncio.queues import Queue
 from functools import partial
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
-
 import aiohttp
 
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.utils import user_agent
 
 ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
@@ -137,15 +138,22 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 async def async_verify(
     config, all_package_files, mirror_base, json_files, args, executor
 ) -> None:
-    coros = []
-    logger.debug("Loading JSON files to verify")
-    for json_file in json_files:
-        coros.append(
-            verify(config, json_file, mirror_base, all_package_files, args, executor)
-        )
+    queue = asyncio.Queue()  # type: Queue
+    for jf in json_files:
+        queue.put_nowait(jf)
 
-    logger.debug("Gathering all the verify threads")
-    await asyncio.gather(*coros)
+    async def consume(q: Queue):
+        while not q.empty():
+            json_file = q.get_nowait()
+            await verify(
+                config, json_file, mirror_base, all_package_files, args, executor
+            )
+
+    config = BandersnatchConfig().config
+    verifiers = config.getint("mirror", "verifiers", fallback=3)
+    consumers = [consume(queue)] * verifiers
+
+    await asyncio.gather(*consumers)
 
 
 async def metadata_verify(config, args):

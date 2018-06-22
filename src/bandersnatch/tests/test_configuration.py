@@ -1,4 +1,5 @@
 import os
+import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -48,6 +49,7 @@ class TestBandersnatchConf(TestCase):
                 "master",
                 "stop-on-error",
                 "timeout",
+                "verifiers",
                 "workers",
             ],
         )
@@ -104,3 +106,7 @@ class TestBandersnatchConf(TestCase):
 
         instance2 = BandersnatchConfig()
         self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
+
+
+if __name__ == "__main__":
+    unittest.main()

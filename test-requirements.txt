@@ -4,3 +4,4 @@ pytest-timeout
 pytest-cache
 setuptools
 tox
+black
