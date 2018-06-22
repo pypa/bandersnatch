@@ -4,19 +4,18 @@ import hashlib
 import json
 import logging
 import os
+from asyncio.queues import Queue
 from functools import partial
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
-from asyncio.queues import Queue
 import aiohttp
 
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.utils import user_agent
 
 ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
-
-_VERIFIERS_COUNT = 3
 
 
 def _convert_url_to_path(url):
@@ -139,18 +138,21 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 async def async_verify(
     config, all_package_files, mirror_base, json_files, args, executor
 ) -> None:
-    queue = Queue()
+    queue = asyncio.Queue()  # type: Queue
     for jf in json_files:
         queue.put_nowait(jf)
 
-    async def consume(q: asyncio.Queue):
+    async def consume(q: Queue):
         while not q.empty():
             json_file = q.get_nowait()
             await verify(
                 config, json_file, mirror_base, all_package_files, args, executor
             )
 
-    consumers = [consume(queue)] * _VERIFIERS_COUNT
+    config = BandersnatchConfig().config
+    verifiers = config.getint("mirror", "verifiers", fallback=3)
+    consumers = [consume(queue)] * verifiers
+
     await asyncio.gather(*consumers)
 
 
