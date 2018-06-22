@@ -9,6 +9,7 @@ from functools import partial
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
+
 import aiohttp
 
 from bandersnatch.configuration import BandersnatchConfig
