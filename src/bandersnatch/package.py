@@ -179,7 +179,8 @@ class Package:
                     )
             except Exception as e:
                 logger.exception(
-                    f"Continuing to next file after error downloading: {release_file['url']}"
+                    f"Continuing to next file after error downloading: "
+                    f"{release_file['url']}"
                 )
                 if not deferred_exception:  # keep first exception
                     deferred_exception = e
