@@ -178,6 +178,7 @@ class Package:
                         os.path.relpath(downloaded_file, self.mirror.homedir)
                     )
             except Exception as e:
+                logger.exception(f"Continuing to next file after error downloading: {release_file['url']}")
                 if not deferred_exception:  # keep first exception
                     deferred_exception = e
         if deferred_exception:
