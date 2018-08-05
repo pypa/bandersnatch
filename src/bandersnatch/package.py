@@ -167,14 +167,25 @@ class Package:
             release_files.extend(release)
 
         downloaded_files = set()
+        deferred_exception = None
         for release_file in release_files:
-            downloaded_file = self.download_file(
-                release_file["url"], release_file["digests"]["sha256"]
-            )
-            if downloaded_file:
-                downloaded_files.add(
-                    os.path.relpath(downloaded_file, self.mirror.homedir)
+            try:
+                downloaded_file = self.download_file(
+                    release_file["url"], release_file["digests"]["sha256"]
                 )
+                if downloaded_file:
+                    downloaded_files.add(
+                        os.path.relpath(downloaded_file, self.mirror.homedir)
+                    )
+            except Exception as e:
+                logger.exception(
+                    f"Continuing to next file after error downloading: "
+                    f"{release_file['url']}"
+                )
+                if not deferred_exception:  # keep first exception
+                    deferred_exception = e
+        if deferred_exception:
+            raise deferred_exception  # raise the exception after trying all files
 
         self.mirror.altered_packages[self.name] = downloaded_files
 
