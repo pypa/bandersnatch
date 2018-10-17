@@ -60,6 +60,23 @@ class Master:
                         required_serial, path, got_serial
                     )
                 )
+                # HACK: The following attempts to purge the cache of the page we
+                # just tried to fetch. This works around PyPI's caches sometimes
+                # returning a stale serial for a package. Ideally, this should
+                # be fixed on the PyPI side, at which point the following code
+                # should be removed.
+                logger.debug(
+                    "Issuing a PURGE for {} to clear the cache".format(
+                        path
+                    )
+                )
+                try:
+                    self.session.request("PURGE", path, timeout=self.timeout)
+                except requests.exceptions.HTTPError:
+                    logger.warning(
+                        "Got an error when attempting to clear the cache", exc_info=True
+                    )
+
                 raise StalePage(
                     "Expected PyPI serial {} for request {} but got {}".format(
                         required_serial, path, got_serial
