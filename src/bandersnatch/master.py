@@ -65,11 +65,7 @@ class Master:
                 # returning a stale serial for a package. Ideally, this should
                 # be fixed on the PyPI side, at which point the following code
                 # should be removed.
-                logger.debug(
-                    "Issuing a PURGE for {} to clear the cache".format(
-                        path
-                    )
-                )
+                logger.debug(f"Issuing a PURGE for {path} to clear the cache")
                 try:
                     self.session.request("PURGE", path, timeout=self.timeout)
                 except requests.exceptions.HTTPError:
