@@ -80,7 +80,9 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config, executor, args.delete, args.proxy)
+            await _get_latest_json(
+                json_full_path, config, executor, args.delete, args.proxy
+            )
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
