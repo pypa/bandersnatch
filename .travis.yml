@@ -1,19 +1,24 @@
 language: python
+dist: xenial
 
 matrix:
   fast_finish: true
   include:
     - python: 3.6
       env: TOXENV=py36
-    - python: "3.7-dev"
+    - python: 3.7
       env: TOXENV=py37
+    - python: 3.8-dev
+      env: TOXENV=py38
     - python: 3.6
       env: TOXENV=doc_build
     - python: 3.6
       env: TOXENV=lint
+  allow_failures:
+    - env: TOXENV=py38
 
 install:
-    - pip install --upgrade pip
+    - pip install --upgrade pip setuptools
     - pip install -r requirements.txt
     - pip install -r test-requirements.txt
     - pip install .
