@@ -4,31 +4,22 @@ So you want to help out? **Awesome**. Go you!
 
 ## Getting Started
 
-We use a Bitbucket `hg` (Mercurial) repo.
+We use GitHub. To get started I'd suggest visiting https://guides.github.com/
 
 ### Pre Install
 Please make sure you system has the following:
 
-- Python 3.5 or greater
-- Mercurial Installed
+- Python 3.6 or greater
+- git cli client
 
-```
-# Mac OS X - To get latest version
-brew install hg
-
-# Ubuntu
-apt install mercurial
-
-# Windows - Please note, no recent bandersnatch changes have been tested on Windows
-https://www.mercurial-scm.org/wiki/WindowsInstall
-```
+Also esure you can authenticate with GitHub via SSH Keys or HTTPS.
 
 ### Checkout `bandersnatch`
 
 Lets now cd to where we want the code and use hg:
 
 - `cd somewhere`
-- `hg clone ssh://hg@bitbucket.org/pypa/bandersnatch`
+- `git clone git@github.com:pypa/bandersnatch.git`
 
 ### Development venv
 
@@ -38,7 +29,7 @@ One way to develop and install all the dependencies of bandersnatch is to use a 
 
 ```
 python3 -m venv /path/to/venv
-/path/to/venv/bin/pip install --upgrade pip
+/path/to/venv/bin/pip install --upgrade pip setuptools
 ```
 
 - Then we should install the dependencies to the venv:
