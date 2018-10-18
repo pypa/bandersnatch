@@ -74,7 +74,8 @@ class Master:
                     )
 
                 raise StalePage(
-                    "Expected PyPI serial {} for request {} but got {}".format(
+                    "Expected PyPI serial {} for request {} but got {}. "
+                    + "HTTP PURGE has been issued to the request url".format(
                         required_serial, path, got_serial
                     )
                 )
