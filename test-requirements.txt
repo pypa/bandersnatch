@@ -1,7 +1,6 @@
 black
 coverage
 pytest
-pytest-cov
 pytest-timeout
 pytest-cache
 setuptools
