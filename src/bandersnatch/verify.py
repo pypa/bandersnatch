@@ -132,7 +132,7 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60, prox
     async with aiohttp.ClientSession(
         headers=custom_headers, skip_auto_headers=skip_headers
     ) as session:
-        async with session.get(url, proxy=None, timeout=timeout) as response:
+        async with session.get(url, proxy=proxy, timeout=timeout) as response:
             if response.status == 200:
                 with file_path.open("wb") as fd:
                     while True:
