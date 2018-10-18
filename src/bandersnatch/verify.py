@@ -23,7 +23,7 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config, executor):
+async def _get_latest_json(json_path, config, executor, delete_removed_packages):
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
@@ -31,10 +31,12 @@ async def _get_latest_json(json_path, config, executor):
     await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
         os.rename(new_json_path, json_path)
-        return
-    logger.error(
-        f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
-    )
+    else:
+        logger.error(
+            f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
+        )
+    if delete_removed_packages:
+        os.unlink(json_path)
 
 
 def _sha256_checksum(filename, block_size=65536):
@@ -78,9 +80,12 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config, executor)
+            await _get_latest_json(json_full_path, config, executor, args.delete)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
+
+    if not json_full_path.exists():
+        return
 
     with json_full_path.open("r") as jfp:
         pkg = json.load(jfp)
@@ -128,12 +133,13 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
         headers=custom_headers, skip_auto_headers=skip_headers
     ) as session:
         async with session.get(url, timeout=timeout) as response:
-            with file_path.open("wb") as fd:
-                while True:
-                    chunk = await response.content.read(chunk_size)
-                    if not chunk:
-                        break
-                    fd.write(chunk)
+            if response.status == 200:
+                with file_path.open("wb") as fd:
+                    while True:
+                        chunk = await response.content.read(chunk_size)
+                        if not chunk:
+                            break
+                        fd.write(chunk)
 
 
 async def async_verify(
