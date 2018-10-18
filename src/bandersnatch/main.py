@@ -109,6 +109,11 @@ def main():
         help="Do not download or delete files",
     )
     v.add_argument(
+        "--proxy",
+        type=str,
+        help="Specify proxy server if required",
+    )
+    v.add_argument(
         "--json-update",
         action="store_true",
         default=False,

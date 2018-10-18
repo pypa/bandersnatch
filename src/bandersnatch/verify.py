@@ -23,12 +23,12 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config, executor, delete_removed_packages):
+async def _get_latest_json(json_path, config, executor, delete_removed_packages, proxy):
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
-    await url_fetch(url, new_json_path, executor)
+    await url_fetch(url, new_json_path, executor, proxy=proxy)
     if new_json_path.exists():
         os.rename(new_json_path, json_path)
     else:
@@ -80,7 +80,7 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config, executor, args.delete)
+            await _get_latest_json(json_full_path, config, executor, args.delete, args.proxy)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
@@ -99,7 +99,7 @@ async def verify(
                     all_package_files.append(pkg_file)
                     continue
                 else:
-                    await url_fetch(jpkg["url"], pkg_file, executor)
+                    await url_fetch(jpkg["url"], pkg_file, executor, proxy=args.proxy)
 
             calc_sha256 = await loop.run_in_executor(
                 executor, _sha256_checksum, pkg_file.as_posix()
@@ -107,7 +107,7 @@ async def verify(
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
-                    await url_fetch(jpkg["url"], pkg_file, executor)
+                    await url_fetch(jpkg["url"], pkg_file, executor, proxy=args.proxy)
                 else:
                     logger.info(
                         f"[DRY RUN] {jpkg['info']['name']} has a sha256 mismatch."
@@ -118,7 +118,7 @@ async def verify(
     logger.info(f"Finished validating {json_file}")
 
 
-async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
+async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60, proxy=None):
     logger.info(f"Fetching {url}")
     loop = asyncio.get_event_loop()
 
@@ -132,7 +132,7 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
     async with aiohttp.ClientSession(
         headers=custom_headers, skip_auto_headers=skip_headers
     ) as session:
-        async with session.get(url, timeout=timeout) as response:
+        async with session.get(url, proxy=None, timeout=timeout) as response:
             if response.status == 200:
                 with file_path.open("wb") as fd:
                     while True:
