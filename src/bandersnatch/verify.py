@@ -213,5 +213,7 @@ async def metadata_verify(config, args):
         else:
             del_coros = []
             for file_path in unowned_files:
-                del_coros.append(loop.run_in_executor(executor, _unlink_parent_dir, file_path))
+                del_coros.append(
+                    loop.run_in_executor(executor, _unlink_parent_dir, file_path)
+                )
             await asyncio.gather(*del_coros)
