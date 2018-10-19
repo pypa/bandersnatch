@@ -35,8 +35,8 @@ async def _get_latest_json(json_path, config, executor, delete_removed_packages,
         logger.error(
             f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
         )
-    if delete_removed_packages:
-        os.unlink(json_path)
+        if delete_removed_packages:
+            os.unlink(json_path)
 
 
 def _sha256_checksum(filename, block_size=65536):
