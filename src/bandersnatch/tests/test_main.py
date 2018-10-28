@@ -1,3 +1,4 @@
+import configparser
 import os.path
 import sys
 import unittest.mock as mock
@@ -64,6 +65,22 @@ def test_main_reads_custom_config_values(mirror_mock, logging_mock, customconfig
     (log_config, kwargs) = logging_mock.call_args_list[0]
     assert log_config == (str(customconfig / "bandersnatch-log.conf"),)
     assert mirror_mock().synchronize.called
+
+
+def test_main_throws_exception_on_unsupported_digest_name(customconfig):
+    conffile = str(customconfig / "bandersnatch.conf")
+    parser = configparser.ConfigParser()
+    parser.read(conffile)
+    parser["mirror"]["digest_name"] = "foobar"
+    del parser["mirror"]["log-config"]
+    with open(conffile, "w") as fp:
+        parser.write(fp)
+    sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
+
+    with pytest.raises(ValueError) as e:
+        main()
+
+    assert "foobar is not supported" in str(e.value)
 
 
 @pytest.fixture
