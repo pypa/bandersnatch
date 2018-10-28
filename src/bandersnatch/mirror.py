@@ -1,4 +1,5 @@
 import asyncio
+import atexit
 import concurrent.futures
 import datetime
 import fcntl
@@ -16,10 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Once we deprecate xml2rpc2 swap to aiohttp
-async def package_syncer(packages, workers, stop_on_error):  # noqa E999
-    logger.debug(f"Starting to sync packages {workers} at once")
+async def package_syncer(packages, thread_pool, stop_on_error):  # noqa E999
+    logger.debug(f"Starting to sync packages {thread_pool._max_workers} at once")
     loop = asyncio.get_event_loop()
-    thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     sync_coros = []
     for package in packages:
         sync_coros.append(
@@ -201,11 +201,20 @@ class Mirror:
         # Replace threading with asyncio executors for now
         loop = asyncio.new_event_loop()
         try:
+            atexit.unregister(concurrent.futures.thread._python_exit)
+            thread_pool = concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.workers
+            )
             tasks = loop.run_until_complete(
-                package_syncer(packages, self.workers, self.stop_on_error)
+                package_syncer(packages, thread_pool, self.stop_on_error)
             )
             if not tasks:
                 logger.error(f"Problem with package syncs: {tasks}")
+        except KeyboardInterrupt:
+            logger.info(
+                "Cancelling, all downloads are forcibly stopped, data may be corrupted"
+            )
+            thread_pool.shutdown(wait=False)
         finally:
             loop.close()
 
