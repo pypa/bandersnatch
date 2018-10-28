@@ -46,9 +46,9 @@ def mirror(config):
     except configparser.NoOptionError:
         digest_name = "sha256"
     if digest_name not in ("md5", "sha256"):
-        logger.error(
-            "Supplied digest_name {0} is not supported! Please update"
-            "digest_name to one of ('sha256', 'md5') in the [mirror]"
+        raise ValueError(
+            f"Supplied digest_name {digest_name} is not supported! Please "
+            "update digest_name to one of ('sha256', 'md5') in the [mirror] "
             "section."
         )
 
