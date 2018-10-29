@@ -9,7 +9,7 @@ We use GitHub. To get started I'd suggest visiting https://guides.github.com/
 ### Pre Install
 Please make sure you system has the following:
 
-- Python 3.6 or greater
+- Python 3.6.1 or greater
 - git cli client
 
 Also esure you can authenticate with GitHub via SSH Keys or HTTPS.

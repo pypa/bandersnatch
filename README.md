@@ -12,7 +12,7 @@ http://www.python.org/dev/peps/pep-0381/.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.6`
+- bandersnatch **requires** `>= Python 3.6.1`
 
 
 ### pip
