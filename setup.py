@@ -6,9 +6,14 @@ from setuptools import find_packages, setup
 
 from src.bandersnatch import __version__
 
-install_deps = ["aiodns", "aiohttp", "packaging", "requests", "setuptools", "xmlrpc2"]
-
 assert version_info >= (3, 6, 1), "black requires Python >=3.6.1"
+
+
+def get_install_deps():
+    """ Load requirements.txt to get pinned versions installed """
+    with open("requirements.txt") as rfp:
+        return rfp.read().split("\n")
+
 
 setup(
     name="bandersnatch",
@@ -23,7 +28,7 @@ setup(
     packages=find_packages("src"),
     package_dir={"": "src"},
     include_package_data=True,
-    install_requires=install_deps,
+    install_requires=get_install_deps(),
     entry_points="""
             [bandersnatch_filter_plugins.project]
                 blacklist_project = bandersnatch_filter_plugins.blacklist_name:BlacklistProject
