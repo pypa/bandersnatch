@@ -7,7 +7,7 @@ from src.bandersnatch import __version__
 
 install_deps = ["aiodns", "aiohttp", "packaging", "requests", "setuptools", "xmlrpc2"]
 
-assert sys.version_info >= (3, 6, 1), "black requires Python >=3.6.1"
+assert version_info >= (3, 6, 1), "black requires Python >=3.6.1"
 
 setup(
     name="bandersnatch",
