@@ -6,7 +6,6 @@ from setuptools import find_packages, setup
 
 from src.bandersnatch import __version__
 
-
 assert version_info >= (3, 6, 1), "black requires Python >=3.6.1"
 
 
