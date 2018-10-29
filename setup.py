@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-from setuptools import find_packages, setup
 from sys import version_info
+
+from setuptools import find_packages, setup
 
 from src.bandersnatch import __version__
 
