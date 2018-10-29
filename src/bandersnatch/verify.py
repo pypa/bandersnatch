@@ -183,6 +183,9 @@ async def metadata_verify(config, args):
         config, all_package_files, mirror_base, json_files, args, executor
     )
 
+    if not args.delete:
+        return
+
     packages_path = Path(mirror_base) / "web/packages"
     all_fs_files = set()
     await loop.run_in_executor(
@@ -195,13 +198,16 @@ async def metadata_verify(config, args):
         f"We have {len(all_package_files_set)} files. "
         + f"{len(unowned_files)} unowned files"
     )
-    if args.dry_run and unowned_files:
-        print("[DRY RUN] Unowned file list:", file=stderr)
-        for f in sorted(unowned_files):
-            print(f)
-        return 0
-
-    del_coros = []
-    for file_path in unowned_files:
-        del_coros.append(loop.run_in_executor(executor, _unlink_parent_dir, file_path))
-    await asyncio.gather(*del_coros)
+    if unowned_files:
+        if args.dry_run:
+            print("[DRY RUN] Unowned file list:", file=stderr)
+            for f in sorted(unowned_files):
+                print(f)
+            return 0
+        else:
+            del_coros = []
+            for file_path in unowned_files:
+                del_coros.append(
+                    loop.run_in_executor(executor, _unlink_parent_dir, file_path)
+                )
+            await asyncio.gather(*del_coros)
