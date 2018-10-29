@@ -13,7 +13,7 @@ Bandersnatch is developed using the [GitHub Flow](https://guides.github.com/intr
 ### Pre Install
 Please make sure you system has the following:
 
-- Python 3.6 or greater
+- Python 3.6.1 or greater
 
 ### Development venv
 One way to develop and install all the dependencies of bandersnatch is to use a venv.

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+from sys import version_info
+
 from setuptools import find_packages, setup
 
 from src.bandersnatch import __version__
 
 install_deps = ["aiodns", "aiohttp", "packaging", "requests", "setuptools", "xmlrpc2"]
+
+assert version_info >= (3, 6, 1), "black requires Python >=3.6.1"
 
 setup(
     name="bandersnatch",
