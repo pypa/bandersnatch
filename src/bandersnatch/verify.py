@@ -23,12 +23,12 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config):
+async def _get_latest_json(json_path, config, executor):
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
-    await url_fetch(url, new_json_path)
+    await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
         os.rename(new_json_path, json_path)
         return
@@ -78,7 +78,7 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config)
+            await _get_latest_json(json_full_path, config, executor)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
