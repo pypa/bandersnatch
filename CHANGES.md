@@ -1,3 +1,7 @@
+## 3.0.1 (2018-10-30)
+
+- Fix setup.py *url* to point at GitHub (https://github.com/pypa/bandersnatch)
+
 # 3.0.0 (2018-10-30)
 
 - Move to asyncio executors around request calls `Fixes #81` *(on BitBucket)*
