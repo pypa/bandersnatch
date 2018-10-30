@@ -21,12 +21,12 @@ This installs the latest stable, released version.
 
 ```
   $ python3.6 -m venv bandersnatch
-  $ bandersnatch/bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
+  $ bandersnatch/bin/pip install -r https://raw.githubusercontent.com/pypa/bandersnatch/master/requirements.txt
 ```
 
 ### zc.buildout
 
-This installs the current development version. Use 'hg up <version>' and run
+This installs the current development version. Use `git checkout <version>` and run
 buildout again to choose a specific release.
 
 ```
