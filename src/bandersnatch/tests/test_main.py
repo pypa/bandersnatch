@@ -54,6 +54,7 @@ def test_main_reads_config_values(mirror_mock):
         "root_uri": None,
         "json_save": False,
         "digest_name": "sha256",
+        "keep_index_versions": 0,
     } == kwargs
     assert mirror_mock().synchronize.called
 

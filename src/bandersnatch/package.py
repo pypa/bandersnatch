@@ -4,6 +4,7 @@ import logging
 import os.path
 import sys
 import time
+from datetime import datetime
 from urllib.parse import unquote, urlparse
 
 import pkg_resources
@@ -263,11 +264,46 @@ class Package:
         if not os.path.exists(self.normalized_simple_directory):
             os.makedirs(self.normalized_simple_directory)
 
-        normalized_simple_page = os.path.join(
-            self.normalized_simple_directory, "index.html"
-        )
-        with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
+        if self.mirror.keep_index_versions > 0:
+            self._save_simple_page_version(simple_page_content)
+        else:
+            normalized_simple_page = os.path.join(
+                self.normalized_simple_directory, "index.html"
+            )
+            with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
+                f.write(simple_page_content)
+
+    def _save_simple_page_version(self, simple_page_content):
+        versions_path = self._prepare_versions_path()
+        timestamp = datetime.utcnow().isoformat() + "Z"
+        version_file_name = f"index_{self.serial}_{timestamp}.html"
+        full_version_path = os.path.join(versions_path, version_file_name)
+        with utils.rewrite(full_version_path, "w", encoding="utf-8") as f:
             f.write(simple_page_content)
+
+        symlink_path = os.path.join(
+            self.normalized_legacy_simple_directory, "index.html"
+        )
+        if os.path.exists(symlink_path):
+            os.remove(symlink_path)
+
+        os.symlink(full_version_path, symlink_path)
+
+    def _prepare_versions_path(self):
+        versions_path = os.path.join(
+            self.normalized_legacy_simple_directory, "versions"
+        )
+        if not os.path.exists(versions_path):
+            os.makedirs(versions_path)
+        else:
+            version_files = sorted(os.listdir(versions_path))
+            version_files_to_remove = (
+                len(version_files) - self.mirror.keep_index_versions + 1
+            )
+            for i in range(version_files_to_remove):
+                os.remove(os.path.join(versions_path, version_files[i]))
+
+        return versions_path
 
     def _file_url_to_local_url(self, url):
         parsed = urlparse(url)

@@ -61,6 +61,7 @@ def mirror(config):
         json_save=json_save,
         root_uri=root_uri,
         digest_name=digest_name,
+        keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
     )
 
     changed_packages = mirror.synchronize()
