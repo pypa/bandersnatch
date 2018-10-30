@@ -89,8 +89,12 @@ async def verify(
         logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
         return
 
-    with json_full_path.open("r") as jfp:
-        pkg = json.load(jfp)
+    try:
+        with json_full_path.open("r") as jfp:
+            pkg = json.load(jfp)
+    except json.decoder.JSONDecodeError as jde:
+        logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
+        return
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
@@ -132,7 +136,7 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
     skip_headers = {"User-Agent"}
 
     async with aiohttp.ClientSession(
-        headers=custom_headers, skip_auto_headers=skip_headers
+        headers=custom_headers, skip_auto_headers=skip_headers, trust_env=True
     ) as session:
         async with session.get(url, timeout=timeout) as response:
             if response.status == 200:
