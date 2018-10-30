@@ -23,7 +23,7 @@ def _convert_url_to_path(url):
     return urlparse(url).path[1:]
 
 
-async def _get_latest_json(json_path, config, executor):
+async def _get_latest_json(json_path, config, executor, delete_removed_packages=False):
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
@@ -31,10 +31,13 @@ async def _get_latest_json(json_path, config, executor):
     await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
         os.rename(new_json_path, json_path)
-        return
-    logger.error(
-        f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
-    )
+    else:
+        logger.error(
+            f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
+        )
+        if delete_removed_packages and json_path.exists():
+            logger.debug(f"Unlinking {json_path} - assuming it does not exist upstream")
+            json_path.unlink()
 
 
 def _sha256_checksum(filename, block_size=65536):
@@ -78,9 +81,13 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config, executor)
+            await _get_latest_json(json_full_path, config, executor, args.delete)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
+
+    if not json_full_path.exists():
+        logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
+        return
 
     with json_full_path.open("r") as jfp:
         pkg = json.load(jfp)
@@ -128,12 +135,15 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
         headers=custom_headers, skip_auto_headers=skip_headers
     ) as session:
         async with session.get(url, timeout=timeout) as response:
-            with file_path.open("wb") as fd:
-                while True:
-                    chunk = await response.content.read(chunk_size)
-                    if not chunk:
-                        break
-                    fd.write(chunk)
+            if response.status == 200:
+                with file_path.open("wb") as fd:
+                    while True:
+                        chunk = await response.content.read(chunk_size)
+                        if not chunk:
+                            break
+                        fd.write(chunk)
+            else:
+                logger.error(f"Invalid response from {url} ({response.status})")
 
 
 async def async_verify(
@@ -183,6 +193,9 @@ async def metadata_verify(config, args):
         config, all_package_files, mirror_base, json_files, args, executor
     )
 
+    if not args.delete:
+        return
+
     packages_path = Path(mirror_base) / "web/packages"
     all_fs_files = set()
     await loop.run_in_executor(
@@ -195,13 +208,16 @@ async def metadata_verify(config, args):
         f"We have {len(all_package_files_set)} files. "
         + f"{len(unowned_files)} unowned files"
     )
-    if args.dry_run and unowned_files:
-        print("[DRY RUN] Unowned file list:", file=stderr)
-        for f in sorted(unowned_files):
-            print(f)
-        return 0
-
-    del_coros = []
-    for file_path in unowned_files:
-        del_coros.append(loop.run_in_executor(executor, _unlink_parent_dir, file_path))
-    await asyncio.gather(*del_coros)
+    if unowned_files:
+        if args.dry_run:
+            print("[DRY RUN] Unowned file list:", file=stderr)
+            for f in sorted(unowned_files):
+                print(f)
+            return 0
+        else:
+            del_coros = []
+            for file_path in unowned_files:
+                del_coros.append(
+                    loop.run_in_executor(executor, _unlink_parent_dir, file_path)
+                )
+            await asyncio.gather(*del_coros)
