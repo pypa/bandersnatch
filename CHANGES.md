@@ -1,11 +1,19 @@
-## 3.0.0 (Unreleased)
+## 3.0.1 (2018-10-30)
 
-- Move to asyncio executors around request calls
+- Fix setup.py *url* to point at GitHub (https://github.com/pypa/bandersnatch)
+
+# 3.0.0 (2018-10-30)
+
+- Move to asyncio executors around request calls `Fixes #81` *(on BitBucket)*
 - Use platform.uname() to support Windows `Fixes #19`
+- Add **bandersnatch verify** subcommand to re-download + delete unneeded packages `Fixes #8` + many follow on Issues during testing - Thanks **electricworry** & **tau3** for testing + fixes!
+- Introduce much more Lint checks (black, isort, mypy) other than flake8 - Thanks **@asottile**
+- Make tox run lint checks + print out test coverage - Thanks **@cooperlees**
+- Add whitelist + blacklist plugins - Thanks **@dwighthubbard**
+- Add generated documentation - Thanks **@dwighthubbard**
+- Move to requiring Python >= 3.6.1 `Fixes #66`
 
-
-* Move to GitHub @ PyCon US 2018 *
-
+**Moved to GitHub @ PyCon US 2018 - All `Fixes` now refer to GitHub issues**
 
 ## 2.2.1 (2018-05-01)
 

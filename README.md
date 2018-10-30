@@ -14,25 +14,13 @@ virtualenv under `bandersnatch/bin/bandersnatch`.
 
 - bandersnatch **requires** `>= Python 3.6.1`
 
-
 ### pip
 
 This installs the latest stable, released version.
 
 ```
   $ python3.6 -m venv bandersnatch
-  $ bandersnatch/bin/pip install -r https://bitbucket.org/pypa/bandersnatch/raw/stable/requirements.txt
-```
-
-### zc.buildout
-
-This installs the current development version. Use 'hg up <version>' and run
-buildout again to choose a specific release.
-
-```
-  $ git clone https://github.com/pypa/bandersnatch
-  $ cd bandersnatch
-  $ ./bootstrap.sh
+  $ bandersnatch/bin/pip install bandersnatch
 ```
 
 ## Quickstart
@@ -133,6 +121,17 @@ other purposes.
 An example of an unsupported API is PyPI's XML-RPC interface, which is used
 when running `pip search`.
 
+### zc.buildout
+- *WARNING* This feature has not been kept updated
+
+This installs the current development version. Use `git checkout <commit-hash>` and run buildout again to choose a specific release.
+
+```
+  $ git clone https://github.com/pypa/bandersnatch
+  $ cd bandersnatch
+  $ ./bootstrap.sh
+```
+
 ### Contact
 
 If you have questions or comments, please submit a bug report to
@@ -147,7 +146,9 @@ chat rooms, and mailing lists is expected to follow the
 
 ### Kudos
 
-This client is based on the original pep381client by Martin v. Loewis.
+This client is based on the original pep381client by *Martin v. Loewis*.
 
 *Richard Jones* was very patient answering questions at PyCon 2013 and made the
 protocol more reliable by implementing some PyPI enhancements.
+
+*Christian Theune* for creating and maintaining `bandersnatch` for many years!

@@ -67,6 +67,7 @@ class Mirror:
         json_save=False,
         digest_name=None,
         root_uri=None,
+        keep_index_versions=0,
     ):
         logger.info(f"{USER_AGENT}")
         self.homedir = homedir
@@ -75,6 +76,7 @@ class Mirror:
         self.json_save = json_save
         self.hash_index = hash_index
         self.root_uri = root_uri
+        self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
         self.workers = workers
         if self.workers > 10:

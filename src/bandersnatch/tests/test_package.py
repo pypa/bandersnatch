@@ -1,6 +1,9 @@
 import os.path
 import unittest.mock as mock
+from datetime import datetime
+from pathlib import Path
 
+from freezegun import freeze_time
 from requests import HTTPError
 
 from bandersnatch.package import Package
@@ -674,3 +677,133 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
 """
     )
     assert mirror.errors
+
+
+@freeze_time("2018-10-28")
+def test_keep_index_versions_stores_one_prior_version(mirror, requests):
+    requests.prepare(
+        {
+            "releases": {
+                "0.1": [
+                    {
+                        "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
+                        "filename": "foo.zip",
+                        "digests": {
+                            "md5": "b6bcb391b040c4468262706faf9d3cce",
+                            "sha256": (
+                                "02db45ea4e09715fbb1ed0fef30d7324db07c"
+                                "9e87fb0d4e5470a3e4e878bd8cd"
+                            ),
+                        },
+                        "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
+                    }
+                ]
+            }
+        },
+        10,
+    )
+    requests.prepare(b"the release content", 10)
+
+    mirror.packages_to_sync = {"foo": None}
+    mirror.keep_index_versions = 1
+    package = Package("foo", 10, mirror)
+    package.sync()
+
+    simple_path = "web/simple/foo/"
+    versions_path = os.path.join(simple_path, "versions")
+    version_files = os.listdir(versions_path)
+    assert len(version_files) == 1
+    assert (
+        version_files[0]
+        == f"index_{package.serial}_{datetime.utcnow().isoformat()}Z.html"
+    )
+    link_path = os.path.join(simple_path, "index.html")
+    assert os.path.islink(link_path)
+    assert os.path.basename(os.readlink(link_path)) == version_files[0]
+
+
+def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
+    response = {
+        "releases": {
+            "0.1": [
+                {
+                    "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
+                    "filename": "foo.zip",
+                    "digests": {
+                        "md5": "b6bcb391b040c4468262706faf9d3cce",
+                        "sha256": (
+                            "02db45ea4e09715fbb1ed0fef30d7324db07c"
+                            "9e87fb0d4e5470a3e4e878bd8cd"
+                        ),
+                    },
+                    "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
+                }
+            ]
+        }
+    }
+    requests.prepare(response, 10)
+    requests.prepare(b"the release content", 10)
+
+    simple_path = "web/simple/foo/"
+    versions_path = os.path.join(simple_path, "versions")
+    mirror.packages_to_sync = {"foo": None}
+    mirror.keep_index_versions = 2
+    with freeze_time("2018-10-27"):
+        package = Package("foo", 10, mirror)
+        package.sync()
+
+    requests.prepare(response, 11)
+    requests.prepare(b"the release content", 11)
+    with freeze_time("2018-10-28"):
+        package = Package("foo", 11, mirror)
+        package.sync()
+
+    version_files = os.listdir(versions_path)
+    assert len(version_files) == 2
+    assert version_files[0].startswith("index_10_2018-10-27")
+    assert version_files[1].startswith("index_11_2018-10-28")
+    link_path = os.path.join(simple_path, "index.html")
+    assert os.path.islink(link_path)
+    assert os.path.basename(os.readlink(link_path)) == version_files[1]
+
+
+def test_keep_index_versions_removes_old_versions(mirror, requests):
+    simple_path = Path("web/simple/foo/")
+    versions_path = simple_path / "versions"
+    versions_path.mkdir(parents=True)
+    versions_path.joinpath("index_10_2018-10-26T00:00:00Z.html").touch()
+    versions_path.joinpath("index_10_2018-10-27T00:00:00Z.html").touch()
+
+    response = {
+        "releases": {
+            "0.1": [
+                {
+                    "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
+                    "filename": "foo.zip",
+                    "digests": {
+                        "md5": "b6bcb391b040c4468262706faf9d3cce",
+                        "sha256": (
+                            "02db45ea4e09715fbb1ed0fef30d7324db07c"
+                            "9e87fb0d4e5470a3e4e878bd8cd"
+                        ),
+                    },
+                    "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
+                }
+            ]
+        }
+    }
+    requests.prepare(response, 11)
+    requests.prepare(b"the release content", 11)
+
+    mirror.keep_index_versions = 2
+    with freeze_time("2018-10-28"):
+        package = Package("foo", 11, mirror)
+        package.sync()
+
+    version_files = sorted([f for f in versions_path.iterdir()])
+    assert len(version_files) == 2
+    assert version_files[0].name.startswith("index_10_2018-10-27")
+    assert version_files[1].name.startswith("index_11_2018-10-28")
+    link_path = simple_path / "index.html"
+    assert link_path.is_symlink()
+    assert os.path.basename(os.readlink(link_path)) == version_files[1].name
