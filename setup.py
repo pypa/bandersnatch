@@ -24,7 +24,7 @@ setup(
     author="Christian Theune",
     author_email="ct@flyingcircus.io",
     license="Academic Free License, version 3",
-    url="http://bitbucket.org/pypa/bandersnatch/",
+    url="https://github.com/pypa/bandersnatch/",
     packages=find_packages("src"),
     package_dir={"": "src"},
     include_package_data=True,
