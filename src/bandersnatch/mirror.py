@@ -5,6 +5,7 @@ import datetime
 import fcntl
 import logging
 import os
+from concurrent.futures import thread as futures_thread
 from threading import RLock
 
 from packaging.utils import canonicalize_name
@@ -201,7 +202,7 @@ class Mirror:
         # Replace threading with asyncio executors for now
         loop = asyncio.new_event_loop()
         try:
-            atexit.unregister(concurrent.futures.thread._python_exit)
+            atexit.unregister(futures_thread._python_exit)
             thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.workers
             )
