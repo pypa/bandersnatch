@@ -2,12 +2,12 @@ import asyncio
 import atexit
 import concurrent.futures
 import datetime
-import fcntl
 import logging
 import os
 from concurrent.futures import thread as futures_thread
 from threading import RLock
 
+from filelock import FileLock, Timeout
 from packaging.utils import canonicalize_name
 
 from .filter import filter_project_plugins
@@ -69,6 +69,7 @@ class Mirror:
         digest_name=None,
         root_uri=None,
         keep_index_versions=0,
+        flock_timeout=1,
     ):
         logger.info(f"{USER_AGENT}")
         self.homedir = homedir
@@ -82,7 +83,7 @@ class Mirror:
         self.workers = workers
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
-        self._bootstrap()
+        self._bootstrap(flock_timeout)
         self._finish_lock = RLock()
 
         # Lets record and report back the changes we do each run
@@ -294,7 +295,7 @@ class Mirror:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
-    def _bootstrap(self):
+    def _bootstrap(self, flock_timeout=1):
         paths = ["", "web/simple", "web/packages", "web/local-stats/days"]
         if self.json_save:
             logger.debug("Adding json directories to bootstrap")
@@ -305,17 +306,17 @@ class Mirror:
                 logger.info(f"Setting up mirror directory: {path}")
                 os.makedirs(path)
 
-        self.lockfile = open(os.path.join(self.homedir, ".lock"), "wb")
+        flock_path = os.path.join(self.homedir, ".lock")
+        flock = FileLock(flock_path)
         try:
-            fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except IOError:
+            with flock.acquire(timeout=flock_timeout):
+                self._cleanup()
+                self._load()
+        except Timeout:
             raise RuntimeError(
-                "Could not acquire lock on {}. "
-                "Another instance seems to be running.".format(self.lockfile.name)
+                f"Could not acquire lock on {flock_path}. "
+                + "Another instance could be running?"
             )
-
-        self._cleanup()
-        self._load()
 
     @property
     def statusfile(self):
