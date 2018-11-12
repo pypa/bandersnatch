@@ -147,15 +147,15 @@ class Package:
 
     def _filter_releases(self):
         """
-        Run the release filtering plugins and remove any packages from the
-        packages_to_sync that match any filters.
+        Run the release filtering plugins and remove any releases from
+        `releases` that match any filters.
         """
         versions = list(self.releases.keys())
         for version in versions:
-            filter = False
+            filter_ = False
             for plugin in filter_release_plugins():
-                filter = filter or plugin.check_match(name=self.name, version=version)
-            if filter:
+                filter_ = filter_ or plugin.check_match(name=self.name, version=version)
+            if filter_:
                 del (self.releases[version])
 
     # TODO: async def once we go full asyncio - Have concurrency at the

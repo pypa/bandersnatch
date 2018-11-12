@@ -191,3 +191,5 @@ plugins =
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertIn("blacklist_release", names)
+
+        # TODO: add test for existing release plugin

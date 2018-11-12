@@ -32,6 +32,7 @@ setup(
                 whitelist_project = bandersnatch_filter_plugins.whitelist_name:WhitelistProject
             [bandersnatch_filter_plugins.release]
                 blacklist_release = bandersnatch_filter_plugins.blacklist_name:BlacklistRelease
+                regex_release = bandersnatch_filter_plugins.regex_name:RegexReleaseFilter
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
             [zc.buildout]
