@@ -2,9 +2,7 @@ import os
 import re
 from collections import defaultdict
 from tempfile import TemporaryDirectory
-from unittest import TestCase, mock
-
-import pytest
+from unittest import TestCase
 
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
@@ -55,7 +53,7 @@ releases =
             self.tempdir = None
 
     def test_plugin_compiles_patterns(self):
-        cfg = _mock_config(self.config_contents)
+        _mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
@@ -66,9 +64,9 @@ releases =
         assert plugin.patterns == [re.compile(r".+rc\d$")]
 
     def test_plugin_check_match(self):
-        cfg = _mock_config(self.config_contents)
+        _mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)

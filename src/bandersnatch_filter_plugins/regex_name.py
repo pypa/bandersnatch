@@ -1,7 +1,7 @@
 import logging
 import re
 
-from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
+from bandersnatch.filter import FilterReleasePlugin
 
 logger = logging.getLogger(__name__)
 
