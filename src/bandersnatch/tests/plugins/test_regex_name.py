@@ -9,7 +9,7 @@ from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
-from bandersnatch_filter_plugins.regex_name import RegexReleaseFilter
+from bandersnatch_filter_plugins import regex_name
 
 
 def _mock_config(contents, filename="test.conf"):
@@ -26,19 +26,10 @@ def _mock_config(contents, filename="test.conf"):
     return instance
 
 
-class TestRegexReleaseFilter(TestCase):
+class BasePluginTestCase(TestCase):
 
     tempdir = None
     cwd = None
-    config_contents = """\
-[blacklist]
-plugins =
-    regex_release
-
-[regex]
-releases =
-    .+rc\\d$
-"""
 
     def setUp(self):
         self.cwd = os.getcwd()
@@ -52,14 +43,29 @@ releases =
             self.tempdir.cleanup()
             self.tempdir = None
 
+
+class TestRegexReleaseFilter(BasePluginTestCase):
+
+    config_contents = """\
+[blacklist]
+plugins =
+    regex_release
+
+[regex]
+releases =
+    .+rc\\d$
+"""
+
     def test_plugin_compiles_patterns(self):
         _mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
-        assert any(type(plugin) == RegexReleaseFilter for plugin in plugins)
+        assert any(type(plugin) == regex_name.RegexReleaseFilter for plugin in plugins)
         plugin = next(
-            plugin for plugin in plugins if type(plugin) == RegexReleaseFilter
+            plugin
+            for plugin in plugins
+            if type(plugin) == regex_name.RegexReleaseFilter
         )
         assert plugin.patterns == [re.compile(r".+rc\d$")]
 
@@ -75,3 +81,40 @@ releases =
         pkg._filter_releases()
 
         assert pkg.releases == {"foo-1.2.0": {}}
+
+
+class TestRegexProjectFilter(BasePluginTestCase):
+
+    config_contents = """\
+[blacklist]
+plugins =
+    regex_project
+
+[regex]
+packages =
+    .+-evil$
+"""
+
+    def test_plugin_compiles_patterns(self):
+        _mock_config(self.config_contents)
+
+        plugins = bandersnatch.filter.filter_project_plugins()
+
+        assert any(type(plugin) == regex_name.RegexProjectFilter for plugin in plugins)
+        plugin = next(
+            plugin
+            for plugin in plugins
+            if type(plugin) == regex_name.RegexProjectFilter
+        )
+        assert plugin.patterns == [re.compile(r".+-evil$")]
+
+    def test_plugin_check_match(self):
+        _mock_config(self.config_contents)
+
+        bandersnatch.filter.filter_release_plugins()
+
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo-good": {}, "foo-evil": {}}
+        mirror._filter_packages()
+
+        assert list(mirror.packages_to_sync.keys()) == ["foo-good"]
