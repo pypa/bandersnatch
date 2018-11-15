@@ -10,6 +10,7 @@ class RegexReleaseFilter(FilterReleasePlugin):
     """
     Filters releases based on regex patters defined by the user.
     """
+
     name = "regex_release"
 
     def initialize_plugin(self):
@@ -20,14 +21,14 @@ class RegexReleaseFilter(FilterReleasePlugin):
         try:
             config = self.configuration["regex"]["releases"]
         except KeyError:
-            return
+            self.patterns = []
+        else:
+            pattern_strings = [pattern for pattern in config.split("\n") if pattern]
+            self.patterns = [
+                re.compile(pattern_string) for pattern_string in pattern_strings
+            ]
 
-        pattern_strings = [pattern for pattern in config.split("\n") if pattern]
-        self.patterns = [
-            re.compile(pattern_string) for pattern_string in pattern_strings
-        ]
-
-        logger.info(f"Initialized regex release plugin with {self.patterns}")
+            logger.info(f"Initialized regex release plugin with {self.patterns}")
 
     def check_match(self, name, version):
         """

@@ -1,16 +1,16 @@
 import os
-from collections import defaultdict
 import re
+from collections import defaultdict
 from tempfile import TemporaryDirectory
 from unittest import TestCase, mock
 
 import pytest
 
 import bandersnatch.filter
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch_filter_plugins.regex_name import RegexReleaseFilter
 
 
@@ -39,7 +39,7 @@ plugins =
 
 [regex]
 releases =
-    .+rc\d$
+    .+rc\\d$
 """
 
     def setUp(self):
@@ -60,7 +60,9 @@ releases =
         plugins = bandersnatch.filter.filter_release_plugins()
 
         assert any(type(plugin) == RegexReleaseFilter for plugin in plugins)
-        plugin = next(plugin for plugin in plugins if type(plugin) == RegexReleaseFilter)
+        plugin = next(
+            plugin for plugin in plugins if type(plugin) == RegexReleaseFilter
+        )
         assert plugin.patterns == [re.compile(r".+rc\d$")]
 
     def test_plugin_check_match(self):
@@ -69,14 +71,9 @@ releases =
         plugins = bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
-        pkg = Package('foo', 1, mirror)
-        pkg.releases = {
-            "foo-1.2.0rc2": {},
-            "foo-1.2.0": {},
-        }
+        pkg = Package("foo", 1, mirror)
+        pkg.releases = {"foo-1.2.0rc2": {}, "foo-1.2.0": {}}
 
         pkg._filter_releases()
 
         assert pkg.releases == {"foo-1.2.0": {}}
-
-
