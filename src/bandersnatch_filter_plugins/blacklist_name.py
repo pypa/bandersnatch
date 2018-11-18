@@ -78,7 +78,7 @@ class BlacklistProject(FilterProjectPlugin):
             return False
 
         if name in self.blacklist_package_names:
-            logger.debug(f"MATCH: Package {name!r} is in the blacklist")
+            logger.info(f"Package {name!r} is blacklisted")
             return True
         return False
 

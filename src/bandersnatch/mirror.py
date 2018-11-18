@@ -135,15 +135,19 @@ class Mirror:
         """
         Run the package filtering plugins and remove any packages from the
         packages_to_sync that match any filters.
+        - Logging of action will be done within the check_match methods
         """
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
             for plugin in filter_project_plugins():
                 if plugin.check_match(name=package_name):
-                    logger.info(
-                        f"Filtered project " f"{plugin.name}(name={package_name!r})"
-                    )
-                    del (self.packages_to_sync[package_name])
+                    if package_name not in self.packages_to_sync:
+                        logger.error(
+                            f"{package_name} not found in packages to sync - "
+                            + f"{plugin.name} has no effect here ..."
+                        )
+                    else:
+                        del (self.packages_to_sync[package_name])
 
     def determine_packages_to_sync(self):
         """

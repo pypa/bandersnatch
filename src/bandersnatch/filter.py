@@ -11,7 +11,7 @@ from .configuration import BandersnatchConfig
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
-class Filter(object):
+class Filter:
     """
     Base Filter class
     """

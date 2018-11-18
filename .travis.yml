@@ -6,25 +6,28 @@ matrix:
   include:
     - python: 3.6
       env: TOXENV=py36
-    - python: 3.7
-      env: TOXENV=py37
-    - python: 3.8-dev
-      env: TOXENV=py38
+    - python: 3.6
+      env: TOXENV=INTEGRATION
     - python: 3.6
       env: TOXENV=doc_build
     - python: 3.6
       env: TOXENV=lint
+    - python: 3.7
+      env: TOXENV=py37
+    - python: 3.8-dev
+      env: TOXENV=py38
   allow_failures:
     - env: TOXENV=py38
 
 install:
+    - mkdir -v /tmp/pypi
     - pip install --upgrade pip setuptools
     - pip install -r requirements.txt
     - pip install -r test-requirements.txt
     - pip install .
 
 script:
-    - tox
+    - bash test_runner.sh
 
 notifications:
   irc:

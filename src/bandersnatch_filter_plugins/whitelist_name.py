@@ -16,7 +16,7 @@ class WhitelistProject(FilterProjectPlugin):
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
         self.whitelist_package_names = self._determine_unfiltered_package_names()
-        logger.debug(
+        logger.info(
             f"Initialized project plugin {self.name!r}, filtering "
             f"{self.whitelist_package_names!r}"
         )
@@ -68,6 +68,6 @@ class WhitelistProject(FilterProjectPlugin):
             return False
 
         if name in self.whitelist_package_names:
-            logger.debug(f"MATCH: Package {name!r} is in the whitelist")
+            logger.info(f"Package {name!r} is whitelisted")
             return False
         return True
