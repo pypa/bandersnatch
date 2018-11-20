@@ -5,7 +5,8 @@
 # then check for outputs to exist
 
 CI_CONFIG="src/bandersnatch/tests/ci.conf"
-MIRROR_BASE="/tmp/pypi/web"
+MIRROR_ROOT="/tmp/pypi"
+MIRROR_BASE="$MIRROR_ROOT/web"
 TGZ_SHA256="bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
 
 
@@ -78,5 +79,6 @@ then
   tox
 else
   echo "Running Ingtegration tests due to TOXENV set to INTEGRATION"
+  mkdir -v $MIRROR_ROOT
   do_ci
 fi

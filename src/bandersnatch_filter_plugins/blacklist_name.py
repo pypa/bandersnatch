@@ -5,7 +5,7 @@ from packaging.version import InvalidVersion, Version
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bandersnatch")
 
 
 class BlacklistProject(FilterProjectPlugin):

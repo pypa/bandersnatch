@@ -20,7 +20,6 @@ matrix:
     - env: TOXENV=py38
 
 install:
-    - mkdir -v /tmp/pypi
     - pip install --upgrade pip setuptools
     - pip install -r requirements.txt
     - pip install -r test-requirements.txt

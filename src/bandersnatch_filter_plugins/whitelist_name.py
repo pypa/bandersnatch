@@ -2,7 +2,7 @@ import logging
 
 from bandersnatch.filter import FilterProjectPlugin
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bandersnatch")
 
 
 class WhitelistProject(FilterProjectPlugin):
