@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.org/pypa/bandersnatch.svg?branch=master)](https://travis-ci.org/pypa/bandersnatch)
 [![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
 [![Updates](https://pyup.io/repos/github/pypa/bandersnatch/shield.svg)](https://pyup.io/repos/github/pypa/bandersnatch/)
+[![Downloads](https://pepy.tech/badge/bandersnatch)](https://pepy.tech/project/bandersnatch)
 
 ----
 
