@@ -13,7 +13,7 @@ py==1.7.0
 pycares==2.3.0
 pyparsing==2.3.0
 python-dateutil==2.7.5
-requests==2.20.0
+requests==2.20.1
 setuptools==40.5.0
 six==1.11.0
 toml==0.10.0
