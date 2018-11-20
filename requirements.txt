@@ -11,7 +11,7 @@ packaging==18.0
 pluggy==0.8.0
 py==1.7.0
 pycares==2.3.0
-pyparsing==2.2.2
+pyparsing==2.3.0
 python-dateutil==2.7.5
 requests==2.20.0
 setuptools==40.5.0
