@@ -1,4 +1,4 @@
-black
+black==18.9b0
 coverage
 pytest
 pytest-timeout
