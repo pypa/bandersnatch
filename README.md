@@ -1,6 +1,7 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![Build Status](https://travis-ci.org/pypa/bandersnatch.svg?branch=master)](https://travis-ci.org/pypa/bandersnatch)
 [![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![Updates](https://pyup.io/repos/github/pypa/bandersnatch/shield.svg)](https://pyup.io/repos/github/pypa/bandersnatch/)
 
 ----
 
