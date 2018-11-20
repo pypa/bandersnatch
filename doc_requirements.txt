@@ -5,7 +5,7 @@ packaging==18.0
 requests==2.20.1
 xmlrpc2==0.3.1
 
-zest.releaser
+zest.releaser==6.15.2
 
 sphinx
 recommonmark
