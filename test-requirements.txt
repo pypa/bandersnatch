@@ -1,7 +1,7 @@
 black==18.9b0
 coverage==4.5.2
 pytest==4.0.0
-pytest-timeout
+pytest-timeout==1.3.3
 pytest-cache
 setuptools
 tox
