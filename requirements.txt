@@ -4,7 +4,7 @@ async-timeout==3.0.1
 attrs==18.2.0
 certifi==2018.10.15
 chardet==3.0.4
-filelock==3.0.9
+filelock==3.0.10
 idna==2.7
 multidict==4.4.2
 packaging==18.0
