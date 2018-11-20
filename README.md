@@ -31,8 +31,10 @@ This installs the latest stable, released version.
   for you in ``/etc/bandersnatch.conf``.
 * Review ``/etc/bandersnatch.conf`` and adapt to your needs.
 * Run ``bandersnatch mirror`` again. It will populate your mirror with the
-  current status of all PyPI packages - roughly 500GiB (2017-02-12).
-  Expect this to grow substantially over time.
+  current status of all PyPI packages.
+  Current mirror package size can be seen here: https://pypi.org/stats/
+* A ``blacklist`` or ``whitelist`` can be created to cut down your mirror size.
+  Example blacklist generation tool: https://github.com/cooperlees/pypistats
 * Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
 
