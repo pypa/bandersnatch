@@ -5,7 +5,7 @@ from packaging.version import InvalidVersion, Version
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bandersnatch")
 
 
 class BlacklistProject(FilterProjectPlugin):
@@ -78,7 +78,7 @@ class BlacklistProject(FilterProjectPlugin):
             return False
 
         if name in self.blacklist_package_names:
-            logger.debug(f"MATCH: Package {name!r} is in the blacklist")
+            logger.info(f"Package {name!r} is blacklisted")
             return True
         return False
 
