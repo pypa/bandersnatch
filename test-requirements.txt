@@ -4,5 +4,5 @@ pytest==4.0.0
 pytest-timeout==1.3.3
 pytest-cache==1.0
 setuptools==40.6.2
-tox
+tox==3.5.3
 freezegun
