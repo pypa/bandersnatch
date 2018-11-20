@@ -1,4 +1,4 @@
-six
+six==1.11.0
 pyparsing
 python-dateutil
 packaging
