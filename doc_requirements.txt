@@ -1,15 +1,15 @@
-six
-pyparsing
-python-dateutil
-packaging
-requests
-xmlrpc2
+six==1.11.0
+pyparsing==2.3.0
+python-dateutil==2.7.5
+packaging==18.0
+requests==2.20.1
+xmlrpc2==0.3.1
 
-zest.releaser
+zest.releaser==6.15.2
 
-sphinx
-recommonmark
-docutils==0.12
+sphinx==1.8.2
+recommonmark==0.4.0
+docutils==0.14
 
 git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
 git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
