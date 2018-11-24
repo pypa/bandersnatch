@@ -51,7 +51,7 @@ class TestRegexReleaseFilter(BasePluginTestCase):
 plugins =
     regex_release
 
-[regex]
+[filter_regex]
 releases =
     .+rc\\d$
 """
@@ -90,7 +90,7 @@ class TestRegexProjectFilter(BasePluginTestCase):
 plugins =
     regex_project
 
-[regex]
+[filter_regex]
 packages =
     .+-evil$
 """

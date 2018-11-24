@@ -19,7 +19,7 @@ class RegexReleaseFilter(FilterReleasePlugin):
         """
         # TODO: should retrieving the plugin's config be part of the base class?
         try:
-            config = self.configuration["regex"]["releases"]
+            config = self.configuration["filter_regex"]["releases"]
         except KeyError:
             self.patterns = []
         else:
@@ -61,7 +61,7 @@ class RegexProjectFilter(FilterProjectPlugin):
         Initialize the plugin reading patterns from the config.
         """
         try:
-            config = self.configuration["regex"]["packages"]
+            config = self.configuration["filter_regex"]["packages"]
         except KeyError:
             self.patterns = []
         else:
