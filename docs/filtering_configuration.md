@@ -46,3 +46,41 @@ packages =
     example1
     example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
 ```
+
+### Prerelease filtering
+
+Bandersnatch includes a plugin to filter our pre-releases of packages. To enable this plugin simply add `prerelease_release` to the enabled plugins list.
+
+``` ini
+[blacklist]
+plugins =
+    prerelease_release
+```
+
+### Regex filtering
+
+Advanced users who would like finer control over which packages and releases to filter can use the regex Bandersnatch plugin.
+
+This plugin allows arbitrary regular expressions to be defined in the configuration, any package name or release version that matches will *not* be downloaded.
+
+The plugin can be activated for packages and releases separately. For example to activate the project regex filter simply add it to the configuration as before:
+
+``` ini
+[blacklist]
+plugins =
+    regex_project
+```
+
+If you'd like to filter releases using the regex filter use `regex_release` instead.
+
+The regex plugin requires an extra section in the config to define the actual patterns to used for filtering:
+
+``` ini
+[filter_regex]
+packages =
+    .+-evil$
+releases =
+    .+alpha\d$
+```
+
+Note the same `filter_regex` section may include a `packages` and a `releases` entry with any number of regular expressions.

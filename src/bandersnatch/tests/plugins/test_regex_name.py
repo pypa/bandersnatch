@@ -54,6 +54,7 @@ plugins =
 [filter_regex]
 releases =
     .+rc\\d$
+    .+alpha\\d$
 """
 
     def test_plugin_compiles_patterns(self):
@@ -67,7 +68,7 @@ releases =
             for plugin in plugins
             if type(plugin) == regex_name.RegexReleaseFilter
         )
-        assert plugin.patterns == [re.compile(r".+rc\d$")]
+        assert plugin.patterns == [re.compile(r".+rc\d$"), re.compile(r".+alpha\d$")]
 
     def test_plugin_check_match(self):
         _mock_config(self.config_contents)
@@ -76,7 +77,7 @@ releases =
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
-        pkg.releases = {"foo-1.2.0rc2": {}, "foo-1.2.0": {}}
+        pkg.releases = {"foo-1.2.0rc2": {}, "foo-1.2.0": {}, "foo-1.2.0alpha2": {}}
 
         pkg._filter_releases()
 
@@ -93,6 +94,7 @@ plugins =
 [filter_regex]
 packages =
     .+-evil$
+    .+-neutral$
 """
 
     def test_plugin_compiles_patterns(self):
@@ -106,7 +108,7 @@ packages =
             for plugin in plugins
             if type(plugin) == regex_name.RegexProjectFilter
         )
-        assert plugin.patterns == [re.compile(r".+-evil$")]
+        assert plugin.patterns == [re.compile(r".+-evil$"), re.compile(r".+-neutral$")]
 
     def test_plugin_check_match(self):
         _mock_config(self.config_contents)
@@ -114,7 +116,7 @@ packages =
         bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo-good": {}, "foo-evil": {}}
+        mirror.packages_to_sync = {"foo-good": {}, "foo-evil": {}, "foo-neutral": {}}
         mirror._filter_packages()
 
         assert list(mirror.packages_to_sync.keys()) == ["foo-good"]
