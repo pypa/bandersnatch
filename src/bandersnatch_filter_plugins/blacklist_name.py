@@ -125,7 +125,7 @@ class BlacklistRelease(FilterReleasePlugin):
 
     def check_match(self, **kwargs):
         """
-        Check if the package name  and version matches against a blacklisted
+        Check if the package name and version matches against a blacklisted
         package version specifier.
 
         Parameters

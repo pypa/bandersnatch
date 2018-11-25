@@ -110,7 +110,7 @@ def filter_project_plugins() -> Iterable[Filter]:
     Returns
     -------
     list of bandersnatch.filter.Filter:
-        List of objects drived from the bandersnatch.filter.Filter class
+        List of objects derived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins("bandersnatch_filter_plugins.project")
 
@@ -122,6 +122,6 @@ def filter_release_plugins() -> Iterable[Filter]:
     Returns
     -------
     list of bandersnatch.filter.Filter:
-        List of objects drived from the bandersnatch.filter.Filter class
+        List of objects derived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins("bandersnatch_filter_plugins.release")
