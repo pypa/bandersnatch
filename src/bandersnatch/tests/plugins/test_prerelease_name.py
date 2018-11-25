@@ -78,14 +78,14 @@ plugins =
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
         pkg.releases = {
-            "foo-1.2.0alpha1": {},
-            "foo-1.2.0a2": {},
-            "foo-1.2.0beta1": {},
-            "foo-1.2.0b2": {},
-            "foo-1.2.0rc1": {},
-            "foo-1.2.0": {},
+            "1.2.0alpha1": {},
+            "1.2.0a2": {},
+            "1.2.0beta1": {},
+            "1.2.0b2": {},
+            "1.2.0rc1": {},
+            "1.2.0": {},
         }
 
         pkg._filter_releases()
 
-        assert pkg.releases == {"foo-1.2.0": {}}
+        assert pkg.releases == {"1.2.0": {}}

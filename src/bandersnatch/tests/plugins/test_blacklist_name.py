@@ -7,6 +7,7 @@ import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
+from bandersnatch.package import Package
 
 
 class TestBlacklistProject(TestCase):
@@ -192,4 +193,25 @@ plugins =
         names = [plugin.name for plugin in plugins]
         self.assertIn("blacklist_release", names)
 
-        # TODO: add test for existing release plugin
+    def test__filter__matches__release(self):
+        with open("test.conf", "w") as testconfig_handle:
+            testconfig_handle.write(
+                """\
+[blacklist]
+plugins =
+    blacklist_release
+packages =
+    foo==1.2.0
+"""
+            )
+        instance = BandersnatchConfig()
+        instance.config_file = "test.conf"
+        instance.load_configuration()
+
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1, mirror)
+        pkg.releases = {"1.2.0": {}, "1.2.1": {}}
+
+        pkg._filter_releases()
+
+        self.assertEqual(pkg.releases, {"1.2.1": {}})
