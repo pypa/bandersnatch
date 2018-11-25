@@ -3,7 +3,7 @@ import re
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("bandersnatch")
 
 
 class RegexReleaseFilter(FilterReleasePlugin):
