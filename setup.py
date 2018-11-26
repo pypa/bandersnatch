@@ -9,7 +9,7 @@ from src.bandersnatch import __version__
 assert version_info >= (3, 6, 1), "bandersnatch requires Python >=3.6.1"
 
 
-INSTALL_DEPS = ("aiohttp", "packaging", "requests", "setuptools", "xmlrpc2")
+INSTALL_DEPS = ("aiohttp", "filelock", "packaging", "requests", "setuptools", "xmlrpc2")
 
 
 setup(
