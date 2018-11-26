@@ -1,3 +1,12 @@
+## 3.1.1 (2018-11-25)
+
+- Add missing `filelock` dependency to `setup.py` `Fixes #93`
+
+### Known Bugs
+
+- `verify` prints `could't find .netrc file` which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
+
+
 ## 3.1.0 (2018-11-25)
 
 - Store N versions of index.html - `Fixes #9` - Thanks **@yeraydiazdiaz**
@@ -5,10 +14,6 @@
 - Test / pin to latest dependencies via PyUP - `Fixes #70` - Thanks **@cooperlees**
 - Revert pinning versions in `setup.py` - `Fixes #81`
 - Add Pre-release + regex filter plguins `Fixes #83` - Thanks **@yeraydiazdiaz**
-
-### Known Bugs
-
-- `verify` prints `could't find .netrc file` which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
 
 ## 3.0.1 (2018-10-30)
 
