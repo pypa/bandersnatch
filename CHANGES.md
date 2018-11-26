@@ -1,3 +1,15 @@
+## 3.1.0 (2018-11-25)
+
+- Store N versions of index.html - `Fixes #9` - Thanks **@yeraydiazdiaz**
+- Add CI Integration test - `Fixes #78` - Thanks **@cooperlees**
+- Test / pin to latest dependencies via PyUP - `Fixes #70` - Thanks **@cooperlees**
+- Revert pinning versions in `setup.py` - `Fixes #81`
+- Add Pre-release + regex filter plguins `Fixes #83` - Thanks **@yeraydiazdiaz**
+
+### Known Bugs
+
+- `verify` prints `could't find .netrc file` which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
+
 ## 3.0.1 (2018-10-30)
 
 - Fix setup.py *url* to point at GitHub (https://github.com/pypa/bandersnatch)
@@ -22,9 +34,7 @@
 ## 2.2.0 (2018-03-28)
 
 - Allow digest_name to be specified. `Fixes #105` - Thanks **@ewdurbin** !
-
 - synchronize generated index pages with warehouse - Thanks **@ewdurbin** !
-
 - Allow root_uri to be configured - Thanks **@ewdurbin** !
 -- This is how warehouse (pypi.org) will function
 
@@ -33,7 +43,6 @@
 
 - Change version from using pkg_resources and set it in package __init__.py.
   `Fixes #98`.
-
 - Add ability to blacklist packages to sync via conf file. `Fixes #100`.
 
 
@@ -49,12 +58,9 @@
 - Fix proxy usage. A bug in the usage of requests on our XMLRPC client
   caused this to break. You can now set `*_proxy` environment variables
   and get them picked up properly. `Fixes #59`.
-
 - Add a dict returned from mirror.synchronize() to show deleted
   and added files from the last run
-
 - Fix sorting of releases to use filename and not url
-
 - Tweak atomic file writes in utils.rewrite() to prefix the temporary
   file with the 'hidden' filename of the destination adding more
   support for hashed POSIX filesystems like GlusterFS. - Thanks **@cooperlees**
