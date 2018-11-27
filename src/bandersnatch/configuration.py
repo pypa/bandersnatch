@@ -39,8 +39,6 @@ class BandersnatchConfig(metaclass=Singleton):
         """
         Read the configuration from the configuration files
         """
-        config_files = [self.default_config_file]
-        if self.config_file:
-            config_files.append(self.config_file)
+        config_file = self.config_file if self.config_file else self.default_config_file
         self.config = ConfigParser()
-        self.config.read(config_files)
+        self.config.read(config_file)
