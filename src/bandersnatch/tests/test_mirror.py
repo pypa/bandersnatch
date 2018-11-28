@@ -7,7 +7,7 @@ import pytest
 from requests import HTTPError
 
 from bandersnatch import utils
-from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.filter import filter_project_plugins
 from bandersnatch.mirror import Mirror
 
@@ -98,7 +98,7 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
     assert open(str(tmpdir / "generation"), "r").read() == "5"
 
 
-def test_mirror__filter_packages__match(tmpdir):
+def test_mirror_filter_packages_match(tmpdir):
     """
     Packages that exist in the blacklist should be removed from the list of
     packages to sync.
@@ -108,21 +108,19 @@ def test_mirror__filter_packages__match(tmpdir):
 packages =
     example1
 """
-    with TemporaryDirectory() as tempdir:
-        with open("test.conf", "w") as testconfig_handle:
-            testconfig_handle.write(test_configuration)
-        config = BandersnatchConfig()
-        config.config_file = os.path.join(tempdir, "test.conf")
-        config.load_configuration()
-        for plugin in filter_project_plugins():
-            plugin.initialize_plugin()
-        m = Mirror(str(tmpdir), mock.Mock())
-        m.packages_to_sync = {"example1": None, "example2": None}
-        m._filter_packages()
-        assert "example1" not in m.packages_to_sync.keys()
+    Singleton._instances = {}
+    with open("test.conf", "w") as testconfig_handle:
+        testconfig_handle.write(test_configuration)
+    BandersnatchConfig("test.conf")
+    for plugin in filter_project_plugins():
+        plugin.initialize_plugin()
+    m = Mirror(str(tmpdir), mock.Mock())
+    m.packages_to_sync = {"example1": None, "example2": None}
+    m._filter_packages()
+    assert "example1" not in m.packages_to_sync.keys()
 
 
-def test_mirror__filter_packages__nomatch__package_with_spec(tmpdir):
+def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir):
     """
     Package lines with a PEP440 spec on them should not be filtered from the
     list of packages.
@@ -132,18 +130,16 @@ def test_mirror__filter_packages__nomatch__package_with_spec(tmpdir):
 packages =
     example3>2.0.0
 """
-    with TemporaryDirectory() as tempdir:
-        with open("test.conf", "w") as testconfig_handle:
-            testconfig_handle.write(test_configuration)
-        config = BandersnatchConfig()
-        config.config_file = os.path.join(tempdir, "test.conf")
-        config.load_configuration()
-        for plugin in filter_project_plugins():
-            plugin.initialize_plugin()
-        m = Mirror(str(tmpdir), mock.Mock())
-        m.packages_to_sync = {"example1": None, "example3": None}
-        m._filter_packages()
-        assert "example3" in m.packages_to_sync.keys()
+    Singleton._instances = {}
+    with open("test.conf", "w") as testconfig_handle:
+        testconfig_handle.write(test_configuration)
+    BandersnatchConfig("test.conf")
+    for plugin in filter_project_plugins():
+        plugin.initialize_plugin()
+    m = Mirror(str(tmpdir), mock.Mock())
+    m.packages_to_sync = {"example1": None, "example3": None}
+    m._filter_packages()
+    assert "example3" in m.packages_to_sync.keys()
 
 
 def test_mirror_removes_empty_todo_list(tmpdir):
