@@ -6,7 +6,7 @@ certifi==2018.10.15
 chardet==3.0.4
 filelock==3.0.10
 idna==2.7
-multidict==4.5.1
+multidict==4.5.2
 packaging==18.0
 pluggy==0.8.0
 py==1.7.0
