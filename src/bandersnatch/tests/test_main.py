@@ -10,12 +10,11 @@ from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
 
 
-def setUp():
-    """ simple setUp function to clear Singleton._instances before each test"""
+def setup():
+    """ simple setup function to clear Singleton._instances before each test"""
     Singleton._instances = {}
 
 def test_main_help(capfd):
-    setUp()
     sys.argv = ["bandersnatch", "--help"]
     with pytest.raises(SystemExit):
         main()
@@ -25,7 +24,7 @@ def test_main_help(capfd):
 
 
 def test_main_create_config(caplog, tmpdir):
-    setUp()
+    setup()
     sys.argv = ["bandersnatch", "-c", str(tmpdir / "bandersnatch.conf"), "mirror"]
     assert main() == 1
     assert "creating default config" in caplog.text
@@ -33,7 +32,7 @@ def test_main_create_config(caplog, tmpdir):
 
 
 def test_main_cant_create_config(caplog, tmpdir):
-    setUp()
+    setup()
     sys.argv = [
         "bandersnatch",
         "-c",
@@ -47,7 +46,7 @@ def test_main_cant_create_config(caplog, tmpdir):
 
 
 def test_main_reads_config_values(mirror_mock):
-    setUp()
+    setup()
     config = os.path.dirname(bandersnatch.__file__) + "/default.conf"
     sys.argv = ["bandersnatch", "-c", config, "mirror"]
     assert os.path.exists(config)
@@ -69,7 +68,7 @@ def test_main_reads_config_values(mirror_mock):
 
 
 def test_main_reads_custom_config_values(mirror_mock, logging_mock, customconfig):
-    setUp()
+    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
     main()
@@ -79,7 +78,7 @@ def test_main_reads_custom_config_values(mirror_mock, logging_mock, customconfig
 
 
 def test_main_throws_exception_on_unsupported_digest_name(customconfig):
-    setUp()
+    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     parser = configparser.ConfigParser()
     parser.read(conffile)
