@@ -15,6 +15,7 @@ def setUp():
     Singleton._instances = {}
 
 def test_main_help(capfd):
+    setUp()
     sys.argv = ["bandersnatch", "--help"]
     with pytest.raises(SystemExit):
         main()
@@ -24,6 +25,7 @@ def test_main_help(capfd):
 
 
 def test_main_create_config(caplog, tmpdir):
+    setUp()
     sys.argv = ["bandersnatch", "-c", str(tmpdir / "bandersnatch.conf"), "mirror"]
     assert main() == 1
     assert "creating default config" in caplog.text
@@ -31,6 +33,7 @@ def test_main_create_config(caplog, tmpdir):
 
 
 def test_main_cant_create_config(caplog, tmpdir):
+    setUp()
     sys.argv = [
         "bandersnatch",
         "-c",
@@ -44,6 +47,7 @@ def test_main_cant_create_config(caplog, tmpdir):
 
 
 def test_main_reads_config_values(mirror_mock):
+    setUp()
     config = os.path.dirname(bandersnatch.__file__) + "/default.conf"
     sys.argv = ["bandersnatch", "-c", config, "mirror"]
     assert os.path.exists(config)
