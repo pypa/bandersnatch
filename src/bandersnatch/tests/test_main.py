@@ -6,7 +6,13 @@ import unittest.mock as mock
 import pytest
 
 import bandersnatch.mirror
+from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
+
+
+def setup():
+    """ simple setup function to clear Singleton._instances before each test"""
+    Singleton._instances = {}
 
 
 def test_main_help(capfd):
@@ -60,6 +66,7 @@ def test_main_reads_config_values(mirror_mock):
 
 
 def test_main_reads_custom_config_values(mirror_mock, logging_mock, customconfig):
+    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
     main()
@@ -69,6 +76,7 @@ def test_main_reads_custom_config_values(mirror_mock, logging_mock, customconfig
 
 
 def test_main_throws_exception_on_unsupported_digest_name(customconfig):
+    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     parser = configparser.ConfigParser()
     parser.read(conffile)
