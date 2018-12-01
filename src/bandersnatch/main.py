@@ -95,7 +95,8 @@ def main():
         "--force-check",
         action="store_true",
         default=False,
-        help="Force bandersnatch to check everything against the master PyPI.",
+        help="Force bandersnatch to reset the PyPI serial (move serial file to /tmp) to \
+                perform a full sync",
     )
     m.set_defaults(op="mirror")
 
@@ -165,8 +166,8 @@ def main():
                 logger.debug(
                     "Force bandersnatch to check everything against the master PyPI."
                 )
-            except Exception as e:
-                logger.debug("Could not move status file: {}".format(str(e)))
+            except OSError as e:
+                logger.error("Could not move status file: {}".format(str(e)))
         mirror(config)
 
 
