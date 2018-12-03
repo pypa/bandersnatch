@@ -82,11 +82,9 @@ bandersnatch does not keep much local state in addition to the mirrored data.
 In general you can just keep rerunning `bandersnatch mirror` to make it fix
 errors.
 
-If you delete the state files then the next run will force it to check
-everything against the master PyPI::
+If you want to force bandersnatch to check everything against the master PyPI::
 
-* delete `./state` file and `./todo` if they exist in your mirror directory
-* run `bandersnatch` mirror to get a full sync
+* run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
 
 Be aware, that full syncs likely take hours depending on PyPIs performance and
 your network latency and bandwidth.
