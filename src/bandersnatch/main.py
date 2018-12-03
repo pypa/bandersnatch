@@ -3,8 +3,9 @@ import asyncio
 import configparser
 import logging
 import logging.config
-import os.path
 import shutil
+from os import path
+from tempfile import gettempdir
 
 import bandersnatch.log
 import bandersnatch.master
@@ -32,7 +33,7 @@ def mirror(config):
     except configparser.NoOptionError:
         logger.error(
             "Please update your config to include a json "
-            "boolean in the [mirror] section. Setting to False"
+            + "boolean in the [mirror] section. Setting to False"
         )
         json_save = False
 
@@ -48,8 +49,8 @@ def mirror(config):
     if digest_name not in ("md5", "sha256"):
         raise ValueError(
             f"Supplied digest_name {digest_name} is not supported! Please "
-            "update digest_name to one of ('sha256', 'md5') in the [mirror] "
-            "section."
+            + "update digest_name to one of ('sha256', 'md5') in the [mirror] "
+            + "section."
         )
 
     mirror = bandersnatch.mirror.Mirror(
@@ -135,8 +136,8 @@ def main():
     bandersnatch.log.setup_logging(args)
 
     # Prepare default config file if needed.
-    default_config = os.path.join(os.path.dirname(__file__), "default.conf")
-    if not os.path.exists(args.config):
+    default_config = path.join(path.dirname(__file__), "default.conf")
+    if not path.exists(args.config):
         logger.warning(f"Config file '{args.config}' missing, creating default config.")
         logger.warning("Please review the config file, then run 'bandersnatch' again.")
         try:
@@ -148,9 +149,7 @@ def main():
     config = BandersnatchConfig(config_file=args.config).config
 
     if config.has_option("mirror", "log-config"):
-        logging.config.fileConfig(
-            os.path.expanduser(config.get("mirror", "log-config"))
-        )
+        logging.config.fileConfig(path.expanduser(config.get("mirror", "log-config")))
 
     if args.op == "verify":
         loop = asyncio.get_event_loop()
@@ -160,14 +159,25 @@ def main():
             loop.close()
     else:
         if args.force_check:
-            status_file = os.path.join(config.get("mirror", "directory"), "status")
-            try:
-                shutil.move(status_file, "/tmp/status")
-                logger.debug(
-                    "Force bandersnatch to check everything against the master PyPI."
+            status_file = path.join(config.get("mirror", "directory"), "status")
+            if path.exists(status_file):
+                tmp_status_file = path.join(gettempdir(), "status")
+                try:
+                    shutil.move(status_file, tmp_status_file)
+                    logger.debug(
+                        "Force bandersnatch to check everything against the master PyPI"
+                        + f" - status file moved to {tmp_status_file}"
+                    )
+                except OSError as e:
+                    logger.error(
+                        f"Could not move status file ({status_file} to "
+                        + f" {tmp_status_file}): {e}"
+                    )
+            else:
+                logger.info(
+                    f"No status file to move ({status_file}) - Full sync will occur"
                 )
-            except OSError as e:
-                logger.error("Could not move status file: {}".format(str(e)))
+
         mirror(config)
 
 
