@@ -1,11 +1,15 @@
-## 3.1.1 (2018-11-25)
+## 3.1.2 (2018-12-02)
 
-- Add missing `filelock` dependency to `setup.py` `Fixes #93`
+- Load default config or passed in config file only *(not both)* - `Fixes #95` - Thanks **@GreatBahram**
+- Add `--force-check` to mirror to enable full PyPI Syncs - `Fixes #97` - Thanks **@GreatBahram**
 
 ### Known Bugs
 
-- `verify` prints `could't find .netrc file` which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
+- `verify` prints "`could't find .netrc file`" which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
 
+## 3.1.1 (2018-11-25)
+
+- Add missing `filelock` dependency to `setup.py` `Fixes #93`
 
 ## 3.1.0 (2018-11-25)
 
