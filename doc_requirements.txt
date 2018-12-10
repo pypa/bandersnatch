@@ -1,4 +1,4 @@
-six==1.11.0
+six==1.12.0
 pyparsing==2.3.0
 python-dateutil==2.7.5
 packaging==18.0
