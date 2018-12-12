@@ -4,6 +4,7 @@ import configparser
 import logging
 import logging.config
 import shutil
+import sys
 from os import path
 from tempfile import gettempdir
 
@@ -74,6 +75,9 @@ def mirror(config):
 def main():
     parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
     parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
+    )
+    parser.add_argument(
         "-c",
         "--config",
         default="/etc/bandersnatch.conf",
@@ -130,6 +134,10 @@ def main():
         help="# of parallel iops [Defaults to bandersnatch.conf]",
     )
     v.set_defaults(op="verify")
+
+    if len(sys.argv) < 2:
+        parser.print_help()
+        parser.exit()
 
     args = parser.parse_args()
 
