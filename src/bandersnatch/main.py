@@ -4,6 +4,7 @@ import configparser
 import logging
 import logging.config
 import shutil
+import sys
 from os import path
 from tempfile import gettempdir
 
@@ -133,6 +134,10 @@ def main():
         help="# of parallel iops [Defaults to bandersnatch.conf]",
     )
     v.set_defaults(op="verify")
+
+    if len(sys.argv) < 2:
+        parser.print_help()
+        parser.exit()
 
     args = parser.parse_args()
 
