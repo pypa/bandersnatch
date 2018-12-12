@@ -74,6 +74,9 @@ def mirror(config):
 def main():
     parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
     parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
+    )
+    parser.add_argument(
         "-c",
         "--config",
         default="/etc/bandersnatch.conf",
