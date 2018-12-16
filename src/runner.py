@@ -11,7 +11,7 @@ from subprocess import run
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("interval", help="Time in seconds between jobs")
-    parser.parse_args()
+    args = parser.parse_args()
 
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
     while True:
