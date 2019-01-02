@@ -10,7 +10,7 @@ multidict==4.5.2
 packaging==18.0
 pluggy==0.8.0
 py==1.7.0
-pycares==2.3.0
+pycares==2.4.0
 pyparsing==2.3.0
 python-dateutil==2.7.5
 requests==2.21.0
