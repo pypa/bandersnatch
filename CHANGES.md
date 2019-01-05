@@ -1,11 +1,12 @@
+## 3.1.3 (2018-12-26)
+
+- Print help message when no arguments given to bandersnatch - Thanks **@GreatBahram**
+- aiohttp >= 3.5.0 test and we no longer have `.netrc` error message
+
 ## 3.1.2 (2018-12-02)
 
 - Load default config or passed in config file only *(not both)* - `Fixes #95` - Thanks **@GreatBahram**
 - Add `--force-check` to mirror to enable full PyPI Syncs - `Fixes #97` - Thanks **@GreatBahram**
-
-### Known Bugs
-
-- `verify` prints "`could't find .netrc file`" which requires > aiohttp 3.4.4 release. Waited long enough - https://github.com/aio-libs/aiohttp/issues/3298
 
 ## 3.1.1 (2018-11-25)
 
