@@ -1,29 +1,38 @@
 import asyncio
 import concurrent.futures
-import hashlib
 import json
 import logging
 import os
 from asyncio.queues import Queue
+from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
 from sys import stderr
+from typing import List, Set  # noqa: F401
 from urllib.parse import urlparse
 
 import aiohttp
 
 from bandersnatch.configuration import BandersnatchConfig
-from bandersnatch.utils import user_agent
+
+from bandersnatch.utils import (  # isort:skip
+    convert_url_to_path,
+    hash,
+    recursive_find_files,
+    unlink_parent_dir,
+    user_agent,
+)
 
 ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
 
 
-def _convert_url_to_path(url):
-    return urlparse(url).path[1:]
-
-
-async def _get_latest_json(json_path, config, executor, delete_removed_packages=False):
+async def _get_latest_json(
+    json_path: Path,
+    config: ConfigParser,
+    executor: concurrent.futures.ThreadPoolExecutor,
+    delete_removed_packages: bool = False,
+) -> None:
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
@@ -33,36 +42,46 @@ async def _get_latest_json(json_path, config, executor, delete_removed_packages=
         os.rename(new_json_path, json_path)
     else:
         logger.error(
-            f"{new_json_path.as_posix()} does not exist - Did not get new JSON metadata"
+            f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
         )
         if delete_removed_packages and json_path.exists():
             logger.debug(f"Unlinking {json_path} - assuming it does not exist upstream")
             json_path.unlink()
 
 
-def _sha256_checksum(filename, block_size=65536):
-    sha256 = hashlib.sha256()
-    with open(filename, "rb") as f:
-        for block in iter(lambda: f.read(block_size), b""):
-            sha256.update(block)
-    return sha256.hexdigest()
+async def delete_files(
+    mirror_base: Path,
+    executor: concurrent.futures.ThreadPoolExecutor,
+    all_package_files: List,
+    dry_run: bool,
+) -> int:
+    loop = asyncio.get_event_loop()
+    packages_path = Path(mirror_base) / "web/packages"
+    all_fs_files = set()  # type: Set[Path]
+    await loop.run_in_executor(
+        executor, recursive_find_files, all_fs_files, packages_path
+    )
 
+    all_package_files_set = set(all_package_files)
+    unowned_files = all_fs_files - all_package_files_set
+    logger.info(
+        f"We have {len(all_package_files_set)} files. "
+        + f"{len(unowned_files)} unowned files"
+    )
+    if unowned_files:
+        if dry_run:
+            print("[DRY RUN] Unowned file list:", file=stderr)
+            for f in sorted(unowned_files):
+                print(f)
+        else:
+            del_coros = []
+            for file_path in unowned_files:
+                del_coros.append(
+                    loop.run_in_executor(executor, unlink_parent_dir, file_path)
+                )
+            await asyncio.gather(*del_coros)
 
-def _recursive_find_file(files, base_dir):
-    dirs = [d for d in base_dir.iterdir() if d.is_dir()]
-    files.update([x for x in base_dir.iterdir() if x.is_file()])
-    for directory in dirs:
-        _recursive_find_file(files, directory)
-
-
-def _unlink_parent_dir(path):
-    logger.info(f"unlink {path.as_posix()}")
-    path.unlink()
-    try:
-        path.parent.rmdir()
-        logger.info(f"rmdir {path.parent.as_posix()}")
-    except OSError as oe:
-        logger.debug(f"Did not remove {path.parent.as_posix()}: {str(oe)}")
+    return 0
 
 
 async def verify(
@@ -98,7 +117,7 @@ async def verify(
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
-            pkg_file = Path(mirror_base) / "web" / _convert_url_to_path(jpkg["url"])
+            pkg_file = Path(mirror_base) / "web" / convert_url_to_path(jpkg["url"])
             if not pkg_file.exists():
                 if args.dry_run:
                     logger.info(f"{jpkg['url']} would be fetched")
@@ -107,9 +126,7 @@ async def verify(
                 else:
                     await url_fetch(jpkg["url"], pkg_file, executor)
 
-            calc_sha256 = await loop.run_in_executor(
-                executor, _sha256_checksum, pkg_file.as_posix()
-            )
+            calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
@@ -171,10 +188,10 @@ async def async_verify(
     await asyncio.gather(*consumers)
 
 
-async def metadata_verify(config, args):
+async def metadata_verify(config, args) -> int:
     """ Crawl all saved JSON metadata or online to check we have all packages
         if delete - generate a diff of unowned files  """
-    all_package_files = []
+    all_package_files = []  # type: List[Path]
     loop = asyncio.get_event_loop()
     mirror_base = config.get("mirror", "directory")
     json_base = os.path.join(mirror_base, "web", "json")
@@ -198,30 +215,6 @@ async def metadata_verify(config, args):
     )
 
     if not args.delete:
-        return
+        return 0
 
-    packages_path = Path(mirror_base) / "web/packages"
-    all_fs_files = set()
-    await loop.run_in_executor(
-        executor, _recursive_find_file, all_fs_files, packages_path
-    )
-
-    all_package_files_set = set(all_package_files)
-    unowned_files = all_fs_files - all_package_files_set
-    logger.info(
-        f"We have {len(all_package_files_set)} files. "
-        + f"{len(unowned_files)} unowned files"
-    )
-    if unowned_files:
-        if args.dry_run:
-            print("[DRY RUN] Unowned file list:", file=stderr)
-            for f in sorted(unowned_files):
-                print(f)
-            return 0
-        else:
-            del_coros = []
-            for file_path in unowned_files:
-                del_coros.append(
-                    loop.run_in_executor(executor, _unlink_parent_dir, file_path)
-                )
-            await asyncio.gather(*del_coros)
+    return await delete_files(mirror_base, executor, all_package_files, args.dry_run)

@@ -1,14 +1,19 @@
 import contextlib
 import filecmp
 import hashlib
+import logging
 import os
 import os.path
 import platform
 import sys
 import tempfile
-from typing import IO, Any, Generator
+from pathlib import Path
+from typing import IO, Any, Generator, Set
+from urllib.parse import urlparse
 
 from . import __version__
+
+logger = logging.getLogger(__name__)
 
 
 def user_agent(async_version: str = "") -> str:
@@ -24,6 +29,10 @@ def user_agent(async_version: str = "") -> str:
 
 
 USER_AGENT = user_agent()
+
+
+def convert_url_to_path(url: str) -> str:
+    return urlparse(url).path[1:]
 
 
 def hash(path: str, function: str = "sha256") -> str:
@@ -76,6 +85,26 @@ def rewrite(filepath: str, mode: str = "w", **kw: Any) -> Generator[IO, None, No
         return
     os.chmod(filepath_tmp, 0o100644)
     os.rename(filepath_tmp, filepath)
+
+
+def recursive_find_files(files: Set[Path], base_dir: Path):
+    dirs = [d for d in base_dir.iterdir() if d.is_dir()]
+    files.update([x for x in base_dir.iterdir() if x.is_file()])
+    for directory in dirs:
+        recursive_find_files(files, directory)
+
+
+def unlink_parent_dir(path: Path) -> None:
+    """ Remove a file and if the dir is empty remove it """
+    logger.info(f"unlink {str(path)}")
+    path.unlink()
+
+    parent_path = path.parent
+    try:
+        parent_path.rmdir()
+        logger.info(f"rmdir {str(parent_path)}")
+    except OSError as oe:
+        logger.debug(f"Did not remove {str(parent_path)}: {str(oe)}")
 
 
 @contextlib.contextmanager
