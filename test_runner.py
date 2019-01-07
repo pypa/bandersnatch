@@ -12,19 +12,19 @@ from configparser import ConfigParser
 from os import environ
 from pathlib import Path
 from platform import system
-from shutil import rmtree
+from shutil import rmtree, which
 from subprocess import run
 from sys import exit
 from tempfile import gettempdir
 
 from src.bandersnatch.utils import hash
 
-
-BANDERSNATCH_EXE = Path("/usr/bin/bandersnatch")
+BANDERSNATCH_EXE = Path(which("bandersnatch") or "bandersnatch")
 CI_CONFIG = Path("src/bandersnatch/tests/ci.conf")
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
+TOX_EXE = Path(which("tox") or "tox")
 
 
 def do_ci_verify():
@@ -99,14 +99,9 @@ def main() -> int:
         return 1
 
     if environ["TOXENV"] != "INTEGRATION":
-        run(("/usr/bin/which", "tox"))  # COOPER
-        return run(("/usr/bin/tox",)).returncode
+        return run((str(TOX_EXE),)).returncode
     else:
         print("Running Ingtegration tests due to TOXENV set to INTEGRATION")
-
-        print("Running which to find out where bandersnatch executable is:") # COOPER
-        run(("/usr/bin/which", "bandersnatch"))  # COOPER
-
         MIRROR_ROOT.mkdir(exist_ok=True)
         return do_ci(platform_config())
 
