@@ -8,7 +8,7 @@ filelock==3.0.10
 idna==2.8
 multidict==4.5.2
 packaging==18.0
-pluggy==0.8.0
+pluggy==0.8.1
 py==1.7.0
 pycares==2.4.0
 pyparsing==2.3.0
