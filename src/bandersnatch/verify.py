@@ -93,7 +93,7 @@ async def verify(
     executor,
     releases_key="releases",
 ):
-    json_base = Path(mirror_base) / "web/json"
+    json_base = Path(mirror_base) / "web" / "json"
     json_full_path = json_base / json_file
     loop = asyncio.get_event_loop()
     logger.info(f"Parsing {json_file}")
@@ -194,7 +194,7 @@ async def metadata_verify(config, args) -> int:
     all_package_files = []  # type: List[Path]
     loop = asyncio.get_event_loop()
     mirror_base = config.get("mirror", "directory")
-    json_base = os.path.join(mirror_base, "web", "json")
+    json_base = Path(mirror_base) / "web" / "json"
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 

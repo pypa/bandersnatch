@@ -45,7 +45,7 @@ FAKE_RELEASE_DATA = JsonDict(
 
 def test_limit_workers():
     try:
-        Mirror(None, None, workers=11)
+        Mirror("/tmp", None, workers=11)
     except ValueError:
         pass
 
@@ -180,7 +180,7 @@ def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
         Mirror(mirror.homedir, mirror.master)
     except RuntimeError:
         pass
-    Mirror(os.path.join(mirror.homedir + "/test"), mirror.master)
+    Mirror(mirror.homedir / "test", mirror.master)
 
 
 def test_mirror_empty_master_gets_index(mirror):
@@ -190,12 +190,12 @@ def test_mirror_empty_master_gets_index(mirror):
     mirror.synchronize()
 
     assert """\
-/last-modified
-/local-stats
-/local-stats/days
-/packages
-/simple
-/simple/index.html""" == utils.find(
+last-modified
+local-stats
+local-stats/days
+packages
+simple
+simple/index.html""" == utils.find(
         mirror.webdir
     )
     assert (
@@ -224,16 +224,16 @@ def test_mirror_empty_resume_from_todo_list(mirror, requests):
     mirror.synchronize()
 
     assert """\
-/.lock
-/generation
-/status
-/web
-/web/last-modified
-/web/local-stats
-/web/local-stats/days
-/web/packages
-/web/simple
-/web/simple/index.html""" == utils.find(
+.lock
+generation
+status
+web
+web/last-modified
+web/local-stats
+web/local-stats/days
+web/packages
+web/simple
+web/simple/index.html""" == utils.find(
         mirror.homedir
     )
     assert (
@@ -266,12 +266,12 @@ def test_mirror_sync_package(mirror, requests):
     mirror.synchronize()
 
     assert """\
-/json/foo
-/last-modified
-/packages/any/f/foo/foo.zip
-/pypi/foo/json
-/simple/foo/index.html
-/simple/index.html""" == utils.find(
+json/foo
+last-modified
+packages/any/f/foo/foo.zip
+pypi/foo/json
+simple/foo/index.html
+simple/index.html""" == utils.find(
         mirror.webdir, dirs=False
     )
     assert (
@@ -322,12 +322,12 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
     changed_packages = mirror.synchronize()
 
     assert """\
-/.lock
-/generation
-/todo
-/web/packages/any/f/foo/foo.zip
-/web/simple/foo/index.html
-/web/simple/index.html""" == utils.find(
+.lock
+generation
+todo
+web/packages/any/f/foo/foo.zip
+web/simple/foo/index.html
+web/simple/index.html""" == utils.find(
         mirror.homedir, dirs=False
     )
     assert (
@@ -386,12 +386,12 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
         mirror.synchronize()
 
     assert """\
-/.lock
-/generation
-/todo
-/web/packages/any/f/foo/foo.zip
-/web/simple/foo/index.html
-/web/simple/index.html""" == utils.find(
+.lock
+generation
+todo
+web/packages/any/f/foo/foo.zip
+web/simple/foo/index.html
+web/simple/index.html""" == utils.find(
         mirror.homedir, dirs=False
     )
     assert open("web/simple/index.html").read() == "old index"
@@ -429,10 +429,10 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
     mirror_hash_index.synchronize()
 
     assert """\
-/last-modified
-/packages/any/f/foo/foo.zip
-/simple/f/foo/index.html
-/simple/index.html""" == utils.find(
+last-modified
+packages/any/f/foo/foo.zip
+simple/f/foo/index.html
+simple/index.html""" == utils.find(
         mirror_hash_index.webdir, dirs=False
     )
     assert (
@@ -460,7 +460,7 @@ def test_mirror_serial_current_no_sync_of_packages_and_index_page(mirror, reques
     mirror.synchronize()
 
     assert """\
-/last-modified""" == utils.find(
+last-modified""" == utils.find(
         mirror.webdir, dirs=False
     )
 

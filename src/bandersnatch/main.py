@@ -5,7 +5,7 @@ import logging
 import logging.config
 import shutil
 import sys
-from os import path
+from pathlib import Path
 from tempfile import gettempdir
 
 import bandersnatch.log
@@ -144,20 +144,22 @@ def main():
     bandersnatch.log.setup_logging(args)
 
     # Prepare default config file if needed.
-    default_config = path.join(path.dirname(__file__), "default.conf")
-    if not path.exists(args.config):
+    config_path = Path(args.config)
+    if not config_path.exists():
         logger.warning(f"Config file '{args.config}' missing, creating default config.")
         logger.warning("Please review the config file, then run 'bandersnatch' again.")
+
+        default_config_path = Path(__file__).parent / "default.conf"
         try:
-            shutil.copy(default_config, args.config)
+            shutil.copy(default_config_path, args.config)
         except IOError as e:
-            logger.error("Could not create config file: {}".format(str(e)))
+            logger.error(f"Could not create config file: {e}")
         return 1
 
     config = BandersnatchConfig(config_file=args.config).config
 
     if config.has_option("mirror", "log-config"):
-        logging.config.fileConfig(path.expanduser(config.get("mirror", "log-config")))
+        logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
 
     if args.op == "verify":
         loop = asyncio.get_event_loop()
@@ -167,9 +169,9 @@ def main():
             loop.close()
     else:
         if args.force_check:
-            status_file = path.join(config.get("mirror", "directory"), "status")
-            if path.exists(status_file):
-                tmp_status_file = path.join(gettempdir(), "status")
+            status_file = Path(config.get("mirror", "directory")) / "status"
+            if status_file.exists():
+                tmp_status_file = Path(gettempdir()) / "status"
                 try:
                     shutil.move(status_file, tmp_status_file)
                     logger.debug(

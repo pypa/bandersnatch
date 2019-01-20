@@ -1,10 +1,12 @@
 import hashlib
-import json
 import logging
 import os.path
 import sys
 import time
 from datetime import datetime
+from json import dump
+from pathlib import Path
+from typing import Dict, Optional
 from urllib.parse import unquote, urlparse
 
 import pkg_resources
@@ -32,61 +34,61 @@ class Package:
         self.mirror = mirror
 
     @property
-    def json_file(self):
-        return os.path.join(self.mirror.webdir, "json", self.name)
+    def json_file(self) -> Path:
+        return self.mirror.webdir / "json" / self.name
 
     @property
-    def json_pypi_symlink(self):
-        return os.path.join(self.mirror.webdir, "pypi", self.name, "json")
+    def json_pypi_symlink(self) -> Path:
+        return self.mirror.webdir / "pypi" / self.name / "json"
 
     @property
-    def simple_directory(self):
+    def simple_directory(self) -> Path:
         if self.mirror.hash_index:
-            return os.path.join(self.mirror.webdir, "simple", self.name[0], self.name)
-        return os.path.join(self.mirror.webdir, "simple", self.name)
+            return self.mirror.webdir / "simple" / self.name[0] / self.name
+        return self.mirror.webdir / "simple" / self.name
 
     @property
-    def normalized_simple_directory(self):
+    def normalized_simple_directory(self) -> Path:
         if self.mirror.hash_index:
-            return os.path.join(
-                self.mirror.webdir,
-                "simple",
-                self.normalized_name[0],
-                self.normalized_name,
+            return (
+                self.mirror.webdir
+                / "simple"
+                / self.normalized_name[0]
+                / self.normalized_name
             )
-        return os.path.join(self.mirror.webdir, "simple", self.normalized_name)
+        return self.mirror.webdir / "simple" / self.normalized_name
 
     @property
-    def normalized_legacy_simple_directory(self):
+    def normalized_legacy_simple_directory(self) -> Path:
         if self.mirror.hash_index:
-            return os.path.join(
-                self.mirror.webdir,
-                "simple",
-                self.normalized_name[0],
-                self.normalized_name_legacy,
+            return (
+                self.mirror.webdir
+                / "simple"
+                / self.normalized_name[0]
+                / self.normalized_name_legacy
             )
-        return os.path.join(self.mirror.webdir, "simple", self.normalized_name_legacy)
+        return self.mirror.webdir / "simple" / self.normalized_name_legacy
 
-    def save_json_metadata(self, package_info):
+    def save_json_metadata(self, package_info: Dict) -> bool:
         """
         Take the JSON metadata we just fetched and save to disk
         """
 
         try:
             with utils.rewrite(self.json_file) as jf:
-                json.dump(package_info, jf, indent=4, sort_keys=True)
+                dump(package_info, jf, indent=4, sort_keys=True)
         except Exception as e:
             logger.error(
                 "Unable to write json to {}: {}".format(self.json_file, str(e))
             )
             return False
 
-        symlink_dir = os.path.dirname(self.json_pypi_symlink)
-        if not os.path.exists(symlink_dir):
-            os.mkdir(symlink_dir)
+        symlink_dir = self.json_pypi_symlink.parent
+        if not symlink_dir.exists():
+            symlink_dir.mkdir()
         try:
             # If symlink already exists throw a FileExistsError
-            os.symlink(self.json_file, self.json_pypi_symlink)
+            self.json_pypi_symlink.symlink_to(self.json_file)
         except FileExistsError:
             pass
 
@@ -176,7 +178,7 @@ class Package:
                 )
                 if downloaded_file:
                     downloaded_files.add(
-                        os.path.relpath(downloaded_file, self.mirror.homedir)
+                        str(downloaded_file.relative_to(self.mirror.homedir))
                     )
             except Exception as e:
                 logger.exception(
@@ -239,9 +241,9 @@ class Package:
         # fail. Once pip 1.6 is old enough to be considered a "minimum" this
         # can be removed.
         if self.simple_directory != self.normalized_simple_directory:
-            if not os.path.exists(self.simple_directory):
-                os.makedirs(self.simple_directory)
-            simple_page = os.path.join(self.simple_directory, "index.html")
+            if not self.simple_directory.exists():
+                self.simple_directory.mkdir(parents=True)
+            simple_page = self.simple_directory / "index.html"
             with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
 
@@ -253,23 +255,19 @@ class Package:
                 self.normalized_simple_directory
                 != self.normalized_legacy_simple_directory
             ):
-                if not os.path.exists(self.normalized_legacy_simple_directory):
-                    os.makedirs(self.normalized_legacy_simple_directory)
-                simple_page = os.path.join(
-                    self.normalized_legacy_simple_directory, "index.html"
-                )
+                if not self.normalized_legacy_simple_directory.exists():
+                    self.normalized_legacy_simple_directory.mkdir()
+                simple_page = self.normalized_legacy_simple_directory / "index.html"
                 with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                     f.write(simple_page_content)
 
-        if not os.path.exists(self.normalized_simple_directory):
-            os.makedirs(self.normalized_simple_directory)
+        if not self.normalized_simple_directory.exists():
+            self.normalized_simple_directory.mkdir(parents=True)
 
         if self.mirror.keep_index_versions > 0:
             self._save_simple_page_version(simple_page_content)
         else:
-            normalized_simple_page = os.path.join(
-                self.normalized_simple_directory, "index.html"
-            )
+            normalized_simple_page = self.normalized_simple_directory / "index.html"
             with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
 
@@ -277,55 +275,51 @@ class Package:
         versions_path = self._prepare_versions_path()
         timestamp = datetime.utcnow().isoformat() + "Z"
         version_file_name = f"index_{self.serial}_{timestamp}.html"
-        full_version_path = os.path.join(versions_path, version_file_name)
+        full_version_path = versions_path / version_file_name
         with utils.rewrite(full_version_path, "w", encoding="utf-8") as f:
             f.write(simple_page_content)
 
-        symlink_path = os.path.join(
-            self.normalized_legacy_simple_directory, "index.html"
-        )
-        if os.path.exists(symlink_path):
-            os.remove(symlink_path)
+        symlink_path = self.normalized_legacy_simple_directory / "index.html"
+        if symlink_path.exists():
+            symlink_path.unlink()
 
-        os.symlink(full_version_path, symlink_path)
+        symlink_path.symlink_to(full_version_path)
 
-    def _prepare_versions_path(self):
-        versions_path = os.path.join(
-            self.normalized_legacy_simple_directory, "versions"
-        )
-        if not os.path.exists(versions_path):
-            os.makedirs(versions_path)
+    def _prepare_versions_path(self) -> Path:
+        versions_path = Path(self.normalized_legacy_simple_directory) / "versions"
+        if not versions_path.exists():
+            versions_path.mkdir()
         else:
             version_files = sorted(os.listdir(versions_path))
             version_files_to_remove = (
                 len(version_files) - self.mirror.keep_index_versions + 1
             )
             for i in range(version_files_to_remove):
-                os.remove(os.path.join(versions_path, version_files[i]))
+                (versions_path / version_files[i]).unlink()
 
         return versions_path
 
-    def _file_url_to_local_url(self, url):
+    def _file_url_to_local_url(self, url) -> str:
         parsed = urlparse(url)
         if not parsed.path.startswith("/packages"):
             raise RuntimeError(f"Got invalid download URL: {url}")
         prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
         return prefix + parsed.path
 
-    def _file_url_to_local_path(self, url):
+    def _file_url_to_local_path(self, url) -> Path:
         path = urlparse(url).path
         path = unquote(path)
         if not path.startswith("/packages"):
             raise RuntimeError(f"Got invalid download URL: {url}")
         path = path[1:]
-        return os.path.join(self.mirror.webdir, path)
+        return self.mirror.webdir / path
 
-    def download_file(self, url, sha256sum):
+    def download_file(self, url: str, sha256sum: str) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
 
         # Avoid downloading again if we have the file and it matches the hash.
-        if os.path.exists(path):
-            existing_hash = utils.hash(path)
+        if path.exists():
+            existing_hash = utils.hash(str(path))
             if existing_hash == sha256sum:
                 return None
             else:
@@ -335,13 +329,13 @@ class Package:
                         path, sha256sum, existing_hash
                     )
                 )
-                os.unlink(path)
+                path.unlink()
 
         logger.info(f"Downloading: {url}")
 
-        dirname = os.path.dirname(path)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+        dirname = path.parent
+        if not dirname.exists():
+            dirname.mkdir(parents=True)
 
         # Even more special handling for the serial of package files here:
         # We do not need to track a serial for package files

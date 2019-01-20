@@ -8,7 +8,7 @@ import platform
 import sys
 import tempfile
 from pathlib import Path
-from typing import IO, Any, Generator, Set
+from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
 
 from . import __version__
@@ -46,30 +46,40 @@ def hash(path: str, function: str = "sha256") -> str:
     return h.hexdigest()
 
 
-def find(root: str, dirs: bool = True) -> str:
+def find(root: Union[Path, str], dirs: bool = True) -> str:
     """A test helper simulating 'find'.
 
     Iterates over directories and filenames, given as relative paths to the
     root.
 
     """
-    results = []
+    if isinstance(root, str):
+        root = Path(root)
+
+    results: List[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
         names = filenames
         if dirs:
             names += dirnames
         for name in names:
-            results.append(os.path.join(dirpath, name))
+            results.append(Path(dirpath) / name)
     results.sort()
-    return "\n".join(result.replace(root, "", 1) for result in results)
+    return "\n".join(str(result.relative_to(root)) for result in results)
 
 
 @contextlib.contextmanager
-def rewrite(filepath: str, mode: str = "w", **kw: Any) -> Generator[IO, None, None]:
+def rewrite(
+    filepath: Union[str, Path], mode: str = "w", **kw: Any
+) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
-    base_dir = os.path.dirname(filepath)
-    filename = os.path.basename(filepath)
+    if isinstance(filepath, str):
+        base_dir = os.path.dirname(filepath)
+        filename = os.path.basename(filepath)
+    else:
+        base_dir = str(filepath.parent)
+        filename = filepath.name
+
     # Change naming format to be more friendly with distributed POSIX
     # filesystems like GlusterFS that hash based on filename
     # GlusterFS ignore '.' at the start of filenames and this avoid rehashing

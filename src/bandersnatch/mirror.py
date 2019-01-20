@@ -5,7 +5,9 @@ import datetime
 import logging
 import os
 from concurrent.futures import thread as futures_thread
+from pathlib import Path
 from threading import RLock
+from typing import List
 
 from filelock import FileLock, Timeout
 from packaging.utils import canonicalize_name
@@ -31,8 +33,6 @@ async def package_syncer(packages, thread_pool, stop_on_error):  # noqa E999
 
 
 class Mirror:
-
-    homedir = None
 
     synced_serial = 0  # The last serial we have consistently synced to.
     target_serial = None  # What is the serial we are trying to reach?
@@ -72,7 +72,7 @@ class Mirror:
         flock_timeout=1,
     ):
         logger.info(f"{USER_AGENT}")
-        self.homedir = homedir
+        self.homedir = Path(homedir)
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
@@ -92,12 +92,12 @@ class Mirror:
         self.altered_packages = {}
 
     @property
-    def webdir(self):
-        return os.path.join(self.homedir, "web")
+    def webdir(self) -> Path:
+        return self.homedir / "web"
 
     @property
-    def todolist(self):
-        return os.path.join(self.homedir, "todo")
+    def todolist(self) -> Path:
+        return self.homedir / "todo"
 
     def synchronize(self):
         logger.info(f"Syncing with {self.master.url}.")
@@ -116,7 +116,7 @@ class Mirror:
     def _cleanup(self):
         """Does a couple of cleanup tasks to ensure consistent data for later
         processing."""
-        if os.path.exists(self.todolist):
+        if self.todolist.exists():
             try:
                 saved_todo = iter(open(self.todolist, encoding="utf-8"))
                 int(next(saved_todo).strip())
@@ -129,7 +129,7 @@ class Mirror:
                 # just have to do whatever happened since the last successful
                 # sync.
                 logger.info("Removing inconsistent todo list.")
-                os.unlink(self.todolist)
+                self.todolist.unlink()
 
     def _filter_packages(self):
         """
@@ -160,7 +160,7 @@ class Mirror:
         self.packages_to_sync = {}
         logger.info(f"Current mirror serial: {self.synced_serial}")
 
-        if os.path.exists(self.todolist):
+        if self.todolist.exists():
             # We started a sync previously and left a todo list as well as the
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
@@ -237,15 +237,14 @@ class Mirror:
                 ]
                 f.write("\n".join(todo))
 
-    def get_simple_dirs(self, simple_dir):
+    def get_simple_dirs(self, simple_dir: Path) -> List[Path]:
         """Return a list of simple index directories that should be searched
         for package indexes when compiling the main index page."""
         if self.hash_index:
             # We are using index page directory hashing, so the directory
             # format is /simple/f/foo/.  We want to return a list of dirs
             # like "simple/f".
-            subdirs = [os.path.join(simple_dir, x) for x in os.listdir(simple_dir)]
-            subdirs = [x for x in subdirs if os.path.isdir(x)]
+            subdirs = [simple_dir / x for x in simple_dir.iterdir() if x.is_dir()]
         else:
             # This is the traditional layout of /simple/foo/.  We should
             # return a single directory, "simple".
@@ -271,8 +270,8 @@ class Mirror:
         if not self.need_index_sync:
             return
         logger.info("Generating global index page.")
-        simple_dir = os.path.join(self.webdir, "simple")
-        with rewrite(os.path.join(simple_dir, "index.html")) as f:
+        simple_dir = self.webdir / "simple"
+        with rewrite(str(simple_dir / "index.html")) as f:
             f.write("<!DOCTYPE html>\n")
             f.write("<html>\n")
             f.write("  <head>\n")
@@ -291,27 +290,32 @@ class Mirror:
         if self.errors:
             return
         self.synced_serial = self.target_serial
-        if os.path.exists(self.todolist):
-            os.unlink(self.todolist)
+        if self.todolist.exists():
+            self.todolist.unlink()
         logger.info(f"New mirror serial: {self.synced_serial}")
-        last_modified = os.path.join(self.homedir, "web", "last-modified")
+        last_modified = Path(self.homedir) / "web" / "last-modified"
         with rewrite(last_modified) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
     def _bootstrap(self, flock_timeout=1):
-        paths = ["", "web/simple", "web/packages", "web/local-stats/days"]
+        paths = [
+            Path(""),
+            Path("web/simple"),
+            Path("web/packages"),
+            Path("web/local-stats/days"),
+        ]
         if self.json_save:
             logger.debug("Adding json directories to bootstrap")
-            paths.extend(["web/json", "web/pypi"])
+            paths.extend([Path("web/json"), Path("web/pypi")])
         for path in paths:
-            path = os.path.join(self.homedir, path)
-            if not os.path.exists(path):
+            path = self.homedir / path
+            if not path.exists():
                 logger.info(f"Setting up mirror directory: {path}")
-                os.makedirs(path)
+                path.mkdir(parents=True)
 
-        flock_path = os.path.join(self.homedir, ".lock")
-        flock = FileLock(flock_path)
+        flock_path = self.homedir / ".lock"
+        flock = FileLock(str(flock_path))
         try:
             with flock.acquire(timeout=flock_timeout):
                 self._cleanup()
@@ -323,24 +327,24 @@ class Mirror:
             )
 
     @property
-    def statusfile(self):
-        return os.path.join(self.homedir, "status")
+    def statusfile(self) -> Path:
+        return Path(self.homedir) / "status"
 
     @property
-    def generationfile(self):
-        return os.path.join(self.homedir, "generation")
+    def generationfile(self) -> Path:
+        return Path(self.homedir) / "generation"
 
-    def _reset_mirror_status(self):
+    def _reset_mirror_status(self) -> None:
         for path in [self.statusfile, self.todolist]:
-            if os.path.exists(path):
-                os.unlink(path)
+            if path.exists():
+                path.unlink()
 
     def _load(self):
         # Simple generation mechanism to support transparent software
         # updates.
         CURRENT_GENERATION = 5  # noqa
         try:
-            with open(self.generationfile, "r", encoding="ascii") as f:
+            with self.generationfile.open("r", encoding="ascii") as f:
                 generation = int(f.read().strip())
         except ValueError:
             logger.info("Generation file inconsistent. Reinitialising status files.")
@@ -363,15 +367,15 @@ class Mirror:
             generation = 5
         if generation != CURRENT_GENERATION:
             raise RuntimeError(f"Unknown generation {generation} found")
-        with open(self.generationfile, "w", encoding="ascii") as f:
+        with self.generationfile.open("w", encoding="ascii") as f:
             f.write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
-        if not os.path.exists(self.statusfile):
-            logger.info("Status file missing. Starting over.")
+        if not self.statusfile.exists():
+            logger.info(f"Status file {self.statusfile} missing. Starting over.")
             return
-        with open(self.statusfile, "r", encoding="ascii") as f:
+        with self.statusfile.open("r", encoding="ascii") as f:
             self.synced_serial = int(f.read().strip())
 
     def _save(self):
-        with open(self.statusfile, "w", encoding="ascii") as f:
+        with self.statusfile.open("w", encoding="ascii") as f:
             f.write(str(self.synced_serial))
