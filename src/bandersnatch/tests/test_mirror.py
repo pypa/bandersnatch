@@ -1,5 +1,6 @@
 import os.path
 import unittest.mock as mock
+from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -192,14 +193,16 @@ def test_mirror_empty_master_gets_index(mirror):
     assert """\
 last-modified
 local-stats
-local-stats/days
+local-stats{0}days
 packages
 simple
-simple/index.html""" == utils.find(
+simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror.webdir
     )
     assert (
-        open("web/simple/index.html").read()
+        open("web{0}simple{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
@@ -228,16 +231,18 @@ def test_mirror_empty_resume_from_todo_list(mirror, requests):
 generation
 status
 web
-web/last-modified
-web/local-stats
-web/local-stats/days
-web/packages
-web/simple
-web/simple/index.html""" == utils.find(
+web{0}last-modified
+web{0}local-stats
+web{0}local-stats/days
+web{0}packages
+web{0}simple
+web{0}simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror.homedir
     )
     assert (
-        open("web/simple/index.html").read()
+        open("web{0}simple{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
@@ -266,16 +271,18 @@ def test_mirror_sync_package(mirror, requests):
     mirror.synchronize()
 
     assert """\
-json/foo
+json{0}foo
 last-modified
-packages/any/f/foo/foo.zip
-pypi/foo/json
-simple/foo/index.html
-simple/index.html""" == utils.find(
+packages{0}any{0}f{0}foo{0}foo.zip
+pypi{0}foo{0}json
+simple{0}foo{0}index.html
+simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror.webdir, dirs=False
     )
     assert (
-        open("web/simple/index.html").read()
+        open("web{0}simple{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
@@ -325,13 +332,15 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
 .lock
 generation
 todo
-web/packages/any/f/foo/foo.zip
-web/simple/foo/index.html
-web/simple/index.html""" == utils.find(
+web{0}packages{0}any{0}f{0}foo{0}foo.zip
+web{0}simple{0}foo{0}index.html
+web{0}simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror.homedir, dirs=False
     )
     assert (
-        open("web/simple/index.html").read()
+        open("web{0}simple{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
@@ -347,7 +356,7 @@ web/simple/index.html""" == utils.find(
     assert open("todo").read() == "1\n"
 
     # Check the returned dict is accurate
-    expected = {"foo": {"web/packages/any/f/foo/foo.zip"}}
+    expected = {"foo": {"web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep)}}
     assert changed_packages == expected
 
 
@@ -378,7 +387,7 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     )
     requests.prepare(b"the release content", 1)
 
-    with open("web/simple/index.html", "wb") as index:
+    with open("web{0}simple{0}index.html".format(sep), "wb") as index:
         index.write(b"old index")
     mirror.errors = True
     mirror.stop_on_error = True
@@ -389,12 +398,14 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
 .lock
 generation
 todo
-web/packages/any/f/foo/foo.zip
-web/simple/foo/index.html
-web/simple/index.html""" == utils.find(
+web{0}packages{0}any{0}f{0}foo{0}foo.zip
+web{0}simple{0}foo{0}index.html
+web{0}simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror.homedir, dirs=False
     )
-    assert open("web/simple/index.html").read() == "old index"
+    assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
 
 
@@ -430,13 +441,15 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
 
     assert """\
 last-modified
-packages/any/f/foo/foo.zip
-simple/f/foo/index.html
-simple/index.html""" == utils.find(
+packages{0}any{0}f{0}foo{0}foo.zip
+simple{0}f{0}foo{0}index.html
+simple{0}index.html""".format(
+        sep
+    ) == utils.find(
         mirror_hash_index.webdir, dirs=False
     )
     assert (
-        open("web/simple/index.html").read()
+        open("web{0}simple{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
