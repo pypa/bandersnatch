@@ -1,7 +1,9 @@
 import os.path
 import unittest.mock as mock
 from datetime import datetime
+from os import sep
 from pathlib import Path
+from typing import List
 
 from freezegun import freeze_time
 from requests import HTTPError
@@ -9,11 +11,12 @@ from requests import HTTPError
 from bandersnatch.package import Package
 
 
-def touch_files(paths):
+def touch_files(paths: List[Path]):
     for path in paths:
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
-        open(path, "wb")
+        if not path.parent.exists():
+            path.parent.mkdir(parents=True)
+        with path.open("wb") as pfp:
+            pfp.close()
 
 
 def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
@@ -27,15 +30,14 @@ def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
     response.status_code = 404
     requests.prepare(HTTPError(response=response), 0)
 
-    paths = ["web/packages/2.4/f/foo/foo.zip", "web/simple/foo/index.html"]
+    paths = [Path("web/packages/2.4/f/foo/foo.zip"), Path("web/simple/foo/index.html")]
     touch_files(paths)
 
     package = Package("foo", 10, mirror)
     package.sync()
 
     for path in paths:
-        path = os.path.join(path)
-        assert os.path.exists(path)
+        assert path.exists()
 
 
 def test_package_sync_gives_up_after_3_stale_responses(caplog, mirror, requests):
@@ -480,7 +482,8 @@ def test_package_download_rejects_non_package_directory_links(mirror):
 
 
 def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror, requests):
-    touch_files(["web/packages/2.4/f/foo/foo.zip"])
+    test_files = [Path("web/packages/2.4/f/foo/foo.zip")]
+    touch_files(test_files)
 
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = ["0.1"]
@@ -492,7 +495,7 @@ def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror, requests):
     package = Package("foo", 10, mirror)
     package.sync()
 
-    assert os.path.exists("web/packages/2.4/f/foo/foo.zip")
+    assert test_files[0].exists()
 
 
 def test_package_sync_replaces_mismatching_local_files(mirror, requests):
@@ -519,15 +522,16 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
     )
     requests.prepare(b"the release content", 10)
 
-    os.makedirs("web/packages/any/f/foo")
-    with open("web/packages/any/f/foo/foo.zip", "wb") as f:
+    test_files = [Path("web/packages/any/f/foo/foo.zip")]
+    touch_files(test_files)
+    with test_files[0].open("wb") as f:
         f.write(b"this is not the release content")
 
     mirror.packages_to_sync = {"foo": None}
     package = Package("foo", 10, mirror)
     package.sync()
 
-    assert open("web/packages/any/f/foo/foo.zip").read() == ("the release content")
+    assert test_files[0].open("r").read() == ("the release content")
 
 
 def test_package_sync_does_not_touch_existing_local_file(mirror, requests):
@@ -550,17 +554,17 @@ def test_package_sync_does_not_touch_existing_local_file(mirror, requests):
 
     requests.prepare(b"the release content", 10)
 
-    os.makedirs("web/packages/any/f/foo")
-    with open("web/packages/any/f/foo/foo.zip", "wb") as f:
+    test_files = [Path("web/packages/any/f/foo/foo.zip")]
+    touch_files(test_files)
+    with test_files[0].open("wb") as f:
         f.write(b"the release content")
-    old_stat = os.stat("web/packages/any/f/foo/foo.zip")
+    old_stat = test_files[0].stat()
 
     mirror.packages_to_sync = {"foo"}
     package = Package("foo", 10, mirror)
     package.sync()
 
-    new_stat = os.stat("web/packages/any/f/foo/foo.zip")
-    assert old_stat == new_stat
+    assert old_stat == os.stat(test_files[0])
 
 
 def test_sync_incorrect_download_with_current_serial_fails(mirror, requests):
@@ -587,7 +591,7 @@ def test_sync_incorrect_download_with_current_serial_fails(mirror, requests):
     package = Package("foo", 10, mirror)
     package.sync()
 
-    assert not os.path.exists("web/packages/any/f/foo/foo.zip")
+    assert not os.path.exists("web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep))
     assert mirror.errors
 
 
@@ -615,7 +619,7 @@ def test_sync_incorrect_download_with_old_serials_retries(mirror, requests):
     package = Package("foo", 10, mirror)
     package.sync()
 
-    assert not os.path.exists("web/packages/any/f/foo/foo.zip")
+    assert not os.path.exists("web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep))
     assert mirror.errors
 
 
@@ -643,7 +647,7 @@ def test_sync_incorrect_download_with_new_serial_fails(mirror, requests):
     package = Package("foo", 10, mirror)
     package.sync()
 
-    assert not os.path.exists("web/packages/any/f/foo/foo.zip")
+    assert not os.path.exists("web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep))
     assert mirror.errors
 
 
@@ -662,7 +666,7 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
     package.sync()
 
     assert (
-        open("web/simple/foo/index.html").read()
+        open("web{0}simple{0}foo{0}index.html".format(sep)).read()
         == """\
 <!DOCTYPE html>
 <html>
@@ -709,16 +713,16 @@ def test_keep_index_versions_stores_one_prior_version(mirror, requests):
     package = Package("foo", 10, mirror)
     package.sync()
 
-    simple_path = "web/simple/foo/"
-    versions_path = os.path.join(simple_path, "versions")
+    simple_path = Path("web/simple/foo")
+    versions_path = simple_path / "versions"
     version_files = os.listdir(versions_path)
     assert len(version_files) == 1
     assert (
         version_files[0]
         == f"index_{package.serial}_{datetime.utcnow().isoformat()}Z.html"
     )
-    link_path = os.path.join(simple_path, "index.html")
-    assert os.path.islink(link_path)
+    link_path = simple_path / "index.html"
+    assert link_path.is_symlink()
     assert os.path.basename(os.readlink(link_path)) == version_files[0]
 
 
@@ -744,8 +748,8 @@ def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
     requests.prepare(response, 10)
     requests.prepare(b"the release content", 10)
 
-    simple_path = "web/simple/foo/"
-    versions_path = os.path.join(simple_path, "versions")
+    simple_path = Path("web/simple/foo")
+    versions_path = simple_path / "versions"
     mirror.packages_to_sync = {"foo": None}
     mirror.keep_index_versions = 2
     with freeze_time("2018-10-27"):
@@ -762,7 +766,7 @@ def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
     assert len(version_files) == 2
     assert version_files[0].startswith("index_10_2018-10-27")
     assert version_files[1].startswith("index_11_2018-10-28")
-    link_path = os.path.join(simple_path, "index.html")
+    link_path = simple_path / "index.html"
     assert os.path.islink(link_path)
     assert os.path.basename(os.readlink(link_path)) == version_files[1]
 

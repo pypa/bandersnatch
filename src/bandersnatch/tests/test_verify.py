@@ -101,28 +101,29 @@ class FakeMirror:
 
 
 def test_fake_mirror():
-    expected_mirror_layout = """/web
-/web/json
-/web/json/bandersnatch
-/web/json/black
-/web/packages
-/web/packages/8f
-/web/packages/8f/1a
-/web/packages/8f/1a/1aa0
-/web/packages/8f/1a/1aa0/black-2019.6.9.tar.gz
-/web/packages/8f/1a/6969
-/web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz
-/web/packages/8f/1a/6969/black-2018.6.9.tar.gz
-/web/pypi
-/web/pypi/bandersnatch
-/web/pypi/bandersnatch/json
-/web/pypi/black
-/web/pypi/black/json
-/web/simple
-/web/simple/bandersnatch
-/web/simple/bandersnatch/index.html
-/web/simple/black
-/web/simple/black/index.html"""
+    expected_mirror_layout = """\
+web
+web/json
+web/json/bandersnatch
+web/json/black
+web/packages
+web/packages/8f
+web/packages/8f/1a
+web/packages/8f/1a/1aa0
+web/packages/8f/1a/1aa0/black-2019.6.9.tar.gz
+web/packages/8f/1a/6969
+web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz
+web/packages/8f/1a/6969/black-2018.6.9.tar.gz
+web/pypi
+web/pypi/bandersnatch
+web/pypi/bandersnatch/json
+web/pypi/black
+web/pypi/black/json
+web/simple
+web/simple/bandersnatch
+web/simple/bandersnatch/index.html
+web/simple/black
+web/simple/black/index.html"""
     fm = FakeMirror("_mirror_base_test")
     assert expected_mirror_layout == find(str(fm.mirror_base), True)
     fm.clean_up()
