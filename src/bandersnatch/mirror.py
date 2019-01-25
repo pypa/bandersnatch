@@ -137,9 +137,16 @@ class Mirror:
         packages_to_sync that match any filters.
         - Logging of action will be done within the check_match methods
         """
+        filter_plugins = filter_project_plugins()
+        if not filter_plugins:
+            logger.info("No project filters are enabled. Skipping filtering")
+            return
+
+        # Make a copy of self.packages_to_sync keys
+        # as we may delete packages during iteration
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
-            for plugin in filter_project_plugins():
+            for plugin in filter_plugins:
                 if plugin.check_match(name=package_name):
                     if package_name not in self.packages_to_sync:
                         logger.error(

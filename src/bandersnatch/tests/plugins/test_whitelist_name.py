@@ -8,6 +8,8 @@ from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 
+TEST_CONF = "test.conf"
+
 
 class TestWhitelistProject(TestCase):
     """
@@ -30,7 +32,7 @@ class TestWhitelistProject(TestCase):
             self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self):
-        with open("test.conf", "w") as testconfig_handle:
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
@@ -39,7 +41,7 @@ plugins =
 """
             )
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_project_plugins()
@@ -48,22 +50,22 @@ plugins =
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__loads__default(self):
-        with open("test.conf", "w") as testconfig_handle:
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
 """
             )
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertIn("whitelist_project", names)
+        self.assertNotIn("whitelist_project", names)
 
     def test__filter__matches__package(self):
-        with open("test.conf", "w") as testconfig_handle:
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
@@ -76,7 +78,7 @@ packages =
 """
             )
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
@@ -86,7 +88,7 @@ packages =
         self.assertIn("foo", mirror.packages_to_sync.keys())
 
     def test__filter__nomatch_package(self):
-        with open("test.conf", "w") as testconfig_handle:
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
@@ -99,7 +101,7 @@ packages =
 """
             )
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))

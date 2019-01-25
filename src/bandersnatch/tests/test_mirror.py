@@ -106,6 +106,7 @@ def test_mirror_filter_packages_match(tmpdir):
     """
     test_configuration = """\
 [blacklist]
+plugins = blacklist_project
 packages =
     example1
 """

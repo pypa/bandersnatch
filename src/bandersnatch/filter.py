@@ -71,27 +71,27 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
         A list of objects derived from the Blacklist class
     """
     global loaded_filter_plugins
-    enabled_plugins = ["all"]
+    enabled_plugins: List[str] = []
     config = BandersnatchConfig().config
     try:
         config_blacklist_plugins = config["blacklist"]["plugins"]
+        split_plugins = config_blacklist_plugins.split("\n")
+        if "all" in split_plugins:
+            enabled_plugins = ["all"]
+        else:
+            for plugin in split_plugins:
+                if not plugin:
+                    continue
+                enabled_plugins.append(plugin)
     except KeyError:
-        config_blacklist_plugins = ""
-    if config_blacklist_plugins:
-        config_plugins = []
-        for plugin in config_blacklist_plugins.split("\n"):
-            plugin = plugin.strip()
-            if plugin:
-                config_plugins.append(plugin)
-        if config_plugins:
-            enabled_plugins = config_plugins
+        pass
 
     # If the plugins for the entrypoint_group have been loaded return them
     cached_plugins = loaded_filter_plugins.get(entrypoint_group)
     if cached_plugins:
         return cached_plugins
 
-    plugins = set()  # Use a set to prevent possible duplicates
+    plugins = set()
     for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
         plugin_class = entry_point.load()
         plugin_instance = plugin_class()
