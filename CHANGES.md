@@ -1,3 +1,16 @@
+# 3.2.0 (2019-01-25)
+
+- Change plugins to be off unless explicitly enabled via configuration - `Fixes #142`
+- Change all path interactions to use **Pathlib** for more Windows support - `Addresses #23`
+- Add a MacOS CI Run with azure pipelines
+- Move test_runner from shell to Python for Windows - `Addresses #23`
+- More testing improvements and refactor for verify.py
+- We now have a reference Docker file + runner.py - `Fixes #113`
+- Many pyup.io dependency upgrades
+
+### Known Bug
+- From 3.0.0 we've been implicitly turning on *ALL* plugins - This version reverses that
+
 ## 3.1.3 (2018-12-26)
 
 - Print help message when no arguments given to bandersnatch - Thanks **@GreatBahram**
