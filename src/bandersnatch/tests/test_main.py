@@ -45,7 +45,7 @@ def test_main_cant_create_config(caplog, tmpdir):
 
 
 def test_main_reads_config_values(mirror_mock):
-    config = os.path.dirname(bandersnatch.__file__) + "/default.conf"
+    config = os.path.dirname(bandersnatch.__file__) + "/unittest.conf"
     sys.argv = ["bandersnatch", "-c", config, "mirror"]
     assert os.path.exists(config)
     assert isinstance(bandersnatch.mirror.Mirror, mock.Mock)
@@ -94,7 +94,7 @@ def test_main_throws_exception_on_unsupported_digest_name(customconfig):
 
 @pytest.fixture
 def customconfig(tmpdir):
-    default = os.path.dirname(bandersnatch.__file__) + "/default.conf"
+    default = os.path.dirname(bandersnatch.__file__) + "/unittest.conf"
     config = open(default).read()
     config = config.replace("/srv/pypi", str(tmpdir / "pypi"))
     with open(str(tmpdir / "bandersnatch.conf"), "w") as f:

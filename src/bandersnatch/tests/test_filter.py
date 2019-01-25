@@ -7,6 +7,8 @@ import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import filter_project_plugins, filter_release_plugins
 
+TEST_CONF = "test.conf"
+
 
 class TestBandersnatchFilter(TestCase):
     """
@@ -28,16 +30,21 @@ class TestBandersnatchFilter(TestCase):
             self.tempdir.cleanup()
             self.tempdir = None
 
-    def test__filter_project_plugins__default__loads(self):
-        with open("test.conf", "w") as testconfig_handle:
+    def test__filter_project_plugins__loads(self):
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
+plugins = all
 """
             )
-        builtin_plugin_names = ["blacklist_project", "whitelist_project"]
+        builtin_plugin_names = [
+            "blacklist_project",
+            "regex_project",
+            "whitelist_project",
+        ]
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         plugins = filter_project_plugins()
@@ -45,16 +52,21 @@ class TestBandersnatchFilter(TestCase):
         for name in builtin_plugin_names:
             self.assertIn(name, names)
 
-    def test__filter_release_plugins__default__loads(self):
-        with open("test.conf", "w") as testconfig_handle:
+    def test__filter_release_plugins__loads(self):
+        with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
 [blacklist]
+plugins = all
 """
             )
-        builtin_plugin_names = ["blacklist_release"]
+        builtin_plugin_names = [
+            "blacklist_release",
+            "prerelease_release",
+            "regex_release",
+        ]
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
+        instance.config_file = TEST_CONF
         instance.load_configuration()
 
         plugins = filter_release_plugins()

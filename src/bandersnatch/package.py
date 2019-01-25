@@ -152,10 +152,17 @@ class Package:
         Run the release filtering plugins and remove any releases from
         `releases` that match any filters.
         """
+        filter_plugins = filter_release_plugins()
+        if not filter_plugins:
+            logger.info("No package filters are enabled. Skipping filtering")
+            return
+
+        # Make a copy of self.releases keys
+        # as we may delete packages during iteration
         versions = list(self.releases.keys())
         for version in versions:
             filter_ = False
-            for plugin in filter_release_plugins():
+            for plugin in filter_plugins:
                 filter_ = filter_ or plugin.check_match(name=self.name, version=version)
             if filter_:
                 del (self.releases[version])
@@ -206,6 +213,9 @@ class Package:
 
         # Get a list of all of the files.
         release_files = []
+        logger.debug(
+            f"There are {len(self.releases.values())} releases for {self.name}"
+        )
         for release in self.releases.values():
             release_files.extend(release)
         # Lets sort based on the filename rather than the whole URL

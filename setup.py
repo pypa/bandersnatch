@@ -33,8 +33,8 @@ setup(
                 regex_project = bandersnatch_filter_plugins.regex_name:RegexProjectFilter
             [bandersnatch_filter_plugins.release]
                 blacklist_release = bandersnatch_filter_plugins.blacklist_name:BlacklistRelease
-                regex_release = bandersnatch_filter_plugins.regex_name:RegexReleaseFilter
                 prerelease_release = bandersnatch_filter_plugins.prerelease_name:PreReleaseFilter
+                regex_release = bandersnatch_filter_plugins.regex_name:RegexReleaseFilter
             [console_scripts]
                 bandersnatch = bandersnatch.main:main
             [zc.buildout]

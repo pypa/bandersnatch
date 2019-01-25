@@ -21,6 +21,7 @@ from src.bandersnatch.utils import hash
 
 BANDERSNATCH_EXE = Path(which("bandersnatch") or "bandersnatch")
 CI_CONFIG = Path("src/bandersnatch/tests/ci.conf")
+EOP = "[CI ERROR]:"
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
@@ -28,6 +29,7 @@ TOX_EXE = Path(which("tox") or "tox")
 
 
 def do_ci_verify():
+    black_index = MIRROR_BASE / "simple/b/black/index.html"
     peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
     peerme_json = MIRROR_BASE / "json/peerme"
     peerme_tgz = (
@@ -38,21 +40,26 @@ def do_ci_verify():
     )
 
     if not peerme_index.exists():
-        print(f"No peerme simple API index exists @ {peerme_index}")
+        print(f"{EOP} No peerme simple API index exists @ {peerme_index}")
         return 69
 
     if not peerme_json.exists():
-        print(f"No peerme JSON API file exists @ {peerme_json}")
+        print(f"{EOP} No peerme JSON API file exists @ {peerme_json}")
         return 70
 
     if not peerme_tgz.exists():
-        print(f"No peerme tgz file exists @ {peerme_tgz}")
+        print(f"{EOP} No peerme tgz file exists @ {peerme_tgz}")
         return 71
 
     peerme_tgz_sha256 = hash(str(peerme_tgz))
     if peerme_tgz_sha256 != TGZ_SHA256:
-        print(f"Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
+        print(f"{EOP} Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
         return 72
+
+    with black_index.open("r") as bifp:
+        if "a href" not in bifp.read():
+            print(f"{EOP} {black_index} has no hyperlinks")
+            return 73
 
     rmtree(MIRROR_ROOT)
 
