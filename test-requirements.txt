@@ -1,6 +1,6 @@
 black==18.9b0
 coverage==4.5.2
-pytest==4.1.1
+pytest==4.2.0
 pytest-timeout==1.3.3
 pytest-cache==1.0
 setuptools==40.7.1
