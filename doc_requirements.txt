@@ -7,7 +7,7 @@ xmlrpc2==0.3.1
 
 zest.releaser==6.16.0
 
-sphinx==1.8.3
+sphinx==1.8.4
 recommonmark==0.5.0
 docutils==0.14
 
