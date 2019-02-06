@@ -1,6 +1,6 @@
 six==1.12.0
 pyparsing==2.3.1
-python-dateutil==2.7.5
+python-dateutil==2.8.0
 packaging==19.0
 requests==2.21.0
 xmlrpc2==0.3.1
