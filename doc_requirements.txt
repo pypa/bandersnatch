@@ -5,7 +5,7 @@ packaging==19.0
 requests==2.21.0
 xmlrpc2==0.3.1
 
-zest.releaser==6.16.0
+zest.releaser==6.17.0
 
 sphinx==1.8.4
 recommonmark==0.5.0
