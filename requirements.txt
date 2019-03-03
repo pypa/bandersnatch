@@ -1,7 +1,7 @@
 aiodns==1.2.0
 aiohttp==3.5.4
 async-timeout==3.0.1
-attrs==18.2.0
+attrs==19.1.0
 certifi==2018.11.29
 chardet==3.0.4
 filelock==3.0.10
