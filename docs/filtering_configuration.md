@@ -21,16 +21,23 @@ The plugins setting is a list of plugins to enable.
 ```
 
 Example (enable all installed filter plugins):
+- *Explicitly* enabling plugins is now **mandatory** for *activating plugins*
+- They will *do nothing* without activation
+
+Also, enabling will get plugin's defaults if not configured in their respective sections.
+
 ``` ini
 [blacklist]
 plugins = all
 ```
 
-Example (only enable filtering of whole projects/packages):
+Example (only enable specific plugins):
 ``` ini
 [blacklist]
 plugins =
     blacklist_project
+    whitelist_project
+    ...
 ```
 
 ### packages
@@ -42,9 +49,17 @@ Any packages matching the version specifier will not be downloaded.
 Example:
 ``` ini
 [blacklist]
+plugins =
+    blacklist_project
+    whitelist_project
 packages =
     example1
     example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
+
+[whitelist]
+packages =
+    black
+    ptr
 ```
 
 ### Prerelease filtering

@@ -25,7 +25,6 @@ matrix:
 
 install:
     - pip install --upgrade pip setuptools
-    - pip install -r requirements.txt -r test-requirements.txt
     - pip install .
 
 script:
