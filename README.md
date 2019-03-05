@@ -24,6 +24,7 @@ This installs the latest stable, released version.
 ```
   $ python3.6 -m venv bandersnatch
   $ bandersnatch/bin/pip install bandersnatch
+  $ bandersnatch/bin/bandersnatch --help
 ```
 
 ## Quickstart
@@ -123,17 +124,6 @@ other purposes.
 
 An example of an unsupported API is PyPI's XML-RPC interface, which is used
 when running `pip search`.
-
-### zc.buildout
-- *WARNING* This feature has not been kept updated
-
-This installs the current development version. Use `git checkout <commit-hash>` and run buildout again to choose a specific release.
-
-```
-  $ git clone https://github.com/pypa/bandersnatch
-  $ cd bandersnatch
-  $ ./bootstrap.sh
-```
 
 ### Contact
 
