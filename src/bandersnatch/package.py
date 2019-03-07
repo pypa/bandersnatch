@@ -17,6 +17,8 @@ from . import utils
 from .filter import filter_release_plugins
 from .master import StalePage
 
+# Bool to help us not spam the logs with certain log messages
+display_filter_log = True
 logger = logging.getLogger(__name__)
 
 
@@ -152,9 +154,12 @@ class Package:
         Run the release filtering plugins and remove any releases from
         `releases` that match any filters.
         """
+        global display_filter_log
         filter_plugins = filter_release_plugins()
         if not filter_plugins:
-            logger.info("No package filters are enabled. Skipping filtering")
+            if display_filter_log:
+                logger.info("No package filters are enabled. Skipping filtering")
+                display_filter_log = False
             return
 
         # Make a copy of self.releases keys
