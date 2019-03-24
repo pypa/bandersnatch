@@ -567,6 +567,18 @@ def test_package_sync_does_not_touch_existing_local_file(mirror, requests):
     assert old_stat == os.stat(test_files[0])
 
 
+def test_gen_data_requires_python(mirror, requests):
+    fake_no_release = {}
+    fake_release = {"requires_python": ">=3.6"}
+    package = Package("foo", 10, mirror)
+
+    assert package.gen_data_requires_python(fake_no_release) == ""
+    assert (
+        package.gen_data_requires_python(fake_release)
+        == ' data-requires-python="&gt;=3.6"'
+    )
+
+
 def test_sync_incorrect_download_with_current_serial_fails(mirror, requests):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = ["0.1"]
@@ -804,7 +816,7 @@ def test_keep_index_versions_removes_old_versions(mirror, requests):
         package = Package("foo", 11, mirror)
         package.sync()
 
-    version_files = sorted([f for f in versions_path.iterdir()])
+    version_files = sorted(f for f in versions_path.iterdir())
     assert len(version_files) == 2
     assert version_files[0].name.startswith("index_10_2018-10-27")
     assert version_files[1].name.startswith("index_11_2018-10-28")
