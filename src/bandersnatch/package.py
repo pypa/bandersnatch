@@ -207,7 +207,7 @@ class Package:
 
     def gen_data_requires_python(self, release):
         if 'requires_python' in release and release['requires_python'] is not None:
-            return 'data-requires-python="' + html.escape(release['requires_python']) + '"'
+            return ' data-requires-python="' + html.escape(release['requires_python']) + '"'
         return ''
 
     def generate_simple_page(self):
@@ -236,7 +236,7 @@ class Package:
 
         simple_page_content += "\n".join(
             [
-                '    <a href="{}#{}={}" {}>{}</a><br/>'.format(
+                '    <a href="{}#{}={}"{}>{}</a><br/>'.format(
                     self._file_url_to_local_url(r["url"]),
                     digest_name,
                     r["digests"][digest_name],
