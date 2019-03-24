@@ -206,9 +206,13 @@ class Package:
         self.mirror.altered_packages[self.name] = downloaded_files
 
     def gen_data_requires_python(self, release):
-        if 'requires_python' in release and release['requires_python'] is not None:
-            return ' data-requires-python="' + html.escape(release['requires_python']) + '"'
-        return ''
+        if "requires_python" in release and release["requires_python"] is not None:
+            return (
+                ' data-requires-python="'
+                + html.escape(release["requires_python"])
+                + '"'
+            )
+        return ""
 
     def generate_simple_page(self):
         # Generate the header of our simple page.
