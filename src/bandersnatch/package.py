@@ -1,4 +1,5 @@
 import hashlib
+import html
 import logging
 import os.path
 import sys
@@ -204,6 +205,11 @@ class Package:
 
         self.mirror.altered_packages[self.name] = downloaded_files
 
+    def gen_data_requires_python(self, release):
+        if 'requires_python' in release and release['requires_python'] is not None:
+            return 'data-requires-python="' + html.escape(release['requires_python']) + '"'
+        return ''
+
     def generate_simple_page(self):
         # Generate the header of our simple page.
         simple_page_content = (
@@ -230,10 +236,11 @@ class Package:
 
         simple_page_content += "\n".join(
             [
-                '    <a href="{}#{}={}">{}</a><br/>'.format(
+                '    <a href="{}#{}={}" {}>{}</a><br/>'.format(
                     self._file_url_to_local_url(r["url"]),
                     digest_name,
                     r["digests"][digest_name],
+                    self.gen_data_requires_python(r),
                     r["filename"],
                 )
                 for r in release_files
