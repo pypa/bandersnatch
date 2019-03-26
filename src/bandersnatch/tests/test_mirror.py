@@ -78,7 +78,7 @@ def test_mirror_generation_3_resets_status_files(tmpdir):
         status.write("asdf")
 
     m = Mirror(str(tmpdir), mock.Mock())
-    assert m.synced_serial is 0
+    assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation"), "r").read() == "5"
@@ -93,7 +93,7 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
         status.write("asdf")
 
     m = Mirror(str(tmpdir), mock.Mock())
-    assert m.synced_serial is 0
+    assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation"), "r").read() == "5"
