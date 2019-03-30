@@ -56,6 +56,14 @@ class FilterReleasePlugin(Filter):
     name = "release_plugin"
 
 
+class FilterFilenamePlugin(Filter):
+    """
+    Plugin that blocks the download of specific package types or platforms
+    """
+
+    name = "filename_plugin"
+
+
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     """
     Load all blacklist plugins that are registered with pkg_resources
@@ -125,3 +133,15 @@ def filter_release_plugins() -> Iterable[Filter]:
         List of objects derived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins("bandersnatch_filter_plugins.release")
+
+
+def filter_filename_plugins() -> Iterable[Filter]:
+    """
+    Load and return the filename filtering plugin objects
+
+    Returns
+    -------
+    list of bandersnatch.filter.Filter:
+        List of objects derived from the bandersnatch.filter.Filter class
+    """
+    return load_filter_plugins("bandersnatch_filter_plugins.filename")
