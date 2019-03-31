@@ -14,7 +14,6 @@ class PreReleaseFilter(FilterReleasePlugin):
     name = "prerelease_release"
     PRERELEASE_PATTERNS = (r".+rc\d$", r".+a(lpha)?\d$", r".+b(eta)?\d$", r".+dev\d$")
 
-
     def initialize_plugin(self):
         """
         Initialize the plugin reading patterns from the config.

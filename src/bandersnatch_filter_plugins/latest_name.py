@@ -1,7 +1,7 @@
 import logging
-import re
-from packaging.version import parse
 from operator import itemgetter
+
+from packaging.version import parse
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -34,7 +34,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
         """
         """
         versions = map(lambda v: (parse(v), v), releases.keys())
-        latest = sorted(versions)[-self.keep:]
+        latest = sorted(versions)[-self.keep :]  # noqa
         new_keys = list(map(itemgetter(1), latest))
         logger.debug(f"old {list(releases.keys())}")
         logger.debug(f"new {new_keys}")

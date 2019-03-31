@@ -1,12 +1,13 @@
 import logging
+from typing import List
 
 from bandersnatch.filter import FilterFilenamePlugin
 
 logger = logging.getLogger("bandersnatch")
 
-_plugin_initialized = False
-_patterns = []
-_packagetypes = []
+_plugin_initialized: bool = False
+_patterns: List[str] = []
+_packagetypes: List[str] = []
 
 
 def _init_once(self):
@@ -30,7 +31,15 @@ def _init_once(self):
                 _patterns.extend(["freebsd"])
 
             elif platform.lower() in ("linux"):
-                _patterns.extend(["linux-i686", "linux-x86_64", "linux_armv7l", "linux-armv7l", "manylinux1_"])
+                _patterns.extend(
+                    [
+                        "linux-i686",
+                        "linux-x86_64",
+                        "linux_armv7l",
+                        "linux-armv7l",
+                        "manylinux1_",
+                    ]
+                )
                 _packagetypes.extend(["bdist_rpm"])
 
     except KeyError:
@@ -53,7 +62,6 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
         """
         _init_once(self)
 
-
     def check_match(self, file_desc):
         """
         Check if a release version matches any of the specificed patterns.
@@ -70,15 +78,15 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
         """
 
         # source dist: never filter out
-        pt = file_desc['packagetype']
-        if pt == 'sdist':
+        pt = file_desc["packagetype"]
+        if pt == "sdist":
             return False
 
         # Windows installer
         if pt in _packagetypes:
             return True
 
-        fn = file_desc['filename']
+        fn = file_desc["filename"]
         for i in _patterns:
             if i in fn:
                 return True
