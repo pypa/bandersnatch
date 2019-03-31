@@ -15,7 +15,7 @@ import requests
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .filter import filter_release_plugins, filter_filename_plugins
+from .filter import filter_filename_plugins, filter_release_plugins
 from .master import StalePage
 
 # Bool to help us not spam the logs with certain log messages
@@ -174,7 +174,7 @@ class Package:
             for plugin in filter_plugins:
                 filter_ = filter_ or plugin.check_match(name=self.name, version=version)
             if filter_:
-                del (self.releases[version])
+                del self.releases[version]
 
     def _filter_latest(self):
         """
