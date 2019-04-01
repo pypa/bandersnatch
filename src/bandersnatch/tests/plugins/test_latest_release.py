@@ -88,3 +88,54 @@ keep = 2
         pkg._filter_latest()
 
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
+
+
+class TestLatestReleaseFilter2(BasePluginTestCase):
+
+    config_contents = """\
+[blacklist]
+plugins =
+    latest_release
+"""
+
+    def test_plugin_compiles_patterns(self):
+        _mock_config(self.config_contents)
+
+        plugins = bandersnatch.filter.filter_release_plugins()
+
+        assert any(
+            type(plugin) == latest_name.LatestReleaseFilter for plugin in plugins
+        )
+        plugin = next(
+            plugin
+            for plugin in plugins
+            if type(plugin) == latest_name.LatestReleaseFilter
+        )
+        assert plugin.keep == 0
+
+    def test_plugin_check_match(self):
+        _mock_config(self.config_contents)
+
+        bandersnatch.filter.filter_release_plugins()
+
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1, mirror)
+        pkg.releases = {
+            "1.0.0": {},
+            "1.1.0": {},
+            "1.1.1": {},
+            "1.1.2": {},
+            "1.1.3": {},
+            "2.0.0": {},
+        }
+
+        pkg._filter_latest()
+
+        assert pkg.releases == {
+            "1.0.0": {},
+            "1.1.0": {},
+            "1.1.1": {},
+            "1.1.2": {},
+            "1.1.3": {},
+            "2.0.0": {},
+        }

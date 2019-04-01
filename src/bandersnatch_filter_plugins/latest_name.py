@@ -19,22 +19,23 @@ class LatestReleaseFilter(FilterReleasePlugin):
         """
         Initialize the plugin reading patterns from the config.
         """
-        # TODO: should retrieving the plugin's config be part of the base class?
+        self.keep = 0  # default, keep 'em all
         try:
             self.keep = int(self.configuration["latest_release"]["keep"])
-            if self.keep < 1:
-                self.keep = 1
         except KeyError:
-            self.keep = 3
+            pass
         except ValueError:
-            self.keep = 3
-
-        logger.info(f"Initialized latest releases plugin with keep={self.keep}")
+            pass
+        if self.keep > 0:
+            logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
     def filter(self, releases):
         """
         Filter the dictionary {(release, files)}
         """
+        if self.keep == 0:
+            return releases
+
         versions = map(lambda v: (parse(v), v), releases.keys())
         latest = sorted(versions)[-self.keep :]  # noqa
         new_keys = list(map(itemgetter(1), latest))
