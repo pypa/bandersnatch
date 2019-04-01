@@ -10,6 +10,7 @@ logger = logging.getLogger("bandersnatch")
 
 class LatestReleaseFilter(FilterReleasePlugin):
     """
+    Plugin to download only latest releases
     """
 
     name = "latest_release"
@@ -32,6 +33,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
 
     def filter(self, releases):
         """
+        Filter the dictionary {(release, files)}
         """
         versions = map(lambda v: (parse(v), v), releases.keys())
         latest = sorted(versions)[-self.keep :]  # noqa
