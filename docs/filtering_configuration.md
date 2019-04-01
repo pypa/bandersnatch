@@ -129,4 +129,6 @@ plugins =
 keep = 3
 ```
 
-By default, the plugin keeps 3 releases. You should be aware that it can break requirements.
+By default, the plugin does not fiter out any release. You have to add the `keep` setting.
+
+You should be aware that it can break requirements.

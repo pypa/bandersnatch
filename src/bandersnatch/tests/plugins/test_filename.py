@@ -60,7 +60,9 @@ platforms =
 
         plugins = bandersnatch.filter.filter_filename_plugins()
 
-        assert any(type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins)
+        assert any(
+            type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
+        )
 
     def test_plugin_check_match(self):
         _mock_config(self.config_contents)
@@ -70,15 +72,41 @@ platforms =
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
         pkg.releases = {
-            "1.0": [{"packagetype": "sdist", "filename": "foo-1.0-win32.tar.gz", "flag": "KEEP"},
-                    {"packagetype": "bdist_msi", "filename": "foo-1.0", "flag": "DROP"},
-                    {"packagetype": "bdist_wininst", "filename": "foo-1.0", "flag": "DROP"},
-                    {"packagetype": "bdist_dmg", "filename": "foo-1.0", "flag": "DROP"},
-                    {"packagetype": "bdist_wheel", "filename": "foo-1.0-win32.zip", "flag": "DROP"},
-                    {"packagetype": "bdist_wheel", "filename": "foo-1.0-linux.tar.gz", "flag": "KEEP"},
-                    {"packagetype": "bdist_wheel", "filename": "foo-1.0-macosx_10_14_x86_64.whl", "flag": "DROP"},
-                    {"packagetype": "bdist_egg", "filename": "foo-1.0-win_amd64.zip", "flag": "DROP"},
-                    {"packagetype": "unknown", "filename": "foo-1.0-unknown", "flag": "KEEP"}]
+            "1.0": [
+                {
+                    "packagetype": "sdist",
+                    "filename": "foo-1.0-win32.tar.gz",
+                    "flag": "KEEP",
+                },
+                {"packagetype": "bdist_msi", "filename": "foo-1.0", "flag": "DROP"},
+                {"packagetype": "bdist_wininst", "filename": "foo-1.0", "flag": "DROP"},
+                {"packagetype": "bdist_dmg", "filename": "foo-1.0", "flag": "DROP"},
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foo-1.0-win32.zip",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foo-1.0-linux.tar.gz",
+                    "flag": "KEEP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foo-1.0-macosx_10_14_x86_64.whl",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "bdist_egg",
+                    "filename": "foo-1.0-win_amd64.zip",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "unknown",
+                    "filename": "foo-1.0-unknown",
+                    "flag": "KEEP",
+                },
+            ]
         }
 
         pkg._filter_filenames()
