@@ -1,9 +1,9 @@
 black==19.3b0
 codecov==2.0.15
 coverage==4.5.3
+freezegun==0.3.11
 pytest==4.4.0
 pytest-timeout==1.3.3
 pytest-cache==1.0
-setuptools==40.8.0
+setuptools==40.9.0
 tox==3.8.6
-freezegun==0.3.11
