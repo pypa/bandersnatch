@@ -19,18 +19,19 @@ def _init_once(self):
     try:
         for platform in self.configuration["blacklist"]["platforms"].split("\n"):
 
-            if platform.lower() in ("windows", "win"):
+            lplatform = platform.lower()
+            if lplatform in ("windows", "win"):
                 _patterns.extend([".win32", "-win32", "win_amd64", "win-amd64"])
                 _packagetypes.extend(["bdist_msi", "bdist_wininst"])
 
-            elif platform.lower() in ("macos", "macosx"):
+            elif lplatform in ("macos", "macosx"):
                 _patterns.extend(["macosx_", "macosx-"])
                 _packagetypes.extend(["bdist_dmg"])
 
-            elif platform.lower() in ("freebsd"):
+            elif lplatform in ("freebsd"):
                 _patterns.extend(["freebsd"])
 
-            elif platform.lower() in ("linux"):
+            elif lplatform in ("linux"):
                 _patterns.extend(
                     [
                         "linux-i686",
