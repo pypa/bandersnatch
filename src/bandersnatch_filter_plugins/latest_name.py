@@ -33,12 +33,18 @@ class LatestReleaseFilter(FilterReleasePlugin):
         """
         Filter the dictionary {(release, files)}
         """
-        if self.keep == 0:
+        keys = list(releases.keys())
+
+        if self.keep == 0 or len(keys) <= self.keep:
+            # return the unmodified releases list
             return releases
 
-        versions = map(lambda v: (parse(v), v), releases.keys())
-        latest = sorted(versions)[-self.keep :]  # noqa
+        # parse release tags with packaging.version.parse to order them
+        versions = map(lambda v: (parse(v), v), keys)
+        latest = sorted(versions)[-self.keep :]  # noqa: E203
         new_keys = list(map(itemgetter(1), latest))
-        logger.debug(f"old {list(releases.keys())}")
+
+        logger.debug(f"old {keys}")
         logger.debug(f"new {new_keys}")
+
         return {release: releases[release] for release in new_keys}
