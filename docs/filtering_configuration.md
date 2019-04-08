@@ -99,3 +99,36 @@ releases =
 ```
 
 Note the same `filter_regex` section may include a `packages` and a `releases` entry with any number of regular expressions.
+
+
+### Platform-specific binaries filtering
+
+This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.
+
+
+``` ini
+[blacklist]
+plugins =
+    exclude_platform
+platforms =
+    windows
+```
+
+Avalaible platforms are: `windows` `macos` `freebsd` `linux`.
+
+
+### Keep only latest releases
+
+You can also keep only the latest releases based on greatest [Version](https://packaging.pypa.io/en/latest/version/) numbers.
+
+``` ini
+[blacklist]
+plugins =
+    latest_release
+[latest_release]
+keep = 3
+```
+
+By default, the plugin does not fiter out any release. You have to add the `keep` setting.
+
+You should be aware that it can break requirements.

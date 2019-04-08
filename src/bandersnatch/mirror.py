@@ -154,7 +154,7 @@ class Mirror:
                             + f"{plugin.name} has no effect here ..."
                         )
                     else:
-                        del (self.packages_to_sync[package_name])
+                        del self.packages_to_sync[package_name]
 
     def determine_packages_to_sync(self):
         """
