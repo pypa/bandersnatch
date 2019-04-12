@@ -13,16 +13,18 @@ class PreReleaseFilter(FilterReleasePlugin):
 
     name = "prerelease_release"
     PRERELEASE_PATTERNS = (r".+rc\d$", r".+a(lpha)?\d$", r".+b(eta)?\d$", r".+dev\d$")
+    patterns = None
 
     def initialize_plugin(self):
         """
         Initialize the plugin reading patterns from the config.
         """
-        self.patterns = [
-            re.compile(pattern_string) for pattern_string in self.PRERELEASE_PATTERNS
-        ]
-
-        logger.info(f"Initialized prerelease plugin with {self.patterns}")
+        if not self.patterns:
+            self.patterns = [
+                re.compile(pattern_string)
+                for pattern_string in self.PRERELEASE_PATTERNS
+            ]
+            logger.info(f"Initialized prerelease plugin with {self.patterns}")
 
     def check_match(self, name, version):
         """

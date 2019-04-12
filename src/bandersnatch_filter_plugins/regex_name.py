@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import List, Pattern
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
@@ -12,6 +13,8 @@ class RegexReleaseFilter(FilterReleasePlugin):
     """
 
     name = "regex_release"
+    # Has to be iterable to ensure it works with any()
+    patterns: List[Pattern] = []
 
     def initialize_plugin(self):
         """
@@ -21,14 +24,15 @@ class RegexReleaseFilter(FilterReleasePlugin):
         try:
             config = self.configuration["filter_regex"]["releases"]
         except KeyError:
-            self.patterns = []
+            return
         else:
-            pattern_strings = [pattern for pattern in config.split("\n") if pattern]
-            self.patterns = [
-                re.compile(pattern_string) for pattern_string in pattern_strings
-            ]
+            if not self.patterns:
+                pattern_strings = [pattern for pattern in config.split("\n") if pattern]
+                self.patterns = [
+                    re.compile(pattern_string) for pattern_string in pattern_strings
+                ]
 
-            logger.info(f"Initialized regex release plugin with {self.patterns}")
+                logger.info(f"Initialized regex release plugin with {self.patterns}")
 
     def check_match(self, name, version):
         """
@@ -55,6 +59,8 @@ class RegexProjectFilter(FilterProjectPlugin):
     """
 
     name = "regex_project"
+    # Has to be iterable to ensure it works with any()
+    patterns: List[Pattern] = []
 
     def initialize_plugin(self):
         """
@@ -63,14 +69,15 @@ class RegexProjectFilter(FilterProjectPlugin):
         try:
             config = self.configuration["filter_regex"]["packages"]
         except KeyError:
-            self.patterns = []
+            return
         else:
-            pattern_strings = [pattern for pattern in config.split("\n") if pattern]
-            self.patterns = [
-                re.compile(pattern_string) for pattern_string in pattern_strings
-            ]
+            if not self.patterns:
+                pattern_strings = [pattern for pattern in config.split("\n") if pattern]
+                self.patterns = [
+                    re.compile(pattern_string) for pattern_string in pattern_strings
+                ]
 
-            logger.info(f"Initialized regex release plugin with {self.patterns}")
+                logger.info(f"Initialized regex release plugin with {self.patterns}")
 
     def check_match(self, name):
         """

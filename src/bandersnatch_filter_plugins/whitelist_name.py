@@ -7,6 +7,8 @@ logger = logging.getLogger("bandersnatch")
 
 class WhitelistProject(FilterProjectPlugin):
     name = "whitelist_project"
+    # Requires iterable default
+    whitelist_package_names = []
 
     def initialize_plugin(self):
         """
@@ -15,11 +17,12 @@ class WhitelistProject(FilterProjectPlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        self.whitelist_package_names = self._determine_unfiltered_package_names()
-        logger.info(
-            f"Initialized project plugin {self.name!r}, filtering "
-            f"{self.whitelist_package_names!r}"
-        )
+        if not self.whitelist_package_names:
+            self.whitelist_package_names = self._determine_unfiltered_package_names()
+            logger.info(
+                f"Initialized project plugin {self.name}, filtering "
+                + f"{self.whitelist_package_names}"
+            )
 
     def _determine_unfiltered_package_names(self):
         """

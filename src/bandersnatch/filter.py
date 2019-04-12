@@ -20,6 +20,16 @@ class Filter:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
+        # Lets only initalize the plugin if we're enabled
+        if (
+            "blacklist" not in self.configuration
+            or "plugins" not in self.configuration["blacklist"]
+        ):
+            return
+        split_plugins = self.configuration["blacklist"]["plugins"].split("\n")
+        if "all" not in split_plugins and self.name not in split_plugins:
+            return
+
         self.initialize_plugin()
 
     def initialize_plugin(self) -> None:

@@ -16,6 +16,7 @@ from .filter import filter_project_plugins
 from .package import Package
 from .utils import USER_AGENT, rewrite, update_safe
 
+LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
 
 
@@ -137,9 +138,13 @@ class Mirror:
         packages_to_sync that match any filters.
         - Logging of action will be done within the check_match methods
         """
+        global LOG_PLUGINS
+
         filter_plugins = filter_project_plugins()
         if not filter_plugins:
-            logger.info("No project filters are enabled. Skipping filtering")
+            if LOG_PLUGINS:
+                logger.info("No project filters are enabled. Skipping filtering")
+                LOG_PLUGINS = False
             return
 
         # Make a copy of self.packages_to_sync keys
@@ -149,7 +154,7 @@ class Mirror:
             for plugin in filter_plugins:
                 if plugin.check_match(name=package_name):
                     if package_name not in self.packages_to_sync:
-                        logger.error(
+                        logger.debug(
                             f"{package_name} not found in packages to sync - "
                             + f"{plugin.name} has no effect here ..."
                         )

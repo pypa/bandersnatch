@@ -20,11 +20,17 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
         """
         Initialize the plugin reading patterns from the config.
         """
+        if self._patterns or self._packagetypes:
+            logger.debug(
+                "Skipping initalization of Exclude Platform plugin. "
+                + "Already initialized"
+            )
+            return
 
         try:
             tags = self.configuration["blacklist"]["platforms"].split("\n")
         except KeyError:
-            logger.info(f"Plugin {self.name}: missing platforms= setting")
+            logger.error(f"Plugin {self.name}: missing platforms= setting")
             return
 
         for platform in tags:

@@ -14,18 +14,21 @@ class LatestReleaseFilter(FilterReleasePlugin):
     """
 
     name = "latest_release"
+    keep = 0  # default, keep 'em all
 
     def initialize_plugin(self):
         """
         Initialize the plugin reading patterns from the config.
         """
-        self.keep = 0  # default, keep 'em all
+        if self.keep:
+            return
+
         try:
             self.keep = int(self.configuration["latest_release"]["keep"])
         except KeyError:
-            pass
+            return
         except ValueError:
-            pass
+            return
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
@@ -43,8 +46,5 @@ class LatestReleaseFilter(FilterReleasePlugin):
         versions = map(lambda v: (parse(v), v), keys)
         latest = sorted(versions)[-self.keep :]  # noqa: E203
         new_keys = list(map(itemgetter(1), latest))
-
-        logger.debug(f"old {keys}")
-        logger.debug(f"new {new_keys}")
 
         return {release: releases[release] for release in new_keys}
