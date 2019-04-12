@@ -15,6 +15,8 @@ import aiohttp
 
 from bandersnatch.configuration import BandersnatchConfig
 
+from .filter import filter_filename_plugins, filter_release_plugins
+
 from bandersnatch.utils import (  # isort:skip
     convert_url_to_path,
     hash,
@@ -84,6 +86,60 @@ async def delete_files(
     return 0
 
 
+def apply_filters(pkg):
+    """ apply filters like class Package """
+
+    name = pkg["info"]["name"]
+    releases = pkg["releases"]
+
+    # 1st kind of filters
+    filter_plugins = filter_release_plugins()
+    if filter_plugins:
+
+        # _filter_releases
+        versions = list(releases.keys())
+        for version in versions:
+            if any(
+                plugin.check_match(name=name, version=version)
+                for plugin in filter_plugins
+            ):
+                logging.debug(f"{name}: remove {version}")
+                del releases[version]
+
+        # _filter_latest
+        current_version = pkg["info"]["version"]
+        versions = list(releases.keys())
+        before = len(versions)
+        for plugin in filter_plugins:
+            if hasattr(plugin, "filter_versions"):
+                versions = plugin.filter_versions(versions, current_version)
+        after = len(versions)
+        releases = {version: releases[version] for version in versions}
+        logger.debug(f"{name}: releases removed: {before - after}")
+
+    # 2nd kind of filters
+    filter_plugins = filter_filename_plugins()
+    if filter_plugins:
+
+        # _filter_filenames
+        removed = 0
+        versions = list(releases.keys())
+        for version in versions:
+            new_files = []
+            for file_desc in releases[version]:
+                if any(plugin.check_match(file_desc) for plugin in filter_plugins):
+                    removed += 1
+                else:
+                    new_files.append(file_desc)
+            if len(new_files) == 0:
+                del releases[version]
+            else:
+                releases[version] = new_files
+        logger.debug(f"{name}: filename removed: {removed}")
+
+    pkg["releases"] = releases
+
+
 async def verify(
     config,
     json_file,
@@ -114,6 +170,8 @@ async def verify(
     except json.decoder.JSONDecodeError as jde:
         logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
         return
+
+    apply_filters(pkg)
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:

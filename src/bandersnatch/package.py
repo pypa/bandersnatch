@@ -219,7 +219,7 @@ class Package:
                 del self.releases[version]
             else:
                 self.releases[version] = new_files
-        logger.debug(f"{self.name}:  filename removed: {removed}")
+        logger.debug(f"{self.name}: filename removed: {removed}")
 
     # TODO: async def once we go full asyncio - Have concurrency at the
     # release file level
