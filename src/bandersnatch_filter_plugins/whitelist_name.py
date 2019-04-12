@@ -45,7 +45,6 @@ class WhitelistProject(FilterProjectPlugin):
             if not package_line or package_line.startswith("#"):
                 continue
             unfiltered_packages.add(package_line)
-        logger.debug("Project whitelist is %r", list(unfiltered_packages))
         return list(unfiltered_packages)
 
     def check_match(self, **kwargs):

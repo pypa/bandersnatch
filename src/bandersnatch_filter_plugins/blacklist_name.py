@@ -89,6 +89,8 @@ class BlacklistProject(FilterProjectPlugin):
 
 class BlacklistRelease(FilterReleasePlugin):
     name = "blacklist_release"
+    # Requires iterable default
+    blacklist_package_names: List[Requirement] = []
 
     def initialize_plugin(self):
         """
@@ -97,13 +99,14 @@ class BlacklistRelease(FilterReleasePlugin):
         # Generate a list of blacklisted packages from the configuration and
         # store it into self.blacklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        self.blacklist_release_requirements = (
-            self._determine_filtered_package_requirements()
-        )
-        logger.debug(
-            f"Initialized release plugin {self.name!r}, filtering "
-            f"{self.blacklist_release_requirements!r}"
-        )
+        if not self.blacklist_package_names:
+            self.blacklist_release_requirements = (
+                self._determine_filtered_package_requirements()
+            )
+            logger.info(
+                f"Initialized release plugin {self.name}, filtering "
+                + f"{self.blacklist_release_requirements}"
+            )
 
     def _determine_filtered_package_requirements(self):
         """
