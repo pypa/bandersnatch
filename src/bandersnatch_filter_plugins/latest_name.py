@@ -19,7 +19,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
         """
         Initialize the plugin reading patterns from the config.
         """
-        self.keep = 0  # default, keep 'em all
+        self.keep = 0  # by default, keep 'em all
         try:
             self.keep = int(self.configuration["latest_release"]["keep"])
         except KeyError:
@@ -29,22 +29,25 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(self, releases):
+    def filter_versions(self, versions, current_version):
         """
-        Filter the dictionary {(release, files)}
+        Filter the list of versions
         """
-        keys = list(releases.keys())
 
-        if self.keep == 0 or len(keys) <= self.keep:
-            # return the unmodified releases list
-            return releases
+        if self.keep == 0 or len(versions) <= self.keep:
+            # return the unmodified versions list
+            return versions
 
         # parse release tags with packaging.version.parse to order them
-        versions = map(lambda v: (parse(v), v), keys)
-        latest = sorted(versions)[-self.keep :]  # noqa: E203
-        new_keys = list(map(itemgetter(1), latest))
+        old = map(lambda v: (parse(v), v), versions)
+        latest = sorted(old)[-self.keep :]  # noqa: E203
+        latest = list(map(itemgetter(1), latest))
 
-        logger.debug(f"old {keys}")
-        logger.debug(f"new {new_keys}")
+        if current_version and (current_version not in latest):
+            # never remove the stable/official version
+            latest[0] = current_version
 
-        return {release: releases[release] for release in new_keys}
+        logger.debug(f"old {versions}")
+        logger.debug(f"new {latest}")
+
+        return latest
