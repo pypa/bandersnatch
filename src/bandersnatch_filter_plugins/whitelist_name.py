@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from bandersnatch.filter import FilterProjectPlugin
 
@@ -8,7 +9,7 @@ logger = logging.getLogger("bandersnatch")
 class WhitelistProject(FilterProjectPlugin):
     name = "whitelist_project"
     # Requires iterable default
-    whitelist_package_names = []
+    whitelist_package_names: List[str] = []
 
     def initialize_plugin(self):
         """

@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
@@ -11,7 +12,7 @@ logger = logging.getLogger("bandersnatch")
 class BlacklistProject(FilterProjectPlugin):
     name = "blacklist_project"
     # Requires iterable default
-    blacklist_package_names = []
+    blacklist_package_names: List[str] = []
 
     def initialize_plugin(self):
         """
