@@ -22,7 +22,7 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
         """
 
         try:
-            tags = self.configuration["blacklist"]["platforms"].split("\n")
+            tags = self.configuration["blacklist"]["platforms"].split()
         except KeyError:
             return
 
