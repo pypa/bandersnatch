@@ -1,3 +1,10 @@
+## 3.3.0 (2019-04-11)
+
+- Add latest version and specific platform plugins - `Fixes #49` - Thanks **@rene-d**
+- Generate data-requires-python attributes in index.html  - `Fixes #68` - Thanks **@z4yx**
+- Make package filtering logging less noisy when disabled - `Fixes #146`
+- Many pyup.io dependency upgrades
+
 # 3.2.0 (2019-01-25)
 
 - Change plugins to be off unless explicitly enabled via configuration - `Fixes #142`
