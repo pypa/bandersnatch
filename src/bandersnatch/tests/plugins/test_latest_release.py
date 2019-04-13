@@ -85,9 +85,9 @@ keep = 2
             "2.0.0": {},
         }
 
-        pkg._filter_latest()
+        pkg._filter_latest("1.0.0")
 
-        assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
+        assert pkg.releases == {"1.0.0": {}, "2.0.0": {}}
 
 
 class TestLatestReleaseFilter2(BasePluginTestCase):
@@ -129,7 +129,7 @@ plugins =
             "2.0.0": {},
         }
 
-        pkg._filter_latest()
+        pkg._filter_latest("2.0.0")
 
         assert pkg.releases == {
             "1.0.0": {},

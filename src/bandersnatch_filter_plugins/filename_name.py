@@ -28,7 +28,7 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
             return
 
         try:
-            tags = self.configuration["blacklist"]["platforms"].split("\n")
+            tags = self.configuration["blacklist"]["platforms"].split()
         except KeyError:
             logger.error(f"Plugin {self.name}: missing platforms= setting")
             return
