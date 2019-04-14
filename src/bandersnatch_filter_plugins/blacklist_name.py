@@ -130,7 +130,13 @@ class BlacklistRelease(FilterReleasePlugin):
             filtered_requirements.add(Requirement(package_line))
         return list(filtered_requirements)
 
-    def check_match(self, **kwargs):
+    def filter(self, info, releases):
+        name = info["name"]
+        for version in list(releases.keys()):
+            if self._check_match(name, version):
+                del releases[version]
+
+    def _check_match(self, name, version_string) -> bool:
         """
         Check if the package name and version matches against a blacklisted
         package version specifier.
@@ -148,9 +154,6 @@ class BlacklistRelease(FilterReleasePlugin):
         bool:
             True if it matches, False otherwise.
         """
-        name = kwargs.get("name", None)
-        version_string = kwargs.get("version", None)
-
         if not name or not version_string:
             return False
 

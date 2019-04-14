@@ -38,6 +38,14 @@ class Filter:
         """
         pass
 
+
+class FilterProjectPlugin(Filter):
+    """
+    Plugin that blocks sync operations for an entire project
+    """
+
+    name = "project_plugin"
+
     def check_match(self, **kwargs: Any) -> bool:
         """
         Check if the plugin matches based on the arguments provides.
@@ -50,28 +58,25 @@ class Filter:
         return False
 
 
-class FilterProjectPlugin(Filter):
-    """
-    Plugin that blocks sync operations for an entire project
-    """
-
-    name = "project_plugin"
-
-
 class FilterReleasePlugin(Filter):
     """
-    Plugin that blocks the download of specific release files
+    Plugin that modify  the download of specific release or dist files
     """
 
     name = "release_plugin"
 
+    def filter(self, info: dict, releases: dict) -> None:
+        """
+        Remove all release versions that match any of the specificed patterns.
 
-class FilterFilenamePlugin(Filter):
-    """
-    Plugin that blocks the download of specific package types or platforms
-    """
-
-    name = "filename_plugin"
+        Parameters
+        ==========
+        info: dict
+            Package metadata
+        releases: dict
+            Releases dictionary {version: [dist_file]}
+        """
+        pass
 
 
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
@@ -93,7 +98,7 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     config = BandersnatchConfig().config
     try:
         config_blacklist_plugins = config["blacklist"]["plugins"]
-        split_plugins = config_blacklist_plugins.split("\n")
+        split_plugins = config_blacklist_plugins.split()
         if "all" in split_plugins:
             enabled_plugins = ["all"]
         else:
@@ -143,15 +148,3 @@ def filter_release_plugins() -> Iterable[Filter]:
         List of objects derived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins("bandersnatch_filter_plugins.release")
-
-
-def filter_filename_plugins() -> Iterable[Filter]:
-    """
-    Load and return the filename filtering plugin objects
-
-    Returns
-    -------
-    list of bandersnatch.filter.Filter:
-        List of objects derived from the bandersnatch.filter.Filter class
-    """
-    return load_filter_plugins("bandersnatch_filter_plugins.filename")

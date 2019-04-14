@@ -34,23 +34,13 @@ class RegexReleaseFilter(FilterReleasePlugin):
 
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
 
-    def check_match(self, name, version):
+    def filter(self, info, releases):
         """
-        Check if a release version matches any of the specificed patterns.
-
-        Parameters
-        ==========
-        name: str
-            Release name
-        version: str
-            Release version
-
-        Returns
-        =======
-        bool:
-            True if it matches, False otherwise.
+        Remove all release versions that match any of the specificed patterns.
         """
-        return any(pattern.match(version) for pattern in self.patterns)
+        for version in list(releases.keys()):
+            if any(pattern.match(version) for pattern in self.patterns):
+                del releases[version]
 
 
 class RegexProjectFilter(FilterProjectPlugin):

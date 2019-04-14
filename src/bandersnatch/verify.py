@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import aiohttp
 
 from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.filter import filter_release_plugins
 
 from bandersnatch.utils import (  # isort:skip
     convert_url_to_path,
@@ -114,6 +115,10 @@ async def verify(
     except json.decoder.JSONDecodeError as jde:
         logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
         return
+
+    # apply releases filter plugins like class Package
+    for plugin in filter_release_plugins() or []:
+        plugin.filter(pkg["info"], pkg[releases_key])
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:

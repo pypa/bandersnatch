@@ -36,7 +36,6 @@ setup(
                 prerelease_release = bandersnatch_filter_plugins.prerelease_name:PreReleaseFilter
                 regex_release = bandersnatch_filter_plugins.regex_name:RegexReleaseFilter
                 latest_release = bandersnatch_filter_plugins.latest_name:LatestReleaseFilter
-            [bandersnatch_filter_plugins.filename]
                 exclude_platform = bandersnatch_filter_plugins.filename_name:ExcludePlatformFilter
             [console_scripts]
                 bandersnatch = bandersnatch.main:main

@@ -52,66 +52,105 @@ plugins =
 
 platforms =
     windows
-    macos
+    freebsd macos
 """
 
     def test_plugin_compiles_patterns(self):
         _mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_filename_plugins()
+        plugins = bandersnatch.filter.filter_release_plugins()
 
         assert any(
             type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
         )
 
-    def test_plugin_check_match(self):
+    def test_exclude_platform_keep_linux(self):
         _mock_config(self.config_contents)
 
-        bandersnatch.filter.filter_filename_plugins()
+        bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        pkg = Package("foobar", 1, mirror)
+        pkg.info = {"name": "foobar", "version": "1.0"}
         pkg.releases = {
             "1.0": [
                 {
                     "packagetype": "sdist",
-                    "filename": "foo-1.0-win32.tar.gz",
+                    "filename": "foobar-1.0-win32.tar.gz",
                     "flag": "KEEP",
                 },
-                {"packagetype": "bdist_msi", "filename": "foo-1.0", "flag": "DROP"},
-                {"packagetype": "bdist_wininst", "filename": "foo-1.0", "flag": "DROP"},
-                {"packagetype": "bdist_dmg", "filename": "foo-1.0", "flag": "DROP"},
                 {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foo-1.0-win32.zip",
+                    "packagetype": "bdist_msi",
+                    "filename": "foobar-1.0.msi",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "bdist_wininst",
+                    "filename": "foobar-1.0.exe",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "bdist_dmg",
+                    "filename": "foobar-1.0.dmg",
                     "flag": "DROP",
                 },
                 {
                     "packagetype": "bdist_wheel",
-                    "filename": "foo-1.0-linux.tar.gz",
+                    "filename": "foobar-1.0-win32.zip",
+                    "flag": "DROP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foobar-1.0-linux.tar.gz",
                     "flag": "KEEP",
                 },
                 {
                     "packagetype": "bdist_wheel",
-                    "filename": "foo-1.0-macosx_10_14_x86_64.whl",
+                    "filename": "foobar-1.0-macosx_10_14_x86_64.whl",
                     "flag": "DROP",
                 },
                 {
                     "packagetype": "bdist_egg",
-                    "filename": "foo-1.0-win_amd64.zip",
+                    "filename": "foobar-1.0-win_amd64.zip",
                     "flag": "DROP",
                 },
                 {
                     "packagetype": "unknown",
-                    "filename": "foo-1.0-unknown",
+                    "filename": "foobar-1.0-unknown",
                     "flag": "KEEP",
                 },
-            ]
+            ],
+            "0.1": [
+                {
+                    "packagetype": "sdist",
+                    "filename": "foobar-0.1-win32.msi",
+                    "flag": "KEEP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foobar-0.1-win32.whl",
+                    "flag": "DROP",
+                },
+            ],
+            "0.2": [
+                {
+                    "packagetype": "bdist_egg",
+                    "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
+                    "flag": "DROP",
+                }
+            ],
         }
 
-        pkg._filter_filenames()
+        # count the files we should keep
+        rv = pkg.releases.values()
+        keep_count = sum(f["flag"] == "KEEP" for r in rv for f in r)
 
-        files = pkg.releases["1.0"]
+        pkg._filter_releases()
 
-        assert sum(file["flag"] == "KEEP" for file in files) == 3
-        assert all(file["flag"] == "DROP" for file in files) is False
+        # we should have the same keep count and no drop
+        rv = pkg.releases.values()
+        assert sum(f["flag"] == "KEEP" for r in rv for f in r) == keep_count
+        assert all(f["flag"] == "DROP" for r in rv for f in r) is False
+
+        # the release "0.2" should have been deleted since there is no more file in it
+        assert len(pkg.releases.keys()) == 2

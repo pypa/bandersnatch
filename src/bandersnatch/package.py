@@ -15,7 +15,7 @@ import requests
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .filter import filter_filename_plugins, filter_release_plugins
+from .filter import filter_release_plugins
 from .master import StalePage
 
 # Bool to help us not spam the logs with certain log messages
@@ -105,25 +105,24 @@ class Package:
                 try:
                     logger.info(f"Syncing package: {self.name} (serial {self.serial})")
                     try:
-                        package_info = self.mirror.master.get(
+                        metadata = self.mirror.master.get(
                             f"/pypi/{self.name}/json", self.serial
                         )
-                        package_info = package_info.json()
+                        metadata = metadata.json()
                     except requests.HTTPError as e:
                         if e.response.status_code == 404:
                             logger.info(f"{self.name} no longer exists on PyPI")
                             return
                         raise
 
-                    current_version = package_info.get("info", {}).get("version")
-                    self.releases = package_info["releases"]
+                    # save the metadata before filtering releases
+                    if self.mirror.json_save and not self.json_saved:
+                        self.json_saved = self.save_json_metadata(metadata)
+
+                    self.info = metadata["info"]
+                    self.releases = metadata["releases"]
 
                     self._filter_releases()
-                    self._filter_latest(current_version)
-                    self._filter_filenames()
-
-                    if self.mirror.json_save and not self.json_saved:
-                        self.json_saved = self.save_json_metadata(package_info)
 
                     self.sync_release_files()
                     self.sync_simple_page()
@@ -157,69 +156,17 @@ class Package:
 
     def _filter_releases(self):
         """
-        Run the release filtering plugins and remove any releases from
-        `releases` that match any filters.
+        Run the release filtering plugins
         """
         global display_filter_log
         filter_plugins = filter_release_plugins()
         if not filter_plugins:
             if display_filter_log:
-                logger.info("No package filters are enabled. Skipping filtering")
+                logger.info("No release filters are enabled. Skipping filtering")
                 display_filter_log = False
-            return
-
-        # Make a copy of self.releases keys
-        # as we may delete packages during iteration
-        versions = list(self.releases.keys())
-        for version in versions:
-            filter_ = False
+        else:
             for plugin in filter_plugins:
-                filter_ = filter_ or plugin.check_match(name=self.name, version=version)
-            if filter_:
-                del self.releases[version]
-
-    def _filter_latest(self, current_version):
-        """
-        Run the 'keep the latest releases' plugin
-        """
-        filter_plugins = filter_release_plugins()
-        if not filter_plugins:
-            return
-
-        versions = list(self.releases.keys())
-        before = len(versions)
-        for plugin in filter_plugins:
-            if hasattr(plugin, "filter_versions"):
-                versions = plugin.filter_versions(versions, current_version)
-        after = len(versions)
-        self.releases = {version: self.releases[version] for version in versions}
-        logger.debug(f"{self.name}: releases removed: {before - after}")
-
-    def _filter_filenames(self):
-        """
-        Run the filename filtering plugins and remove any releases from
-        `releases` that match any filters.
-        """
-        filter_plugins = filter_filename_plugins()
-        if not filter_plugins:
-            return
-
-        # Make a copy of self.releases keys
-        # as we may delete packages during iteration
-        removed = 0
-        versions = list(self.releases.keys())
-        for version in versions:
-            new_files = []
-            for file_desc in self.releases[version]:
-                if any(plugin.check_match(file_desc) for plugin in filter_plugins):
-                    removed += 1
-                else:
-                    new_files.append(file_desc)
-            if len(new_files) == 0:
-                del self.releases[version]
-            else:
-                self.releases[version] = new_files
-        logger.debug(f"{self.name}: filenames removed: {removed}")
+                plugin.filter(self.info, self.releases)
 
     # TODO: async def once we go full asyncio - Have concurrency at the
     # release file level
