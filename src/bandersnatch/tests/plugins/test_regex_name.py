@@ -77,6 +77,7 @@ releases =
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
+        pkg.info = {"name": "foo", "version": "foo-1.2.0"}
         pkg.releases = {"foo-1.2.0rc2": {}, "foo-1.2.0": {}, "foo-1.2.0alpha2": {}}
 
         pkg._filter_releases()

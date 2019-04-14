@@ -69,13 +69,14 @@ keep = 2
         )
         assert plugin.keep == 2
 
-    def test_plugin_check_match(self):
+    def test_latest_releases_keep_latest(self):
         _mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
+        pkg.info = {"name": "foo", "version": "2.0.0"}
         pkg.releases = {
             "1.0.0": {},
             "1.1.0": {},
@@ -85,12 +86,35 @@ keep = 2
             "2.0.0": {},
         }
 
-        pkg._filter_latest("1.0.0")
+        pkg._filter_releases()
 
-        assert pkg.releases == {"1.0.0": {}, "2.0.0": {}}
+        assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
+
+    def test_latest_releases_keep_stable(self):
+        _mock_config(self.config_contents)
+
+        bandersnatch.filter.filter_release_plugins()
+
+        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1, mirror)
+        pkg.info = {"name": "foo", "version": "2.0.0"}  # stable version
+        pkg.releases = {
+            "1.0.0": {},
+            "1.1.0": {},
+            "1.1.1": {},
+            "1.1.2": {},
+            "1.1.3": {},
+            "2.0.0": {},  # <= stable version, keep it
+            "2.0.1b1": {},
+            "2.0.1b2": {},  # <= most recent, keep it
+        }
+
+        pkg._filter_releases()
+
+        assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
 
-class TestLatestReleaseFilter2(BasePluginTestCase):
+class TestLatestReleaseFilterUninitialized(BasePluginTestCase):
 
     config_contents = """\
 [blacklist]
@@ -113,13 +137,14 @@ plugins =
         )
         assert plugin.keep == 0
 
-    def test_plugin_check_match(self):
+    def test_latest_releases_uninitialized(self):
         _mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
+        pkg.info = {"name": "foo", "version": "2.0.0"}
         pkg.releases = {
             "1.0.0": {},
             "1.1.0": {},
@@ -129,7 +154,7 @@ plugins =
             "2.0.0": {},
         }
 
-        pkg._filter_latest("2.0.0")
+        pkg._filter_releases()
 
         assert pkg.releases == {
             "1.0.0": {},
