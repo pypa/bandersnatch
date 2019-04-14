@@ -1,4 +1,9 @@
-## 3.3.0 (2019-04-11)
+## 3.3.1 (2019-04-14)
+
+- Make plugins logs less noisy and more stateful (don't initalize multiple times) - `Fixes #134 #147 #193 #195`
+- Latest releases plugin always keeps current version - `Fixes #196` - Thanks **@rene-d**
+
+# 3.3.0 (2019-04-11)
 
 - Add latest version and specific platform plugins - `Fixes #49` - Thanks **@rene-d**
 - Generate data-requires-python attributes in index.html  - `Fixes #68` - Thanks **@z4yx**
