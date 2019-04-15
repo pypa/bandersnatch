@@ -334,8 +334,6 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
     mirror.errors = True
     changed_packages = mirror.synchronize()
 
-    return  # TODO
-
     assert """\
 .lock
 generation
@@ -403,7 +401,6 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     with pytest.raises(SystemExit):
         mirror.synchronize()
 
-    return  # TODO
     assert """\
 .lock
 generation
@@ -449,8 +446,6 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
     requests.prepare(b"the release content", 1)
 
     mirror_hash_index.synchronize()
-
-    return  # TODO
 
     assert """\
 last-modified
