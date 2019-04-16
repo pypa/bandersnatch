@@ -62,7 +62,9 @@ def test_package_sync_gives_up_after_3_stale_responses(caplog, mirror, requests)
 
 def test_package_sync_with_release_no_files_syncs_simple_page(mirror, requests):
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
 
     mirror.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror)
@@ -82,7 +84,8 @@ def test_package_sync_with_release_no_files_syncs_simple_page(mirror, requests):
     <h1>Links for foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -91,7 +94,9 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     mirror_hash_index, requests
 ):
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
 
     mirror_hash_index.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror_hash_index)
@@ -110,14 +115,17 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     <h1>Links for foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
 
 def test_package_sync_with_canonical_simple_page(mirror, requests):
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
 
     mirror.packages_to_sync = {"Foo": 10}
     package = Package("Foo", 10, mirror)
@@ -137,14 +145,17 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
     <h1>Links for Foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
 
 def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_index, requests):
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
     mirror_hash_index.packages_to_sync = {"Foo": 10}
     package = Package("Foo", 10, mirror_hash_index)
     package.sync()
@@ -162,14 +173,17 @@ def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_index, re
     <h1>Links for Foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
 
 def test_package_sync_with_normalized_simple_page(mirror, requests):
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
 
     mirror.packages_to_sync = {"Foo.bar-thing_other": 10}
     package = Package("Foo.bar-thing_other", 10, mirror)
@@ -188,7 +202,8 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
     <h1>Links for Foo.bar-thing_other</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -205,7 +220,8 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
     <h1>Links for Foo.bar-thing_other</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -222,7 +238,8 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
     <h1>Links for Foo.bar-thing_other</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -231,6 +248,7 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -288,7 +306,8 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
 02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d4e5470a3e4e878bd8cd\
 ">foo.zip</a><br/>
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -297,6 +316,7 @@ def test_package_sync_simple_page_with_files(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -352,14 +372,20 @@ def test_package_sync_simple_page_with_files(mirror, requests):
 02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d4e5470a3e4e878bd8cd\
 ">foo.zip</a><br/>
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
 
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     requests.prepare(
-        {"info": {"name": "foo", "version": "0.1"}, "releases": {"0.1": []}}, "10"
+        {
+            "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
+            "releases": {"0.1": []},
+        },
+        "10",
     )
 
     mirror.packages_to_sync = {"foo": 10}
@@ -381,7 +407,8 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
     <h1>Links for foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -390,7 +417,12 @@ def test_package_sync_simple_page_with_existing_dir_with_hash(
     mirror_hash_index, requests
 ):
     requests.prepare(
-        {"info": {"name": "foo", "version": "0.1"}, "releases": {"0.1": []}}, "10"
+        {
+            "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
+            "releases": {"0.1": []},
+        },
+        "10",
     )
 
     mirror_hash_index.packages_to_sync = {"foo": 10}
@@ -411,7 +443,8 @@ def test_package_sync_simple_page_with_existing_dir_with_hash(
     <h1>Links for foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
 
@@ -434,6 +467,7 @@ def test_package_sync_downloads_release_file(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -509,6 +543,7 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -677,7 +712,9 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
 
         raise IOError(errno.EBADF, "Some transient error?")
 
-    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo"}, "last_serial": 654_321, "releases": {}}, "10"
+    )
 
     mirror.packages_to_sync = {"Foo": 10}
     mirror.record_finished_package = record_finished_package
@@ -697,7 +734,8 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
     <h1>Links for Foo</h1>
 
   </body>
-</html>\
+</html>
+<!--SERIAL 654321-->\
 """
     )
     assert mirror.errors
@@ -708,6 +746,7 @@ def test_keep_index_versions_stores_one_prior_version(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -750,6 +789,7 @@ def test_keep_index_versions_stores_one_prior_version(mirror, requests):
 def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
     response = {
         "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 654_321,
         "releases": {
             "0.1": [
                 {
@@ -802,6 +842,7 @@ def test_keep_index_versions_removes_old_versions(mirror, requests):
 
     response = {
         "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 654_321,
         "releases": {
             "0.1": [
                 {
