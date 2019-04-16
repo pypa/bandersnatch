@@ -77,6 +77,7 @@ plugins =
 
         mirror = Mirror(".", Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
+        pkg.info = {"name": "foo", "version": "1.2.0"}
         pkg.releases = {
             "1.2.0alpha1": {},
             "1.2.0a2": {},

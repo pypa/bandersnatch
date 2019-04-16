@@ -62,7 +62,7 @@ def test_package_sync_gives_up_after_3_stale_responses(caplog, mirror, requests)
 
 def test_package_sync_with_release_no_files_syncs_simple_page(mirror, requests):
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
 
     mirror.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror)
@@ -91,7 +91,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     mirror_hash_index, requests
 ):
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
 
     mirror_hash_index.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror_hash_index)
@@ -117,7 +117,7 @@ def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
 
 def test_package_sync_with_canonical_simple_page(mirror, requests):
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
 
     mirror.packages_to_sync = {"Foo": 10}
     package = Package("Foo", 10, mirror)
@@ -144,7 +144,7 @@ def test_package_sync_with_canonical_simple_page(mirror, requests):
 
 def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_index, requests):
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
     mirror_hash_index.packages_to_sync = {"Foo": 10}
     package = Package("Foo", 10, mirror_hash_index)
     package.sync()
@@ -169,7 +169,7 @@ def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_index, re
 
 def test_package_sync_with_normalized_simple_page(mirror, requests):
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
 
     mirror.packages_to_sync = {"Foo.bar-thing_other": 10}
     package = Package("Foo.bar-thing_other", 10, mirror)
@@ -230,6 +230,7 @@ def test_package_sync_with_normalized_simple_page(mirror, requests):
 def test_package_sync_simple_page_root_uri(mirror, requests):
     requests.prepare(
         {
+            "info": {"name": "foo", "version": "0.1"},
             "releases": {
                 "0.1": [
                     {
@@ -257,7 +258,7 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
                         "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
                     },
                 ]
-            }
+            },
         },
         10,
     )
@@ -295,6 +296,7 @@ def test_package_sync_simple_page_root_uri(mirror, requests):
 def test_package_sync_simple_page_with_files(mirror, requests):
     requests.prepare(
         {
+            "info": {"name": "foo", "version": "0.1"},
             "releases": {
                 "0.1": [
                     {
@@ -322,7 +324,7 @@ def test_package_sync_simple_page_with_files(mirror, requests):
                         "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
                     },
                 ]
-            }
+            },
         },
         10,
     )
@@ -356,7 +358,9 @@ def test_package_sync_simple_page_with_files(mirror, requests):
 
 
 def test_package_sync_simple_page_with_existing_dir(mirror, requests):
-    requests.prepare({"releases": {"0.1": []}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo", "version": "0.1"}, "releases": {"0.1": []}}, "10"
+    )
 
     mirror.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror)
@@ -385,7 +389,9 @@ def test_package_sync_simple_page_with_existing_dir(mirror, requests):
 def test_package_sync_simple_page_with_existing_dir_with_hash(
     mirror_hash_index, requests
 ):
-    requests.prepare({"releases": {"0.1": []}}, "10")
+    requests.prepare(
+        {"info": {"name": "foo", "version": "0.1"}, "releases": {"0.1": []}}, "10"
+    )
 
     mirror_hash_index.packages_to_sync = {"foo": 10}
     package = Package("foo", 10, mirror_hash_index)
@@ -427,6 +433,7 @@ def test_package_sync_with_error_keeps_it_on_todo_list(mirror, requests):
 def test_package_sync_downloads_release_file(mirror, requests):
     requests.prepare(
         {
+            "info": {"name": "foo", "version": "0.1"},
             "releases": {
                 "0.1": [
                     {
@@ -442,7 +449,7 @@ def test_package_sync_downloads_release_file(mirror, requests):
                         "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                     }
                 ]
-            }
+            },
         },
         10,
     )
@@ -501,6 +508,7 @@ def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror, requests):
 def test_package_sync_replaces_mismatching_local_files(mirror, requests):
     requests.prepare(
         {
+            "info": {"name": "foo", "version": "0.1"},
             "releases": {
                 "0.1": [
                     {
@@ -516,7 +524,7 @@ def test_package_sync_replaces_mismatching_local_files(mirror, requests):
                         "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                     }
                 ]
-            }
+            },
         },
         10,
     )
@@ -669,7 +677,7 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
 
         raise IOError(errno.EBADF, "Some transient error?")
 
-    requests.prepare({"releases": {}}, "10")
+    requests.prepare({"info": {"name": "foo"}, "releases": {}}, "10")
 
     mirror.packages_to_sync = {"Foo": 10}
     mirror.record_finished_package = record_finished_package
@@ -699,6 +707,7 @@ def test_survives_exceptions_from_record_finished_package(mirror, requests):
 def test_keep_index_versions_stores_one_prior_version(mirror, requests):
     requests.prepare(
         {
+            "info": {"name": "foo", "version": "0.1"},
             "releases": {
                 "0.1": [
                     {
@@ -714,7 +723,7 @@ def test_keep_index_versions_stores_one_prior_version(mirror, requests):
                         "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                     }
                 ]
-            }
+            },
         },
         10,
     )
@@ -740,6 +749,7 @@ def test_keep_index_versions_stores_one_prior_version(mirror, requests):
 
 def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
     response = {
+        "info": {"name": "foo", "version": "0.1"},
         "releases": {
             "0.1": [
                 {
@@ -755,7 +765,7 @@ def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
                     "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                 }
             ]
-        }
+        },
     }
     requests.prepare(response, 10)
     requests.prepare(b"the release content", 10)
@@ -791,6 +801,7 @@ def test_keep_index_versions_removes_old_versions(mirror, requests):
     versions_path.joinpath("index_10_2018-10-27T00:00:00Z.html").touch()
 
     response = {
+        "info": {"name": "foo", "version": "0.1"},
         "releases": {
             "0.1": [
                 {
@@ -806,7 +817,7 @@ def test_keep_index_versions_removes_old_versions(mirror, requests):
                     "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                 }
             ]
-        }
+        },
     }
     requests.prepare(response, 11)
     requests.prepare(b"the release content", 11)

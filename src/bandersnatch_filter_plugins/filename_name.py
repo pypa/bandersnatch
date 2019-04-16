@@ -1,12 +1,12 @@
 import logging
 from typing import List
 
-from bandersnatch.filter import FilterFilenamePlugin
+from bandersnatch.filter import FilterReleasePlugin
 
 logger = logging.getLogger("bandersnatch")
 
 
-class ExcludePlatformFilter(FilterFilenamePlugin):
+class ExcludePlatformFilter(FilterReleasePlugin):
     """
     Filters releases based on regex patters defined by the user.
     """
@@ -66,7 +66,29 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
 
         logger.info(f"Initialized {self.name} plugin with {self._patterns!r}")
 
-    def check_match(self, file_desc):
+    def filter(self, info, releases):
+        """
+        Remove files from `releases` that match any pattern.
+        """
+
+        # Make a copy of releases keys
+        # as we may delete packages during iteration
+        removed = 0
+        versions = list(releases.keys())
+        for version in versions:
+            new_files = []
+            for file_desc in releases[version]:
+                if self._check_match(file_desc):
+                    removed += 1
+                else:
+                    new_files.append(file_desc)
+            if len(new_files) == 0:
+                del releases[version]
+            else:
+                releases[version] = new_files
+        logger.debug(f"{self.name}: filenames removed: {removed}")
+
+    def _check_match(self, file_desc) -> bool:
         """
         Check if a release version matches any of the specificed patterns.
 
@@ -82,7 +104,7 @@ class ExcludePlatformFilter(FilterFilenamePlugin):
         """
 
         # source dist: never filter out
-        pt = file_desc["packagetype"]
+        pt = file_desc.get("packagetype")
         if pt == "sdist":
             return False
 
