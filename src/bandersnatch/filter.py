@@ -98,7 +98,7 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     config = BandersnatchConfig().config
     try:
         config_blacklist_plugins = config["blacklist"]["plugins"]
-        split_plugins = config_blacklist_plugins.split()
+        split_plugins = config_blacklist_plugins.split("\n")
         if "all" in split_plugins:
             enabled_plugins = ["all"]
         else:
