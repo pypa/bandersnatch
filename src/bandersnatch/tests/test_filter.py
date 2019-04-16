@@ -5,9 +5,14 @@ from unittest import TestCase
 
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
-from bandersnatch.filter import filter_project_plugins, filter_release_plugins
-from bandersnatch.filter import Filter, FilterProjectPlugin, FilterReleasePlugin
 
+from bandersnatch.filter import (  # isort:skip
+    Filter,
+    FilterProjectPlugin,
+    FilterReleasePlugin,
+    filter_project_plugins,
+    filter_release_plugins,
+)
 
 TEST_CONF = "test.conf"
 
@@ -43,7 +48,7 @@ plugins = all
         builtin_plugin_names = [
             "blacklist_project",
             "regex_project",
-            "whitelist_project"
+            "whitelist_project",
         ]
         instance = BandersnatchConfig()
         instance.config_file = TEST_CONF
@@ -67,7 +72,7 @@ plugins = all
             "prerelease_release",
             "regex_release",
             "exclude_platform",
-            "latest_release"
+            "latest_release",
         ]
         instance = BandersnatchConfig()
         instance.config_file = TEST_CONF
