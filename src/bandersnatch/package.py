@@ -120,6 +120,7 @@ class Package:
                         self.json_saved = self.save_json_metadata(metadata)
 
                     self.info = metadata["info"]
+                    self.last_serial = metadata["last_serial"]
                     self.releases = metadata["releases"]
 
                     self._filter_releases()
@@ -246,7 +247,7 @@ class Package:
             ]
         )
 
-        simple_page_content += "\n  </body>\n</html>"
+        simple_page_content += f"\n  </body>\n</html>\n<!--SERIAL {self.last_serial}-->"
 
         return simple_page_content
 

@@ -27,6 +27,7 @@ class JsonDict(dict):
 FAKE_RELEASE_DATA = JsonDict(
     {
         "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 654_321,
         "releases": {
             "0.1": [
                 {
@@ -309,6 +310,7 @@ def test_mirror_sync_package_error_no_early_exit(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -373,6 +375,7 @@ def test_mirror_sync_package_error_early_exit(mirror, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
@@ -423,6 +426,7 @@ def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
     requests.prepare(
         {
             "info": {"name": "foo", "version": "0.1"},
+            "last_serial": 654_321,
             "releases": {
                 "0.1": [
                     {
