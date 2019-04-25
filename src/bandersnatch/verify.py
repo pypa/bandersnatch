@@ -186,6 +186,7 @@ async def async_verify(
                 config, json_file, mirror_base, all_package_files, args, executor
             )
 
+    # TODO: See if we can use passed in config
     config = BandersnatchConfig().config
     verifiers = config.getint("mirror", "verifiers", fallback=3)
     consumers = [consume(queue)] * verifiers
