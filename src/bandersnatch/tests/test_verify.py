@@ -4,20 +4,40 @@ from os import getpid
 from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
+from typing import List
 
 import bandersnatch
 from bandersnatch.utils import convert_url_to_path, find
-from bandersnatch.verify import _get_latest_json, delete_files
+
+from bandersnatch.verify import (  # isort:skip
+    _get_latest_json,
+    async_verify,
+    delete_files,
+    metadata_verify,
+)
 
 
 async def do_nothing(*args, **kwargs) -> None:
     pass
 
 
+def some_dirs(*args, **kwargs) -> List[str]:
+    return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
+
+
+class FakeArgs:
+    delete = True
+    dry_run = True
+    workers = 2
+
+
 class FakeConfig:
     def get(self, section: str, item: str) -> str:
-        if section == "mirror" and item == "master":
-            return "https://pypi.org/simple/"
+        if section == "mirror":
+            if item == "directory":
+                return "/data/pypi"
+            if item == "master":
+                return "https://pypi.org/simple/"
         return ""
 
 
@@ -100,6 +120,16 @@ class FakeMirror:
             index_path.touch()
 
 
+def test_async_verify(monkeypatch):
+    fm = FakeMirror("test_async_verify")
+    json_files = ["web/json/bandersnatch", "web/json/black"]
+    loop = asyncio.get_event_loop()
+    monkeypatch.setattr(bandersnatch.verify, "verify", do_nothing)
+    loop.run_until_complete(
+        async_verify(None, [], fm.mirror_base, json_files, None, None)
+    )
+
+
 def test_fake_mirror():
     expected_mirror_layout = """\
 web
@@ -152,3 +182,13 @@ def test_get_latest_json(monkeypatch):
     loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "url_fetch", do_nothing)
     loop.run_until_complete(_get_latest_json(json_path, config, executor))
+
+
+def test_metadata_verify(monkeypatch):
+    fa = FakeArgs()
+    fc = FakeConfig()
+    loop = asyncio.get_event_loop()
+    monkeypatch.setattr(bandersnatch.verify, "async_verify", do_nothing)
+    monkeypatch.setattr(bandersnatch.verify, "delete_files", do_nothing)
+    monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
+    loop.run_until_complete(metadata_verify(fc, fa))
