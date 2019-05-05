@@ -10,6 +10,13 @@
 This is a PyPI mirror client according to `PEP 381`
 http://www.python.org/dev/peps/pep-0381/.
 
+
+**bandersnatch maintainers** are looking for more **help**! Please refer to our
+[MAINTAINER](https://github.com/pypa/bandersnatch/blob/master/MAINTAINERS.md) documentation to see the roles and responsibilities. We would also
+ask you read our **Mission Statement** to ensure it aligns with your thoughts for
+this project.
+- If interested contact @cooperlees
+
 ## Installation
 
 The following instructions will place the bandersnatch executable in a
@@ -125,10 +132,20 @@ other purposes.
 An example of an unsupported API is PyPI's XML-RPC interface, which is used
 when running `pip search`.
 
+### Bandersnatch Mission
+The bandersnatch project strives to:
+- Mirror all static objects of the Python Package Index (https://pypi.org/)
+- bandersnatch's main goal is to support the main global index to local syncing **only**
+- This will allow organizations to have lower latency access to PyPI and
+  save bandwidth on their WAN connections and more importantly the PyPI CDN
+- Custom features and requests may be accepted if they can be of a *plugin* form
+  - e.g. refer to the `blacklist` and `whitelist` plugins
+
 ### Contact
 
 If you have questions or comments, please submit a bug report to
 https://github.com/pypa/bandersnatch/issues/new
+- IRC: #bandersnatch on *Freenode*
 
 ### Code of Conduct
 
