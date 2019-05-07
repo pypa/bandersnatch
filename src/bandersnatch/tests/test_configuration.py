@@ -1,6 +1,6 @@
 import os
-import warnings
 import unittest
+import warnings
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
