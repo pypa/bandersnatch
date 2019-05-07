@@ -35,8 +35,8 @@ class TestWhitelistProject(TestCase):
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     whitelist_project
 """
             )
@@ -53,7 +53,7 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
+[plugins]
 """
             )
         instance = BandersnatchConfig()
@@ -68,8 +68,8 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     whitelist_project
 
 [whitelist]
@@ -91,8 +91,8 @@ packages =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     whitelist_project
 
 [whitelist]

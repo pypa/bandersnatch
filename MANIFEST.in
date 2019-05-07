@@ -3,3 +3,4 @@ include CHANGES.md
 include requirements.txt
 include src/bandersnatch/default.conf
 include src/bandersnatch/unittest.conf
+include src/bandersnatch/unittest-deprecated.conf

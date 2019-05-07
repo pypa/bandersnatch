@@ -1,4 +1,5 @@
 import os
+import warnings
 import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -39,7 +40,7 @@ class TestBandersnatchConf(TestCase):
         config_file = resource_filename("bandersnatch", "unittest.conf")
         instance = BandersnatchConfig(config_file)
         # All default values should at least be present and be the write types
-        for section in ["mirror", "blacklist"]:
+        for section in ["mirror", "plugins", "blacklist"]:
             self.assertIn(section, instance.config.sections())
 
     def test_single_config__default__mirror__setting_attributes(self):
@@ -112,6 +113,15 @@ class TestBandersnatchConf(TestCase):
 
         instance2 = BandersnatchConfig()
         self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
+
+    def test_deprecation_warning_raised(self):
+        # Remove in 4.0 once we deprecate blacklist plugins key
+        config_file = resource_filename("bandersnatch", "unittest-deprecated.conf")
+        with warnings.catch_warnings(record=True) as w:
+            BandersnatchConfig(config_file)
+            BandersnatchConfig(config_file)
+            # Assert we only throw 1 warning
+            self.assertEqual(len(w), 1)
 
 
 if __name__ == "__main__":
