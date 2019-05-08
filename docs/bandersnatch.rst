@@ -4,14 +4,6 @@ bandersnatch package
 Submodules
 ----------
 
-bandersnatch.buildout module
-----------------------------
-
-.. automodule:: bandersnatch.buildout
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 bandersnatch.configuration module
 ---------------------------------
 
@@ -68,18 +60,18 @@ bandersnatch.package module
     :undoc-members:
     :show-inheritance:
 
-bandersnatch.release module
----------------------------
-
-.. automodule:: bandersnatch.release
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 bandersnatch.utils module
 -------------------------
 
 .. automodule:: bandersnatch.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+bandersnatch.verify module
+--------------------------
+
+.. automodule:: bandersnatch.verify
     :members:
     :undoc-members:
     :show-inheritance:

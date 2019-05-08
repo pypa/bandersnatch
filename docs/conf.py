@@ -2,7 +2,7 @@
 import os
 
 
-class DocStub(object):
+class DocStub():
     __version__ = "0.0.0"
     __name__ = "Unknown"
 
@@ -110,10 +110,10 @@ html_theme = "default"
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "Bandersnatch documentation"
+# html_title = "Bandersnatch documentation"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-# html_short_title = None
+html_short_title = "Bandersnatch documentation"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -181,12 +181,12 @@ html_theme = "default"
 
 # Determine available themes and settings
 available_themes = ["default"]
-available_theme_settings = dict()
+available_theme_settings = {}
 try:
     import cloud_sptheme as csp
 
     available_themes.insert(0, "cloudsp")
-    available_theme_settings["cloudsp"] = dict()
+    available_theme_settings["cloudsp"] = {}
     available_theme_settings["cloudsp"]["theme"] = "cloud"
     available_theme_settings["cloudsp"]["path"] = [csp.get_theme_dir()]
     available_theme_settings["cloudsp"]["options"] = {"roottarget": "index"}
@@ -197,7 +197,7 @@ try:
     import sphinx_bootstrap_theme
 
     available_themes.insert(0, "bootstrap")
-    available_theme_settings["bootstrap"] = dict()
+    available_theme_settings["bootstrap"] = {}
     available_theme_settings["bootstrap"]["theme"] = "bootstrap"
     available_theme_settings["bootstrap"][
         "path"
@@ -213,7 +213,7 @@ try:
     import guzzle_sphinx_theme
 
     available_themes.insert(0, "guzzle")
-    available_theme_settings["guzzle"] = dict()
+    available_theme_settings["guzzle"] = {}
     available_theme_settings["guzzle"]["theme"] = "guzzle_sphinx_theme"
     available_theme_settings["guzzle"]["path"] = guzzle_sphinx_theme.html_theme_path()
     available_theme_settings["guzzle"]["options"] = {}
@@ -224,7 +224,7 @@ try:
     import sphinx_rtd_theme
 
     available_themes.insert(0, "read_the_docs")
-    available_theme_settings["read_the_docs"] = dict()
+    available_theme_settings["read_the_docs"] = {}
     available_theme_settings["read_the_docs"]["theme"] = "sphinx_rtd_theme"
     available_theme_settings["read_the_docs"]["path"] = [
         sphinx_rtd_theme.get_html_theme_path()
@@ -241,7 +241,7 @@ try:
     import pypa_theme
 
     available_themes.insert(0, "pypa")
-    available_theme_settings["pypa"] = dict()
+    available_theme_settings["pypa"] = {}
     available_theme_settings["pypa"]["theme"] = "pypa_theme"
     available_theme_settings["pypa"]["path"] = []
     available_theme_settings["pypa"]["options"] = {}
@@ -262,6 +262,7 @@ try:
     from recommonmark.parser import CommonMarkParser
     from recommonmark.transform import AutoStructify
 
+    # TODO: "source_parsers" is deprecated. Please use app.add_source_parser()
     source_parsers = {".md": CommonMarkParser}
 
     source_suffix = [".rst", ".md"]
@@ -289,7 +290,7 @@ latex_documents = [
         "index",
         doc_module.__name__ + ".tex",
         doc_module.__name__ + " Documentation",
-        "Yahoo Inc.",
+        "PyPA",
         "manual",
     )
 ]
@@ -376,7 +377,6 @@ def setup(app):
                 "url_resolver": lambda url: github_doc_root + url,
                 "auto_toc_tree_section": "Contents",
                 "enable_eval_rst": True,
-                "enable_auto_doc_ref": True,
             },
             True,
         )
