@@ -2,6 +2,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+Bandersnatch documentation
+============
+
 Contents:
 
 .. toctree::
@@ -11,4 +14,5 @@ Contents:
     mirror_configuration
     filtering_configuration
     CONTRIBUTING
+    CODE_OF_CONDUCT
     modules
