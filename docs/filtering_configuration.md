@@ -8,7 +8,7 @@ There are different configuration sections for the different plugin types.
 
 The blacklist settings are in a configuration section named **\[blacklist\]**,
 this section provides settings to indicate packages, projects and releases that should
-not be mirrored from pypi.
+not be mirrored from PyPI.
 
 This is useful to avoid syncing broken or malicious packages.
 
