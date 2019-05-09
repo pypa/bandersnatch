@@ -27,14 +27,14 @@ Example (enable all installed filter plugins):
 Also, enabling will get plugin's defaults if not configured in their respective sections.
 
 ``` ini
-[blacklist]
-plugins = all
+[plugins]
+enabled = all
 ```
 
 Example (only enable specific plugins):
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_project
     whitelist_project
     ...
@@ -48,10 +48,12 @@ Any packages matching the version specifier will not be downloaded.
 
 Example:
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_project
     whitelist_project
+
+[blacklist]
 packages =
     example1
     example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
@@ -67,8 +69,8 @@ packages =
 Bandersnatch includes a plugin to filter our pre-releases of packages. To enable this plugin simply add `prerelease_release` to the enabled plugins list.
 
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     prerelease_release
 ```
 
@@ -81,8 +83,8 @@ This plugin allows arbitrary regular expressions to be defined in the configurat
 The plugin can be activated for packages and releases separately. For example to activate the project regex filter simply add it to the configuration as before:
 
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     regex_project
 ```
 
@@ -107,14 +109,14 @@ This filter allows advanced users not interesting in Windows/macOS/Linux specifi
 
 
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     exclude_platform
 platforms =
     windows
 ```
 
-Avalaible platforms are: `windows` `macos` `freebsd` `linux`.
+Available platforms are: `windows` `macos` `freebsd` `linux`.
 
 
 ### Keep only latest releases
@@ -122,13 +124,14 @@ Avalaible platforms are: `windows` `macos` `freebsd` `linux`.
 You can also keep only the latest releases based on greatest [Version](https://packaging.pypa.io/en/latest/version/) numbers.
 
 ``` ini
-[blacklist]
-plugins =
+[plugins]
+enabled =
     latest_release
+
 [latest_release]
 keep = 3
 ```
 
-By default, the plugin does not fiter out any release. You have to add the `keep` setting.
+By default, the plugin does not filter out any release. You have to add the `keep` setting.
 
 You should be aware that it can break requirements.

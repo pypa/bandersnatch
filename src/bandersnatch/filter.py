@@ -20,13 +20,13 @@ class Filter:
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
-        # Lets only initalize the plugin if we're enabled
         if (
-            "blacklist" not in self.configuration
-            or "plugins" not in self.configuration["blacklist"]
+            "plugins" not in self.configuration
+            or "enabled" not in self.configuration["plugins"]
         ):
             return
-        split_plugins = self.configuration["blacklist"]["plugins"].split("\n")
+
+        split_plugins = self.configuration["plugins"]["enabled"].split("\n")
         if "all" not in split_plugins and self.name not in split_plugins:
             return
 
@@ -97,7 +97,7 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     enabled_plugins: List[str] = []
     config = BandersnatchConfig().config
     try:
-        config_blacklist_plugins = config["blacklist"]["plugins"]
+        config_blacklist_plugins = config["plugins"]["enabled"]
         split_plugins = config_blacklist_plugins.split("\n")
         if "all" in split_plugins:
             enabled_plugins = ["all"]
