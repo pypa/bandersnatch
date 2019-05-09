@@ -50,7 +50,7 @@ This installs the latest stable, released version.
 ### Webserver
 
 Configure your webserver to serve the ``web/`` sub-directory of the mirror.
-For nginx it should look something like this::
+For nginx it should look something like this:
 
 ```
     server {
@@ -91,7 +91,7 @@ bandersnatch does not keep much local state in addition to the mirrored data.
 In general you can just keep rerunning `bandersnatch mirror` to make it fix
 errors.
 
-If you want to force bandersnatch to check everything against the master PyPI::
+If you want to force bandersnatch to check everything against the master PyPI:
 
 * run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
 
@@ -113,7 +113,7 @@ deleting the status files and have bandersnatch run a full check on your data.
 
 The PyPI has a quite extensive list of packages that we need to maintain in a
 flat directory. Filesystems with small limits on the number of sub-directories
-per directory can run into a problem like this::
+per directory can run into a problem like this:
 
   2013-07-09 16:11:33,331 ERROR: Error syncing package: zweb@802449
   OSError: [Errno 31] Too many links: '../pypi/web/simple/zweb'
