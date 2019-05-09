@@ -128,8 +128,7 @@ parts of PyPI that are needed to support package installation. It does not
 support more dynamic APIs of PyPI that maybe be used by various clients for
 other purposes.
 
-An example of an unsupported API is PyPI's XML-RPC interface, which is used
-when running `pip search`.
+An example of an unsupported API is [PyPI's XML-RPC interface](https://warehouse.readthedocs.io/api-reference/xml-rpc/), which is used when running `pip search`.
 
 ### Bandersnatch Mission
 The bandersnatch project strives to:
