@@ -144,7 +144,7 @@ The bandersnatch project strives to:
 
 If you have questions or comments, please submit a bug report to
 https://github.com/pypa/bandersnatch/issues/new
-- IRC: #bandersnatch on *Freenode*
+- IRC: #bandersnatch on *Freenode* (You can use [webchat](https://webchat.freenode.net/?channels=%23bandersnatch) if you don't have an IRC client)
 
 ### Code of Conduct
 
