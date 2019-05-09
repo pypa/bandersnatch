@@ -95,8 +95,7 @@ If you want to force bandersnatch to check everything against the master PyPI::
 
 * run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
 
-Be aware, that full syncs likely take hours depending on PyPIs performance and
-your network latency and bandwidth.
+Be aware that full syncs likely take hours depending on PyPI's performance and your network latency and bandwidth.
 
 ### Operational notes
 
