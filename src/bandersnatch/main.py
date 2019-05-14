@@ -24,7 +24,7 @@ def mirror(config):
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
-    
+
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     master = bandersnatch.master.Master(
