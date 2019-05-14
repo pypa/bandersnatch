@@ -47,9 +47,9 @@ class Filter:
         """
         # The intialize_plugin method is run once to initialize the plugin.  This should
         # contain all code to set up the plugin.
-        # This method is not run in the fast path and should be used to do things like indexing
-        # filter databases, etc that will speed the operation of the filter and check_match
-        # methods that are called in the fast path.
+        # This method is not run in the fast path and should be used to do things like
+        # indexing filter databases, etc that will speed the operation of the filter
+        # and check_match methods that are called in the fast path.
         pass
 
 
