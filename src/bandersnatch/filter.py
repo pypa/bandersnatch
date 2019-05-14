@@ -8,7 +8,7 @@ import pkg_resources
 
 from .configuration import BandersnatchConfig
 
-# The API_REVISION is incremented if the plugin class is modified in a 
+# The API_REVISION is incremented if the plugin class is modified in a
 # backwards incompatible way.  In order to prevent loading older
 # broken plugins that may be installed and will break due to changes to
 # the methods of the classes.
