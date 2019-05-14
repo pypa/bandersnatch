@@ -13,10 +13,8 @@ from .configuration import BandersnatchConfig
 # broken plugins that may be installed and will break due to changes to
 # the methods of the classes.
 PLUGIN_API_REVISION = 2
-PROJECT_PLUGIN_RESOURCE_GROUP = \
-    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
-RELEASE_PLUGIN_RESOURCE_GROUP = \
-    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
+PROJECT_PLUGIN_RESOURCE_GROUP = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
+RELEASE_PLUGIN_RESOURCE_GROUP = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
