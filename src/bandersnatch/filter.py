@@ -8,12 +8,15 @@ import pkg_resources
 
 from .configuration import BandersnatchConfig
 
-# The API_REVISION is incremented if the plugin class is modified in a backwards incompatible way.
-# In order to prevent loading older broken plugins that may be installed and will break due to
-# changes to the methods of the classes.
-PLUGiN_API_REVISION = 2
-PROJECT_PLUGIN_RESOURCE_GROUP = f"bandersnatch_filter_plugins.v{PLUGiN_API_REVISION}.project"
-RELEASE_PLUGIN_RESOURCE_GROUP = f"bandersnatch_filter_plugins.v{PLUGiN_API_REVISION}.release"
+# The API_REVISION is incremented if the plugin class is modified in a 
+# backwards incompatible way.  In order to prevent loading older
+# broken plugins that may be installed and will break due to changes to
+# the methods of the classes.
+PLUGIN_API_REVISION = 2
+PROJECT_PLUGIN_RESOURCE_GROUP = \
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
+RELEASE_PLUGIN_RESOURCE_GROUP = \
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
