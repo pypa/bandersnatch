@@ -8,6 +8,13 @@ import pkg_resources
 
 from .configuration import BandersnatchConfig
 
+# The API_REVISION is incremented if the plugin class is modified in a
+# backwards incompatible way.  In order to prevent loading older
+# broken plugins that may be installed and will break due to changes to
+# the methods of the classes.
+PLUGIN_API_REVISION = 2
+PROJECT_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
+RELEASE_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
@@ -36,6 +43,11 @@ class Filter:
         """
         Code to initialize the plugin
         """
+        # The intialize_plugin method is run once to initialize the plugin.  This should
+        # contain all code to set up the plugin.
+        # This method is not run in the fast path and should be used to do things like
+        # indexing filter databases, etc that will speed the operation of the filter
+        # and check_match methods that are called in the fast path.
         pass
 
 
@@ -135,7 +147,7 @@ def filter_project_plugins() -> Iterable[Filter]:
     list of bandersnatch.filter.Filter:
         List of objects derived from the bandersnatch.filter.Filter class
     """
-    return load_filter_plugins("bandersnatch_filter_plugins.project")
+    return load_filter_plugins(PROJECT_PLUGIN_RESOURCE)
 
 
 def filter_release_plugins() -> Iterable[Filter]:
@@ -147,4 +159,4 @@ def filter_release_plugins() -> Iterable[Filter]:
     list of bandersnatch.filter.Filter:
         List of objects derived from the bandersnatch.filter.Filter class
     """
-    return load_filter_plugins("bandersnatch_filter_plugins.release")
+    return load_filter_plugins(RELEASE_PLUGIN_RESOURCE)
