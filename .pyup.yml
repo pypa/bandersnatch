@@ -1,0 +1,16 @@
+search: False
+update: all
+
+requirements:
+  - requirements_docs.txt:
+    update: all
+    pin: True
+  - requirements_test.txt:
+    update: all
+    pin: True
+  - requirements.txt:
+    update: all
+    pin: True
+
+assignees:
+  - cooper
