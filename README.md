@@ -43,7 +43,7 @@ This installs the latest stable, released version.
   current status of all PyPI packages.
   Current mirror package size can be seen here: https://pypi.org/stats/
 * A ``blacklist`` or ``whitelist`` can be created to cut down your mirror size.
-  Example blacklist generation tool: https://github.com/cooperlees/pypistats
+  You might want to [Analyze PyPI downloads](https://packaging.python.org/guides/analyzing-pypi-package-downloads/) to determine which packages to add to your list.
 * Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
 
