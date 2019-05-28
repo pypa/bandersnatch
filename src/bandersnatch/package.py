@@ -302,7 +302,7 @@ class Package:
             f.write(simple_page_content)
 
         symlink_path = self.normalized_legacy_simple_directory / "index.html"
-        if symlink_path.exists():
+        if symlink_path.exists() or symlink_path.is_symlink():
             symlink_path.unlink()
 
         symlink_path.symlink_to(full_version_path)
