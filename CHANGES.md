@@ -1,12 +1,12 @@
 # 3.4.0 (2019-05-30)
 
-- Fix keep_index_versions by removing symlinks for non normalized_legacy_simple_directory 
+- Fix keep_index_versions by removing symlinks for non normalized_legacy_simple_directory
   index.htmnl - `Fixes #262` - Thanks **@ipbeegle**
 - Version plugin api + allow external plugins + move to setup.cfg - `Fixes ` - Thanks **@dwighthubbard**
 - Add in support for [plugins] config section with deprecation warning till 4.0
 - Add a Maintainers guide + Mission Statement to README.md
 - Lots of doc fixes - `Fixes #217-#222` - Thanks **@vinayak-mehta**
-- Add last_serial in index.html - `Fixes #141` - Thanks **@rene-d** 
+- Add last_serial in index.html - `Fixes #141` - Thanks **@rene-d**
 - Rewrite of FilterReleasePlugin filter function - `Fixes #196` - Thanks **@rene-d**
 
 ## 3.3.1 (2019-04-14)
