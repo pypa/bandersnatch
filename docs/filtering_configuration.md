@@ -112,6 +112,7 @@ This filter allows advanced users not interesting in Windows/macOS/Linux specifi
 [plugins]
 enabled =
     exclude_platform
+[blacklist]
 platforms =
     windows
 ```
