@@ -12,7 +12,12 @@ class PreReleaseFilter(FilterReleasePlugin):
     """
 
     name = "prerelease_release"
-    PRERELEASE_PATTERNS = (r".+rc\d$", r".+a(lpha)?\d$", r".+b(eta)?\d$", r".+dev\d$")
+    PRERELEASE_PATTERNS = (
+        r".+rc\d+$",
+        r".+a(lpha)?\d+$",
+        r".+b(eta)?\d+$",
+        r".+dev\d+$"
+    )
     patterns = None
 
     def initialize_plugin(self):
