@@ -16,7 +16,7 @@ class PreReleaseFilter(FilterReleasePlugin):
         r".+rc\d+$",
         r".+a(lpha)?\d+$",
         r".+b(eta)?\d+$",
-        r".+dev\d+$"
+        r".+dev\d+$",
     )
     patterns = None
 
