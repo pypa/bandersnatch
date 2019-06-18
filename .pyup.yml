@@ -1,17 +1,15 @@
+---
 branch: master
 
 requirements:
   - requirements.txt:
     update: all
-    pin: True
+    pin: true
   - requirements_docs.txt:
     update: all
-    pin: True
+    pin: true
   - requirements_test.txt:
     update: all
-    pin: True
+    pin: true
   - setup.cfg:
-    update: False
-
-assignees:
-  - cooper
+    update: false
