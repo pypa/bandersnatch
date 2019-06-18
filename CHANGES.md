@@ -1,3 +1,7 @@
+## 3.4.1 (2019-06-18)
+
+- Match prerelease versions with multiple digit suffixes - Thanks **@indrat**
+
 # 3.4.0 (2019-05-30)
 
 - Fix keep_index_versions by removing symlinks for non normalized_legacy_simple_directory
