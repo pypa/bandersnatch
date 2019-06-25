@@ -6,4 +6,4 @@ pytest==4.6.3
 pytest-timeout==1.3.3
 pytest-cache==1.0
 setuptools==41.0.1
-tox==3.12.1
+tox==3.13.0
