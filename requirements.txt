@@ -8,7 +8,7 @@ idna==2.8
 idna-ssl==1.1.0
 multidict==4.5.2
 packaging==19.0
-pyparsing==2.4.1.1
+pyparsing==2.4.2
 python-dateutil==2.8.0
 requests==2.22.0
 setuptools==41.0.1
