@@ -110,18 +110,6 @@ mark the sync as successful when the sync is complete.
 stop-on-error = false
 ```
 
-### delete-packages
-
-The **delete-packages** setting is a boolean (true/false) value.  If this
-setting is true (enabled).  Bandersnatch will delete any packages from the
-mirror that have been deleted on the master.
-
-The default value for this setting is false.
-
-```eval_rst
-.. important:: if you are running an official mirror than you *need* to leave this on.
-```
-
 ### log-config
 
 The log-config setting is as string containing the filename of a python logging configuration

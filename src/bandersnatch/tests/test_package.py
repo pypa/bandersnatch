@@ -22,7 +22,6 @@ def touch_files(paths: List[Path]):
 def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
     mirror, requests
 ):
-    mirror.delete_packages = False
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = {}
 
@@ -530,7 +529,6 @@ def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror, requests):
     mirror.master.package_releases.return_value = ["0.1"]
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = []
-    mirror.delete_packages = False
 
     mirror.packages_to_sync = {"foo"}
     package = Package("foo", 10, mirror)

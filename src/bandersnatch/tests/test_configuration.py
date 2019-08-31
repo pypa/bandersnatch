@@ -67,7 +67,6 @@ class TestBandersnatchConf(TestCase):
         """
         instance = BandersnatchConfig()
         for option, option_type in [
-            ("delete-packages", bool),
             ("directory", str),
             ("hash-index", bool),
             ("json", bool),
@@ -82,11 +81,11 @@ class TestBandersnatchConf(TestCase):
 
     def test_single_config_custom_setting_boolean(self):
         with open("test.conf", "w") as testconfig_handle:
-            testconfig_handle.write("[mirror]\ndelete-packages=false\n")
+            testconfig_handle.write("[mirror]\nhash-index=false\n")
         instance = BandersnatchConfig()
         instance.config_file = "test.conf"
         instance.load_configuration()
-        self.assertFalse(instance.config["mirror"].getboolean("delete-packages"))
+        self.assertFalse(instance.config["mirror"].getboolean("hash-index"))
 
     def test_single_config_custom_setting_int(self):
         with open("test.conf", "w") as testconfig_handle:
