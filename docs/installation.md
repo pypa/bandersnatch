@@ -10,17 +10,10 @@ virtualenv under `bandersnatch/bin/bandersnatch`.
 
 This installs the latest stable, released version.
 
+*(>= 3.6.1 required)*
+
 ```
   $ python3.6 -m venv bandersnatch
   $ bandersnatch/bin/pip install bandersnatch
-```
-
-### zc.buildout
-
-This installs the current development version.
-
-```
-  $ git clone https://github.org/pypa/bandersnatch
-  $ cd bandersnatch
-  $ ./bootstrap.sh
+  $ bandersnatch/bin/bandersnatch --help
 ```
