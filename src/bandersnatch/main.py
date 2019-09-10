@@ -5,6 +5,8 @@ import logging
 import logging.config
 import shutil
 import sys
+import os
+import time
 from pathlib import Path
 from tempfile import gettempdir
 
@@ -54,9 +56,23 @@ def mirror(config):
         diff_file = None
 
     try:
-        diff_append_epoch = config.get("mirror", "diff-append-epoch")
+        diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
     except configparser.NoOptionError:
-        diff_append_epoch = None
+        diff_append_epoch = False
+
+    if diff_file:
+        os.makedirs(os.path.dirname(diff_file), exist_ok=True)
+        if diff_append_epoch:
+            diff_full_path = "{}-{}".format(diff_file, int(time.time()))
+        else:
+            diff_full_path = diff_file
+    else:
+        diff_full_path = None
+
+    if diff_full_path:
+        if os.path.isfile(diff_full_path):
+            os.unlink(diff_full_path)
+
     try:
         digest_name = config.get("mirror", "digest_name")
     except configparser.NoOptionError:
@@ -80,11 +96,15 @@ def mirror(config):
         keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
         diff_file=diff_file,
         diff_append_epoch=diff_append_epoch,
+        diff_full_path=diff_full_path,
     )
 
     changed_packages = mirror.synchronize()
     logger.info("{} packages had changes".format(len(changed_packages)))
     for package_name, changes in changed_packages.items():
+        for change in changes:
+            with open(mirror.diff_full_path, 'a') as diff:
+                diff.write("{}{}".format(change, os.linesep))
         logger.debug(f"{package_name} added: {changes}")
 
 
