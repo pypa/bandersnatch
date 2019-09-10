@@ -49,6 +49,15 @@ def mirror(config):
         root_uri = None
 
     try:
+        diff_file = config.get("mirror", "diff-file")
+    except configparser.NoOptionError:
+        diff_file = None
+
+    try:
+        diff_append_epoch = config.get("mirror", "diff-append-epoch")
+    except configparser.NoOptionError:
+        diff_append_epoch = None
+    try:
         digest_name = config.get("mirror", "digest_name")
     except configparser.NoOptionError:
         digest_name = "sha256"
@@ -69,6 +78,8 @@ def mirror(config):
         root_uri=root_uri,
         digest_name=digest_name,
         keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
+        diff_file=diff_file,
+        diff_append_epoch=diff_append_epoch,
     )
 
     changed_packages = mirror.synchronize()
