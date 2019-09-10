@@ -18,6 +18,7 @@ import bandersnatch.verify
 
 from .configuration import BandersnatchConfig
 from .filter import filter_project_plugins, filter_release_plugins
+from .utils import update_safe
 
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
@@ -103,9 +104,11 @@ def mirror(config):
     logger.info("{} packages had changes".format(len(changed_packages)))
     for package_name, changes in changed_packages.items():
         for change in changes:
-            with open(mirror.diff_full_path, 'a') as diff:
-                diff.write("{}{}".format(change, os.linesep))
+            mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
         logger.debug(f"{package_name} added: {changes}")
+    with open(mirror.diff_full_path, 'w', encoding="utf-8") as f:
+        for filename in mirror.diff_file_list:
+            f.write("{}{}".format(os.path.abspath(filename), os.linesep))
 
 
 def main():

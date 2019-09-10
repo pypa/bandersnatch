@@ -78,6 +78,7 @@ class Mirror:
         diff_append_epoch=False,
         diff_full_path=None,
         flock_timeout=1,
+        diff_file_list=[]
     ):
         logger.info(f"{USER_AGENT}")
         self.homedir = Path(homedir)
@@ -92,6 +93,7 @@ class Mirror:
         self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
         self.workers = workers
+        self.diff_file_list = []
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
         self._bootstrap(flock_timeout)
@@ -307,6 +309,7 @@ class Mirror:
                     # We're really trusty that this is all encoded in UTF-8. :/
                     f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
             f.write("  </body>\n</html>")
+        self.diff_file_list.append(str(simple_dir / "index.html"))
 
     def wrapup_successful_sync(self):
         if self.errors:
