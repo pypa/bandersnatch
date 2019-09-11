@@ -134,3 +134,28 @@ Example:
 [mirror]
 root_uri = https://example.com
 ```
+
+
+### diff-file
+
+The diff file is a string containing the filename to log the files that were downloaded during the mirror.
+This file can then be used to synchronize external disks or send the files through some other mechanism to offline systems.
+
+Example:
+```ini
+[mirror]
+diff-file = /srv/pypi/mirrored-files
+```
+
+
+
+### diff-append-epoch
+
+The diff append epoch is a boolean (true/false) setting that indicates if the diff-file should be appended with the current epoch time. 
+This can be used to track diffs over time so the diff file doesn't get cobbered each run.  It is only used when diff-file is used.
+
+Example:
+```ini
+[mirror]
+diff-append-epoch = true
+```
