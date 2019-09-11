@@ -106,9 +106,11 @@ def mirror(config):
         for change in changes:
             mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
         logger.debug(f"{package_name} added: {changes}")
-    with open(mirror.diff_full_path, 'w', encoding="utf-8") as f:
-        for filename in mirror.diff_file_list:
-            f.write("{}{}".format(os.path.abspath(filename), os.linesep))
+    if diff_full_path:
+        logger.info("Writing diff file to {}".format(mirror.diff_full_path))
+        with open(mirror.diff_full_path, 'w', encoding="utf-8") as f:
+            for filename in mirror.diff_file_list:
+                f.write("{}{}".format(os.path.abspath(filename), os.linesep))
 
 
 def main():
