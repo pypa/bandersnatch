@@ -78,7 +78,7 @@ class Mirror:
         diff_append_epoch=False,
         diff_full_path=None,
         flock_timeout=1,
-        diff_file_list=[],
+        diff_file_list=[]
     ):
         logger.info(f"{USER_AGENT}")
         self.homedir = Path(homedir)
