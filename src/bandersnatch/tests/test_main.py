@@ -61,6 +61,9 @@ def test_main_reads_config_values(mirror_mock):
         "json_save": False,
         "digest_name": "sha256",
         "keep_index_versions": 0,
+        "diff_file": None,
+        "diff_full_path": None,
+        "diff_append_epoch": False,
     } == kwargs
     assert mirror_mock().synchronize.called
 
