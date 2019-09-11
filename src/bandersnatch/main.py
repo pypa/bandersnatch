@@ -18,7 +18,6 @@ import bandersnatch.verify
 
 from .configuration import BandersnatchConfig
 from .filter import filter_project_plugins, filter_release_plugins
-from .utils import update_safe
 
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 

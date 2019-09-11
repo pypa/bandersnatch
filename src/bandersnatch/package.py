@@ -17,7 +17,6 @@ from packaging.utils import canonicalize_name
 from . import utils
 from .filter import filter_release_plugins
 from .master import StalePage
-from .utils import update_safe
 
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
