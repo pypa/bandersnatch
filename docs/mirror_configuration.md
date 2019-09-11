@@ -151,7 +151,7 @@ diff-file = /srv/pypi/mirrored-files
 
 ### diff-append-epoch
 
-The diff append epoch is a boolean (true/false) setting that indicates if the diff-file should be appended with the current epoch time. 
+The diff append epoch is a boolean (true/false) setting that indicates if the diff-file should be appended with the current epoch time.
 This can be used to track diffs over time so the diff file doesn't get cobbered each run.  It is only used when diff-file is used.
 
 Example:
