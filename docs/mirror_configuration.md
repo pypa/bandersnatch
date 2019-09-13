@@ -140,6 +140,15 @@ root_uri = https://example.com
 
 The diff file is a string containing the filename to log the files that were downloaded during the mirror.
 This file can then be used to synchronize external disks or send the files through some other mechanism to offline systems.
+You can then sync the list of files to an attached drive or ssh destination such as a diode:
+```
+rsync -av --files-from=/srv/pypi/mirrored-files / /mnt/usb/
+```
+
+You can also use this file list as an input to 7zip to create split archives for transfers, allowing you to size the files as you needed:
+```
+7za a -i@"/srv/pypi/mirrored-files" -spf -v100m path_to_new_zip.7z
+```
 
 Example:
 ```ini
