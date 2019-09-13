@@ -78,7 +78,7 @@ class Mirror:
         diff_append_epoch=False,
         diff_full_path=None,
         flock_timeout=1,
-        diff_file_list=[],
+        diff_file_list=None,
     ):
         logger.info(f"{USER_AGENT}")
         self.homedir = Path(homedir)
@@ -93,7 +93,7 @@ class Mirror:
         self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
         self.workers = workers
-        self.diff_file_list = []
+        self.diff_file_list = diff_file_list or []
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
         self._bootstrap(flock_timeout)
