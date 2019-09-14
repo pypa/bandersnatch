@@ -1,3 +1,7 @@
+# 3.5.0 (2019-09-14)
+
+- Add support for differential file generation - Thanks **@artagel** - `PR #313`
+
 ## 3.4.1 (2019-06-18)
 
 - Match prerelease versions with multiple digit suffixes - Thanks **@indrat**
@@ -7,7 +11,7 @@
 - Fix keep_index_versions by removing symlinks for non normalized_legacy_simple_directory
   index.htmnl - `Fixes #262` - Thanks **@ipbeegle**
 - Version plugin api + allow external plugins + move to setup.cfg - `Fixes ` - Thanks **@dwighthubbard**
-- Add in support for [plugins] config section with deprecation warning till 4.0
+- Add in support for `[plugins]` config section with deprecation warning till 4.0
 - Add a Maintainers guide + Mission Statement to README.md
 - Lots of doc fixes - `Fixes #217-#222` - Thanks **@vinayak-mehta**
 - Add last_serial in index.html - `Fixes #141` - Thanks **@rene-d**
