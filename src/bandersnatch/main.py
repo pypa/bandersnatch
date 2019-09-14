@@ -3,8 +3,10 @@ import asyncio
 import configparser
 import logging
 import logging.config
+import os
 import shutil
 import sys
+import time
 from pathlib import Path
 from tempfile import gettempdir
 
@@ -49,6 +51,29 @@ def mirror(config):
         root_uri = None
 
     try:
+        diff_file = config.get("mirror", "diff-file")
+    except configparser.NoOptionError:
+        diff_file = None
+
+    try:
+        diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
+    except configparser.NoOptionError:
+        diff_append_epoch = False
+
+    if diff_file:
+        os.makedirs(os.path.dirname(diff_file), exist_ok=True)
+        if diff_append_epoch:
+            diff_full_path = "{}-{}".format(diff_file, int(time.time()))
+        else:
+            diff_full_path = diff_file
+    else:
+        diff_full_path = None
+
+    if diff_full_path:
+        if os.path.isfile(diff_full_path):
+            os.unlink(diff_full_path)
+
+    try:
         digest_name = config.get("mirror", "digest_name")
     except configparser.NoOptionError:
         digest_name = "sha256"
@@ -69,12 +94,22 @@ def mirror(config):
         root_uri=root_uri,
         digest_name=digest_name,
         keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
+        diff_file=diff_file,
+        diff_append_epoch=diff_append_epoch,
+        diff_full_path=diff_full_path,
     )
 
     changed_packages = mirror.synchronize()
     logger.info("{} packages had changes".format(len(changed_packages)))
     for package_name, changes in changed_packages.items():
+        for change in changes:
+            mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
         logger.debug(f"{package_name} added: {changes}")
+    if diff_full_path:
+        logger.info(f"Writing diff file to {mirror.diff_full_path}")
+        with open(mirror.diff_full_path, "w", encoding="utf-8") as f:
+            for filename in mirror.diff_file_list:
+                f.write("{}{}".format(os.path.abspath(filename), os.linesep))
 
 
 def main():

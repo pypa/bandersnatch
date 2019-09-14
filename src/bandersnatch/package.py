@@ -80,6 +80,7 @@ class Package:
         try:
             with utils.rewrite(self.json_file) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
+            self.mirror.diff_file_list.append(self.json_file)
         except Exception as e:
             logger.error(
                 "Unable to write json to {}: {}".format(self.json_file, str(e))
@@ -268,6 +269,7 @@ class Package:
             simple_page = self.simple_directory / "index.html"
             with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
+            self.mirror.diff_file_list.append(simple_page)
 
             # This exists for compatibility with pip 8.0 to 8.1.1 which did not
             # correctly implement PEP 503 wrt to normalization and so needs a
@@ -282,6 +284,7 @@ class Package:
                 simple_page = self.normalized_legacy_simple_directory / "index.html"
                 with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                     f.write(simple_page_content)
+                self.mirror.diff_file_list.append(simple_page)
 
         if not self.normalized_simple_directory.exists():
             self.normalized_simple_directory.mkdir(parents=True)
@@ -292,6 +295,7 @@ class Package:
             normalized_simple_page = self.normalized_simple_directory / "index.html"
             with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
+            self.mirror.diff_file_list.append(normalized_simple_page)
 
     def _save_simple_page_version(self, simple_page_content):
         versions_path = self._prepare_versions_path()
@@ -300,6 +304,7 @@ class Package:
         full_version_path = versions_path / version_file_name
         with utils.rewrite(full_version_path, "w", encoding="utf-8") as f:
             f.write(simple_page_content)
+        self.mirror.diff_file_list.append(full_version_path)
 
         symlink_path = self.normalized_legacy_simple_directory / "index.html"
         if symlink_path.exists() or symlink_path.is_symlink():

@@ -134,3 +134,37 @@ Example:
 [mirror]
 root_uri = https://example.com
 ```
+
+
+### diff-file
+
+The diff file is a string containing the filename to log the files that were downloaded during the mirror.
+This file can then be used to synchronize external disks or send the files through some other mechanism to offline systems.
+You can then sync the list of files to an attached drive or ssh destination such as a diode:
+```
+rsync -av --files-from=/srv/pypi/mirrored-files / /mnt/usb/
+```
+
+You can also use this file list as an input to 7zip to create split archives for transfers, allowing you to size the files as you needed:
+```
+7za a -i@"/srv/pypi/mirrored-files" -spf -v100m path_to_new_zip.7z
+```
+
+Example:
+```ini
+[mirror]
+diff-file = /srv/pypi/mirrored-files
+```
+
+
+
+### diff-append-epoch
+
+The diff append epoch is a boolean (true/false) setting that indicates if the diff-file should be appended with the current epoch time.
+This can be used to track diffs over time so the diff file doesn't get cobbered each run.  It is only used when diff-file is used.
+
+Example:
+```ini
+[mirror]
+diff-append-epoch = true
+```
