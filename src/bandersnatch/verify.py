@@ -3,6 +3,7 @@ import concurrent.futures
 import json
 import logging
 import os
+from argparse import Namespace
 from asyncio.queues import Queue
 from configparser import ConfigParser
 from functools import partial
@@ -28,7 +29,7 @@ ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
 
 
-async def _get_latest_json(
+async def get_latest_json(
     json_path: Path,
     config: ConfigParser,
     executor: concurrent.futures.ThreadPoolExecutor,
@@ -50,10 +51,10 @@ async def _get_latest_json(
             json_path.unlink()
 
 
-async def delete_files(
+async def delete_unowned_files(
     mirror_base: Path,
     executor: concurrent.futures.ThreadPoolExecutor,
-    all_package_files: List,
+    all_package_files: List[Path],
     dry_run: bool,
 ) -> int:
     loop = asyncio.get_event_loop()
@@ -69,18 +70,21 @@ async def delete_files(
         f"We have {len(all_package_files_set)} files. "
         + f"{len(unowned_files)} unowned files"
     )
-    if unowned_files:
-        if dry_run:
-            print("[DRY RUN] Unowned file list:", file=stderr)
-            for f in sorted(unowned_files):
-                print(f)
-        else:
-            del_coros = []
-            for file_path in unowned_files:
-                del_coros.append(
-                    loop.run_in_executor(executor, unlink_parent_dir, file_path)
-                )
-            await asyncio.gather(*del_coros)
+    if not unowned_files:
+        logger.info(f"{mirror_base} has no files to delete")
+        return 0
+
+    if dry_run:
+        print("[DRY RUN] Unowned file list:", file=stderr)
+        for f in sorted(unowned_files):
+            print(f)
+    else:
+        del_coros = []
+        for file_path in unowned_files:
+            del_coros.append(
+                loop.run_in_executor(executor, unlink_parent_dir, file_path)
+            )
+        await asyncio.gather(*del_coros)
 
     return 0
 
@@ -88,20 +92,20 @@ async def delete_files(
 async def verify(
     config,
     json_file,
-    mirror_base,
+    mirror_base_path,
     all_package_files,
     args,
     executor,
     releases_key="releases",
 ):
-    json_base = Path(mirror_base) / "web" / "json"
+    json_base = mirror_base_path / "web" / "json"
     json_full_path = json_base / json_file
     loop = asyncio.get_event_loop()
     logger.info(f"Parsing {json_file}")
 
     if args.json_update:
         if not args.dry_run:
-            await _get_latest_json(json_full_path, config, executor, args.delete)
+            await get_latest_json(json_full_path, config, executor, args.delete)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
@@ -122,7 +126,7 @@ async def verify(
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
-            pkg_file = Path(mirror_base) / "web" / convert_url_to_path(jpkg["url"])
+            pkg_file = mirror_base_path / "web" / convert_url_to_path(jpkg["url"])
             if not pkg_file.exists():
                 if args.dry_run:
                     logger.info(f"{jpkg['url']} would be fetched")
@@ -173,7 +177,7 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 
 
 async def async_verify(
-    config, all_package_files, mirror_base, json_files, args, executor
+    config, all_package_files, mirror_base_path, json_files, args, executor
 ) -> None:
     queue = asyncio.Queue()  # type: Queue
     for jf in json_files:
@@ -183,7 +187,7 @@ async def async_verify(
         while not q.empty():
             json_file = q.get_nowait()
             await verify(
-                config, json_file, mirror_base, all_package_files, args, executor
+                config, json_file, mirror_base_path, all_package_files, args, executor
             )
 
     # TODO: See if we can use passed in config
@@ -194,17 +198,17 @@ async def async_verify(
     await asyncio.gather(*consumers)
 
 
-async def metadata_verify(config, args) -> int:
+async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     """ Crawl all saved JSON metadata or online to check we have all packages
         if delete - generate a diff of unowned files  """
     all_package_files = []  # type: List[Path]
     loop = asyncio.get_event_loop()
-    mirror_base = config.get("mirror", "directory")
-    json_base = Path(mirror_base) / "web" / "json"
+    mirror_base_path = Path(config.get("mirror", "directory"))
+    json_base = mirror_base_path / "web" / "json"
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
 
-    logger.info(f"Starting verify for {mirror_base} with {workers} workers")
+    logger.info(f"Starting verify for {mirror_base_path} with {workers} workers")
     try:
         json_files = await loop.run_in_executor(executor, os.listdir, json_base)
     except FileExistsError as fee:
@@ -217,10 +221,12 @@ async def metadata_verify(config, args) -> int:
     logger.debug(f"Found {len(json_files)} objects in {json_base}")
     logger.debug(f"Using a {workers} thread ThreadPoolExecutor")
     await async_verify(
-        config, all_package_files, mirror_base, json_files, args, executor
+        config, all_package_files, mirror_base_path, json_files, args, executor
     )
 
     if not args.delete:
         return 0
 
-    return await delete_files(mirror_base, executor, all_package_files, args.dry_run)
+    return await delete_unowned_files(
+        mirror_base_path, executor, all_package_files, args.dry_run
+    )

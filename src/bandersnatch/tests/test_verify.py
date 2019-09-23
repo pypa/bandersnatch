@@ -10,9 +10,9 @@ import bandersnatch
 from bandersnatch.utils import convert_url_to_path, find
 
 from bandersnatch.verify import (  # isort:skip
-    _get_latest_json,
+    get_latest_json,
     async_verify,
-    delete_files,
+    delete_unowned_files,
     metadata_verify,
 )
 
@@ -159,7 +159,7 @@ web/simple/black/index.html"""
     fm.clean_up()
 
 
-def test_delete_files() -> None:
+def test_delete_unowned_files() -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     fm = FakeMirror("_test_delete_files")
     # Leave out black-2018.6.9.tar.gz so it gets deleted
@@ -168,8 +168,12 @@ def test_delete_files() -> None:
         fm.mirror_base / "web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz",
     ]
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(delete_files(fm.mirror_base, executor, all_pkgs, True))
-    loop.run_until_complete(delete_files(fm.mirror_base, executor, all_pkgs, False))
+    loop.run_until_complete(
+        delete_unowned_files(fm.mirror_base, executor, all_pkgs, True)
+    )
+    loop.run_until_complete(
+        delete_unowned_files(fm.mirror_base, executor, all_pkgs, False)
+    )
     deleted_path = fm.mirror_base / "web/packages/8f/1a/6969/black-2018.6.9.tar.gz"
     assert not deleted_path.exists()
     fm.clean_up()
@@ -181,7 +185,7 @@ def test_get_latest_json(monkeypatch):
     json_path = Path(gettempdir()) / f"unittest_{getpid()}.json"
     loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "url_fetch", do_nothing)
-    loop.run_until_complete(_get_latest_json(json_path, config, executor))
+    loop.run_until_complete(get_latest_json(json_path, config, executor))
 
 
 def test_metadata_verify(monkeypatch):
@@ -189,6 +193,6 @@ def test_metadata_verify(monkeypatch):
     fc = FakeConfig()
     loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "async_verify", do_nothing)
-    monkeypatch.setattr(bandersnatch.verify, "delete_files", do_nothing)
+    monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
     loop.run_until_complete(metadata_verify(fc, fa))

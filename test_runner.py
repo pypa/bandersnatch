@@ -28,7 +28,7 @@ TGZ_SHA256 = "bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
 TOX_EXE = Path(which("tox") or "tox")
 
 
-def do_ci_verify():
+def check_ci() -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
     peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
     peerme_json = MIRROR_BASE / "json/peerme"
@@ -56,10 +56,9 @@ def do_ci_verify():
         print(f"{EOP} Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
         return 72
 
-    with black_index.open("r") as bifp:
-        if "a href" not in bifp.read():
-            print(f"{EOP} {black_index} has no hyperlinks")
-            return 73
+    if black_index.exists():
+        print(f"{EOP} {black_index} exists ... delete failed?")
+        return 73
 
     rmtree(MIRROR_ROOT)
 
@@ -77,7 +76,19 @@ def do_ci(conf: Path) -> int:
     print(f"bandersnatch cmd: {' '.join(cmds)}")
     run(cmds, check=True)
 
-    return do_ci_verify()
+    print("Starting to deleting black from mirror ...")
+    del_cmds = (
+        str(BANDERSNATCH_EXE),
+        "--config",
+        str(conf),
+        "--debug",
+        "delete",
+        "black",
+    )
+    print(f"bandersnatch delete cmd: {' '.join(cmds)}")
+    run(del_cmds, check=True)
+
+    return check_ci()
 
 
 def platform_config() -> Path:
