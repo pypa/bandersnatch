@@ -27,14 +27,26 @@ MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
 TOX_EXE = Path(which("tox") or "tox")
 
+# Make Global so we can check exists before delete
+A_BLACK_WHL = (
+    MIRROR_BASE
+    / "packages"
+    / "30"
+    / "62"
+    / "cf549544a5fe990bbaeca21e9c419501b2de7a701ab0afb377bc81676600"
+    / "black-19.3b0-py36-none-any.whl"
+)
 
-def do_ci_verify():
+
+def check_ci() -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
     peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
     peerme_json = MIRROR_BASE / "json/peerme"
     peerme_tgz = (
         MIRROR_BASE
-        / "packages/8f/1a/"
+        / "packages"
+        / "8f"
+        / "1a"
         / "1aa000db9c5a799b676227e845d2b64fe725328e05e3d3b30036f50eb316"
         / "peerme-1.0.0-py36-none-any.whl"
     )
@@ -56,10 +68,13 @@ def do_ci_verify():
         print(f"{EOP} Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
         return 72
 
-    with black_index.open("r") as bifp:
-        if "a href" not in bifp.read():
-            print(f"{EOP} {black_index} has no hyperlinks")
-            return 73
+    if black_index.exists():
+        print(f"{EOP} {black_index} exists ... delete failed?")
+        return 73
+
+    if A_BLACK_WHL.exists():
+        print(f"{EOP} {A_BLACK_WHL} exists ... delete failed?")
+        return 74
 
     rmtree(MIRROR_ROOT)
 
@@ -77,7 +92,24 @@ def do_ci(conf: Path) -> int:
     print(f"bandersnatch cmd: {' '.join(cmds)}")
     run(cmds, check=True)
 
-    return do_ci_verify()
+    print(f"Checking if {A_BLACK_WHL} exists")
+    if not A_BLACK_WHL.exists():
+        print(f"{EOP} {A_BLACK_WHL} does not exist after mirroring ...")
+        return 68
+
+    print("Starting to deleting black from mirror ...")
+    del_cmds = (
+        str(BANDERSNATCH_EXE),
+        "--config",
+        str(conf),
+        "--debug",
+        "delete",
+        "black",
+    )
+    print(f"bandersnatch delete cmd: {' '.join(cmds)}")
+    run(del_cmds, check=True)
+
+    return check_ci()
 
 
 def platform_config() -> Path:

@@ -6,36 +6,43 @@ import shutil
 import sys
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Any
 
+import bandersnatch.configuration
+import bandersnatch.delete
 import bandersnatch.log
 import bandersnatch.mirror
 import bandersnatch.verify
 
-from .configuration import BandersnatchConfig
-
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
+# TODO: Workout why argparse.ArgumentParser causes type errors
+def _delete_parser(subparsers: Any) -> None:
+    d = subparsers.add_parser(
+        "delete",
+        help=(
+            "Consulte metadata (locally or remotely) and delete "
+            + "entire pacakge artifacts."
+        ),
     )
-    parser.add_argument(
-        "-c",
-        "--config",
-        default="/etc/bandersnatch.conf",
-        help="use configuration file (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--debug",
+    d.add_argument(
+        "--dry-run",
         action="store_true",
         default=False,
-        help="Turn on extra logging (DEBUG level)",
+        help="Do not download or delete files",
     )
-    subparsers = parser.add_subparsers()
+    d.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="# of parallel iops [Defaults to bandersnatch.conf]",
+    )
+    d.add_argument("pypi_packages", nargs="*")
+    d.set_defaults(op="delete")
 
-    # `mirror` command
+
+def _mirror_parser(subparsers: Any) -> None:
     m = subparsers.add_parser(
         "mirror",
         help="Performs a one-time synchronization with the PyPI master server.",
@@ -44,12 +51,15 @@ def main() -> int:
         "--force-check",
         action="store_true",
         default=False,
-        help="Force bandersnatch to reset the PyPI serial (move serial file to /tmp) to \
-                perform a full sync",
+        help=(
+            "Force bandersnatch to reset the PyPI serial (move serial file to /tmp) to "
+            + "perform a full sync"
+        ),
     )
     m.set_defaults(op="mirror")
 
-    # `verify` command
+
+def _verify_parser(subparsers: Any) -> None:
     v = subparsers.add_parser(
         "verify", help="Read in Metadata and check package file validity"
     )
@@ -79,6 +89,30 @@ def main() -> int:
     )
     v.set_defaults(op="verify")
 
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="/etc/bandersnatch.conf",
+        help="use configuration file (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Turn on extra logging (DEBUG level)",
+    )
+
+    subparsers = parser.add_subparsers()
+    _delete_parser(subparsers)
+    _mirror_parser(subparsers)
+    _verify_parser(subparsers)
+
     if len(sys.argv) < 2:
         parser.print_help()
         parser.exit()
@@ -100,17 +134,22 @@ def main() -> int:
             logger.error(f"Could not create config file: {e}")
         return 1
 
-    config = BandersnatchConfig(config_file=args.config).config
+    config = bandersnatch.configuration.BandersnatchConfig(
+        config_file=args.config
+    ).config
 
     if config.has_option("mirror", "log-config"):
         logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
 
-    if args.op == "verify":
+    if args.op in ("delete", "verify"):
         loop = asyncio.get_event_loop()
+        op_coro = (
+            bandersnatch.delete.delete_packages
+            if args.op == "delete"
+            else bandersnatch.verify.metadata_verify
+        )
         try:
-            return loop.run_until_complete(
-                bandersnatch.verify.metadata_verify(config, args)
-            )
+            return loop.run_until_complete(op_coro(config, args))
         finally:
             loop.close()
     else:
