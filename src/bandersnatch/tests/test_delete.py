@@ -12,8 +12,8 @@ from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
 json
-json/cooper.json
-json/unittest.json
+json/cooper
+json/unittest
 packages
 packages/69
 packages/69/cooper-6.9.tar.gz
@@ -21,6 +21,11 @@ packages/69/unittest-6.9.tar.gz
 packages/7b
 packages/7b/cooper-6.9-py3-none-any.whl
 packages/7b/unittest-6.9-py3-none-any.whl
+pypi
+pypi/cooper
+pypi/cooper/json
+pypi/unittest
+pypi/unittest/json
 simple
 simple/cooper
 simple/cooper/index.html
@@ -32,6 +37,7 @@ json
 packages
 packages/69
 packages/7b
+pypi
 simple\
 """
 MOCK_JSON_TEMPLATE = """{
@@ -89,6 +95,8 @@ def test_delete_packages() -> None:
         web_path = td_path / "web"
         json_path = web_path / "json"
         json_path.mkdir(parents=True)
+        pypi_path = web_path / "pypi"
+        pypi_path.mkdir(parents=True)
         simple_path = web_path / "simple"
 
         # Setup web tree with some json, package index.html + fake blobs
@@ -99,9 +107,12 @@ def test_delete_packages() -> None:
             package_index_path.touch()
 
             package_json_str = MOCK_JSON_TEMPLATE.replace("PKGNAME", package_name)
-            package_json_path = json_path / f"{package_name}.json"
+            package_json_path = json_path / package_name
             with package_json_path.open("w") as pjfp:
                 pjfp.write(package_json_str)
+            legacy_json_path = pypi_path / package_name / "json"
+            legacy_json_path.parent.mkdir()
+            legacy_json_path.symlink_to(package_json_path)
 
             package_json = loads(package_json_str)
             for _version, blobs in package_json["releases"].items():
