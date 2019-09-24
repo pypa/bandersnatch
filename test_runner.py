@@ -37,6 +37,7 @@ A_BLACK_WHL = (
     / "black-19.3b0-py36-none-any.whl"
 )
 
+
 def check_ci() -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
     peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
