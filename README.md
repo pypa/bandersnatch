@@ -55,6 +55,7 @@ For nginx it should look something like this:
 ```
     server {
         listen 127.0.0.1:80;
+        listen [::1]:80;
         server_name <mymirrorname>;
         root <path-to-mirror>/web;
         autoindex on;
@@ -96,6 +97,11 @@ If you want to force bandersnatch to check everything against the master PyPI:
 * run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
 
 Be aware that full syncs likely take hours depending on PyPI's performance and your network latency and bandwidth.
+
+#### Other Commands
+
+* `bandersnatch delete --help` - Allows you to specify package(s) to be removed from your mirror (*dangerous*)
+* `bandersnatch verify --help` - Crawls your repo and fixes any missed files + deletes any unowned files found (*dangerous*)
 
 ### Operational notes
 

@@ -1,3 +1,7 @@
+# 3.6.0 (2019-09-24)
+
+- Add `delete` subcommand to delete specific PyPI Packages from mirror - `PR #324`
+
 # 3.5.0 (2019-09-14)
 
 - Add support for differential file generation - Thanks **@artagel** - `PR #313`
