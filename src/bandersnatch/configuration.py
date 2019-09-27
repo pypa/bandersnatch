@@ -4,7 +4,7 @@ Module containing classes to access the bandersnatch configuration file
 import logging
 import warnings
 from configparser import ConfigParser
-from typing import Any, Dict, NamedTuple, Optional, Type
+from typing import Any, Dict, List, NamedTuple, Optional, Type
 
 import pkg_resources
 
@@ -50,6 +50,7 @@ class BandersnatchConfig(metaclass=Singleton):
         config_file: str, optional
             Path to the configuration file to use
         """
+        self.found_deprecations: List[str] = []
         self.default_config_file = pkg_resources.resource_filename(
             "bandersnatch", "default.conf"
         )
@@ -62,6 +63,9 @@ class BandersnatchConfig(metaclass=Singleton):
             return
 
         for friendly_name, dk in self.DEPRECATED_KEYS.items():
+            if friendly_name not in self.found_deprecations:
+                continue
+
             err_msg = (
                 f"{friendly_name} keys will move from {dk.old_section}:{dk.old_key} "
                 + f"to {dk.new_section}:{dk.new_key} in version {dk.deprecated_version}"
@@ -84,5 +88,6 @@ class BandersnatchConfig(metaclass=Singleton):
 
         # Copy deprecated keys to the new keys if they exist
         if "blacklist" in self.config and "plugins" in self.config["blacklist"]:
+            self.found_deprecations.append("Enabling Plugins")
             self.config["plugins"] = {}
             self.config["plugins"]["enabled"] = self.config["blacklist"]["plugins"]
