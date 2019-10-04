@@ -238,7 +238,7 @@ except ImportError:
     pass
 
 try:
-    import pypa_theme
+    import pypa_theme  # noqa: F401
 
     available_themes.insert(0, "pypa")
     available_theme_settings["pypa"] = {}

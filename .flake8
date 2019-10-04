@@ -1,0 +1,8 @@
+[flake8]
+select = B,C,E,F,P,W
+max_line_length = 88
+# E722 is a duplicate of B001.
+# P207 is a duplicate of B003.
+# W503 is against PEP8
+ignore = E722, P207, W503
+max-complexity = 20
