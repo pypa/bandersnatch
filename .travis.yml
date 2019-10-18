@@ -21,7 +21,7 @@ matrix:
     - python: 3.8
       env: TOXENV=py38
     - python: nightly
-      env: TOXENV=py39
+      env: TOXENV=py3
   allow_failures:
     - python: nightly
 
