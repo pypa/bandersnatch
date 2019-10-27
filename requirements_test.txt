@@ -4,7 +4,7 @@ coverage==4.5.4
 flake8==3.7.8
 flake8-bugbear==19.8.0
 freezegun==0.3.12
-pre-commit==1.18.3
+pre-commit==1.19.0
 pytest==5.2.2
 pytest-timeout==1.3.3
 pytest-cache==1.0
