@@ -6,7 +6,6 @@ import shutil
 import sys
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any
 
 import bandersnatch.configuration
 import bandersnatch.delete
