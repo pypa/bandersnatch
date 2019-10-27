@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
 # TODO: Workout why argparse.ArgumentParser causes type errors
-def _delete_parser(subparsers: Any) -> None:
+def _delete_parser(subparsers: argparse._SubParsersAction) -> None:
     d = subparsers.add_parser(
         "delete",
         help=(
@@ -42,7 +42,7 @@ def _delete_parser(subparsers: Any) -> None:
     d.set_defaults(op="delete")
 
 
-def _mirror_parser(subparsers: Any) -> None:
+def _mirror_parser(subparsers: argparse._SubParsersAction) -> None:
     m = subparsers.add_parser(
         "mirror",
         help="Performs a one-time synchronization with the PyPI master server.",
@@ -59,7 +59,7 @@ def _mirror_parser(subparsers: Any) -> None:
     m.set_defaults(op="mirror")
 
 
-def _verify_parser(subparsers: Any) -> None:
+def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
     v = subparsers.add_parser(
         "verify", help="Read in Metadata and check package file validity"
     )
