@@ -24,19 +24,19 @@ jobs:
         python -m pip install --upgrade pip setuptools tox
 
     - name: Run Lint
-      env: 
+      env:
        TOXENV: lint
       run: |
         python test_runner.py
 
     - name: Run Unittests
-      env: 
+      env:
        TOXENV: py${{ matrix.python-version }}
       run: |
         python test_runner.py
 
     - name: Run Integration Test
-      env: 
+      env:
        TOXENV: INTEGRATION
       run: |
         python test_runner.py
