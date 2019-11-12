@@ -30,9 +30,8 @@ jobs:
         python test_runner.py
 
     - name: Run Unittests
-      env:
-       TOXENV: py${{ matrix.python-version }}
       run: |
+        export TOXENV=py$(echo -n "${{ matrix.python-version }}" | tr -d '.')
         python test_runner.py
 
     - name: Run Integration Test
