@@ -822,7 +822,7 @@ def test_keep_index_versions_stores_different_prior_versions(mirror, requests):
         package = Package("foo", 11, mirror)
         package.sync()
 
-    version_files = os.listdir(versions_path)
+    version_files = sorted(os.listdir(versions_path))
     assert len(version_files) == 2
     assert version_files[0].startswith("index_10_2018-10-27")
     assert version_files[1].startswith("index_11_2018-10-28")
