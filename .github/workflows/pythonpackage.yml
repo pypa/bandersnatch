@@ -38,4 +38,6 @@ jobs:
       env:
        TOXENV: INTEGRATION
       run: |
+        pip install -r requirements.txt
+        pip install .
         python test_runner.py
