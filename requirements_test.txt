@@ -8,5 +8,5 @@ pre-commit==1.20.0
 pytest==5.3.0
 pytest-timeout==1.3.3
 pytest-cache==1.0
-setuptools==42.0.0
+setuptools==42.0.1
 tox==3.14.1
