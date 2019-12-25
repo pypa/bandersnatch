@@ -82,9 +82,7 @@ class Package:
                 dump(package_info, jf, indent=4, sort_keys=True)
             self.mirror.diff_file_list.append(self.json_file)
         except Exception as e:
-            logger.error(
-                "Unable to write json to {}: {}".format(self.json_file, str(e))
-            )
+            logger.error(f"Unable to write json to {self.json_file}: {str(e)}")
             return False
 
         symlink_dir = self.json_pypi_symlink.parent
@@ -133,9 +131,7 @@ class Package:
                 except StalePage:
                     self.tries += 1
                     logger.error(
-                        "Stale serial for package {} - Attempt {}".format(
-                            self.name, self.tries
-                        )
+                        f"Stale serial for package {self.name} - Attempt {self.tries}"
                     )
                     # Give CDN a chance to update.
                     if self.tries < attempts:
