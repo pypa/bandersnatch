@@ -450,7 +450,7 @@ def mirror(config) -> int:
     if diff_file:
         os.makedirs(os.path.dirname(diff_file), exist_ok=True)
         if diff_append_epoch:
-            diff_full_path = "{}-{}".format(diff_file, int(time.time()))
+            diff_full_path = f"{diff_file}-{int(time.time())}"
         else:
             diff_full_path = diff_file
     else:
@@ -487,7 +487,7 @@ def mirror(config) -> int:
     )
 
     changed_packages = mirror.synchronize()
-    logger.info("{} packages had changes".format(len(changed_packages)))
+    logger.info(f"{len(changed_packages)} packages had changes")
     for package_name, changes in changed_packages.items():
         for change in changes:
             mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
@@ -497,6 +497,6 @@ def mirror(config) -> int:
         logger.info(f"Writing diff file to {mirror.diff_full_path}")
         with open(mirror.diff_full_path, "w", encoding="utf-8") as f:
             for filename in mirror.diff_file_list:
-                f.write("{}{}".format(os.path.abspath(filename), os.linesep))
+                f.write(f"{os.path.abspath(filename)}{os.linesep}")
 
     return 0
