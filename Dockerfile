@@ -1,19 +1,20 @@
 FROM python:3
 
-RUN mkdir -p /src
-ADD setup.py /src
-ADD requirements.txt /src
-ADD README.md /src
-ADD CHANGES.md /src
-ADD src /src/src
+RUN mkdir /bandersnatch
+ADD setup.cfg /bandersnatch
+ADD setup.py /bandersnatch
+ADD requirements.txt /bandersnatch
+ADD README.md /bandersnatch
+ADD CHANGES.md /bandersnatch
+COPY src /bandersnatch/src
 
 # OPTIONAL: Include a config file
 # Remember to bind mount the "directory" in bandersnatch.conf
 # Reccomended to bind mount /conf - `runner.py` defaults to look for /conf/bandersnatch.conf
 # ADD bandersnatch.conf /etc
 
-RUN pip install --upgrade pip
-RUN pip install --upgrade -r /src/requirements.txt
-RUN cd /src && pip install .
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install --upgrade -r /bandersnatch/requirements.txt
+RUN pip -v install /bandersnatch/
 
 CMD ["python", "/src/src/runner.py", "3600"]
