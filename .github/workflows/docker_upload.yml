@@ -1,6 +1,9 @@
 name: bandersnatch_docker_upload
 
-on: [push]
+on:
+    push:
+        branches:
+        - master
 
 jobs:
   build:
