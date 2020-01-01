@@ -4,24 +4,32 @@
 
 import argparse
 import sys
-import time
 from subprocess import run
+from time import sleep, time
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("interval", help="Time in seconds between jobs")
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="/conf/bandersnatch.conf",
+        help="Configuration location",
+    )
+    parser.add_argument("interval", help="Time in seconds between runs")
     args = parser.parse_args()
 
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
     while True:
-        start_time = time.time()
-        run(["/usr/bin/bandersnatch", "mirror"])
-        run_time = time.time() - start_time
+        start_time = time()
+        run(["/usr/bin/bandersnatch", "--config", args.conf, "mirror"])
+        run_time = time() - start_time
         if run_time < args.interval:
             sleep_time = args.interval - run_time
             print(f"Sleeping for {sleep_time}s", file=sys.stderr)
-            time.sleep(sleep_time)
+            sleep(sleep_time)
 
 
 if __name__ == "__main__":
