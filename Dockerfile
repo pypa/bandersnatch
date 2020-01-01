@@ -17,4 +17,4 @@ RUN pip install --upgrade pip setuptools wheel
 RUN pip install --upgrade -r /bandersnatch/requirements.txt
 RUN pip -v install /bandersnatch/
 
-CMD ["python", "/src/src/runner.py", "3600"]
+CMD ["python", "/bandersnatch/src/runner.py", "3600"]
