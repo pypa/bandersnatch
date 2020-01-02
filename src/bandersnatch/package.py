@@ -15,7 +15,7 @@ import requests
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .filter import filter_release_plugins
+from .filter import filter_release_plugins, filter_metadata_plugins
 from .master import StalePage
 
 # Bool to help us not spam the logs with certain log messages
@@ -113,6 +113,10 @@ class Package:
                             logger.info(f"{self.name} no longer exists on PyPI")
                             return
                         raise
+                    # Don't save anything if our metadata filters all fail.
+                    if not self._filter_metadata(metadata):
+                        logger.info(f"{self.name} did not match any metadata filters, skipped.")
+                        return
 
                     # save the metadata before filtering releases
                     if self.mirror.json_save and not self.json_saved:
@@ -151,6 +155,25 @@ class Package:
         if self.mirror.errors and stop_on_error:
             logger.error("Exiting early after error.")
             sys.exit(1)
+
+
+    def _filter_metadata(self, metadata):
+        """
+        Run the metadata filtering plugins
+        """
+        global display_filter_log
+        filter_plugins = filter_metadata_plugins()
+        if not filter_plugins:
+            if display_filter_log:
+                logger.info("No metadata filters are enabled. Skipping filtering")
+                display_filter_log = False
+            return True
+        else:
+            matched = False
+            for plugin in filter_plugins:
+                matched |= plugin.filter(metadata)
+            return matched
+
 
     def _filter_releases(self):
         """
