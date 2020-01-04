@@ -6,12 +6,12 @@ chardet==3.0.4
 filelock==3.0.12
 idna==2.8
 idna-ssl==1.1.0
-multidict==4.7.2
+multidict==4.7.3
 packaging==19.2
 pyparsing==2.4.6
 python-dateutil==2.8.1
 requests==2.22.0
-setuptools==42.0.2
+setuptools==44.0.0
 six==1.13.0
 typing-extensions==3.7.4.1
 urllib3==1.25.7

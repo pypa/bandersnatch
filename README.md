@@ -11,11 +11,11 @@
 This is a PyPI mirror client according to `PEP 381`
 http://www.python.org/dev/peps/pep-0381/.
 
-
 **bandersnatch maintainers** are looking for more **help**! Please refer to our
 [MAINTAINER](https://github.com/pypa/bandersnatch/blob/master/MAINTAINERS.md) documentation to see the roles and responsibilities. We would also
 ask you read our **Mission Statement** to ensure it aligns with your thoughts for
 this project.
+
 - If interested contact @cooperlees
 
 ## Installation
@@ -25,27 +25,43 @@ virtualenv under `bandersnatch/bin/bandersnatch`.
 
 - bandersnatch **requires** `>= Python 3.6.1`
 
+## Docker
+
+This will pull latest build. Please use a specific tag if desired.
+
+- Docker image includes `/bandersnatch/src/runner.py` to periodically
+  run a `bandersnatch mirror`
+  - Please `/bandersnatch/src/runner.py --help` for usage
+- With docker, we reccomend bind mounting in a read only `bandersnatch.conf`
+  - Defaults to `/conf/bandersnatch.conf`
+
+```shell
+docker pull pypa/bandersnatch
+docker run pypa/bandersnatch bandersnatch --help
+```
+
 ### pip
 
 This installs the latest stable, released version.
 
-```
-  $ python3.6 -m venv bandersnatch
-  $ bandersnatch/bin/pip install bandersnatch
-  $ bandersnatch/bin/bandersnatch --help
+```shell
+python3.6 -m venv bandersnatch
+bandersnatch/bin/pip install bandersnatch
+bandersnatch/bin/bandersnatch --help
 ```
 
 ## Quickstart
 
-* Run ``bandersnatch mirror`` - it will create an empty configuration file
+- Run ``bandersnatch mirror`` - it will create an empty configuration file
   for you in ``/etc/bandersnatch.conf``.
-* Review ``/etc/bandersnatch.conf`` and adapt to your needs.
-* Run ``bandersnatch mirror`` again. It will populate your mirror with the
+- Review ``/etc/bandersnatch.conf`` and adapt to your needs.
+- Run ``bandersnatch mirror`` again. It will populate your mirror with the
   current status of all PyPI packages.
   Current mirror package size can be seen here: https://pypi.org/stats/
-* A ``blacklist`` or ``whitelist`` can be created to cut down your mirror size.
-  You might want to [Analyze PyPI downloads](https://packaging.python.org/guides/analyzing-pypi-package-downloads/) to determine which packages to add to your list.
-* Run ``bandersnatch mirror`` regularly to update your mirror with any
+- A ``blacklist`` or ``whitelist`` can be created to cut down your mirror size.
+  You might want to [Analyze PyPI downloads](https://packaging.python.org/guides/analyzing-pypi-package-downloads/)
+  to determine which packages to add to your list.
+- Run ``bandersnatch mirror`` regularly to update your mirror with any
   intermediate changes.
 
 ### Webserver
@@ -53,7 +69,7 @@ This installs the latest stable, released version.
 Configure your webserver to serve the ``web/`` sub-directory of the mirror.
 For nginx it should look something like this:
 
-```
+```conf
     server {
         listen 127.0.0.1:80;
         listen [::1]:80;
