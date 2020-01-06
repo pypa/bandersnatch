@@ -60,7 +60,7 @@ class RegexProjectMetadataFilter(FilterMetadataPlugin):
                 else:
                     return False
             if not isinstance(node, list):
-                node = [node]
+                node = [node]  # type: ignore
             found = False
             for d in node:
                 if any(pattern.match(d) for pattern in self.patterns[k]):
@@ -121,7 +121,7 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin):
                 else:
                     return False
             if not isinstance(node, list):
-                node = [node]
+                node = [node]  # type: ignore
             found = False
             for d in node:
                 if any(pattern.match(d) for pattern in self.patterns[k]):

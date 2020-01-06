@@ -84,7 +84,7 @@ class BandersnatchConfig(metaclass=Singleton):
         if self.config_file:
             config_file = self.config_file
         self.config = ConfigParser(delimiters=("="))
-        self.config.optionxform = lambda option: option
+        self.config.optionxform = lambda option: option  # type: ignore
         self.config.read(config_file)
 
         # Copy deprecated keys to the new keys if they exist

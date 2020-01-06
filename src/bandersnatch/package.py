@@ -179,7 +179,7 @@ class Package:
         else:
             matched = False
             for plugin in filter_plugins:
-                matched |= plugin.filter(metadata)
+                matched |= plugin.filter(metadata)  # type: ignore
             return matched
 
     def _filter_releases(self):
@@ -214,7 +214,7 @@ class Package:
         else:
             matched = False
             for plugin in filter_plugins:
-                matched |= plugin.filter(release_file)
+                matched |= plugin.filter(release_file)  # type: ignore
             return matched
 
     def _filter_all_releases_files(self):
