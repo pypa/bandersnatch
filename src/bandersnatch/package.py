@@ -207,7 +207,7 @@ class Package:
                     "No release file filters are enabled. Skipping release file filtering"
                 )
                 display_filter_log = False
-                return True
+            return True
         else:
             matched = False
             for plugin in filter_plugins:
