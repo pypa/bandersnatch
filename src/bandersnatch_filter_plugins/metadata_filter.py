@@ -1,9 +1,8 @@
 import logging
 import re
-from typing import Dict, List, Pattern
+from typing import Dict
 
 from packaging.specifiers import SpecifierSet
-from packaging.version import Version
 
 from bandersnatch.filter import FilterMetadataPlugin, FilterReleaseFilePlugin
 
@@ -12,7 +11,8 @@ logger = logging.getLogger("bandersnatch")
 
 class RegexProjectMetadataFilter(FilterMetadataPlugin):
     """
-    Plugin to download only packages having metadata matching at least one of the  specified patterns.
+    Plugin to download only packages having metadata matching
+    at least one of the  specified patterns.
     """
 
     name = "regex_project_metadata"
@@ -73,7 +73,8 @@ class RegexProjectMetadataFilter(FilterMetadataPlugin):
 
 class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin):
     """
-    Plugin to download only release files having metadata matching at least one of the specified patterns.
+    Plugin to download only release files having metadata
+        matching at least one of the specified patterns.
     """
 
     name = "regex_release_file_metadata"
@@ -99,13 +100,14 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin):
                         re.compile(pattern_string) for pattern_string in pattern_strings
                     ]
                 logger.info(
-                    f"Initialized regex_release_file_metadata plugin with {self.patterns}"
+                    f"Initialized regex_release_file_metadata plugin with {self.patterns}"  # noqa: E501
                 )
                 self.initilized = True
 
     def filter(self, release_file: Dict) -> bool:
         """
-        Remove all release files that don't match any of the specificed metadata patterns.
+        Return False for any release files which don't
+            match any of the specificed metadata patterns.
         """
         # If no patterns set, always return true
         if not self.patterns:
@@ -134,7 +136,8 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin):
 
 class VersionRangeReleaseFileMetadataFilter(FilterReleaseFilePlugin):
     """
-    Plugin to download only release files having metadata enries matching specified version ranges.
+    Plugin to download only release files having metadata
+        entries matching specified version ranges.
     """
 
     name = "version_range_release_file_metadata"
@@ -155,13 +158,14 @@ class VersionRangeReleaseFileMetadataFilter(FilterReleaseFilePlugin):
                 for k in config:
                     self.specifiers[k] = SpecifierSet(config[k])
                 logger.info(
-                    f"Initialized version_range_release_file_metadata plugin with {self.specifiers}"
+                    f"Initialized version_range_release_file_metadata plugin with {self.specifiers}"  # noqa: E501
                 )
                 self.initilized = True
 
     def filter(self, release_file: Dict) -> bool:
         """
-        Remove all release files who's metadata don't match any of the specificed version specifier.
+        Return False for any release files who's metadata
+        entries don't match the specificed version specifier.
         """
         # If no specifiers set, always return true
         if not self.specifiers:

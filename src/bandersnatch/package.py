@@ -207,7 +207,7 @@ class Package:
         if not filter_plugins:
             if display_filter_log:
                 logger.info(
-                    "No release file filters are enabled. Skipping release file filtering"
+                    "No release file filters are enabled. Skipping release file filtering"  # noqa: E501
                 )
                 display_filter_log = False
             return True
