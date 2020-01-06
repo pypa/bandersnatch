@@ -15,7 +15,11 @@ import requests
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .filter import filter_release_plugins, filter_metadata_plugins, filter_release_file_plugins
+from .filter import (
+    filter_release_plugins,
+    filter_metadata_plugins,
+    filter_release_file_plugins,
+)
 from .master import StalePage
 
 # Bool to help us not spam the logs with certain log messages

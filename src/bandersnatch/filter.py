@@ -14,9 +14,13 @@ from .configuration import BandersnatchConfig
 # the methods of the classes.
 PLUGIN_API_REVISION = 2
 PROJECT_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
-METADATA_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.metadata"
+METADATA_PLUGIN_RESOURCE = (
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.metadata"
+)
 RELEASE_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
-RELEASE_FILE_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release_file"
+RELEASE_FILE_PLUGIN_RESOURCE = (
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release_file"
+)
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
