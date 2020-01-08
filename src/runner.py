@@ -4,11 +4,11 @@
 
 import argparse
 import sys
-from subprocess import run, CalledProcessError
+from subprocess import CalledProcessError, run
 from time import sleep, time
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
@@ -22,6 +22,7 @@ def main() -> None:
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
     while True:
         start_time = time()
+
         try:
             cmd = [
                 sys.executable,
@@ -32,14 +33,17 @@ def main() -> None:
                 "mirror",
             ]
             run(cmd, check=True)
-        except CalledProcessError:
-            sys.exit(1)
+        except CalledProcessError as cpe:
+            return cpe.returncode
+
         run_time = time() - start_time
         if run_time < args.interval:
             sleep_time = args.interval - run_time
             print(f"Sleeping for {sleep_time}s", file=sys.stderr)
             sleep(sleep_time)
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
