@@ -177,10 +177,7 @@ class Package:
                 display_filter_log = False
             return True
         else:
-            matched = False
-            for plugin in filter_plugins:
-                matched |= plugin.filter(metadata)  # type: ignore
-            return matched
+            return all(plugin.filter(metadata) for plugin in filter_plugins)
 
     def _filter_releases(self):
         """
@@ -212,10 +209,7 @@ class Package:
                 display_filter_log = False
             return True
         else:
-            matched = False
-            for plugin in filter_plugins:
-                matched |= plugin.filter(release_file)  # type: ignore
-            return matched
+            return all(plugin.filter(release_file) for plugin in filter_plugins)
 
     def _filter_all_releases_files(self):
         """
