@@ -7,11 +7,10 @@ from typing import Dict, List
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse
 
-from bandersnatch.filter import (
-    Filter,
-    FilterMetadataPlugin,
-    FilterReleaseFilePlugin,
-)
+from bandersnatch.filter import Filter  # isort:skip
+from bandersnatch.filter import FilterMetadataPlugin  # isort:skip
+from bandersnatch.filter import FilterReleaseFilePlugin  # isort:skip
+
 
 logger = logging.getLogger("bandersnatch")
 
