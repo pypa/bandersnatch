@@ -22,7 +22,7 @@ class RegexFilter(Filter):
     """
 
     name = "regex_filter"
-    match_mode = "any"
+    match_patterns = "any"
     nulls_match = True
     initilized = False
     patterns: Dict = {}
@@ -133,7 +133,7 @@ class RegexFilter(Filter):
         return not self._match_any_patterns(key, values)
 
 
-class RegexProjectMetadataFilter(RegexFilter):
+class RegexProjectMetadataFilter(FilterMetadataPlugin, RegexFilter):
     """
     Plugin to download only packages having metadata matching
     at least one of the  specified patterns.
@@ -148,8 +148,11 @@ class RegexProjectMetadataFilter(RegexFilter):
     def initilize_plugin(self):
         RegexFilter.initialize_plugin(self)
 
+    def filter(self, metadata: dict) -> bool:
+        return RegexFilter.filter(self, metadata)
 
-class RegexReleaseFileMetadataFilter(RegexFilter):
+
+class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
     """
     Plugin to download only release files having metadata
         matching at least one of the specified patterns.
@@ -163,6 +166,9 @@ class RegexReleaseFileMetadataFilter(RegexFilter):
 
     def initilize_plugin(self):
         RegexFilter.initialize_plugin(self)
+
+    def filter(self, release_file: dict) -> bool:
+        return RegexFilter.filter(self, release_file)
 
 
 class VersionRangeFilter(Filter):
@@ -259,7 +265,7 @@ class VersionRangeFilter(Filter):
         return False
 
 
-class VersionRangeProjectMetadataFilter(VersionRangeFilter):
+class VersionRangeProjectMetadataFilter(FilterMetadataPlugin, VersionRangeFilter):
     """
     Plugin to download only projects having metadata
         entries matching specified version ranges.
@@ -273,8 +279,13 @@ class VersionRangeProjectMetadataFilter(VersionRangeFilter):
     def initialize_plugin(self):
         VersionRangeFilter.initialize_plugin(self)
 
+    def filter(self, metadata: dict) -> bool:
+        return VersionRangeFilter.filter(self, metadata)
 
-class VersionRangeReleaseFileMetadataFilter(VersionRangeFilter):
+
+class VersionRangeReleaseFileMetadataFilter(
+    FilterReleaseFilePlugin, VersionRangeFilter
+):
     """
     Plugin to download only release files having metadata
         entries matching specified version ranges.
@@ -287,3 +298,6 @@ class VersionRangeReleaseFileMetadataFilter(VersionRangeFilter):
 
     def initialize_plugin(self):
         VersionRangeFilter.initialize_plugin(self)
+
+    def filter(self, release_file: dict) -> bool:
+        return VersionRangeFilter.filter(self, release_file)
