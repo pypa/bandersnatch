@@ -172,10 +172,7 @@ class Mirror:
                 if plugin
             ):
                 if package_name not in self.packages_to_sync:
-                    logger.debug(
-                        f"{package_name} not found in packages to sync - "
-                        + f"{plugin.name} has no effect here ..."
-                    )
+                    logger.debug(f"{package_name} not found in packages to sync")
                 else:
                     del self.packages_to_sync[package_name]
                     logger.debug(f"{package_name} filtered")

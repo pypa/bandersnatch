@@ -1,7 +1,5 @@
 import logging
-import math
 import re
-from operator import attrgetter
 from typing import Dict, List
 
 from packaging.specifiers import SpecifierSet
@@ -74,24 +72,24 @@ class RegexFilter(Filter):
         # Interpret matching rules in tags
         if tags:
             for tag in tags:
-                if tag is "not-null":
+                if tag == "not-null":
                     nulls_match = False
-                if tag is "match-null":
+                if tag == "match-null":
                     nulls_match = True
-                elif tag is "all":
+                elif tag == "all":
                     match_patterns = "all"
-                elif tag is "any":
+                elif tag == "any":
                     match_patterns = "any"
-                elif tag is "none":
+                elif tag == "none":
                     match_patterns = "none"
 
         # Get value (List) of node using dotted path given by key
         node = self._find_element_by_dotted_path(path, metadata)
 
         # Use selected match mode, defaulting to "any"
-        if match_patterns is "all":
+        if match_patterns == "all":
             return self._match_all_patterns(key, node, nulls_match=nulls_match)
-        elif match_patterns is "none":
+        elif match_patterns == "none":
             return self._match_none_patterns(key, node, nulls_match=nulls_match)
         else:
             return self._match_any_patterns(key, node, nulls_match=nulls_match)
@@ -240,9 +238,9 @@ class VersionRangeFilter(Filter):
         # Interpret matching rules in tags
         if tags:
             for tag in tags:
-                if tag is "not-null":
+                if tag == "not-null":
                     nulls_match = False
-                if tag is "match-null":
+                if tag == "match-null":
                     nulls_match = True
 
         # Get value (List) of node using dotted path given by key

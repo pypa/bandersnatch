@@ -62,7 +62,7 @@ class BlacklistProject(FilterProjectPlugin):
         return list(filtered_packages)
 
     def filter(self, metadata):
-        return not self.check_match(name=metadata.info.name)
+        return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs):
         """
@@ -134,8 +134,8 @@ class BlacklistRelease(FilterReleasePlugin):
         return list(filtered_requirements)
 
     def filter(self, metadata):
-        name = metadata.info.name
-        releases = metadat.releases
+        name = metadata["info"]["name"]
+        releases = metadata["releases"]
         for version in list(releases.keys()):
             if self._check_match(name, version):
                 del releases[version]

@@ -67,8 +67,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
         logger.info(f"Initialized {self.name} plugin with {self._patterns!r}")
 
     def filter(self, metadata):
-        info = metadata.info
-        releases = metadata.releases
+        releases = metadata["releases"]
         """
         Remove files from `releases` that match any pattern.
         """
@@ -89,7 +88,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
             else:
                 releases[version] = new_files
         logger.debug(f"{self.name}: filenames removed: {removed}")
-        if not new_files:
+        if not releases:
             return False
         else:
             return True

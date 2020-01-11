@@ -35,7 +35,7 @@ class PreReleaseFilter(FilterReleasePlugin):
         """
         Remove all release versions that match any of the specificed patterns.
         """
-        releases = metadata.releases
+        releases = metadata["releases"]
         for version in list(releases.keys()):
             if any(pattern.match(version) for pattern in self.patterns):
                 del releases[version]

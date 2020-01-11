@@ -38,8 +38,7 @@ class RegexReleaseFilter(FilterReleasePlugin):
         """
         Remove all release versions that match any of the specificed patterns.
         """
-        info = metadata.info
-        releases = metadata.releases
+        releases = metadata["releases"]
 
         for version in list(releases.keys()):
             if any(pattern.match(version) for pattern in self.patterns):
@@ -77,7 +76,7 @@ class RegexProjectFilter(FilterProjectPlugin):
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
 
     def filter(self, metadata):
-        return check_match(metadata.info.name)
+        return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, name):
         """

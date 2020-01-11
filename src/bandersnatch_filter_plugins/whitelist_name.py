@@ -48,7 +48,7 @@ class WhitelistProject(FilterProjectPlugin):
         return list(unfiltered_packages)
 
     def filter(self, metadata):
-        return not self.check_match(name=metadata.info.name)
+        return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs):
         """
