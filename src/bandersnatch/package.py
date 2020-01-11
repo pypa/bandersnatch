@@ -191,11 +191,14 @@ class Package:
                     "No release filters are enabled. Skipping release filtering"
                 )
                 display_filter_log = False
+            return True
         else:
-            for plugin in filter_plugins:
-                plugin.filter(self.info, self.releases)
+            return all(
+                plugin.filter({"info": self.info, "releases": self.releases})
+                for plugin in filter_plugins
+            )
 
-    def _filter_release_file(self, release_file: Dict) -> bool:
+    def _filter_release_file(self, metadata: Dict) -> bool:
         """
         Run the release file filtering plugins
         """
@@ -209,7 +212,7 @@ class Package:
                 display_filter_log = False
             return True
         else:
-            return all(plugin.filter(release_file) for plugin in filter_plugins)
+            return all(plugin.filter(metadata) for plugin in filter_plugins)
 
     def _filter_all_releases_files(self):
         """
@@ -219,10 +222,20 @@ class Package:
         for release in releases:
             release_files = list(self.releases[release])
             for rfindex in reversed(range(len(release_files))):
-                if not self._filter_release_file(self.releases[release][rfindex]):
+                if not self._filter_release_file(
+                    {
+                        "info": self.info,
+                        "release": release,
+                        "release_file": self.releases[release][rfindex],
+                    }
+                ):
                     del self.releases[release][rfindex]
             if not self.releases[release]:
                 del self.releases[release]
+        if releases:
+            return True
+        else:
+            return False
 
     # TODO: async def once we go full asyncio - Have concurrency at the
     # release file level

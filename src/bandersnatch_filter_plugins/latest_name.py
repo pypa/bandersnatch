@@ -32,10 +32,12 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(self, info, releases):
+    def filter(self, metadata):
         """
         Keep the latest releases
         """
+        info = metadata["info"]
+        releases = metadata["releases"]
 
         if self.keep == 0:
             return
@@ -66,3 +68,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
                 del releases[version]
 
         logger.debug(f"{self.name}: releases removed: {before - after}")
+        if not releases:
+            return False
+        else:
+            return True

@@ -56,13 +56,16 @@ class Filter:
         # and check_match methods that are called in the fast path.
         pass
 
+    def filter(self, metadata: dict) -> bool:
+        """
+        Check if the plugin matches based on the package's metadata.
 
-class FilterProjectPlugin(Filter):
-    """
-    Plugin that blocks sync operations for an entire project
-    """
-
-    name = "project_plugin"
+        Returns
+        =======
+        bool:
+            True if the values match a filter rule, False otherwise
+        """
+        return False
 
     def check_match(self, **kwargs: Any) -> bool:
         """
@@ -76,23 +79,20 @@ class FilterProjectPlugin(Filter):
         return False
 
 
+class FilterProjectPlugin(Filter):
+    """
+    Plugin that blocks sync operations for an entire project
+    """
+
+    name = "project_plugin"
+
+
 class FilterMetadataPlugin(Filter):
     """
     Plugin that blocks sync operations for an entire project based on info fields.
     """
 
     name = "metadata_plugin"
-
-    def filter(self, metadata: dict) -> bool:
-        """
-        Check if the plugin matches based on the package's metadata.
-
-        Returns
-        =======
-        bool:
-            True if the values match a filter rule, False otherwise
-        """
-        return False
 
 
 class FilterReleasePlugin(Filter):
@@ -102,19 +102,6 @@ class FilterReleasePlugin(Filter):
 
     name = "release_plugin"
 
-    def filter(self, info: dict, releases: dict) -> None:
-        """
-        Remove all release versions that match any of the specificed patterns.
-
-        Parameters
-        ==========
-        info: dict
-            Package metadata
-        releases: dict
-            Releases dictionary {version: [dist_file]}
-        """
-        pass
-
 
 class FilterReleaseFilePlugin(Filter):
     """
@@ -122,19 +109,6 @@ class FilterReleaseFilePlugin(Filter):
     """
 
     name = "release_file_plugin"
-
-    def filter(self, release_file: dict) -> bool:
-        """
-        Remove all release versions that match any of the specificed patterns.
-
-        Parameters
-        ==========
-        info: dict
-            Package metadata
-        releases: dict
-            Releases dictionary {version: [dist_file]}
-        """
-        pass
 
 
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:

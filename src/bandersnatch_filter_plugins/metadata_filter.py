@@ -167,8 +167,8 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
     def initilize_plugin(self):
         RegexFilter.initialize_plugin(self)
 
-    def filter(self, release_file: dict) -> bool:
-        return RegexFilter.filter(self, release_file)
+    def filter(self, metadata: dict) -> bool:
+        return RegexFilter.filter(self, metadata)
 
 
 class VersionRangeFilter(Filter):
@@ -299,5 +299,5 @@ class VersionRangeReleaseFileMetadataFilter(
     def initialize_plugin(self):
         VersionRangeFilter.initialize_plugin(self)
 
-    def filter(self, release_file: dict) -> bool:
-        return VersionRangeFilter.filter(self, release_file)
+    def filter(self, metadata: dict) -> bool:
+        return VersionRangeFilter.filter(self, metadata)

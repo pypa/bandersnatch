@@ -34,13 +34,20 @@ class RegexReleaseFilter(FilterReleasePlugin):
 
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
 
-    def filter(self, info, releases):
+    def filter(self, metadata):
         """
         Remove all release versions that match any of the specificed patterns.
         """
+        info = metadata.info
+        releases = metadata.releases
+
         for version in list(releases.keys()):
             if any(pattern.match(version) for pattern in self.patterns):
                 del releases[version]
+        if not releases:
+            return False
+        else:
+            return True
 
 
 class RegexProjectFilter(FilterProjectPlugin):
@@ -68,6 +75,9 @@ class RegexProjectFilter(FilterProjectPlugin):
                 ]
 
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
+
+    def filter(self, metadata):
+        return check_match(metadata.info.name)
 
     def check_match(self, name):
         """
