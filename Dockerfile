@@ -1,6 +1,7 @@
 FROM python:3
 
 RUN mkdir /bandersnatch
+RUN mkdir /conf && chmod 777 /conf
 ADD setup.cfg /bandersnatch
 ADD setup.py /bandersnatch
 ADD requirements.txt /bandersnatch
