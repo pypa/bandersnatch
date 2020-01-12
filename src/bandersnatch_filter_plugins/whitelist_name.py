@@ -47,6 +47,9 @@ class WhitelistProject(FilterProjectPlugin):
             unfiltered_packages.add(package_line)
         return list(unfiltered_packages)
 
+    def filter(self, metadata):
+        return not self.check_match(name=metadata["info"]["name"])
+
     def check_match(self, **kwargs):
         """
         Check if the package name matches against a project that is blacklisted

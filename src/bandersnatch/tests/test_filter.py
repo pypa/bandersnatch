@@ -120,7 +120,7 @@ plugins =
         self.assertIsInstance(plugin, Filter)
         self.assertEqual(plugin.name, "release_plugin")
         try:
-            plugin.filter({}, {})
+            plugin.filter({})
             error = False
         except Exception:
             error = True

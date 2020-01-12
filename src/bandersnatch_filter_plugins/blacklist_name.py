@@ -61,6 +61,9 @@ class BlacklistProject(FilterProjectPlugin):
         logger.debug("Project blacklist is %r", list(filtered_packages))
         return list(filtered_packages)
 
+    def filter(self, metadata):
+        return not self.check_match(name=metadata["info"]["name"])
+
     def check_match(self, **kwargs):
         """
         Check if the package name matches against a project that is blacklisted
@@ -130,11 +133,16 @@ class BlacklistRelease(FilterReleasePlugin):
             filtered_requirements.add(Requirement(package_line))
         return list(filtered_requirements)
 
-    def filter(self, info, releases):
-        name = info["name"]
+    def filter(self, metadata):
+        name = metadata["info"]["name"]
+        releases = metadata["releases"]
         for version in list(releases.keys()):
             if self._check_match(name, version):
                 del releases[version]
+        if not releases:
+            return False
+        else:
+            return True
 
     def _check_match(self, name, version_string) -> bool:
         """

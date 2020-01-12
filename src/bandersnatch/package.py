@@ -15,8 +15,11 @@ import requests
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .filter import filter_release_plugins
 from .master import StalePage
+
+from .filter import filter_metadata_plugins  # isort:skip
+from .filter import filter_release_file_plugins  # isort:skip
+from .filter import filter_release_plugins  # isort:skip
 
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
@@ -113,6 +116,12 @@ class Package:
                             logger.info(f"{self.name} no longer exists on PyPI")
                             return
                         raise
+                    # Don't save anything if our metadata filters all fail.
+                    if not self._filter_metadata(metadata):
+                        # logger.debug(
+                        #    f"{self.name} did not match any metadata filters, skipped."
+                        # )
+                        return
 
                     # save the metadata before filtering releases
                     if self.mirror.json_save and not self.json_saved:
@@ -121,6 +130,8 @@ class Package:
                     self.info = metadata["info"]
                     self.last_serial = metadata["last_serial"]
                     self.releases = metadata["releases"]
+
+                    self._filter_all_releases_files()
 
                     self._filter_releases()
 
@@ -152,6 +163,22 @@ class Package:
             logger.error("Exiting early after error.")
             sys.exit(1)
 
+    def _filter_metadata(self, metadata: Dict) -> bool:
+        """
+        Run the metadata filtering plugins
+        """
+        global display_filter_log
+        filter_plugins = filter_metadata_plugins()
+        if not filter_plugins:
+            if display_filter_log:
+                logger.info(
+                    "No metadata filters are enabled. Skipping metadata filtering"
+                )
+                display_filter_log = False
+            return True
+        else:
+            return all(plugin.filter(metadata) for plugin in filter_plugins)
+
     def _filter_releases(self):
         """
         Run the release filtering plugins
@@ -160,11 +187,55 @@ class Package:
         filter_plugins = filter_release_plugins()
         if not filter_plugins:
             if display_filter_log:
-                logger.info("No release filters are enabled. Skipping filtering")
+                logger.info(
+                    "No release filters are enabled. Skipping release filtering"
+                )
                 display_filter_log = False
+            return True
         else:
-            for plugin in filter_plugins:
-                plugin.filter(self.info, self.releases)
+            return all(
+                plugin.filter({"info": self.info, "releases": self.releases})
+                for plugin in filter_plugins
+            )
+
+    def _filter_release_file(self, metadata: Dict) -> bool:
+        """
+        Run the release file filtering plugins
+        """
+        global display_filter_log
+        filter_plugins = filter_release_file_plugins()
+        if not filter_plugins:
+            if display_filter_log:
+                logger.info(
+                    "No release file filters are enabled. Skipping release file filtering"  # noqa: E501
+                )
+                display_filter_log = False
+            return True
+        else:
+            return all(plugin.filter(metadata) for plugin in filter_plugins)
+
+    def _filter_all_releases_files(self):
+        """
+        Filter release files and remove empty releases after doing so.
+        """
+        releases = list(self.releases.keys())
+        for release in releases:
+            release_files = list(self.releases[release])
+            for rfindex in reversed(range(len(release_files))):
+                if not self._filter_release_file(
+                    {
+                        "info": self.info,
+                        "release": release,
+                        "release_file": self.releases[release][rfindex],
+                    }
+                ):
+                    del self.releases[release][rfindex]
+            if not self.releases[release]:
+                del self.releases[release]
+        if releases:
+            return True
+        else:
+            return False
 
     # TODO: async def once we go full asyncio - Have concurrency at the
     # release file level

@@ -166,15 +166,16 @@ class Mirror:
         # as we may delete packages during iteration
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
-            for plugin in filter_plugins:
-                if plugin.check_match(name=package_name):
-                    if package_name not in self.packages_to_sync:
-                        logger.debug(
-                            f"{package_name} not found in packages to sync - "
-                            + f"{plugin.name} has no effect here ..."
-                        )
-                    else:
-                        del self.packages_to_sync[package_name]
+            if not all(
+                plugin.filter({"info": {"name": package_name}})
+                for plugin in filter_plugins
+                if plugin
+            ):
+                if package_name not in self.packages_to_sync:
+                    logger.debug(f"{package_name} not found in packages to sync")
+                else:
+                    del self.packages_to_sync[package_name]
+                    # logger.debug(f"{package_name} filtered")
 
     def determine_packages_to_sync(self):
         """

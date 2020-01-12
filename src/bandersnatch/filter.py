@@ -14,7 +14,13 @@ from .configuration import BandersnatchConfig
 # the methods of the classes.
 PLUGIN_API_REVISION = 2
 PROJECT_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.project"
+METADATA_PLUGIN_RESOURCE = (
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.metadata"
+)
 RELEASE_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release"
+RELEASE_FILE_PLUGIN_RESOURCE = (
+    f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release_file"
+)
 loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
@@ -50,13 +56,16 @@ class Filter:
         # and check_match methods that are called in the fast path.
         pass
 
+    def filter(self, metadata: dict) -> bool:
+        """
+        Check if the plugin matches based on the package's metadata.
 
-class FilterProjectPlugin(Filter):
-    """
-    Plugin that blocks sync operations for an entire project
-    """
-
-    name = "project_plugin"
+        Returns
+        =======
+        bool:
+            True if the values match a filter rule, False otherwise
+        """
+        return False
 
     def check_match(self, **kwargs: Any) -> bool:
         """
@@ -70,6 +79,22 @@ class FilterProjectPlugin(Filter):
         return False
 
 
+class FilterProjectPlugin(Filter):
+    """
+    Plugin that blocks sync operations for an entire project
+    """
+
+    name = "project_plugin"
+
+
+class FilterMetadataPlugin(Filter):
+    """
+    Plugin that blocks sync operations for an entire project based on info fields.
+    """
+
+    name = "metadata_plugin"
+
+
 class FilterReleasePlugin(Filter):
     """
     Plugin that modify  the download of specific release or dist files
@@ -77,18 +102,13 @@ class FilterReleasePlugin(Filter):
 
     name = "release_plugin"
 
-    def filter(self, info: dict, releases: dict) -> None:
-        """
-        Remove all release versions that match any of the specificed patterns.
 
-        Parameters
-        ==========
-        info: dict
-            Package metadata
-        releases: dict
-            Releases dictionary {version: [dist_file]}
-        """
-        pass
+class FilterReleaseFilePlugin(Filter):
+    """
+    Plugin that modify  the download of specific release or dist files
+    """
+
+    name = "release_file_plugin"
 
 
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
@@ -150,6 +170,18 @@ def filter_project_plugins() -> Iterable[Filter]:
     return load_filter_plugins(PROJECT_PLUGIN_RESOURCE)
 
 
+def filter_metadata_plugins() -> Iterable[Filter]:
+    """
+    Load and return the release filtering plugin objects
+
+    Returns
+    -------
+    list of bandersnatch.filter.Filter:
+        List of objects derived from the bandersnatch.filter.Filter class
+    """
+    return load_filter_plugins(METADATA_PLUGIN_RESOURCE)
+
+
 def filter_release_plugins() -> Iterable[Filter]:
     """
     Load and return the release filtering plugin objects
@@ -160,3 +192,15 @@ def filter_release_plugins() -> Iterable[Filter]:
         List of objects derived from the bandersnatch.filter.Filter class
     """
     return load_filter_plugins(RELEASE_PLUGIN_RESOURCE)
+
+
+def filter_release_file_plugins() -> Iterable[Filter]:
+    """
+    Load and return the release file filtering plugin objects
+
+    Returns
+    -------
+    list of bandersnatch.filter.Filter:
+        List of objects derived from the bandersnatch.filter.Filter class
+    """
+    return load_filter_plugins(RELEASE_FILE_PLUGIN_RESOURCE)
