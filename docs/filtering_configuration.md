@@ -64,6 +64,50 @@ packages =
     ptr
 ```
 
+### Metadata Filtering
+Packages and release files may be selected by filtering on specific metadata value.
+
+General form of configuration entries is:
+``` ini
+[filter_some_metadata]
+tag:tag:path.to.object =
+    matcha
+    matchb
+```
+
+#### Project Regex Matching
+
+Filter projects to be synced based on regex matches against their raw metadata entries straight from parsed downloaded json.
+
+Example:
+``` ini
+[regex_project_metadata]
+not-null:info.classifiers =
+        .*Programming Language :: Python :: 2.*
+```
+
+Valid tags are `all`,`any`,`none`,`match-null`,`not-null`, with default of `any:match-null`
+
+All metadata provided by json is available, including `info`, `last_serial`, `releases`, etc. headings.
+
+
+#### Release File Regex Matching
+
+Filter release files to be downloaded for projects based on regex matches against the stored metadata entries for each release file.
+
+Example:
+``` ini
+[regex_release_file_metadata]
+any:release_file.packagetype =
+    sdist
+    bdist_wheel
+```
+
+Valid tags are the same as for projects.
+
+Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info` containing the package-wide inthe fo, `release` containing the version of the release and `release_file` the metadata for an individual file for that release.
+
+
 ### Prerelease filtering
 
 Bandersnatch includes a plugin to filter our pre-releases of packages. To enable this plugin simply add `prerelease_release` to the enabled plugins list.
