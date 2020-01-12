@@ -118,9 +118,9 @@ class Package:
                         raise
                     # Don't save anything if our metadata filters all fail.
                     if not self._filter_metadata(metadata):
-                        logger.info(
-                            f"{self.name} did not match any metadata filters, skipped."
-                        )
+                        # logger.debug(
+                        #    f"{self.name} did not match any metadata filters, skipped."
+                        # )
                         return
 
                     # save the metadata before filtering releases
