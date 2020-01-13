@@ -1,4 +1,4 @@
-# bandernstach development
+# bandersnatch development
 
 So you want to help out? **Awesome**. Go you!
 
@@ -7,16 +7,17 @@ So you want to help out? **Awesome**. Go you!
 We use GitHub. To get started I'd suggest visiting https://guides.github.com/
 
 ### Pre Install
+
 Please make sure you system has the following:
 
 - Python 3.6.1 or greater
 - git cli client
 
-Also esure you can authenticate with GitHub via SSH Keys or HTTPS.
+Also ensure you can authenticate with GitHub via SSH Keys or HTTPS.
 
 ### Checkout `bandersnatch`
 
-Lets now cd to where we want the code and use hg:
+Lets now cd to where we want the code and clone the repo:
 
 - `cd somewhere`
 - `git clone git@github.com:pypa/bandersnatch.git`
@@ -36,7 +37,19 @@ python3 -m venv /path/to/venv
 
 ```
 /path/to/venv/bin/pip install -r requirements.txt
-/path/to/venv/bin/pip install -r test-requirements.txt
+/path/to/venv/bin/pip install -r requirements_test.txt
+```
+
+- To verify any changes in the documentation:
+
+```
+/path/to/venv/bin/pip install -r requirements_docs.txt
+```
+
+- Finally install the bandersnatch in editable mode:
+
+```
+/path/to/venv/bin/pip install -e .
 ```
 
 ## Running Bandersnatch

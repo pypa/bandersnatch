@@ -11,8 +11,11 @@
 This is a PyPI mirror client according to `PEP 381`
 http://www.python.org/dev/peps/pep-0381/.
 
+- [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
+
 **bandersnatch maintainers** are looking for more **help**! Please refer to our
-[MAINTAINER](https://github.com/pypa/bandersnatch/blob/master/MAINTAINERS.md) documentation to see the roles and responsibilities. We would also
+[MAINTAINER](https://github.com/pypa/bandersnatch/blob/master/MAINTAINERS.md)
+documentation to see the roles and responsibilities. We would also
 ask you read our **Mission Statement** to ensure it aligns with your thoughts for
 this project.
 
