@@ -82,17 +82,21 @@ class Master:
                 f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
             )
         }
-        client = ServerProxy(self.xmlrpc_url, loop=self.loop, headers=custom_headers)
+        timeouts = {"conn_timeout": self.timeout, "read_timeout": self.timeout * 2}
+        client = ServerProxy(
+            self.xmlrpc_url, loop=self.loop, headers=custom_headers, **timeouts
+        )
         return client
 
     # TODO: Add an async decorator to aiohttp-xmlrpc to replace this function
     async def rpc(self, method_name: str, kwargs: Optional[Dict] = None) -> Any:
         if kwargs is None:
             kwargs = {}
+
         try:
             client = await self._gen_xmlrpc_client()
             method = getattr(client, method_name)
-            return await asyncio.wait_for(method(**kwargs), self.timeout)
+            return await method(**kwargs)
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
         finally:
