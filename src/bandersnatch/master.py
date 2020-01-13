@@ -92,7 +92,7 @@ class Master:
         try:
             client = await self._gen_xmlrpc_client()
             method = getattr(client, method_name)
-            return asyncio.wait_for(method(**kwargs), self.timeout)
+            return await asyncio.wait_for(method(**kwargs), self.timeout)
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
         finally:
