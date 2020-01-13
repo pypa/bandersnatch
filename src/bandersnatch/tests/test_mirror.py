@@ -4,6 +4,7 @@ from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import asynctest
 import pytest
 from requests import HTTPError
 
@@ -191,8 +192,7 @@ def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
 
 
 def test_mirror_empty_master_gets_index(mirror):
-    mirror.master.all_packages = mock.Mock()
-    mirror.master.all_packages.return_value = {}
+    mirror.master.all_packages = asynctest.asynctest.CoroutineMock(return_value={})
 
     mirror.synchronize()
 
@@ -263,8 +263,7 @@ web{0}simple{0}index.html""".format(
 
 
 def test_mirror_sync_package(mirror, requests):
-    mirror.master.all_packages = mock.Mock()
-    mirror.master.all_packages.return_value = {"foo": 1}
+    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
@@ -304,8 +303,7 @@ simple{0}index.html""".format(
 
 
 def test_mirror_sync_package_error_no_early_exit(mirror, requests):
-    mirror.master.all_packages = mock.Mock()
-    mirror.master.all_packages.return_value = {"foo": 1}
+    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
 
     requests.prepare(
         {
@@ -369,8 +367,7 @@ web{0}simple{0}index.html""".format(
 
 
 def test_mirror_sync_package_error_early_exit(mirror, requests):
-    mirror.master.all_packages = mock.Mock()
-    mirror.master.all_packages.return_value = {"foo": 1}
+    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
 
     requests.prepare(
         {
@@ -420,8 +417,9 @@ web{0}simple{0}index.html""".format(
 
 
 def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
-    mirror_hash_index.master.all_packages = mock.Mock()
-    mirror_hash_index.master.all_packages.return_value = {"foo": 1}
+    mirror_hash_index.master.all_packages = asynctest.CoroutineMock(
+        return_value={"foo": 1}
+    )
 
     requests.prepare(
         {
@@ -477,9 +475,7 @@ simple{0}index.html""".format(
 
 
 def test_mirror_serial_current_no_sync_of_packages_and_index_page(mirror, requests):
-
-    mirror.master.changed_packages = mock.Mock()
-    mirror.master.changed_packages.return_value = {}
+    mirror.master.changed_packages = asynctest.CoroutineMock(return_value={})
     mirror.synced_serial = 1
 
     mirror.synchronize()
