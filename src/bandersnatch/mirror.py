@@ -83,7 +83,7 @@ class Mirror:
         flock_timeout=1,
         diff_file_list=None,
     ):
-        self.loop = asyncio.new_event_loop()
+        self.loop = asyncio.get_event_loop()
         self.homedir = Path(homedir)
         self.master = master
         self.stop_on_error = stop_on_error
@@ -249,8 +249,6 @@ class Mirror:
                 "Cancelling, all downloads are forcibly stopped, data may be corrupted"
             )
             thread_pool.shutdown(wait=False)
-        finally:
-            self.loop.close()
 
     def record_finished_package(self, name):
         with self._finish_lock:

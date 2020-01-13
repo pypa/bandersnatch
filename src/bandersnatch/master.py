@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, Optional
 
 import requests
+from aiohttp import ClientTimeout
 from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
@@ -82,34 +83,31 @@ class Master:
                 f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
             )
         }
-        timeouts = {"conn_timeout": self.timeout, "read_timeout": self.timeout * 2}
+        timeout = ClientTimeout(total=self.timeout)
         client = ServerProxy(
-            self.xmlrpc_url, loop=self.loop, headers=custom_headers, **timeouts
+            self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
         )
         return client
 
     # TODO: Add an async decorator to aiohttp-xmlrpc to replace this function
-    async def rpc(self, method_name: str, kwargs: Optional[Dict] = None) -> Any:
-        if kwargs is None:
-            kwargs = {}
-
+    async def rpc(self, method_name: str, serial: int = 0) -> Any:
         try:
             client = await self._gen_xmlrpc_client()
             method = getattr(client, method_name)
-            return await method(**kwargs)
+            if serial:
+                return await method(serial)
+            return await method()
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
         finally:
-            if client:
-                await client.close()
+            # TODO: Fix having to call ClientSession's close
+            await client.client.close()
 
     async def all_packages(self) -> Optional[Dict[str, int]]:
         return await self.rpc("list_packages_with_serial")
 
     async def changed_packages(self, last_serial: int) -> Optional[Dict[str, int]]:
-        changelog = await self.rpc(
-            "changelog_since_serial", {"last_serial": last_serial}
-        )
+        changelog = await self.rpc("changelog_since_serial", last_serial)
         if changelog is None:
             changelog = []
 
