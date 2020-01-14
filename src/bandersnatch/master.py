@@ -76,13 +76,21 @@ class Master:
     def xmlrpc_url(self) -> str:
         return f"{self.url}/pypi"
 
-    async def _gen_xmlrpc_client(self) -> ServerProxy:
+    # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
+    async def _gen_custom_headers(self) -> Dict[str, str]:
+        # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
         dummy_client = ServerProxy(self.xmlrpc_url, loop=self.loop)
         custom_headers = {
             "User-Agent": (
                 f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
             )
         }
+        # Need to close to avoid leavig open connection
+        await dummy_client.client.close()
+        return custom_headers
+
+    async def _gen_xmlrpc_client(self) -> ServerProxy:
+        custom_headers = await self._gen_custom_headers()
         timeout = ClientTimeout(total=self.timeout)
         client = ServerProxy(
             self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
@@ -100,7 +108,7 @@ class Master:
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
         finally:
-            # TODO: Fix having to call ClientSession's close
+            # TODO: Fix aiohttp-xml so we do not need to call ClientSession's close
             await client.client.close()
 
     async def all_packages(self) -> Optional[Dict[str, int]]:
