@@ -1,28 +1,16 @@
+import asyncio
 import logging
+from typing import Any, Dict, Optional
 
 import requests
-import xmlrpc2
+from aiohttp import ClientTimeout
+from aiohttp_xmlrpc.client import ServerProxy
+
+import bandersnatch
 
 from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
-
-
-class CustomTransport(xmlrpc2.client.HTTPSTransport):
-    """This transport adds a custom user agent string and timeout handling."""
-
-    def __init__(self, timeout=10.0):
-        xmlrpc2.client.HTTPSTransport.__init__(self)
-        self.timeout = timeout
-        self.session.headers.update(
-            {"User-Agent": USER_AGENT, "Content-Type": "text/xml"}
-        )
-        self.session.proxies = requests.compat.getproxies()
-
-    def request(self, uri, body):
-        resp = self.session.post(uri, body, timeout=self.timeout)
-        resp.raise_for_status()
-        return resp.content
 
 
 class StalePage(Exception):
@@ -30,11 +18,14 @@ class StalePage(Exception):
 
 
 class Master:
-    def __init__(self, url, timeout=10.0):
+    def __init__(self, url, timeout=10.0) -> None:
         self.url = url
         if self.url.startswith("http://"):
-            logger.error(f"Master URL {url} is not https scheme")
-            raise ValueError(f"Master URL {url} is not https scheme")
+            err = f"Master URL {url} is not https scheme"
+            logger.error(err)
+            raise ValueError(err)
+
+        self.loop = asyncio.get_event_loop()
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": USER_AGENT})
@@ -81,22 +72,54 @@ class Master:
                 )
         return r
 
-    def rpc(self):
-        transports = [CustomTransport(timeout=self.timeout)]
-        return xmlrpc2.client.Client(uri=self.xmlrpc_url, transports=transports)
-
     @property
-    def xmlrpc_url(self):
+    def xmlrpc_url(self) -> str:
         return f"{self.url}/pypi"
 
-    # Both list package data retrieval methods return a dictionary with package
-    # names and the newest serial that they have received changes.
-    def all_packages(self):
-        return self.rpc().list_packages_with_serial()
+    # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
+    async def _gen_custom_headers(self) -> Dict[str, str]:
+        # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
+        dummy_client = ServerProxy(self.xmlrpc_url, loop=self.loop)
+        custom_headers = {
+            "User-Agent": (
+                f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
+            )
+        }
+        # Need to close to avoid leavig open connection
+        await dummy_client.client.close()
+        return custom_headers
 
-    def changed_packages(self, last_serial):
-        changelog = self.rpc().changelog_since_serial(last_serial)
-        packages = {}
+    async def _gen_xmlrpc_client(self) -> ServerProxy:
+        custom_headers = await self._gen_custom_headers()
+        timeout = ClientTimeout(total=self.timeout)
+        client = ServerProxy(
+            self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
+        )
+        return client
+
+    # TODO: Add an async decorator to aiohttp-xmlrpc to replace this function
+    async def rpc(self, method_name: str, serial: int = 0) -> Any:
+        try:
+            client = await self._gen_xmlrpc_client()
+            method = getattr(client, method_name)
+            if serial:
+                return await method(serial)
+            return await method()
+        except asyncio.TimeoutError as te:
+            logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
+        finally:
+            # TODO: Fix aiohttp-xml so we do not need to call ClientSession's close
+            await client.client.close()
+
+    async def all_packages(self) -> Optional[Dict[str, int]]:
+        return await self.rpc("list_packages_with_serial")
+
+    async def changed_packages(self, last_serial: int) -> Optional[Dict[str, int]]:
+        changelog = await self.rpc("changelog_since_serial", last_serial)
+        if changelog is None:
+            changelog = []
+
+        packages: Dict[str, int] = {}
         for package, _version, _time, _action, serial in changelog:
             if serial > packages.get(package, 0):
                 packages[package] = serial

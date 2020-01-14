@@ -1,3 +1,4 @@
+asynctest==0.13.0
 black==19.10b0
 codecov==2.0.15
 coverage==5.0.3

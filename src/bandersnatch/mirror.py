@@ -17,7 +17,7 @@ from packaging.utils import canonicalize_name
 from .filter import filter_project_plugins, filter_release_plugins
 from .master import Master
 from .package import Package
-from .utils import USER_AGENT, rewrite, update_safe
+from .utils import rewrite, update_safe
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class Mirror:
         flock_timeout=1,
         diff_file_list=None,
     ):
-        logger.info(f"{USER_AGENT}")
+        self.loop = asyncio.get_event_loop()
         self.homedir = Path(homedir)
         self.master = master
         self.stop_on_error = stop_on_error
@@ -175,7 +175,6 @@ class Mirror:
                     logger.debug(f"{package_name} not found in packages to sync")
                 else:
                     del self.packages_to_sync[package_name]
-                    # logger.debug(f"{package_name} filtered")
 
     def determine_packages_to_sync(self):
         """
@@ -203,15 +202,17 @@ class Mirror:
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
             # those two calls.
-            self.packages_to_sync.update(self.master.all_packages())
+            all_packages = self.loop.run_until_complete(self.master.all_packages())
+            self.packages_to_sync.update(all_packages)
             self.target_serial = max(
                 [self.synced_serial] + list(self.packages_to_sync.values())
             )
         else:
             logger.info("Syncing based on changelog.")
-            self.packages_to_sync.update(
+            changed_packages = self.loop.run_until_complete(
                 self.master.changed_packages(self.synced_serial)
             )
+            self.packages_to_sync.update(changed_packages)
             self.target_serial = max(
                 [self.synced_serial] + list(self.packages_to_sync.values())
             )
@@ -233,13 +234,12 @@ class Mirror:
             packages.append(Package(name, serial, self))
 
         # Replace threading with asyncio executors for now
-        loop = asyncio.new_event_loop()
         try:
             atexit.unregister(futures_thread._python_exit)
             thread_pool = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self.workers
             )
-            tasks = loop.run_until_complete(
+            tasks = self.loop.run_until_complete(
                 package_syncer(packages, thread_pool, self.stop_on_error)
             )
             if not tasks:
@@ -249,8 +249,6 @@ class Mirror:
                 "Cancelling, all downloads are forcibly stopped, data may be corrupted"
             )
             thread_pool.shutdown(wait=False)
-        finally:
-            loop.close()
 
     def record_finished_package(self, name):
         with self._finish_lock:

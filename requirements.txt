@@ -1,4 +1,5 @@
 aiohttp==3.6.2
+aiohttp-xmlrpc==0.7.6
 async-timeout==3.0.1
 attrs==19.3.0
 certifi==2019.11.28
@@ -6,6 +7,7 @@ chardet==3.0.4
 filelock==3.0.12
 idna==2.8
 idna-ssl==1.1.0
+lxml==4.4.2
 multidict==4.7.4
 packaging==20.0
 pyparsing==2.4.6
@@ -15,5 +17,4 @@ setuptools==45.0.0
 six==1.13.0
 typing-extensions==3.7.4.1
 urllib3==1.25.7
-xmlrpc2==0.3.1
 yarl==1.4.2
