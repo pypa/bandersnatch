@@ -1,3 +1,14 @@
+# 4.0.0 (2020-?-?)
+
+*asyncio aiohttp refactor*
+
+- Replace requests with aiohttp
+  - Replace xmlrpc2 with aiohttp-xmlrpc - `PR #404`
+- Add PyPI metadata and Python version plugin filters - `PR #391`
+- Autobuild Docker images with master
+- Only Print conf deprecations if found in config - `PR #327`
+
+
 # 3.6.0 (2019-09-24)
 
 - Add `delete` subcommand to delete specific PyPI Packages from mirror - `PR #324`
