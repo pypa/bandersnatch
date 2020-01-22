@@ -16,5 +16,5 @@ requests==2.22.0
 setuptools==45.0.0
 six==1.14.0
 typing-extensions==3.7.4.1
-urllib3==1.25.7
+urllib3==1.25.8
 yarl==1.4.2
