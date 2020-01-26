@@ -95,7 +95,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
 
     def _check_match(self, file_desc) -> bool:
         """
-        Check if a release version matches any of the specificed patterns.
+        Check if a release version matches any of the specified patterns.
 
         Parameters
         ==========
