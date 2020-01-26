@@ -48,7 +48,7 @@ class RegexFilter(Filter):
 
     def filter(self, metadata: Dict) -> bool:
         """
-        Filter out all projects that don't match the specificed metadata patterns.
+        Filter out all projects that don't match the specified metadata patterns.
         """
         # If no patterns set, always return true
         if not self.patterns:
@@ -203,7 +203,7 @@ class VersionRangeFilter(Filter):
     def filter(self, metadata: Dict) -> bool:
         """
         Return False for input not having metadata
-        entries matching the specificed version specifier.
+        entries matching the specified version specifier.
         """
         # If no specifiers set, always return true
         if not self.specifiers:

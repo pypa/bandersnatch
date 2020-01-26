@@ -33,7 +33,7 @@ class PreReleaseFilter(FilterReleasePlugin):
 
     def filter(self, metadata):
         """
-        Remove all release versions that match any of the specificed patterns.
+        Remove all release versions that match any of the specified patterns.
         """
         releases = metadata["releases"]
         for version in list(releases.keys()):
