@@ -1,5 +1,5 @@
 aiohttp==3.6.2
-aiohttp-xmlrpc==0.7.6
+aiohttp-xmlrpc==0.8.1
 async-timeout==3.0.1
 attrs==19.3.0
 certifi==2019.11.28
