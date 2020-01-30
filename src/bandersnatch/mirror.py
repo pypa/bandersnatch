@@ -40,7 +40,7 @@ class Mirror:
 
     synced_serial = 0  # The last serial we have consistently synced to.
     target_serial = None  # What is the serial we are trying to reach?
-    errors = None
+    errors = False
     packages_to_sync = None
     need_index_sync = True
     json_save = False  # Wether or not to mirror PyPI JSON metadata to disk
@@ -245,8 +245,13 @@ class Mirror:
             if not tasks:
                 logger.error(f"Problem with package syncs: {tasks}")
         except KeyboardInterrupt:
+            # Setting self.errors to True to ensure we don't save Serial
+            # and thus save to disk that we've had a successful sync
+            self.errors = True
             logger.info(
-                "Cancelling, all downloads are forcibly stopped, data may be corrupted"
+                "Cancelling, all downloads are forcibly stopped, data may be "
+                + "corrupted. Serial will not be saved to disk. "
+                + "Next sync will start from previous serial"
             )
             thread_pool.shutdown(wait=False)
 
