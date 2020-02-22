@@ -8,7 +8,7 @@ filelock==3.0.12
 idna==2.9
 idna-ssl==1.1.0
 lxml==4.5.0
-multidict==4.7.4
+multidict==4.7.5
 packaging==20.1
 pyparsing==2.4.6
 python-dateutil==2.8.1
