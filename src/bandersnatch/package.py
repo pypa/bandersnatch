@@ -1,9 +1,9 @@
+import asyncio
 import hashlib
 import html
 import logging
 import os.path
 import sys
-import time
 from datetime import datetime
 from json import dump
 from pathlib import Path
@@ -11,7 +11,7 @@ from typing import Dict, Optional
 from urllib.parse import unquote, urlparse
 
 import pkg_resources
-import requests
+from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
 
 from . import utils
@@ -99,7 +99,8 @@ class Package:
 
         return True
 
-    def sync(self, stop_on_error=False, attempts=3):
+    async def sync(self, stop_on_error=False, attempts=3):
+        loop = asyncio.get_event_loop()
         self.tries = 0
         self.json_saved = False
         try:
@@ -107,25 +108,25 @@ class Package:
                 try:
                     logger.info(f"Syncing package: {self.name} (serial {self.serial})")
                     try:
-                        metadata = self.mirror.master.get(
+                        metadata_generator = self.mirror.master.get(
                             f"/pypi/{self.name}/json", self.serial
                         )
-                        metadata = metadata.json()
-                    except requests.HTTPError as e:
-                        if e.response.status_code == 404:
+                        metadata_response = await metadata_generator.asend(None)
+                        metadata = await metadata_response.json()
+                    except ClientResponseError as e:
+                        if e.status == 404:
                             logger.info(f"{self.name} no longer exists on PyPI")
                             return
                         raise
                     # Don't save anything if our metadata filters all fail.
                     if not self._filter_metadata(metadata):
-                        # logger.debug(
-                        #    f"{self.name} did not match any metadata filters, skipped."
-                        # )
                         return
 
                     # save the metadata before filtering releases
                     if self.mirror.json_save and not self.json_saved:
-                        self.json_saved = self.save_json_metadata(metadata)
+                        self.json_saved = await loop.run_in_executor(
+                            None, self.save_json_metadata, metadata
+                        )
 
                     self.info = metadata["info"]
                     self.last_serial = metadata["last_serial"]
@@ -135,7 +136,7 @@ class Package:
 
                     self._filter_releases()
 
-                    self.sync_release_files()
+                    await self.sync_release_files()
                     self.sync_simple_page()
                     self.mirror.record_finished_package(self.name)
                     break
@@ -144,9 +145,11 @@ class Package:
                     logger.error(
                         f"Stale serial for package {self.name} - Attempt {self.tries}"
                     )
-                    # Give CDN a chance to update.
                     if self.tries < attempts:
-                        time.sleep(self.sleep_on_stale)
+                        logger.debug(
+                            f"Sleeping {self.sleep_on_stale}s to give CDN a chance"
+                        )
+                        await asyncio.sleep(self.sleep_on_stale)
                         self.sleep_on_stale *= 2
                         continue
                     logger.error(
@@ -237,9 +240,7 @@ class Package:
         else:
             return False
 
-    # TODO: async def once we go full asyncio - Have concurrency at the
-    # release file level
-    def sync_release_files(self):
+    async def sync_release_files(self):
         """ Purge + download files returning files removed + added """
         release_files = []
 
@@ -250,7 +251,7 @@ class Package:
         deferred_exception = None
         for release_file in release_files:
             try:
-                downloaded_file = self.download_file(
+                downloaded_file = await self.download_file(
                     release_file["url"], release_file["digests"]["sha256"]
                 )
                 if downloaded_file:
@@ -408,7 +409,9 @@ class Package:
         path = path[1:]
         return self.mirror.webdir / path
 
-    def download_file(self, url: str, sha256sum: str) -> Optional[Path]:
+    async def download_file(
+        self, url: str, sha256sum: str, chunk_size: int = 64 * 1024
+    ) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
 
         # Avoid downloading again if we have the file and it matches the hash.
@@ -437,24 +440,27 @@ class Package:
         # and then maybe deleted. Re-uploading (and thus changing the hash)
         # is only allowed in extremely rare cases with intervention from the
         # PyPI admins.
-        # Py3 sometimes has requests lib return bytes. Need to handle that
-        r = self.mirror.master.get(url, required_serial=None, stream=True)
+        r_generator = self.mirror.master.get(url, required_serial=None)
+        response = await r_generator.asend(None)
+
         checksum = hashlib.sha256()
+
         with utils.rewrite(path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=64 * 1024):
+            while True:
+                chunk = await response.content.read(chunk_size)
+                if not chunk:
+                    break
                 checksum.update(chunk)
                 f.write(chunk)
+
             existing_hash = checksum.hexdigest()
-            if existing_hash == sha256sum:
-                # Good case: the file we got matches the checksum we expected
-                pass
-            else:
+            if existing_hash != sha256sum:
                 # Bad case: the file we got does not match the expected
                 # checksum. Even if this should be the rare case of a
                 # re-upload this will fix itself in a later run.
                 raise ValueError(
-                    "Inconsistent file. {} has hash {} instead of {}.".format(
-                        url, existing_hash, sha256sum
-                    )
+                    f"Inconsistent file. {url} has hash {existing_hash} "
+                    + f"instead of {sha256sum}."
                 )
+
         return path

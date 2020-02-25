@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
-import requests
-from aiohttp import ClientTimeout
+import aiohttp
 from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
@@ -11,31 +10,46 @@ import bandersnatch
 from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
+PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
 
 
 class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
+class XmlRpcError(aiohttp.ClientError):
+    """Issue getting package listing from PyPI Repository"""
+
+
 class Master:
-    def __init__(self, url, timeout=10.0) -> None:
+    def __init__(self, url: str, timeout: float = 10.0) -> None:
+        self.loop = asyncio.get_event_loop()
+        self.timeout = timeout
         self.url = url
         if self.url.startswith("http://"):
             err = f"Master URL {url} is not https scheme"
             logger.error(err)
             raise ValueError(err)
 
-        self.loop = asyncio.get_event_loop()
-        self.timeout = timeout
-        self.session = requests.Session()
-        self.session.headers.update({"User-Agent": USER_AGENT})
+    async def __aenter__(self) -> "Master":
+        logger.debug("Initializing Master's aiohttp ClientSession")
+        custom_headers = {"User-Agent": USER_AGENT}
+        skip_headers = {"User-Agent"}
+        self.session = aiohttp.ClientSession(
+            headers=custom_headers,
+            skip_auto_headers=skip_headers,
+            timeout=self.timeout,
+            trust_env=True,
+        )
+        return self
 
-    def get(self, path, required_serial, **kw):
-        logger.debug(f"Getting {path} (serial {required_serial})")
-        if not path.startswith(("https://", "http://")):
-            path = self.url + path
-        r = self.session.get(path, timeout=self.timeout, **kw)
-        r.raise_for_status()
+    async def __aexit__(self, *exc) -> None:
+        logger.debug("Closing Master's aiohttp ClientSession")
+        await self.session.close()
+
+    async def check_for_stale_cache(
+        self, path: str, required_serial: Optional[int], got_serial: Optional[int]
+    ) -> None:
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
         # injecting stale entries into the mirror without noticing.
@@ -44,13 +58,12 @@ class Master:
             # want you to think really hard before passing in None. This is a
             # really important check to achieve consistency and you should only
             # leave it out if you know what you're doing.
-            got_serial = int(r.headers["X-PYPI-LAST-SERIAL"])
-            if got_serial < required_serial:
+            if not got_serial or got_serial < required_serial:
                 logger.debug(
-                    "Expected PyPI serial {} for request {} but got {}".format(
-                        required_serial, path, got_serial
-                    )
+                    f"Expected PyPI serial {required_serial} for request {path} "
+                    + f"but got {got_serial}"
                 )
+
                 # HACK: The following attempts to purge the cache of the page we
                 # just tried to fetch. This works around PyPI's caches sometimes
                 # returning a stale serial for a package. Ideally, this should
@@ -58,19 +71,39 @@ class Master:
                 # should be removed.
                 logger.debug(f"Issuing a PURGE for {path} to clear the cache")
                 try:
-                    self.session.request("PURGE", path, timeout=self.timeout)
-                except requests.exceptions.HTTPError:
+                    async with self.session.request("PURGE", path):
+                        pass
+                except aiohttp.ClientError:
                     logger.warning(
                         "Got an error when attempting to clear the cache", exc_info=True
                     )
 
                 raise StalePage(
-                    "Expected PyPI serial {} for request {} but got {}. "
-                    + "HTTP PURGE has been issued to the request url".format(
-                        required_serial, path, got_serial
-                    )
+                    f"Expected PyPI serial {required_serial} for request {path} "
+                    + f"but got {got_serial}. "
+                    + "HTTP PURGE has been issued to the request url"
                 )
-        return r
+
+    async def get(
+        self, path: str, required_serial: Optional[int], **kw: Any
+    ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
+        logger.debug(f"Getting {path} (serial {required_serial})")
+        if not path.startswith(("https://", "http://")):
+            path = self.url + path
+
+        timeout = aiohttp.ClientTimeout(total=300)
+        if "timeout" in kw:
+            timeout = aiohttp.ClientTimeout(total=kw["timeout"])
+            del kw["timeout"]
+
+        async with self.session.get(path, timeout=timeout, **kw) as r:
+            got_serial = (
+                int(r.headers[PYPI_SERIAL_HEADER])
+                if PYPI_SERIAL_HEADER in r.headers
+                else None
+            )
+            await self.check_for_stale_cache(path, required_serial, got_serial)
+            yield r
 
     @property
     def xmlrpc_url(self) -> str:
@@ -91,13 +124,13 @@ class Master:
 
     async def _gen_xmlrpc_client(self) -> ServerProxy:
         custom_headers = await self._gen_custom_headers()
-        timeout = ClientTimeout(total=self.timeout)
+        timeout = aiohttp.ClientTimeout(total=self.timeout)
         client = ServerProxy(
             self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
         )
         return client
 
-    # TODO: Add an async decorator to aiohttp-xmlrpc to replace this function
+    # TODO: Add an async context manager to aiohttp-xmlrpc to replace this function
     async def rpc(self, method_name: str, serial: int = 0) -> Any:
         try:
             client = await self._gen_xmlrpc_client()
@@ -112,9 +145,12 @@ class Master:
             await client.client.close()
 
     async def all_packages(self) -> Optional[Dict[str, int]]:
-        return await self.rpc("list_packages_with_serial")
+        all_packages_with_serial = await self.rpc("list_packages_with_serial")
+        if not all_packages_with_serial:
+            raise XmlRpcError("Unable to get full list of packages")
+        return all_packages_with_serial
 
-    async def changed_packages(self, last_serial: int) -> Optional[Dict[str, int]]:
+    async def changed_packages(self, last_serial: int) -> Dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)
         if changelog is None:
             changelog = []

@@ -11,15 +11,16 @@ from pathlib import Path
 from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
 
+import aiohttp
+
 from . import __version__
 
 logger = logging.getLogger(__name__)
 
 
-def user_agent(async_version: str = "") -> str:
+def user_agent() -> str:
     template = "bandersnatch/{version} ({python}, {system})"
-    if async_version:
-        template += f" ({async_version})"
+    template += f" (aiohttp {aiohttp.__version__})"
     version = __version__
     python = sys.implementation.name
     python += " {}.{}.{}-{}{}".format(*sys.version_info)

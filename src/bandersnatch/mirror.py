@@ -1,15 +1,13 @@
 import asyncio
-import atexit
-import concurrent.futures
 import configparser
 import datetime
 import logging
 import os
 import time
-from concurrent.futures import thread as futures_thread
 from pathlib import Path
 from threading import RLock
-from typing import List
+from typing import Awaitable, Dict, List, Set
+from unittest.mock import Mock
 
 from filelock import FileLock, Timeout
 from packaging.utils import canonicalize_name
@@ -21,19 +19,6 @@ from .utils import rewrite, update_safe
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
-
-
-# TODO: Once we deprecate xml2rpc2 swap to aiohttp
-async def package_syncer(packages, thread_pool, stop_on_error):  # noqa E999
-    logger.debug(f"Starting to sync packages {thread_pool._max_workers} at once")
-    loop = asyncio.get_event_loop()
-    sync_coros = []
-    for package in packages:
-        sync_coros.append(
-            loop.run_in_executor(thread_pool, package.sync, stop_on_error)
-        )
-
-    return await asyncio.gather(*sync_coros)
 
 
 class Mirror:
@@ -60,7 +45,7 @@ class Mirror:
     # This is generally not necessary, but was added for the official internal
     # PyPI mirror, which requires serving packages from
     # https://files.pythonhosted.org
-    root_uri = None
+    root_uri = ""
 
     diff_file = None
     diff_append_epoch = False
@@ -115,15 +100,15 @@ class Mirror:
     def todolist(self) -> Path:
         return self.homedir / "todo"
 
-    def synchronize(self):
+    async def synchronize(self):
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
         # - others importing may not reset this like our main.py
         self.altered_packages = {}
 
-        self.determine_packages_to_sync()
-        self.sync_packages()
+        await self.determine_packages_to_sync()
+        await self.sync_packages()
         self.sync_index_page()
         self.wrapup_successful_sync()
 
@@ -176,7 +161,7 @@ class Mirror:
                 else:
                     del self.packages_to_sync[package_name]
 
-    def determine_packages_to_sync(self):
+    async def determine_packages_to_sync(self):
         """
         Update the self.packages_to_sync to contain packages that need to be
         synced.
@@ -202,16 +187,14 @@ class Mirror:
             # First get the current serial, then start to sync. This makes us
             # more defensive in case something changes on the server between
             # those two calls.
-            all_packages = self.loop.run_until_complete(self.master.all_packages())
+            all_packages = await self.master.all_packages()
             self.packages_to_sync.update(all_packages)
             self.target_serial = max(
                 [self.synced_serial] + list(self.packages_to_sync.values())
             )
         else:
             logger.info("Syncing based on changelog.")
-            changed_packages = self.loop.run_until_complete(
-                self.master.changed_packages(self.synced_serial)
-            )
+            changed_packages = await self.master.changed_packages(self.synced_serial)
             self.packages_to_sync.update(changed_packages)
             self.target_serial = max(
                 [self.synced_serial] + list(self.packages_to_sync.values())
@@ -225,25 +208,30 @@ class Mirror:
         pkg_count = len(self.packages_to_sync)
         logger.info(f"{pkg_count} packages to sync.")
 
-    def sync_packages(self):
-        packages = []
+    async def package_syncer(self, idx: int) -> None:
+        logger.debug(f"Package syncer {idx} started for duty")
+        while True:
+            try:
+                package = self.package_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                logger.debug(f"Package syncer {idx} emptied queue")
+                break
+
+            await package.sync(self.stop_on_error)
+
+    async def sync_packages(self):
+        self.package_queue: asyncio.Queue = asyncio.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
             serial = self.packages_to_sync[name]
-            packages.append(Package(name, serial, self))
+            await self.package_queue.put(Package(name, serial, self))
 
-        # Replace threading with asyncio executors for now
+        sync_coros: List[Awaitable] = [
+            self.package_syncer(idx) for idx in range(self.workers)
+        ]
         try:
-            atexit.unregister(futures_thread._python_exit)
-            thread_pool = concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.workers
-            )
-            tasks = self.loop.run_until_complete(
-                package_syncer(packages, thread_pool, self.stop_on_error)
-            )
-            if not tasks:
-                logger.error(f"Problem with package syncs: {tasks}")
+            await asyncio.gather(*sync_coros)
         except KeyboardInterrupt:
             # Setting self.errors to True to ensure we don't save Serial
             # and thus save to disk that we've had a successful sync
@@ -253,7 +241,6 @@ class Mirror:
                 + "corrupted. Serial will not be saved to disk. "
                 + "Next sync will start from previous serial"
             )
-            thread_pool.shutdown(wait=False)
 
     def record_finished_package(self, name):
         with self._finish_lock:
@@ -413,16 +400,11 @@ class Mirror:
             f.write(str(self.synced_serial))
 
 
-def mirror(config) -> int:
+# TODO: Breakup complex method
+async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
-
-    # Always reference those classes here with the fully qualified name to
-    # allow them being patched by mock libraries!
-    master = Master(
-        config.get("mirror", "master"), config.getfloat("mirror", "timeout")
-    )
 
     # `json` boolean is a new optional option in 2.1.2 - want to support it
     # not existing in old configs and display an error saying that this will
@@ -439,12 +421,12 @@ def mirror(config) -> int:
     try:
         root_uri = config.get("mirror", "root_uri")
     except configparser.NoOptionError:
-        root_uri = None
+        root_uri = ""
 
     try:
         diff_file = config.get("mirror", "diff-file")
     except configparser.NoOptionError:
-        diff_file = None
+        diff_file = ""
 
     try:
         diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
@@ -475,32 +457,44 @@ def mirror(config) -> int:
             + "section."
         )
 
-    mirror = Mirror(
-        config.get("mirror", "directory"),
-        master,
-        stop_on_error=config.getboolean("mirror", "stop-on-error"),
-        workers=config.getint("mirror", "workers"),
-        hash_index=config.getboolean("mirror", "hash-index"),
-        json_save=json_save,
-        root_uri=root_uri,
-        digest_name=digest_name,
-        keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
-        diff_file=diff_file,
-        diff_append_epoch=diff_append_epoch,
-        diff_full_path=diff_full_path,
-    )
+    # Always reference those classes here with the fully qualified name to
+    # allow them being patched by mock libraries!
+    async with Master(
+        config.get("mirror", "master"), config.getfloat("mirror", "timeout")
+    ) as master:
+        mirror = Mirror(
+            config.get("mirror", "directory"),
+            master,
+            stop_on_error=config.getboolean("mirror", "stop-on-error"),
+            workers=config.getint("mirror", "workers"),
+            hash_index=config.getboolean("mirror", "hash-index"),
+            json_save=json_save,
+            root_uri=root_uri,
+            digest_name=digest_name,
+            keep_index_versions=config.getint(
+                "mirror", "keep_index_versions", fallback=0
+            ),
+            diff_file=diff_file,
+            diff_append_epoch=diff_append_epoch,
+            diff_full_path=diff_full_path,
+        )
 
-    changed_packages = mirror.synchronize()
-    logger.info(f"{len(changed_packages)} packages had changes")
-    for package_name, changes in changed_packages.items():
-        for change in changes:
-            mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
-        logger.debug(f"{package_name} added: {changes}")
+        # TODO: Remove this terrible hack and async mock the code correctly
+        # This works around "TypeError: object
+        # MagicMock can't be used in 'await' expression"
+        changed_packages: Dict[str, Set[str]] = {}
+        if not isinstance(mirror, Mock):
+            changed_packages = await mirror.synchronize()
+        logger.info(f"{len(changed_packages)} packages had changes")
+        for package_name, changes in changed_packages.items():
+            for change in changes:
+                mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
+            logger.debug(f"{package_name} added: {changes}")
 
-    if mirror.diff_full_path:
-        logger.info(f"Writing diff file to {mirror.diff_full_path}")
-        with open(mirror.diff_full_path, "w", encoding="utf-8") as f:
-            for filename in mirror.diff_file_list:
-                f.write(f"{os.path.abspath(filename)}{os.linesep}")
+        if mirror.diff_full_path:
+            logger.info(f"Writing diff file to {mirror.diff_full_path}")
+            with open(mirror.diff_full_path, "w", encoding="utf-8") as f:
+                for filename in mirror.diff_file_list:
+                    f.write(f"{os.path.abspath(filename)}{os.linesep}")
 
     return 0
