@@ -4,8 +4,10 @@ import logging
 import logging.config
 import shutil
 import sys
+from configparser import ConfigParser
 from pathlib import Path
 from tempfile import gettempdir
+from typing import Optional
 
 import bandersnatch.configuration
 import bandersnatch.delete
@@ -89,7 +91,36 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
     v.set_defaults(op="verify")
 
 
-def main() -> int:
+async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
+    if args.op.lower() == "delete":
+        return await bandersnatch.delete.delete_packages(config, args)
+    elif args.op.lower() == "verify":
+        return await bandersnatch.verify.metadata_verify(config, args)
+
+    if args.force_check:
+        status_file = Path(config.get("mirror", "directory")) / "status"
+        if status_file.exists():
+            tmp_status_file = Path(gettempdir()) / "status"
+            try:
+                shutil.move(status_file, tmp_status_file)
+                logger.debug(
+                    "Force bandersnatch to check everything against the master PyPI"
+                    + f" - status file moved to {tmp_status_file}"
+                )
+            except OSError as e:
+                logger.error(
+                    f"Could not move status file ({status_file} to "
+                    + f" {tmp_status_file}): {e}"
+                )
+        else:
+            logger.info(
+                f"No status file to move ({status_file}) - Full sync will occur"
+            )
+
+    return await bandersnatch.mirror.mirror(config)
+
+
+def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
     parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
@@ -140,39 +171,12 @@ def main() -> int:
     if config.has_option("mirror", "log-config"):
         logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
 
-    if args.op in ("delete", "verify"):
-        loop = asyncio.get_event_loop()
-        op_coro = (
-            bandersnatch.delete.delete_packages
-            if args.op == "delete"
-            else bandersnatch.verify.metadata_verify
-        )
-        try:
-            return loop.run_until_complete(op_coro(config, args))
-        finally:
-            loop.close()
-    else:
-        if args.force_check:
-            status_file = Path(config.get("mirror", "directory")) / "status"
-            if status_file.exists():
-                tmp_status_file = Path(gettempdir()) / "status"
-                try:
-                    shutil.move(status_file, tmp_status_file)
-                    logger.debug(
-                        "Force bandersnatch to check everything against the master PyPI"
-                        + f" - status file moved to {tmp_status_file}"
-                    )
-                except OSError as e:
-                    logger.error(
-                        f"Could not move status file ({status_file} to "
-                        + f" {tmp_status_file}): {e}"
-                    )
-            else:
-                logger.info(
-                    f"No status file to move ({status_file}) - Full sync will occur"
-                )
-
-        return bandersnatch.mirror.mirror(config)
+    # TODO: Go to asyncio.run() when >= 3.7
+    loop = loop or asyncio.get_event_loop()
+    try:
+        return loop.run_until_complete(async_main(args, config))
+    finally:
+        loop.close()
 
 
 if __name__ == "__main__":

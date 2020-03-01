@@ -1,4 +1,3 @@
-import asyncio
 from argparse import Namespace
 from configparser import ConfigParser
 from json import loads
@@ -6,6 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 from urllib.parse import urlparse
+
+import pytest
 
 from bandersnatch.delete import delete_packages, delete_path
 from bandersnatch.utils import find
@@ -84,10 +85,10 @@ def test_delete_path() -> None:
             assert mock_log.call_count == 1
 
 
-def test_delete_packages() -> None:
+@pytest.mark.asyncio
+async def test_delete_packages() -> None:
     args = _fake_args()
     config = _fake_config()
-    loop = asyncio.get_event_loop()
 
     with TemporaryDirectory() as td:
         td_path = Path(td)
@@ -126,20 +127,20 @@ def test_delete_packages() -> None:
         assert find(web_path) == EXPECTED_WEB_BEFORE_DELETION
 
         args.dry_run = True
-        assert loop.run_until_complete(delete_packages(config, args)) == 0
+        assert await delete_packages(config, args) == 0
 
         args.dry_run = False
         with patch("bandersnatch.delete.logger.info") as mock_log:
-            assert loop.run_until_complete(delete_packages(config, args)) == 0
+            assert await delete_packages(config, args) == 0
             assert mock_log.call_count == 1
 
         # See we've deleted it all
         assert find(web_path) == EXPECTED_WEB_AFTER_DELETION
 
 
-def test_delete_packages_no_exist() -> None:
-    loop = asyncio.get_event_loop()
+@pytest.mark.asyncio
+async def test_delete_packages_no_exist() -> None:
     args = _fake_args()
     with patch("bandersnatch.delete.logger.error") as mock_log:
-        assert loop.run_until_complete(delete_packages(_fake_config(), args)) == 0
+        assert await delete_packages(_fake_config(), args) == 0
         assert mock_log.call_count == len(args.pypi_packages)
