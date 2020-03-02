@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
 
+import aiohttp
 import pytest
 
 from bandersnatch.utils import (  # isort:skip
@@ -96,13 +97,7 @@ def test_unlink_parent_dir():
 
 def test_user_agent():
     assert re.match(
-        r"bandersnatch/[0-9]\.[0-9]\.[0-9]\.?d?e?v?[0-9]? \(.*\)", user_agent()
-    )
-
-
-def test_user_agent_async():
-    async_ver = "aiohttp 0.6.9"
-    assert re.match(
-        fr"bandersnatch/[0-9]\.[0-9]\.[0-9]\.?d?e?v?[0-9]? \(.*\) \({async_ver}\)",
-        user_agent(async_ver),
+        r"bandersnatch/[0-9]\.[0-9]\.[0-9]\.?d?e?v?[0-9]? \(.*\) "
+        + fr"\(aiohttp {aiohttp.__version__}\)",
+        user_agent(),
     )

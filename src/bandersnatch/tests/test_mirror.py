@@ -6,7 +6,6 @@ from tempfile import TemporaryDirectory
 
 import asynctest
 import pytest
-from requests import HTTPError
 
 from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
@@ -191,10 +190,10 @@ def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
     Mirror(mirror.homedir / "test", mirror.master)
 
 
-def test_mirror_empty_master_gets_index(mirror):
+@pytest.mark.asyncio
+async def test_mirror_empty_master_gets_index(mirror):
     mirror.master.all_packages = asynctest.asynctest.CoroutineMock(return_value={})
-
-    mirror.synchronize()
+    await mirror.synchronize()
 
     assert """\
 last-modified
@@ -222,15 +221,12 @@ simple{0}index.html""".format(
     assert open("status").read() == "0"
 
 
-def test_mirror_empty_resume_from_todo_list(mirror, requests):
-    response = mock.Mock()
-    response.status_code = 404
-    requests.prepare(HTTPError(response=response), 10)
-
+@pytest.mark.asyncio
+async def test_mirror_empty_resume_from_todo_list(mirror):
     with open("todo", "w") as todo:
-        todo.write("20\nfoobar 10")
+        todo.write("20\nfoobar 1")
 
-    mirror.synchronize()
+    await mirror.synchronize()
 
     assert """\
 .lock
@@ -239,9 +235,19 @@ status
 web
 web{0}last-modified
 web{0}local-stats
-web{0}local-stats/days
+web{0}local-stats{0}days
 web{0}packages
+web{0}packages{0}2.7
+web{0}packages{0}2.7{0}f
+web{0}packages{0}2.7{0}f{0}foo
+web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
+web{0}packages{0}any
+web{0}packages{0}any{0}f
+web{0}packages{0}any{0}f{0}foo
+web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple
+web{0}simple{0}foobar
+web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(
         sep
     ) == utils.find(
@@ -256,28 +262,25 @@ web{0}simple{0}index.html""".format(
     <title>Simple Index</title>
   </head>
   <body>
+    <a href="foobar/">foobar</a><br/>
   </body>
 </html>"""
     )
     assert open("status").read() == "20"
 
 
-def test_mirror_sync_package(mirror, requests):
+@pytest.mark.asyncio
+async def test_mirror_sync_package(mirror):
     mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
-
-    requests.prepare(FAKE_RELEASE_DATA, 1)
-    requests.prepare(b"the release content", 1)
-
-    mirror.master.get = mock.Mock()
-    mirror.master.get.return_value = FAKE_RELEASE_DATA
-    mirror.synchronize()
+    await mirror.synchronize()
 
     assert """\
 json{0}foo
 last-modified
+packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
@@ -302,42 +305,17 @@ simple{0}index.html""".format(
     assert open("status", "rb").read() == b"1"
 
 
-def test_mirror_sync_package_error_no_early_exit(mirror, requests):
+@pytest.mark.asyncio
+async def test_mirror_sync_package_error_no_early_exit(mirror):
     mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
-
-    requests.prepare(
-        {
-            "info": {"name": "foo"},
-            "last_serial": 654_321,
-            "releases": {
-                "0.1": [
-                    {
-                        "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
-                        "filename": "foo.zip",
-                        "digests": {
-                            "md5": "b6bcb391b040c4468262706faf9d3cce",
-                            "sha256": (
-                                "02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d4"
-                                "e5470a3e4e878bd8cd"
-                            ),
-                        },
-                        "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
-                    }
-                ]
-            },
-        },
-        1,
-    )
-
-    requests.prepare(b"the release content", 1)
-
     mirror.errors = True
-    changed_packages = mirror.synchronize()
+    changed_packages = await mirror.synchronize()
 
     assert """\
 .lock
 generation
 todo
+web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
 web{0}simple{0}index.html""".format(
@@ -362,44 +340,26 @@ web{0}simple{0}index.html""".format(
     assert open("todo").read() == "1\n"
 
     # Check the returned dict is accurate
-    expected = {"foo": {"web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep)}}
+    expected = {
+        "foo": {
+            "web{0}packages{0}2.7{0}f{0}foo{0}foo.whl".format(sep),
+            "web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep),
+        }
+    }
     assert changed_packages == expected
 
 
-def test_mirror_sync_package_error_early_exit(mirror, requests):
+# TODO: Fix - Raises SystemExit but pytest does not like asyncio tasks
+@pytest.mark.asyncio
+async def mirror_sync_package_error_early_exit(mirror):
     mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
 
-    requests.prepare(
-        {
-            "info": {"name": "foo", "version": "0.1"},
-            "last_serial": 654_321,
-            "releases": {
-                "0.1": [
-                    {
-                        "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
-                        "filename": "foo.zip",
-                        "digests": {
-                            "md5": "b6bcb391b040c4468262706faf9d3cce",
-                            "sha256": (
-                                "02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0"
-                                "d4e5470a3e4e878bd8cd"
-                            ),
-                        },
-                        "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
-                    }
-                ]
-            },
-        },
-        1,
-    )
-    requests.prepare(b"the release content", 1)
-
-    with open("web{0}simple{0}index.html".format(sep), "wb") as index:
+    with Path("web/simple/index.html").open("wb") as index:
         index.write(b"old index")
     mirror.errors = True
     mirror.stop_on_error = True
     with pytest.raises(SystemExit):
-        mirror.synchronize()
+        await mirror.synchronize()
 
     assert """\
 .lock
@@ -416,41 +376,16 @@ web{0}simple{0}index.html""".format(
     assert open("todo").read() == "1\n"
 
 
-def test_mirror_sync_package_with_hash(mirror_hash_index, requests):
+@pytest.mark.asyncio
+async def test_mirror_sync_package_with_hash(mirror_hash_index):
     mirror_hash_index.master.all_packages = asynctest.CoroutineMock(
         return_value={"foo": 1}
     )
-
-    requests.prepare(
-        {
-            "info": {"name": "foo", "version": "0.1"},
-            "last_serial": 654_321,
-            "releases": {
-                "0.1": [
-                    {
-                        "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
-                        "filename": "foo.zip",
-                        "digests": {
-                            "md5": "b6bcb391b040c4468262706faf9d3cce",
-                            "sha256": (
-                                "02db45ea4e09715fbb1ed0fef30d7324db07c9e87fb0d"
-                                "4e5470a3e4e878bd8cd"
-                            ),
-                        },
-                        "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
-                    }
-                ]
-            },
-        },
-        1,
-    )
-
-    requests.prepare(b"the release content", 1)
-
-    mirror_hash_index.synchronize()
+    await mirror_hash_index.synchronize()
 
     assert """\
 last-modified
+packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 simple{0}f{0}foo{0}index.html
 simple{0}index.html""".format(
@@ -474,11 +409,11 @@ simple{0}index.html""".format(
     assert open("status").read() == "1"
 
 
-def test_mirror_serial_current_no_sync_of_packages_and_index_page(mirror, requests):
+@pytest.mark.asyncio
+async def test_mirror_serial_current_no_sync_of_packages_and_index_page(mirror):
     mirror.master.changed_packages = asynctest.CoroutineMock(return_value={})
     mirror.synced_serial = 1
-
-    mirror.synchronize()
+    await mirror.synchronize()
 
     assert """\
 last-modified""" == utils.find(

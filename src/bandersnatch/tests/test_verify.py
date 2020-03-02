@@ -1,10 +1,11 @@
-import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from os import getpid
 from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
 from typing import List
+
+import pytest
 
 import bandersnatch
 from bandersnatch.utils import convert_url_to_path, find
@@ -120,14 +121,12 @@ class FakeMirror:
             index_path.touch()
 
 
-def test_async_verify(monkeypatch):
+@pytest.mark.asyncio
+async def test_async_verify(monkeypatch):
     fm = FakeMirror("test_async_verify")
     json_files = ["web/json/bandersnatch", "web/json/black"]
-    loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "verify", do_nothing)
-    loop.run_until_complete(
-        async_verify(None, [], fm.mirror_base, json_files, None, None)
-    )
+    await async_verify(None, [], fm.mirror_base, json_files, None, None)
 
 
 def test_fake_mirror():
@@ -159,7 +158,8 @@ web/simple/black/index.html"""
     fm.clean_up()
 
 
-def test_delete_unowned_files() -> None:
+@pytest.mark.asyncio
+async def test_delete_unowned_files() -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     fm = FakeMirror("_test_delete_files")
     # Leave out black-2018.6.9.tar.gz so it gets deleted
@@ -167,32 +167,27 @@ def test_delete_unowned_files() -> None:
         fm.mirror_base / "web/packages/8f/1a/1aa0/black-2019.6.9.tar.gz",
         fm.mirror_base / "web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz",
     ]
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(
-        delete_unowned_files(fm.mirror_base, executor, all_pkgs, True)
-    )
-    loop.run_until_complete(
-        delete_unowned_files(fm.mirror_base, executor, all_pkgs, False)
-    )
+    await delete_unowned_files(fm.mirror_base, executor, all_pkgs, True)
+    await delete_unowned_files(fm.mirror_base, executor, all_pkgs, False)
     deleted_path = fm.mirror_base / "web/packages/8f/1a/6969/black-2018.6.9.tar.gz"
     assert not deleted_path.exists()
     fm.clean_up()
 
 
-def test_get_latest_json(monkeypatch):
+@pytest.mark.asyncio
+async def test_get_latest_json(monkeypatch):
     config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{getpid()}.json"
-    loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "url_fetch", do_nothing)
-    loop.run_until_complete(get_latest_json(json_path, config, executor))
+    await get_latest_json(json_path, config, executor)
 
 
-def test_metadata_verify(monkeypatch):
+@pytest.mark.asyncio
+async def test_metadata_verify(monkeypatch):
     fa = FakeArgs()
     fc = FakeConfig()
-    loop = asyncio.get_event_loop()
     monkeypatch.setattr(bandersnatch.verify, "async_verify", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
-    loop.run_until_complete(metadata_verify(fc, fa))
+    await metadata_verify(fc, fa)

@@ -18,14 +18,13 @@ from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import filter_release_plugins
 
 from bandersnatch.utils import (  # isort:skip
+    USER_AGENT,
     convert_url_to_path,
     hash,
     recursive_find_files,
     unlink_parent_dir,
-    user_agent,
 )
 
-ASYNC_USER_AGENT = user_agent(f"aiohttp {aiohttp.__version__}")
 logger = logging.getLogger(__name__)
 
 
@@ -158,9 +157,8 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
         executor, partial(file_path.parent.mkdir, parents=True, exist_ok=True)
     )
 
-    custom_headers = {"User-Agent": ASYNC_USER_AGENT}
+    custom_headers = {"User-Agent": USER_AGENT}
     skip_headers = {"User-Agent"}
-
     async with aiohttp.ClientSession(
         headers=custom_headers, skip_auto_headers=skip_headers, trust_env=True
     ) as session:
