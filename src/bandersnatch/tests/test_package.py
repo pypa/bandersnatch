@@ -469,7 +469,7 @@ async def test_survives_exceptions_from_record_finished_package(mirror):
     def record_finished_package(name):
         import errno
 
-        raise IOError(errno.EBADF, "Some transient error?")
+        raise OSError(errno.EBADF, "Some transient error?")
 
     mirror.packages_to_sync = {"Foo": 1}
     mirror.record_finished_package = record_finished_package
