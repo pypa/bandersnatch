@@ -11,7 +11,7 @@ repos:
     rev: 19.10b0
     hooks:
     -   id: black
-        args: [--py36]
+        args: [--target-version, py36]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.1.0
     hooks:
