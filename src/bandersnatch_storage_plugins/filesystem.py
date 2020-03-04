@@ -1,24 +1,12 @@
 import contextlib
 import filecmp
 import hashlib
-import io
 import logging
 import os
 import pathlib
 import shutil
 import tempfile
-from typing import (
-    IO,
-    Any,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Type,
-    Union,
-    overload,
-)
+from typing import IO, Any, Dict, Generator, List, Optional, Type, Union, overload
 
 from bandersnatch.storage import StoragePlugin
 
@@ -117,7 +105,7 @@ class FilesystemStorage(StoragePlugin):
             tf.has_changed = True  # type: ignore
 
     def compare_files(self, file1: PATH_TYPES, file2: PATH_TYPES) -> bool:
-        """Compare two files, returning true if they are the same and False if they are not."""
+        """Compare two files, returning true if they are the same and False if not."""
         return filecmp.cmp(str(file1), str(file2), shallow=False)
 
     def copy_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
@@ -145,11 +133,13 @@ class FilesystemStorage(StoragePlugin):
 
     @overload
     @contextlib.contextmanager
-    def open_file(self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"):
+    def open_file(  # noqa
+        self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
+    ):
         ...
 
     @contextlib.contextmanager
-    def open_file(
+    def open_file(  # noqa
         self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
     ) -> Generator[IO, None, None]:
         """Yield a file context to iterate over. If text is true, open the file with

@@ -1,29 +1,15 @@
 import base64
 import contextlib
 import datetime
-import filecmp
 import hashlib
-import importlib
 import io
 import logging
 import os
 import pathlib
 import re
-import shutil
 import sys
 import tempfile
-from typing import (
-    IO,
-    Any,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import IO, Any, Dict, Generator, List, Optional, Type, TypeVar, Union
 
 import keystoneauth1  # type: ignore
 import keystoneauth1.exceptions.catalog  # type: ignore
@@ -430,15 +416,18 @@ class SwiftStorage(StoragePlugin):
         >>> plugin.get_container("bandersnatch")
         [{
             'bytes': 1101, 'last_modified': '2020-02-27T19:10:17.922970',
-            'hash': 'a76b4c69bfcf82313bbdc0393b04438a', 'name': 'packages/pyyaml/PyYAML-5.3/LICENSE',
+            'hash': 'a76b4c69bfcf82313bbdc0393b04438a',
+            'name': 'packages/pyyaml/PyYAML-5.3/LICENSE',
             'content_type': 'application/octet-stream'
          }, {
             'bytes': 1779, 'last_modified': '2020-02-27T19:10:17.845520',
-            'hash': 'c60081e1ad65830b098a7f21a8a8c90e', 'name': 'packages/pyyaml/PyYAML-5.3/PKG-INFO',
+            'hash': 'c60081e1ad65830b098a7f21a8a8c90e',
+            'name': 'packages/pyyaml/PyYAML-5.3/PKG-INFO',
             'content_type': 'application/octet-stream'
          }, {
             'bytes': 1548, 'last_modified': '2020-02-27T19:10:17.730490',
-            'hash': '9a8bdf19e93d4b007598b5eb97b461eb', 'name': 'packages/pyyaml/PyYAML-5.3/README',
+            'hash': '9a8bdf19e93d4b007598b5eb97b461eb',
+            'name': 'packages/pyyaml/PyYAML-5.3/README',
             'content_type': 'application/octet-stream'
          }, ...
         ]
@@ -491,7 +480,7 @@ class SwiftStorage(StoragePlugin):
         return "\n".join(str(result.relative_to(root)) for result in results)
 
     def compare_files(self, file1: PATH_TYPES, file2: PATH_TYPES) -> bool:
-        """Compare two files, returning true if they are the same and False if they are not."""
+        """Compare two files, returning true if they are the same and False if not."""
         file1_contents = self.read_file(file1, text=False)
         file2_contents = self.read_file(file2, text=False)
         assert isinstance(file1_contents, bytes)
