@@ -4,9 +4,9 @@ import datetime
 import logging
 import os
 import time
-from pathlib import Path
+from pathlib import Path, PurePath
 from threading import RLock
-from typing import Awaitable, Dict, List, Set
+from typing import Awaitable, Dict, List, Set, Union
 from unittest.mock import Mock
 
 from filelock import FileLock, Timeout
@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 from .filter import filter_project_plugins, filter_release_plugins
 from .master import Master
 from .package import Package
-from .utils import rewrite, update_safe
+from .storage import storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
@@ -71,7 +71,8 @@ class Mirror:
         cleanup=False,
     ):
         self.loop = asyncio.get_event_loop()
-        self.homedir = Path(homedir)
+        self.storage_backend = next(iter(storage_backend_plugins()))
+        self.homedir = self.storage_backend.PATH_BACKEND(homedir)
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
@@ -98,11 +99,11 @@ class Mirror:
         self.altered_packages = {}
 
     @property
-    def webdir(self) -> Path:
+    def webdir(self) -> PurePath:
         return self.homedir / "web"
 
     @property
-    def todolist(self) -> Path:
+    def todolist(self) -> PurePath:
         return self.homedir / "todo"
 
     async def synchronize(self):
@@ -122,13 +123,13 @@ class Mirror:
     def _cleanup(self):
         """Does a couple of cleanup tasks to ensure consistent data for later
         processing."""
-        if self.todolist.exists():
+        if self.storage_backend.exists(self.todolist):
             try:
-                with open(self.todolist, encoding="utf-8") as f:
-                    saved_todo = iter(f)
+                with self.storage_backend.open_file(self.todolist, text=True) as fh:
+                    saved_todo = iter(fh)
                     int(next(saved_todo).strip())
                     for line in saved_todo:
-                        _, serial = line.strip().split()
+                        _, serial = line.strip().split(1)
                         int(serial)
             except (StopIteration, ValueError):
                 # The todo list was inconsistent. This may happen if we get
@@ -136,7 +137,7 @@ class Mirror:
                 # just have to do whatever happened since the last successful
                 # sync.
                 logger.info("Removing inconsistent todo list.")
-                self.todolist.unlink()
+                self.storage_backend.delete_file(self.todolist)
 
     def _filter_packages(self):
         """
@@ -178,16 +179,17 @@ class Mirror:
         self.packages_to_sync = {}
         logger.info(f"Current mirror serial: {self.synced_serial}")
 
-        if self.todolist.exists():
+        if self.storage_backend.exists(self.todolist):
             # We started a sync previously and left a todo list as well as the
             # targetted serial. We'll try to keep going through the todo list
             # and then mark the targetted serial as done.
             logger.info("Resuming interrupted sync from local todo list.")
-            saved_todo = iter(open(self.todolist, encoding="utf-8"))
-            self.target_serial = int(next(saved_todo).strip())
-            for line in saved_todo:
-                package, serial = line.strip().split()
-                self.packages_to_sync[package] = int(serial)
+            with self.storage_backend.open_file(self.todolist, text=True) as fh:
+                saved_todo = iter(fh)
+                self.target_serial = int(next(saved_todo).strip())
+                for line in saved_todo:
+                    package, serial = line.strip().split()
+                    self.packages_to_sync[package] = int(serial)
         elif not self.synced_serial:
             logger.info("Syncing all packages.")
             # First get the current serial, then start to sync. This makes us
@@ -253,7 +255,9 @@ class Mirror:
     def record_finished_package(self, name):
         with self._finish_lock:
             del self.packages_to_sync[name]
-            with update_safe(self.todolist, mode="w+", encoding="utf-8") as f:
+            with self.storage_backend.update_safe(
+                self.todolist, mode="w+", encoding="utf-8"
+            ) as f:
                 # First line is the target serial we're working on.
                 f.write(f"{self.target_serial}\n")
                 # Consecutive lines are the packages we still have to sync
@@ -263,6 +267,7 @@ class Mirror:
                 ]
                 f.write("\n".join(todo))
 
+    # TODO: This can return SwiftPath types now
     def get_simple_dirs(self, simple_dir: Path) -> List[Path]:
         """Return a list of simple index directories that should be searched
         for package indexes when compiling the main index page."""
@@ -281,15 +286,18 @@ class Mirror:
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
+        simple_path = self.storage_backend.PATH_BACKEND(simple_dir)
         packages = sorted(
             {
                 # Filter out all of the "non" normalized names here
-                canonicalize_name(x)
-                for x in os.listdir(simple_dir)
+                canonicalize_name(x.name)
+                for x in simple_path.iterdir()
+                # Package indexes must be in directories, so ignore anything else.
+                # This allows us to rely on the storage plugin to check if this is
+                # a directory
+                if x.is_dir()
             }
         )
-        # Package indexes must be in directories, so ignore anything else.
-        packages = [x for x in packages if os.path.isdir(os.path.join(simple_dir, x))]
         return packages
 
     def sync_index_page(self):
@@ -297,7 +305,7 @@ class Mirror:
             return
         logger.info("Generating global index page.")
         simple_dir = self.webdir / "simple"
-        with rewrite(str(simple_dir / "index.html")) as f:
+        with self.storage_backend.rewrite(str(simple_dir / "index.html")) as f:
             f.write("<!DOCTYPE html>\n")
             f.write("<html>\n")
             f.write("  <head>\n")
@@ -320,59 +328,64 @@ class Mirror:
         if self.todolist.exists():
             self.todolist.unlink()
         logger.info(f"New mirror serial: {self.synced_serial}")
-        last_modified = Path(self.homedir) / "web" / "last-modified"
-        with rewrite(last_modified) as f:
+        last_modified = self.homedir / "web" / "last-modified"
+        with self.storage_backend.rewrite(str(last_modified)) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
     def _bootstrap(self, flock_timeout=1):
         paths = [
-            Path(""),
-            Path("web/simple"),
-            Path("web/packages"),
-            Path("web/local-stats/days"),
+            self.storage_backend.PATH_BACKEND(""),
+            self.storage_backend.PATH_BACKEND("web/simple"),
+            self.storage_backend.PATH_BACKEND("web/packages"),
+            self.storage_backend.PATH_BACKEND("web/local-stats/days"),
         ]
         if self.json_save:
             logger.debug("Adding json directories to bootstrap")
-            paths.extend([Path("web/json"), Path("web/pypi")])
+            paths.extend(
+                [
+                    self.storage_backend.PATH_BACKEND("web/json"),
+                    self.storage_backend.PATH_BACKEND("web/pypi"),
+                ]
+            )
         for path in paths:
             path = self.homedir / path
             if not path.exists():
                 logger.info(f"Setting up mirror directory: {path}")
                 path.mkdir(parents=True)
 
-        flock_path = self.homedir / ".lock"
-        flock = FileLock(str(flock_path))
+        if not self.lock_file.parent.exists():
+            self.lock_file.parent.mkdir(parents=True, exist_ok=True)
+        flock = FileLock(str(self.lock_file))
         try:
             with flock.acquire(timeout=flock_timeout):
                 self._cleanup()
                 self._load()
         except Timeout:
             raise RuntimeError(
-                f"Could not acquire lock on {flock_path}. "
+                f"Could not acquire lock on {self.lock_file}. "
                 + "Another instance could be running?"
             )
 
     @property
     def statusfile(self) -> Path:
-        return Path(self.homedir) / "status"
+        return self.storage_backend.PATH_BACKEND(self.homedir) / "status"
 
     @property
     def generationfile(self) -> Path:
-        return Path(self.homedir) / "generation"
+        return self.storage_backend.PATH_BACKEND(self.homedir) / "generation"
 
     def _reset_mirror_status(self) -> None:
         for path in [self.statusfile, self.todolist]:
-            if path.exists():
-                path.unlink()
+            if path.exists():  # type: ignore
+                path.unlink()  # type: ignore
 
     def _load(self):
         # Simple generation mechanism to support transparent software
         # updates.
         CURRENT_GENERATION = 5  # noqa
         try:
-            with self.generationfile.open("r", encoding="ascii") as f:
-                generation = int(f.read().strip())
+            generation = int(self.generationfile.read_text(encoding="ascii").strip())
         except ValueError:
             logger.info("Generation file inconsistent. Reinitialising status files.")
             self._reset_mirror_status()
@@ -394,18 +407,15 @@ class Mirror:
             generation = 5
         if generation != CURRENT_GENERATION:
             raise RuntimeError(f"Unknown generation {generation} found")
-        with self.generationfile.open("w", encoding="ascii") as f:
-            f.write(str(CURRENT_GENERATION))
+        self.generationfile.write_text(str(CURRENT_GENERATION), encoding="ascii")
         # Now, actually proceed towards using the status files.
         if not self.statusfile.exists():
             logger.info(f"Status file {self.statusfile} missing. Starting over.")
             return
-        with self.statusfile.open("r", encoding="ascii") as f:
-            self.synced_serial = int(f.read().strip())
+        self.synced_serial = int(self.statusfile.read_text(encoding="ascii").strip())
 
     def _save(self):
-        with self.statusfile.open("w", encoding="ascii") as f:
-            f.write(str(self.synced_serial))
+        self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
 
 
 # TODO: Breakup complex method
@@ -413,6 +423,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
+    storage_plugin = next(iter(storage_backend_plugins()))
 
     # `json` boolean is a new optional option in 2.1.2 - want to support it
     # not existing in old configs and display an error saying that this will
@@ -441,8 +452,9 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     except configparser.NoOptionError:
         diff_append_epoch = False
 
+    diff_full_path: Union[str, PurePath]
     if diff_file:
-        os.makedirs(os.path.dirname(diff_file), exist_ok=True)
+        storage_plugin.mkdir(str(Path(diff_file).parent), exist_ok=True, parents=True)
         if diff_append_epoch:
             diff_full_path = f"{diff_file}-{int(time.time())}"
         else:
@@ -451,8 +463,10 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         diff_full_path = ""
 
     if diff_full_path:
-        if os.path.isfile(diff_full_path):
-            os.unlink(diff_full_path)
+        diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
+        # TODO: this probably needs what, a protocol or something? I have no idea
+        if diff_full_path.is_file():  # type: ignore
+            diff_full_path.unlink()  # type: ignore
 
     try:
         digest_name = config.get("mirror", "digest_name")
@@ -506,13 +520,15 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         logger.info(f"{len(changed_packages)} packages had changes")
         for package_name, changes in changed_packages.items():
             for change in changes:
-                mirror.diff_file_list.append(os.path.join(str(mirror.homedir), change))
-            logger.debug(f"{package_name} added: {changes}")
+                mirror.diff_file_list.append(mirror.homedir / change)
+            loggable_changes = [str(chg) for chg in mirror.diff_file_list]
+            logger.debug(f"{package_name} added: {loggable_changes}")
 
         if mirror.diff_full_path:
             logger.info(f"Writing diff file to {mirror.diff_full_path}")
-            with open(mirror.diff_full_path, "w", encoding="utf-8") as f:
-                for filename in mirror.diff_file_list:
-                    f.write(f"{os.path.abspath(filename)}{os.linesep}")
+            diff_text = f"{os.linesep}".join(
+                [chg.absolute() for chg in mirror.diff_file_list]
+            )
+            mirror.diff_full_path.write_text(diff_text)
 
     return 0

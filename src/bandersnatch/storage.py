@@ -26,8 +26,8 @@ from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
 
-Path_co = TypeVar("Path_co", bound=pathlib.PurePath)
-PATH_TYPES = Union[pathlib.PurePath, str]
+Path_co = TypeVar("Path_co", bound=pathlib.Path)
+PATH_TYPES = Union[pathlib.Path, str]
 
 # The API_REVISION is incremented if the plugin class is modified in a
 # backwards incompatible way.  In order to prevent loading older
@@ -46,7 +46,7 @@ class Storage:
     """
 
     name = "storage"
-    PATH_BACKEND: Type[pathlib.PurePath] = pathlib.Path
+    PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
@@ -99,9 +99,9 @@ class Storage:
 
     def iter_dir(self, path: PATH_TYPES) -> Generator[PATH_TYPES, None, None]:
         """Iterate over the path, returning the sub-paths"""
-        if not issubclass(type(path), pathlib.PurePath):
+        if not issubclass(type(path), pathlib.Path):
             path = self.PATH_BACKEND(str(path))
-        assert isinstance(path, pathlib.PurePath)
+        assert isinstance(path, pathlib.Path)
         yield from path.iterdir()  # type: ignore
 
     @contextlib.contextmanager
@@ -217,9 +217,9 @@ class Storage:
 
     def symlink(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
         """Create a symlink at **dest** that points back at **source**"""
-        if not issubclass(type(dest), pathlib.PurePath):
+        if not issubclass(type(dest), pathlib.Path):
             dest = self.PATH_BACKEND(dest)
-        assert isinstance(dest, pathlib.PurePath)
+        assert isinstance(dest, pathlib.Path)
         dest.symlink_to(source)  # type: ignore
 
     def get_hash(self, path: str, function: str = "sha256") -> str:

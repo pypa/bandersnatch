@@ -65,6 +65,7 @@ def find(root: Union[Path, str], dirs: bool = True) -> str:
     root.
 
     """
+    # TODO: account for alternative backends
     if isinstance(root, str):
         root = Path(root)
 
@@ -85,6 +86,7 @@ def rewrite(
 ) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
+    # TODO: Account for alternative backends
     if isinstance(filepath, str):
         base_dir = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
@@ -153,7 +155,8 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
     if os.path.exists(filename) and filecmp.cmp(filename, filename_tmp, shallow=False):
         os.unlink(filename_tmp)
     else:
-        shutil.move(filename_tmp, filename)
+        # TODO: account for other backends (add comparison functionality)
+        os.rename(filename_tmp, filename)
         tf.has_changed = True  # type: ignore
 
 

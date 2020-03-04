@@ -10,7 +10,7 @@ from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
 from sys import stderr
-from typing import List, Set  # noqa: F401
+from typing import List, Set, Type  # noqa: F401
 from urllib.parse import urlparse
 
 import aiohttp
