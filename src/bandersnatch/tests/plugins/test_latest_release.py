@@ -46,8 +46,8 @@ class BasePluginTestCase(TestCase):
 class TestLatestReleaseFilter(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     latest_release
 
 [latest_release]
@@ -117,8 +117,8 @@ keep = 2
 class TestLatestReleaseFilterUninitialized(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     latest_release
 """
 

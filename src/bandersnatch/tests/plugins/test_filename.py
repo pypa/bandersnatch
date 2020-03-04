@@ -46,10 +46,11 @@ class BasePluginTestCase(TestCase):
 class TestExcludePlatformFilter(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     exclude_platform
 
+[blacklist]
 platforms =
     windows
     freebsd macos

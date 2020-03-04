@@ -47,8 +47,8 @@ class BasePluginTestCase(TestCase):
 class TestRegexReleaseFilter(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     regex_release
 
 [filter_regex]
@@ -88,8 +88,8 @@ releases =
 class TestRegexProjectFilter(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     regex_project
 
 [filter_regex]
