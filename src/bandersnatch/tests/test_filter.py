@@ -41,8 +41,8 @@ class TestBandersnatchFilter(TestCase):
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins = all
+[plugins]
+enabled = all
 """
             )
         builtin_plugin_names = [
@@ -63,8 +63,8 @@ plugins = all
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins = all
+[plugins]
+enabled = all
 """
             )
         builtin_plugin_names = [
@@ -87,8 +87,8 @@ plugins = all
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
 """
             )
 

@@ -1,6 +1,5 @@
 import os
 import unittest
-import warnings
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -112,15 +111,6 @@ class TestBandersnatchConf(TestCase):
 
         instance2 = BandersnatchConfig()
         self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
-
-    def test_deprecation_warning_raised(self):
-        # Remove in 4.0 once we deprecate blacklist plugins key
-        config_file = resource_filename("bandersnatch", "unittest-deprecated.conf")
-        with warnings.catch_warnings(record=True) as w:
-            BandersnatchConfig(config_file)
-            BandersnatchConfig(config_file)
-            # Assert we only throw 1 warning
-            self.assertEqual(len(w), 1)
 
 
 if __name__ == "__main__":

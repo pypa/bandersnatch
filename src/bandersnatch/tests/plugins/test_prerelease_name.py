@@ -47,8 +47,8 @@ class BasePluginTestCase(TestCase):
 class TestRegexReleaseFilter(BasePluginTestCase):
 
     config_contents = """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     prerelease_release
 """
 

@@ -36,8 +36,8 @@ class TestBlacklistProject(TestCase):
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_project
 """
             )
@@ -54,8 +54,8 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_release
 """
             )
@@ -86,9 +86,10 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_project
+[blacklist]
 packages =
     foo
 """
@@ -149,8 +150,8 @@ class TestBlacklistRelease(TestCase):
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_release
 """
             )
@@ -167,8 +168,8 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_package
 """
             )
@@ -184,9 +185,10 @@ plugins =
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
-[blacklist]
-plugins =
+[plugins]
+enabled =
     blacklist_release
+[blacklist]
 packages =
     foo==1.2.0
 """
