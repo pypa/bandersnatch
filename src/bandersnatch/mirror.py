@@ -369,7 +369,7 @@ class Mirror:
             logger.info("Generation file inconsistent. Reinitialising status files.")
             self._reset_mirror_status()
             generation = CURRENT_GENERATION
-        except IOError:
+        except OSError:
             logger.info("Generation file missing. Reinitialising status files.")
             # This is basically the 'install' generation: anything previous to
             # release 1.0.2.
@@ -483,7 +483,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         # This works around "TypeError: object
         # MagicMock can't be used in 'await' expression"
         changed_packages: Dict[str, Set[str]] = {}
-        if not isinstance(mirror, Mock):
+        if not isinstance(mirror, Mock):  # type: ignore
             changed_packages = await mirror.synchronize()
         logger.info(f"{len(changed_packages)} packages had changes")
         for package_name, changes in changed_packages.items():

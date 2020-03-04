@@ -82,7 +82,7 @@ def test_rewrite_nonexisting_file(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
     with rewrite("sample", "w") as f:
         f.write("csdf")
-    with open("sample", "r") as f:
+    with open("sample") as f:
         assert f.read() == "csdf"
 
 

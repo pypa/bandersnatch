@@ -86,7 +86,7 @@ def test_mirror_generation_3_resets_status_files(tmpdir):
     assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
-    assert open(str(tmpdir / "generation"), "r").read() == "5"
+    assert open(str(tmpdir / "generation")).read() == "5"
 
 
 def test_mirror_generation_4_resets_status_files(tmpdir):
@@ -101,7 +101,7 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
     assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
-    assert open(str(tmpdir / "generation"), "r").read() == "5"
+    assert open(str(tmpdir / "generation")).read() == "5"
 
 
 def test_mirror_filter_packages_match(tmpdir):

@@ -160,7 +160,7 @@ def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
         default_config_path = Path(__file__).parent / "default.conf"
         try:
             shutil.copy(default_config_path, args.config)
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Could not create config file: {e}")
         return 1
 
