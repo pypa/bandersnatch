@@ -17,7 +17,6 @@ from typing import (
     Sequence,
     Set,
     Type,
-    TypeVar,
     Union,
 )
 
@@ -26,7 +25,6 @@ from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
 
-Path_co = TypeVar("Path_co", bound=pathlib.Path)
 PATH_TYPES = Union[pathlib.Path, str]
 
 # The API_REVISION is incremented if the plugin class is modified in a

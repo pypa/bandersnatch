@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 import time
-from pathlib import Path, PurePath
+from pathlib import Path
 from threading import RLock
 from typing import Awaitable, Dict, List, Set, Union
 from unittest.mock import Mock
@@ -99,11 +99,11 @@ class Mirror:
         self.altered_packages = {}
 
     @property
-    def webdir(self) -> PurePath:
+    def webdir(self) -> Path:
         return self.homedir / "web"
 
     @property
-    def todolist(self) -> PurePath:
+    def todolist(self) -> Path:
         return self.homedir / "todo"
 
     async def synchronize(self):
@@ -452,7 +452,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     except configparser.NoOptionError:
         diff_append_epoch = False
 
-    diff_full_path: Union[str, PurePath]
+    diff_full_path: Union[str, Path]
     if diff_file:
         storage_plugin.mkdir(str(Path(diff_file).parent), exist_ok=True, parents=True)
         if diff_append_epoch:

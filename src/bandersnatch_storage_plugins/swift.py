@@ -9,7 +9,7 @@ import pathlib
 import re
 import sys
 import tempfile
-from typing import IO, Any, Dict, Generator, List, Optional, Type, TypeVar, Union
+from typing import IO, Any, Dict, Generator, List, Optional, Type, Union
 
 import keystoneauth1  # type: ignore
 import keystoneauth1.exceptions.catalog  # type: ignore
@@ -21,8 +21,7 @@ from bandersnatch.storage import StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
 
-T_Contra = TypeVar("T_Contra", contravariant=True)
-PATH_TYPES = Union[pathlib.PurePath, str]
+PATH_TYPES = Union[pathlib.Path, str]
 
 # See https://stackoverflow.com/a/8571649 for explanation
 BASE64_RE = re.compile(b"^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$")
@@ -112,7 +111,7 @@ _swift_accessor: Type[_SwiftAccessor]
 _posix_flavor = getattr(pathlib, "_posix_flavour", None)
 
 
-class SwiftPath(pathlib.PurePath):
+class SwiftPath(pathlib.Path):
     _flavour = getattr(pathlib, "_posix_flavour")
     BACKEND: "SwiftStorage"
 
@@ -128,15 +127,13 @@ class SwiftPath(pathlib.PurePath):
         "_closed",
     )
 
-    @classmethod
     def __new__(cls, *args) -> "SwiftPath":
         self = cls._from_parts(args, init=False)
         self._init()
         return self
 
     def _init(self) -> None:
-        self.stack = None
-        self._accessor = _swift_accessor
+        self._accessor = _SwiftAccessor
 
     def __str__(self) -> str:
         """Return the string representation of the path, suitable for
@@ -248,35 +245,46 @@ class SwiftPath(pathlib.PurePath):
     def exists(self) -> bool:
         return self.backend.exists(str(self))
 
-    def mkdir(self, parents: bool = False, exist_ok: bool = False) -> None:
+    def mkdir(
+        self, mode: int = 511, parents: bool = False, exist_ok: bool = False
+    ) -> None:
         return self.backend.mkdir(str(self), exist_ok=exist_ok, parents=parents)
 
-    def read_text(self, encoding: str = "utf-8", errors: Optional[str] = None) -> str:
-        result = self.backend.read_file(
-            str(self), text=True, encoding=encoding, errors=errors
-        )
+    def read_text(
+        self, encoding: Optional[str] = None, errors: Optional[str] = None
+    ) -> str:
+        kwargs = {}
+        if encoding is not None:
+            kwargs["encoding"] = encoding
+        if errors is not None:
+            kwargs["errors"] = errors
+        result = self.backend.read_file(str(self), text=True, **kwargs)
         assert isinstance(result, str)
         return result
 
     def write_text(
         self,
-        contents: str,
+        contents: Optional[str],
         encoding: Optional[str] = "utf-8",
         errors: Optional[str] = None,
-    ):
-        return self.backend.write_file(
+    ) -> int:
+        if contents is None:
+            contents = ""
+        self.backend.write_file(
             str(self), contents=contents, encoding=encoding, errors=errors
         )
+        return 0
 
     def write_bytes(
         self,
         contents: bytes,
         encoding: Optional[str] = "utf-8",
         errors: Optional[str] = None,
-    ):
-        return self.backend.write_file(
+    ) -> int:
+        self.backend.write_file(
             str(self), contents=contents, encoding=encoding, errors=errors
         )
+        return 0
 
     def read_bytes(self) -> bytes:
         result = self.backend.read_file(str(self), text=False)

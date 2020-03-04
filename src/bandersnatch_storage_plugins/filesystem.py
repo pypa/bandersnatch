@@ -13,12 +13,12 @@ from bandersnatch.storage import StoragePlugin
 logger = logging.getLogger("bandersnatch")
 
 
-PATH_TYPES = Union[pathlib.PurePath, str]
+PATH_TYPES = Union[pathlib.Path, str]
 
 
 class FilesystemStorage(StoragePlugin):
     name = "filesystem"
-    PATH_BACKEND: Type[pathlib.PurePath] = pathlib.Path
+    PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
     def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[pathlib.Path]:
         if not isinstance(root, pathlib.Path):
