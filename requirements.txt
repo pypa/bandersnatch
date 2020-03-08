@@ -7,7 +7,7 @@ filelock==3.0.12
 idna==2.9
 lxml==4.5.0
 multidict==4.7.5
-packaging==20.1
+packaging==20.3
 pyparsing==2.4.6
 setuptools==45.3.0
 six==1.14.0
