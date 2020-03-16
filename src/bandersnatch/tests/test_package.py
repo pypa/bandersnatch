@@ -194,46 +194,6 @@ async def test_package_sync_with_normalized_simple_page(mirror):
         )
     )
 
-    # Legacy partial normalization as implemented by pip prior to 8.1.2
-    assert (
-        open("web/simple/foo.bar-thing-other/index.html").read()
-        == """\
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Links for Foo.bar-thing_other</title>
-  </head>
-  <body>
-    <h1>Links for Foo.bar-thing_other</h1>
-    {}
-  </body>
-</html>
-<!--SERIAL 654321-->\
-""".format(
-            EXPECTED_REL_HREFS
-        )
-    )
-
-    # Legacy unnormalized as implemented by pip prior to 6.0
-    assert (
-        open("web/simple/Foo.bar-thing_other/index.html").read()
-        == """\
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Links for Foo.bar-thing_other</title>
-  </head>
-  <body>
-    <h1>Links for Foo.bar-thing_other</h1>
-    {}
-  </body>
-</html>
-<!--SERIAL 654321-->\
-""".format(
-            EXPECTED_REL_HREFS
-        )
-    )
-
 
 @pytest.mark.asyncio
 async def test_package_sync_simple_page_root_uri(mirror):

@@ -7,10 +7,9 @@ import sys
 from datetime import datetime
 from json import dump
 from pathlib import Path
-from typing import Dict, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
-import pkg_resources
 from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
 
@@ -20,6 +19,11 @@ from .master import StalePage
 from .filter import filter_metadata_plugins  # isort:skip
 from .filter import filter_release_file_plugins  # isort:skip
 from .filter import filter_release_plugins  # isort:skip
+
+
+if TYPE_CHECKING:
+    from .mirror import Mirror
+
 
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
@@ -31,12 +35,10 @@ class Package:
     tries = 0
     sleep_on_stale = 1
 
-    def __init__(self, name, serial, mirror):
+    def __init__(self, name: str, serial: str, mirror: "Mirror") -> None:
         self.name = name
         self.serial = serial
         self.normalized_name = canonicalize_name(name)
-        # This is really only useful for pip 8.0 -> 8.1.1
-        self.normalized_name_legacy = pkg_resources.safe_name(name).lower()
         self.mirror = mirror
 
     @property
@@ -64,28 +66,18 @@ class Package:
             )
         return self.mirror.webdir / "simple" / self.normalized_name
 
-    @property
-    def normalized_legacy_simple_directory(self) -> Path:
-        if self.mirror.hash_index:
-            return (
-                self.mirror.webdir
-                / "simple"
-                / self.normalized_name[0]
-                / self.normalized_name_legacy
-            )
-        return self.mirror.webdir / "simple" / self.normalized_name_legacy
-
     def save_json_metadata(self, package_info: Dict) -> bool:
         """
         Take the JSON metadata we just fetched and save to disk
         """
-
         try:
             with utils.rewrite(self.json_file) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
             self.mirror.diff_file_list.append(self.json_file)
         except Exception as e:
-            logger.error(f"Unable to write json to {self.json_file}: {str(e)}")
+            logger.error(
+                f"Unable to write json to {self.json_file}: {str(e)} ({type(e)})"
+            )
             return False
 
         symlink_dir = self.json_pypi_symlink.parent
@@ -99,7 +91,7 @@ class Package:
 
         return True
 
-    async def sync(self, stop_on_error=False, attempts=3):
+    async def sync(self, stop_on_error: bool = False, attempts: int = 3) -> None:
         loop = asyncio.get_event_loop()
         self.tries = 0
         self.json_saved = False
@@ -116,11 +108,11 @@ class Package:
                     except ClientResponseError as e:
                         if e.status == 404:
                             logger.info(f"{self.name} no longer exists on PyPI")
-                            return
+                            return None
                         raise
                     # Don't save anything if our metadata filters all fail.
                     if not self._filter_metadata(metadata):
-                        return
+                        return None
 
                     # save the metadata before filtering releases
                     if self.mirror.json_save and not self.json_saved:
@@ -179,10 +171,10 @@ class Package:
                 )
                 display_filter_log = False
             return True
-        else:
-            return all(plugin.filter(metadata) for plugin in filter_plugins)
 
-    def _filter_releases(self):
+        return all(plugin.filter(metadata) for plugin in filter_plugins)
+
+    def _filter_releases(self) -> bool:
         """
         Run the release filtering plugins
         """
@@ -195,11 +187,11 @@ class Package:
                 )
                 display_filter_log = False
             return True
-        else:
-            return all(
-                plugin.filter({"info": self.info, "releases": self.releases})
-                for plugin in filter_plugins
-            )
+
+        return all(
+            plugin.filter({"info": self.info, "releases": self.releases})
+            for plugin in filter_plugins
+        )
 
     def _filter_release_file(self, metadata: Dict) -> bool:
         """
@@ -214,10 +206,10 @@ class Package:
                 )
                 display_filter_log = False
             return True
-        else:
-            return all(plugin.filter(metadata) for plugin in filter_plugins)
 
-    def _filter_all_releases_files(self):
+        return all(plugin.filter(metadata) for plugin in filter_plugins)
+
+    def _filter_all_releases_files(self) -> bool:
         """
         Filter release files and remove empty releases after doing so.
         """
@@ -235,14 +227,14 @@ class Package:
                     del self.releases[release][rfindex]
             if not self.releases[release]:
                 del self.releases[release]
+
         if releases:
             return True
-        else:
-            return False
+        return False
 
-    async def sync_release_files(self):
+    async def sync_release_files(self) -> None:
         """ Purge + download files returning files removed + added """
-        release_files = []
+        release_files: List[Dict] = []
 
         for release in self.releases.values():
             release_files.extend(release)
@@ -270,7 +262,7 @@ class Package:
 
         self.mirror.altered_packages[self.name] = downloaded_files
 
-    def gen_data_requires_python(self, release):
+    def gen_data_requires_python(self, release: Dict) -> str:
         if "requires_python" in release and release["requires_python"] is not None:
             return (
                 ' data-requires-python="'
@@ -279,7 +271,7 @@ class Package:
             )
         return ""
 
-    def generate_simple_page(self):
+    def generate_simple_page(self) -> str:
         # Generate the header of our simple page.
         simple_page_content = (
             "<!DOCTYPE html>\n"
@@ -292,7 +284,7 @@ class Package:
         ).format(self.name)
 
         # Get a list of all of the files.
-        release_files = []
+        release_files: List[Dict] = []
         logger.debug(
             f"There are {len(self.releases.values())} releases for {self.name}"
         )
@@ -320,42 +312,12 @@ class Package:
 
         return simple_page_content
 
-    def sync_simple_page(self):
-        logger.info(f"Storing index page: {self.name}")
-
-        # We need to generate the actual content that we're going to be saving
-        # to disk for our index files.
+    def sync_simple_page(self) -> None:
+        logger.info(
+            f"Storing index page: {self.name} - in {self.normalized_simple_directory}"
+        )
         simple_page_content = self.generate_simple_page()
-
-        # This exists for compatability with pip 1.5 which will not fallback
-        # to /simple/ to determine what URL to get packages from, but will just
-        # fail. Once pip 1.6 is old enough to be considered a "minimum" this
-        # can be removed.
-        if self.simple_directory != self.normalized_simple_directory:
-            if not self.simple_directory.exists():
-                self.simple_directory.mkdir(parents=True)
-            simple_page = self.simple_directory / "index.html"
-            with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
-                f.write(simple_page_content)
-            self.mirror.diff_file_list.append(simple_page)
-
-            # This exists for compatibility with pip 8.0 to 8.1.1 which did not
-            # correctly implement PEP 503 wrt to normalization and so needs a
-            # partially directory to get. Once pip 8.1.2 is old enough to be
-            # considered "minimum" this can be removed.
-            if (
-                self.normalized_simple_directory
-                != self.normalized_legacy_simple_directory
-            ):
-                if not self.normalized_legacy_simple_directory.exists():
-                    self.normalized_legacy_simple_directory.mkdir()
-                simple_page = self.normalized_legacy_simple_directory / "index.html"
-                with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
-                    f.write(simple_page_content)
-                self.mirror.diff_file_list.append(simple_page)
-
-        if not self.normalized_simple_directory.exists():
-            self.normalized_simple_directory.mkdir(parents=True)
+        self.normalized_simple_directory.mkdir(exist_ok=True, parents=True)
 
         if self.mirror.keep_index_versions > 0:
             self._save_simple_page_version(simple_page_content)
@@ -365,7 +327,7 @@ class Package:
                 f.write(simple_page_content)
             self.mirror.diff_file_list.append(normalized_simple_page)
 
-    def _save_simple_page_version(self, simple_page_content):
+    def _save_simple_page_version(self, simple_page_content: str) -> None:
         versions_path = self._prepare_versions_path()
         timestamp = datetime.utcnow().isoformat() + "Z"
         version_file_name = f"index_{self.serial}_{timestamp}.html"
@@ -374,17 +336,17 @@ class Package:
             f.write(simple_page_content)
         self.mirror.diff_file_list.append(full_version_path)
 
-        symlink_path = self.normalized_legacy_simple_directory / "index.html"
+        symlink_path = self.normalized_simple_directory / "index.html"
         if symlink_path.exists() or symlink_path.is_symlink():
             symlink_path.unlink()
 
         symlink_path.symlink_to(full_version_path)
 
     def _prepare_versions_path(self) -> Path:
-        versions_path = Path(self.normalized_legacy_simple_directory) / "versions"
-        if not versions_path.exists():
+        versions_path = Path(self.normalized_simple_directory) / "versions"
+        try:
             versions_path.mkdir()
-        else:
+        except FileExistsError:
             version_files = sorted(os.listdir(versions_path))
             version_files_to_remove = (
                 len(version_files) - self.mirror.keep_index_versions + 1
