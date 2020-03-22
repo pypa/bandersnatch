@@ -379,17 +379,19 @@ async def test_package_sync_replaces_mismatching_local_files(mirror):
 
 @pytest.mark.asyncio
 async def test_package_sync_does_not_touch_existing_local_file(mirror):
-    test_files = [Path("web/packages/any/f/foo/foo.zip")]
-    touch_files(test_files)
-    with test_files[0].open("wb") as f:
+    pkg_file_path_str = "web/packages/any/f/foo/foo.zip"
+    pkg_file_path = Path(pkg_file_path_str)
+    touch_files((pkg_file_path,))
+    with pkg_file_path.open("wb") as f:
         f.write(b"")
-    old_stat = test_files[0].stat()
+    old_stat = pkg_file_path.stat()
 
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     await package.sync()
 
-    assert old_stat == os.stat(test_files[0])
+    # Use Pathlib + create a new object to ensure no caching
+    assert old_stat == Path(pkg_file_path_str).stat()
 
 
 def test_gen_data_requires_python(mirror):
