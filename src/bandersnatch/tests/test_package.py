@@ -26,6 +26,21 @@ def touch_files(paths: List[Path]):
 
 
 @pytest.mark.asyncio
+async def test_cleanup_non_pep_503_paths(mirror):
+    raw_package_name = "CatDogPython69"
+    package = Package(raw_package_name, 11, mirror)
+    await package.cleanup_non_pep_503_paths()
+
+    # Create a non normailized directory
+    touch_files([Path(f"web/simple/{raw_package_name}/index.html")])
+
+    package.cleanup = True
+    with mock.patch("bandersnatch.package.rmtree") as mocked_rmtree:
+        await package.cleanup_non_pep_503_paths()
+        assert mocked_rmtree.call_count == 1
+
+
+@pytest.mark.asyncio
 async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(mirror,):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = {}
