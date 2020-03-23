@@ -2,6 +2,7 @@ import os.path
 import unittest.mock as mock
 from datetime import datetime
 from pathlib import Path
+from tempfile import gettempdir
 from typing import List
 
 import pytest
@@ -38,6 +39,14 @@ async def test_cleanup_non_pep_503_paths(mirror):
     with mock.patch("bandersnatch.package.rmtree") as mocked_rmtree:
         await package.cleanup_non_pep_503_paths()
         assert mocked_rmtree.call_count == 1
+
+
+def test_save_json_metadata(mirror, package_json):
+    package = Package("foo", 11, mirror)
+    package.json_file.parent.mkdir(parents=True)
+    package.json_pypi_symlink.parent.mkdir(parents=True)
+    package.json_pypi_symlink.symlink_to(Path(gettempdir()))
+    assert package.save_json_metadata(package_json)
 
 
 @pytest.mark.asyncio

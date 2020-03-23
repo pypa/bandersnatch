@@ -33,7 +33,41 @@ def never_sleep(request):
 
 
 @pytest.fixture
-def master():
+def package_json():
+    return {
+        "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 654_321,
+        "releases": {
+            "0.1": [
+                {
+                    "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
+                    "filename": "foo.zip",
+                    "digests": {
+                        "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
+                        "sha256": (
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        ),
+                    },
+                    "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
+                },
+                {
+                    "url": "https://pypi.example.com/packages/2.7/f/foo/foo.whl",
+                    "filename": "foo.whl",
+                    "digests": {
+                        "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
+                        "sha256": (
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        ),
+                    },
+                    "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
+                },
+            ]
+        },
+    }
+
+
+@pytest.fixture
+def master(package_json):
     from bandersnatch.master import Master
 
     class FakeReader:
@@ -54,36 +88,7 @@ def master():
             return FakeReader()
 
         async def json(self, *args):
-            return {
-                "info": {"name": "foo", "version": "0.1"},
-                "last_serial": 654_321,
-                "releases": {
-                    "0.1": [
-                        {
-                            "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
-                            "filename": "foo.zip",
-                            "digests": {
-                                "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
-                                "sha256": (
-                                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                                ),
-                            },
-                            "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
-                        },
-                        {
-                            "url": "https://pypi.example.com/packages/2.7/f/foo/foo.whl",
-                            "filename": "foo.whl",
-                            "digests": {
-                                "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
-                                "sha256": (
-                                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                                ),
-                            },
-                            "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
-                        },
-                    ]
-                },
-            }
+            return package_json
 
     master = Master("https://pypi.example.com")
     master.rpc = mock.Mock()

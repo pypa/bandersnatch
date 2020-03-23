@@ -23,7 +23,7 @@ from .filter import filter_release_file_plugins  # isort:skip
 from .filter import filter_release_plugins  # isort:skip
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .mirror import Mirror
 
 
