@@ -57,7 +57,7 @@ async def delete_unowned_files(
     dry_run: bool,
 ) -> int:
     loop = asyncio.get_event_loop()
-    packages_path = Path(mirror_base) / "web/packages"
+    packages_path = Path(mirror_base) / "web" / "packages"
     all_fs_files = set()  # type: Set[Path]
     await loop.run_in_executor(
         executor, recursive_find_files, all_fs_files, packages_path

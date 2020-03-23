@@ -72,6 +72,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock):
         "diff_file": "/tmp/pypi/mirrored-files",
         "diff_append_epoch": False,
         "diff_full_path": "/tmp/pypi/mirrored-files",
+        "cleanup": False,
     } == kwargs
 
 

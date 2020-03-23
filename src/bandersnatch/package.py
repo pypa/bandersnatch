@@ -7,11 +7,13 @@ import sys
 from datetime import datetime
 from json import dump
 from pathlib import Path
+from shutil import rmtree
 from typing import TYPE_CHECKING, Dict, List, Optional
 from urllib.parse import unquote, urlparse
 
 from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
+from pkg_resources import safe_name
 
 from . import utils
 from .master import StalePage
@@ -21,7 +23,7 @@ from .filter import filter_release_file_plugins  # isort:skip
 from .filter import filter_release_plugins  # isort:skip
 
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .mirror import Mirror
 
 
@@ -35,11 +37,15 @@ class Package:
     tries = 0
     sleep_on_stale = 1
 
-    def __init__(self, name: str, serial: str, mirror: "Mirror") -> None:
-        self.name = name
+    def __init__(
+        self, name: str, serial: str, mirror: "Mirror", *, cleanup: bool = False
+    ) -> None:
+        self.name = canonicalize_name(name)
+        self.raw_name = name
+        self.normalized_name_legacy = safe_name(name).lower()
         self.serial = serial
-        self.normalized_name = canonicalize_name(name)
         self.mirror = mirror
+        self.cleanup = cleanup
 
     @property
     def json_file(self) -> Path:
@@ -50,21 +56,53 @@ class Package:
         return self.mirror.webdir / "pypi" / self.name / "json"
 
     @property
+    def normalized_legacy_simple_directory(self) -> Path:
+        if self.mirror.hash_index:
+            return (
+                self.mirror.webdir
+                / "simple"
+                / self.normalized_name_legacy[0]
+                / self.normalized_name_legacy
+            )
+        return self.mirror.webdir / "simple" / self.normalized_name_legacy
+
+    @property
+    def raw_simple_directory(self) -> Path:
+        if self.mirror.hash_index:
+            return self.mirror.webdir / "simple" / self.raw_name[0] / self.raw_name
+        return self.mirror.webdir / "simple" / self.raw_name
+
+    @property
     def simple_directory(self) -> Path:
         if self.mirror.hash_index:
             return self.mirror.webdir / "simple" / self.name[0] / self.name
         return self.mirror.webdir / "simple" / self.name
 
-    @property
-    def normalized_simple_directory(self) -> Path:
-        if self.mirror.hash_index:
-            return (
-                self.mirror.webdir
-                / "simple"
-                / self.normalized_name[0]
-                / self.normalized_name
-            )
-        return self.mirror.webdir / "simple" / self.normalized_name
+    async def cleanup_non_pep_503_paths(self) -> None:
+        """
+        Before 4.0 we use to store backwards compatible named dirs for older pip
+        This function checks for them and cleans them up
+        """
+        if not self.cleanup:
+            return
+
+        for deprecated_dir in (
+            self.raw_simple_directory,
+            self.normalized_legacy_simple_directory,
+        ):
+            if deprecated_dir != self.simple_directory:
+                if not deprecated_dir.exists():
+                    continue
+
+                logger.info(
+                    f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
+                )
+                try:
+                    rmtree(deprecated_dir)
+                except Exception:
+                    logger.exception(
+                        f"Unable to cleanup non PEP 503 dir {deprecated_dir}"
+                    )
 
     def save_json_metadata(self, package_info: Dict) -> bool:
         """
@@ -81,13 +119,12 @@ class Package:
             return False
 
         symlink_dir = self.json_pypi_symlink.parent
-        if not symlink_dir.exists():
-            symlink_dir.mkdir()
-        try:
-            # If symlink already exists throw a FileExistsError
-            self.json_pypi_symlink.symlink_to(self.json_file)
-        except FileExistsError:
-            pass
+        symlink_dir.mkdir(exist_ok=True)
+        # Lets always ensure symlink is pointing to correct self.json_file
+        # In 4.0 we move to normalized name only so want to overwrite older symlinks
+        if self.json_pypi_symlink.exists():
+            self.json_pypi_symlink.unlink()
+        self.json_pypi_symlink.symlink_to(self.json_file)
 
         return True
 
@@ -145,9 +182,8 @@ class Package:
                         self.sleep_on_stale *= 2
                         continue
                     logger.error(
-                        "Stale serial for {} ({}) not updating. Giving up.".format(
-                            self.name, self.serial
-                        )
+                        f"Stale serial for {self.name} ({self.serial}) "
+                        + "not updating. Giving up."
                     )
                     self.mirror.errors = True
         except Exception:
@@ -157,6 +193,9 @@ class Package:
         if self.mirror.errors and stop_on_error:
             logger.error("Exiting early after error.")
             sys.exit(1)
+
+        # Cleanup non normalized name directory
+        await self.cleanup_non_pep_503_paths()
 
     def _filter_metadata(self, metadata: Dict) -> bool:
         """
@@ -281,7 +320,7 @@ class Package:
             "  </head>\n"
             "  <body>\n"
             "    <h1>Links for {0}</h1>\n"
-        ).format(self.name)
+        ).format(self.raw_name)
 
         # Get a list of all of the files.
         release_files: List[Dict] = []
@@ -313,19 +352,17 @@ class Package:
         return simple_page_content
 
     def sync_simple_page(self) -> None:
-        logger.info(
-            f"Storing index page: {self.name} - in {self.normalized_simple_directory}"
-        )
+        logger.info(f"Storing index page: {self.name} - in {self.simple_directory}")
         simple_page_content = self.generate_simple_page()
-        self.normalized_simple_directory.mkdir(exist_ok=True, parents=True)
+        self.simple_directory.mkdir(exist_ok=True, parents=True)
 
         if self.mirror.keep_index_versions > 0:
             self._save_simple_page_version(simple_page_content)
         else:
-            normalized_simple_page = self.normalized_simple_directory / "index.html"
-            with utils.rewrite(normalized_simple_page, "w", encoding="utf-8") as f:
+            simple_page = self.simple_directory / "index.html"
+            with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
-            self.mirror.diff_file_list.append(normalized_simple_page)
+            self.mirror.diff_file_list.append(simple_page)
 
     def _save_simple_page_version(self, simple_page_content: str) -> None:
         versions_path = self._prepare_versions_path()
@@ -336,14 +373,14 @@ class Package:
             f.write(simple_page_content)
         self.mirror.diff_file_list.append(full_version_path)
 
-        symlink_path = self.normalized_simple_directory / "index.html"
+        symlink_path = self.simple_directory / "index.html"
         if symlink_path.exists() or symlink_path.is_symlink():
             symlink_path.unlink()
 
         symlink_path.symlink_to(full_version_path)
 
     def _prepare_versions_path(self) -> Path:
-        versions_path = Path(self.normalized_simple_directory) / "versions"
+        versions_path = Path(self.simple_directory) / "versions"
         try:
             versions_path.mkdir()
         except FileExistsError:
@@ -383,10 +420,8 @@ class Package:
                 return None
             else:
                 logger.info(
-                    "Checksum mismatch with local file {}: "
-                    "expected {} got {}, will re-download.".format(
-                        path, sha256sum, existing_hash
-                    )
+                    f"Checksum mismatch with local file {path}: expected {sha256sum} "
+                    + f"got {existing_hash}, will re-download."
                 )
                 path.unlink()
 

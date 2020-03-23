@@ -49,6 +49,7 @@ class TestBandersnatchConf(TestCase):
         self.assertListEqual(
             options,
             [
+                "cleanup",
                 "directory",
                 "hash-index",
                 "json",

@@ -67,6 +67,8 @@ class Mirror:
         diff_full_path=None,
         flock_timeout=1,
         diff_file_list=None,
+        *,
+        cleanup=False,
     ):
         self.loop = asyncio.get_event_loop()
         self.homedir = Path(homedir)
@@ -86,6 +88,9 @@ class Mirror:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
         self._bootstrap(flock_timeout)
         self._finish_lock = RLock()
+
+        # Cleanup old legacy non PEP 503 Directories created for the Simple API
+        self.cleanup = cleanup
 
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
@@ -225,7 +230,9 @@ class Mirror:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
             serial = self.packages_to_sync[name]
-            await self.package_queue.put(Package(name, serial, self))
+            await self.package_queue.put(
+                Package(name, serial, self, cleanup=self.cleanup)
+            )
 
         sync_coros: List[Awaitable] = [
             self.package_syncer(idx) for idx in range(self.workers)
@@ -457,6 +464,15 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
             + "section."
         )
 
+    try:
+        cleanup = config.getboolean("mirror", "cleanup")
+    except configparser.NoOptionError:
+        logger.debug(
+            "bandersnatch is not cleaning up non PEP 503 normalized Simple "
+            + "API directories"
+        )
+        cleanup = False
+
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
@@ -477,6 +493,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
             diff_file=diff_file,
             diff_append_epoch=diff_append_epoch,
             diff_full_path=diff_full_path,
+            cleanup=cleanup,
         )
 
         # TODO: Remove this terrible hack and async mock the code correctly
