@@ -8,6 +8,7 @@ import platform
 import shutil
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
@@ -31,6 +32,11 @@ def user_agent() -> str:
 
 
 USER_AGENT = user_agent()
+
+
+def make_time_stamp() -> str:
+    """Helper function that returns a timestamp suitable for use in a filename on any OS"""
+    return f"{datetime.utcnow().isoformat()}Z".replace(":", "")
 
 
 def convert_url_to_path(url: str) -> str:
