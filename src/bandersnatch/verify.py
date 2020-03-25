@@ -8,6 +8,7 @@ from asyncio.queues import Queue
 from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
+import shutil
 from sys import stderr
 from typing import List, Set  # noqa: F401
 from urllib.parse import urlparse
@@ -40,7 +41,7 @@ async def get_latest_json(
     new_json_path = json_path.parent / f"{json_path.name}.new"
     await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
-        os.rename(new_json_path, json_path)
+        shutil.move(new_json_path, json_path)
     else:
         logger.error(
             f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
