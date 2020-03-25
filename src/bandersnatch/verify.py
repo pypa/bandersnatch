@@ -3,12 +3,12 @@ import concurrent.futures
 import json
 import logging
 import os
+import shutil
 from argparse import Namespace
 from asyncio.queues import Queue
 from configparser import ConfigParser
 from functools import partial
 from pathlib import Path
-import shutil
 from sys import stderr
 from typing import List, Set  # noqa: F401
 from urllib.parse import urlparse
