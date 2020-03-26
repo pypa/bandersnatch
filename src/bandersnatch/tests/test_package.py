@@ -1,6 +1,5 @@
 import os.path
 import unittest.mock as mock
-from datetime import datetime
 from pathlib import Path
 from tempfile import gettempdir
 from typing import List
@@ -9,6 +8,7 @@ import pytest
 from freezegun import freeze_time
 
 from bandersnatch.package import Package
+from bandersnatch.utils import make_time_stamp
 
 EXPECTED_REL_HREFS = (
     '<a href="../../packages/2.7/f/foo/foo.whl#sha256=e3b0c44298fc1c149afbf4c8996fb924'
@@ -496,13 +496,10 @@ async def test_keep_index_versions_stores_one_prior_version(mirror):
     versions_path = simple_path / "versions"
     version_files = os.listdir(versions_path)
     assert len(version_files) == 1
-    assert (
-        version_files[0]
-        == f"index_{package.serial}_{datetime.utcnow().isoformat()}Z.html"
-    )
+    assert version_files[0] == f"index_{package.serial}_{make_time_stamp()}.html"
     link_path = simple_path / "index.html"
     assert link_path.is_symlink()
-    assert os.path.basename(os.readlink(link_path)) == version_files[0]
+    assert os.path.basename(os.readlink(str(link_path))) == version_files[0]
 
 
 @pytest.mark.asyncio
@@ -527,7 +524,7 @@ async def test_keep_index_versions_stores_different_prior_versions(mirror):
     assert version_files[1].startswith("index_1_2018-10-28")
     link_path = simple_path / "index.html"
     assert os.path.islink(link_path)
-    assert os.path.basename(os.readlink(link_path)) == version_files[1]
+    assert os.path.basename(os.readlink(str(link_path))) == version_files[1]
 
 
 @pytest.mark.asyncio
@@ -535,8 +532,8 @@ async def test_keep_index_versions_removes_old_versions(mirror):
     simple_path = Path("web/simple/foo/")
     versions_path = simple_path / "versions"
     versions_path.mkdir(parents=True)
-    versions_path.joinpath("index_1_2018-10-26T00:00:00Z.html").touch()
-    versions_path.joinpath("index_1_2018-10-27T00:00:00Z.html").touch()
+    versions_path.joinpath("index_1_2018-10-26T000000Z.html").touch()
+    versions_path.joinpath("index_1_2018-10-27T000000Z.html").touch()
 
     mirror.keep_index_versions = 2
     with freeze_time("2018-10-28"):
@@ -549,4 +546,4 @@ async def test_keep_index_versions_removes_old_versions(mirror):
     assert version_files[1].name.startswith("index_1_2018-10-28")
     link_path = simple_path / "index.html"
     assert link_path.is_symlink()
-    assert os.path.basename(os.readlink(link_path)) == version_files[1].name
+    assert os.path.basename(os.readlink(str(link_path))) == version_files[1].name

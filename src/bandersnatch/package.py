@@ -4,7 +4,6 @@ import html
 import logging
 import os.path
 import sys
-from datetime import datetime
 from json import dump
 from pathlib import Path
 from shutil import rmtree
@@ -366,7 +365,7 @@ class Package:
 
     def _save_simple_page_version(self, simple_page_content: str) -> None:
         versions_path = self._prepare_versions_path()
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = utils.make_time_stamp()
         version_file_name = f"index_{self.serial}_{timestamp}.html"
         full_version_path = versions_path / version_file_name
         with utils.rewrite(full_version_path, "w", encoding="utf-8") as f:

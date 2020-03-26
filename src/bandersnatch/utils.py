@@ -5,8 +5,10 @@ import logging
 import os
 import os.path
 import platform
+import shutil
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
@@ -30,6 +32,13 @@ def user_agent() -> str:
 
 
 USER_AGENT = user_agent()
+WINDOWS = bool(platform.system() == "Windows")
+
+
+def make_time_stamp() -> str:
+    """Helper function that returns a timestamp suitable for use
+    in a filename on any OS"""
+    return f"{datetime.utcnow().isoformat()}Z".replace(":", "")
 
 
 def convert_url_to_path(url: str) -> str:
@@ -95,7 +104,7 @@ def rewrite(
         # put in place actually but also doesn't want to error out.
         return
     os.chmod(filepath_tmp, 0o100644)
-    os.rename(filepath_tmp, filepath)
+    shutil.move(filepath_tmp, filepath)
 
 
 def recursive_find_files(files: Set[Path], base_dir: Path):
@@ -142,5 +151,5 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
     if os.path.exists(filename) and filecmp.cmp(filename, filename_tmp, shallow=False):
         os.unlink(filename_tmp)
     else:
-        os.rename(filename_tmp, filename)
+        shutil.move(filename_tmp, filename)
         tf.has_changed = True  # type: ignore

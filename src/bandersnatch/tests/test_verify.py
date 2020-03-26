@@ -1,5 +1,5 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
-from os import getpid
 from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
@@ -45,7 +45,7 @@ class FakeConfig:
 # TODO: Support testing sharded simple dirs
 class FakeMirror:
     def __init__(self, entropy: str = "") -> None:
-        self.mirror_base = Path(gettempdir()) / f"pypi_unittest_{getpid()}{entropy}"
+        self.mirror_base = Path(gettempdir()) / f"pypi_unittest_{os.getpid()}{entropy}"
         if self.mirror_base.exists():
             return
         self.web_base = self.mirror_base / "web"
@@ -132,27 +132,29 @@ async def test_async_verify(monkeypatch):
 def test_fake_mirror():
     expected_mirror_layout = """\
 web
-web/json
-web/json/bandersnatch
-web/json/black
-web/packages
-web/packages/8f
-web/packages/8f/1a
-web/packages/8f/1a/1aa0
-web/packages/8f/1a/1aa0/black-2019.6.9.tar.gz
-web/packages/8f/1a/6969
-web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz
-web/packages/8f/1a/6969/black-2018.6.9.tar.gz
-web/pypi
-web/pypi/bandersnatch
-web/pypi/bandersnatch/json
-web/pypi/black
-web/pypi/black/json
-web/simple
-web/simple/bandersnatch
-web/simple/bandersnatch/index.html
-web/simple/black
-web/simple/black/index.html"""
+web{0}json
+web{0}json{0}bandersnatch
+web{0}json{0}black
+web{0}packages
+web{0}packages{0}8f
+web{0}packages{0}8f{0}1a
+web{0}packages{0}8f{0}1a{0}1aa0
+web{0}packages{0}8f{0}1a{0}1aa0{0}black-2019.6.9.tar.gz
+web{0}packages{0}8f{0}1a{0}6969
+web{0}packages{0}8f{0}1a{0}6969{0}bandersnatch-0.6.9.tar.gz
+web{0}packages{0}8f{0}1a{0}6969{0}black-2018.6.9.tar.gz
+web{0}pypi
+web{0}pypi{0}bandersnatch
+web{0}pypi{0}bandersnatch{0}json
+web{0}pypi{0}black
+web{0}pypi{0}black{0}json
+web{0}simple
+web{0}simple{0}bandersnatch
+web{0}simple{0}bandersnatch{0}index.html
+web{0}simple{0}black
+web{0}simple{0}black{0}index.html""".format(
+        os.sep
+    )
     fm = FakeMirror("_mirror_base_test")
     assert expected_mirror_layout == find(str(fm.mirror_base), True)
     fm.clean_up()
@@ -178,7 +180,7 @@ async def test_delete_unowned_files() -> None:
 async def test_get_latest_json(monkeypatch):
     config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
-    json_path = Path(gettempdir()) / f"unittest_{getpid()}.json"
+    json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     monkeypatch.setattr(bandersnatch.verify, "url_fetch", do_nothing)
     await get_latest_json(json_path, config, executor)
 

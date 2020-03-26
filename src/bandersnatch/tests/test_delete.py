@@ -1,3 +1,4 @@
+import os
 from argparse import Namespace
 from configparser import ConfigParser
 from json import loads
@@ -13,34 +14,38 @@ from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
 json
-json/cooper
-json/unittest
+json{0}cooper
+json{0}unittest
 packages
-packages/69
-packages/69/cooper-6.9.tar.gz
-packages/69/unittest-6.9.tar.gz
-packages/7b
-packages/7b/cooper-6.9-py3-none-any.whl
-packages/7b/unittest-6.9-py3-none-any.whl
+packages{0}69
+packages{0}69{0}cooper-6.9.tar.gz
+packages{0}69{0}unittest-6.9.tar.gz
+packages{0}7b
+packages{0}7b{0}cooper-6.9-py3-none-any.whl
+packages{0}7b{0}unittest-6.9-py3-none-any.whl
 pypi
-pypi/cooper
-pypi/cooper/json
-pypi/unittest
-pypi/unittest/json
+pypi{0}cooper
+pypi{0}cooper{0}json
+pypi{0}unittest
+pypi{0}unittest{0}json
 simple
-simple/cooper
-simple/cooper/index.html
-simple/unittest
-simple/unittest/index.html\
-"""
+simple{0}cooper
+simple{0}cooper{0}index.html
+simple{0}unittest
+simple{0}unittest{0}index.html\
+""".format(
+    os.sep
+)
 EXPECTED_WEB_AFTER_DELETION = """\
 json
 packages
-packages/69
-packages/7b
+packages{0}69
+packages{0}7b
 pypi
 simple\
-"""
+""".format(
+    os.sep
+)
 MOCK_JSON_TEMPLATE = """{
     "releases": {
         "6.9": [

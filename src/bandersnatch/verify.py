@@ -3,6 +3,7 @@ import concurrent.futures
 import json
 import logging
 import os
+import shutil
 from argparse import Namespace
 from asyncio.queues import Queue
 from configparser import ConfigParser
@@ -40,7 +41,7 @@ async def get_latest_json(
     new_json_path = json_path.parent / f"{json_path.name}.new"
     await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
-        os.rename(new_json_path, json_path)
+        shutil.move(new_json_path, json_path)
     else:
         logger.error(
             f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
