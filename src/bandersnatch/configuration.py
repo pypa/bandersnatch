@@ -48,7 +48,9 @@ class BandersnatchConfig(metaclass=Singleton):
             Path to the configuration file to use
         """
         self.found_deprecations: List[str] = []
-        with importlib.resources.path("bandersnatch", "default.conf") as config_path:
+        with importlib.resources.path(  # type: ignore
+            "bandersnatch", "default.conf"
+        ) as config_path:
             self.default_config_file = str(config_path)
         self.config_file = config_file
         self.load_configuration()

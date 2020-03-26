@@ -30,4 +30,4 @@ repos:
     rev: v0.770
     hooks:
     -   id: mypy
-        exclude: ^docs/conf.py$
+        exclude: (docs/.*|src/bandersnatch/tests/.*|src/bandersnatch_filter_plugins/.*|src/bandersnatch_storage_plugins/.*)

@@ -6,7 +6,7 @@ import os
 import time
 from pathlib import Path
 from threading import RLock
-from typing import Awaitable, Dict, List, Set, Union
+from typing import Awaitable, Dict, List, Optional, Set, Union
 from unittest.mock import Mock
 
 from filelock import Timeout
@@ -27,7 +27,7 @@ class Mirror:
     synced_serial = 0  # The last serial we have consistently synced to.
     target_serial = None  # What is the serial we are trying to reach?
     errors = False
-    packages_to_sync = None
+    packages_to_sync: Dict[str, Union[int, str]] = {}
     need_index_sync = True
     json_save = False  # Wether or not to mirror PyPI JSON metadata to disk
 
@@ -54,23 +54,23 @@ class Mirror:
 
     def __init__(
         self,
-        homedir,
-        master,
-        storage_backend=None,
-        stop_on_error=False,
-        workers=3,
-        hash_index=False,
-        json_save=False,
-        digest_name=None,
-        root_uri=None,
-        keep_index_versions=0,
-        diff_file=None,
-        diff_append_epoch=False,
-        diff_full_path=None,
-        flock_timeout=1,
-        diff_file_list=None,
+        homedir: str,
+        master: Master,
+        storage_backend: Optional[str] = None,
+        stop_on_error: bool = False,
+        workers: int = 3,
+        hash_index: bool = False,
+        json_save: bool = False,
+        digest_name: Optional[str] = None,
+        root_uri: Optional[str] = None,
+        keep_index_versions: int = 0,
+        diff_file: Optional[Union[Path, str]] = None,
+        diff_append_epoch: bool = False,
+        diff_full_path: Optional[Union[Path, str]] = None,
+        flock_timeout: int = 1,
+        diff_file_list: Optional[List] = None,
         *,
-        cleanup=False,
+        cleanup: bool = False,
     ):
         if storage_backend:
             self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
@@ -83,7 +83,7 @@ class Mirror:
         self.stop_on_error = stop_on_error
         self.json_save = json_save
         self.hash_index = hash_index
-        self.root_uri = root_uri
+        self.root_uri = root_uri or ""
         self.diff_file = diff_file
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
@@ -102,7 +102,7 @@ class Mirror:
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
         # Class Instance variable so each package can add their changes
-        self.altered_packages = {}
+        self.altered_packages: Dict[str, Set[str]] = {}
 
     @property
     def webdir(self) -> Path:
@@ -112,7 +112,7 @@ class Mirror:
     def todolist(self) -> Path:
         return self.homedir / "todo"
 
-    async def synchronize(self):
+    async def synchronize(self) -> Dict[str, Set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
@@ -126,7 +126,7 @@ class Mirror:
 
         return self.altered_packages
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """Does a couple of cleanup tasks to ensure consistent data for later
         processing."""
         if self.storage_backend.exists(self.todolist):
@@ -145,7 +145,7 @@ class Mirror:
                 logger.info("Removing inconsistent todo list.")
                 self.storage_backend.delete_file(self.todolist)
 
-    def _filter_packages(self):
+    def _filter_packages(self) -> None:
         """
         Run the package filtering plugins and remove any packages from the
         packages_to_sync that match any filters.
@@ -174,7 +174,7 @@ class Mirror:
                 else:
                     del self.packages_to_sync[package_name]
 
-    async def determine_packages_to_sync(self):
+    async def determine_packages_to_sync(self) -> None:
         """
         Update the self.packages_to_sync to contain packages that need to be
         synced.
@@ -204,14 +204,14 @@ class Mirror:
             all_packages = await self.master.all_packages()
             self.packages_to_sync.update(all_packages)
             self.target_serial = max(
-                [self.synced_serial] + list(self.packages_to_sync.values())
+                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
             )
         else:
             logger.info("Syncing based on changelog.")
             changed_packages = await self.master.changed_packages(self.synced_serial)
             self.packages_to_sync.update(changed_packages)
             self.target_serial = max(
-                [self.synced_serial] + list(self.packages_to_sync.values())
+                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
             )
             # We can avoid downloading the main index page if we don't have
             # anything todo at all during a changelog-based sync.
@@ -233,7 +233,7 @@ class Mirror:
 
             await package.sync(self.stop_on_error)
 
-    async def sync_packages(self):
+    async def sync_packages(self) -> None:
         self.package_queue: asyncio.Queue = asyncio.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
@@ -258,7 +258,7 @@ class Mirror:
                 + "Next sync will start from previous serial"
             )
 
-    def record_finished_package(self, name):
+    def record_finished_package(self, name: str) -> None:
         with self._finish_lock:
             del self.packages_to_sync[name]
             with self.storage_backend.update_safe(
@@ -288,12 +288,12 @@ class Mirror:
             subdirs = [simple_dir]
         return subdirs
 
-    def find_package_indexes_in_dir(self, simple_dir):
+    def find_package_indexes_in_dir(self, simple_dir: Path) -> List[str]:
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
         simple_path = self.storage_backend.PATH_BACKEND(simple_dir)
-        packages = sorted(
+        return sorted(
             {
                 # Filter out all of the "non" normalized names here
                 canonicalize_name(x.name)
@@ -304,9 +304,8 @@ class Mirror:
                 if x.is_dir()
             }
         )
-        return packages
 
-    def sync_index_page(self):
+    def sync_index_page(self) -> None:
         if not self.need_index_sync:
             return
         logger.info("Generating global index page.")
@@ -327,19 +326,25 @@ class Mirror:
             f.write("  </body>\n</html>")
         self.diff_file_list.append(simple_dir / "index.html")
 
-    def wrapup_successful_sync(self):
+    def wrapup_successful_sync(self) -> None:
         if self.errors:
             return
-        self.synced_serial = self.target_serial
+        self.synced_serial = int(self.target_serial) if self.target_serial else 0
         if self.todolist.exists():
             self.todolist.unlink()
         logger.info(f"New mirror serial: {self.synced_serial}")
         last_modified = self.homedir / "web" / "last-modified"
+        if not self.now:
+            logger.error(
+                "strftime did not return a valid time - Not updating last modified"
+            )
+            return
+
         with self.storage_backend.rewrite(str(last_modified)) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
-    def _bootstrap(self, flock_timeout=1):
+    def _bootstrap(self, flock_timeout: float = 1.0) -> None:
         paths = [
             self.storage_backend.PATH_BACKEND(""),
             self.storage_backend.PATH_BACKEND("web/simple"),
@@ -360,7 +365,7 @@ class Mirror:
                 logger.info(f"Setting up mirror directory: {path}")
                 path.mkdir(parents=True)
 
-        flock = self.storage_backend.get_lock(self.lockfile_path)
+        flock = self.storage_backend.get_lock(str(self.lockfile_path))
         try:
             logger.debug(f"Acquiring FLock with timeout: {flock_timeout!s}")
             with flock.acquire(timeout=flock_timeout):
@@ -383,10 +388,10 @@ class Mirror:
 
     def _reset_mirror_status(self) -> None:
         for path in [self.statusfile, self.todolist]:
-            if path.exists():  # type: ignore
-                path.unlink()  # type: ignore
+            if path.exists():
+                path.unlink()
 
-    def _load(self):
+    def _load(self) -> None:
         # Simple generation mechanism to support transparent software
         # updates.
         CURRENT_GENERATION = 5  # noqa
@@ -420,7 +425,7 @@ class Mirror:
             return
         self.synced_serial = int(self.statusfile.read_text(encoding="ascii").strip())
 
-    def _save(self):
+    def _save(self) -> None:
         self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
 
 
@@ -491,7 +496,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     )
 
     diff_file = storage_plugin.PATH_BACKEND(diff_file_path)
-    diff_full_path: Union[str, Path]
+    diff_full_path: Union[Path, str]
     if diff_file:
         diff_file.parent.mkdir(exist_ok=True, parents=True)
         if diff_append_epoch:
@@ -504,8 +509,8 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     if diff_full_path:
         if isinstance(diff_full_path, str):
             diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
-        if diff_full_path.is_file():  # type: ignore
-            diff_full_path.unlink()  # type: ignore
+        if diff_full_path.is_file():
+            diff_full_path.unlink()
         elif diff_full_path.is_dir():
             diff_full_path = diff_full_path / "mirrored-files"
 
