@@ -28,8 +28,9 @@ jobs:
         python -m pip install -r requirements.txt
 
     - name: Run Unittests
+      env:
+        TOXENV: py3
       run: |
-        export TOXENV=py3
         python test_runner.py
 
     - name: Run Integration Test
