@@ -1,7 +1,6 @@
 import os
 import os.path
 import re
-import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
 
