@@ -35,7 +35,8 @@ USER_AGENT = user_agent()
 
 
 def make_time_stamp() -> str:
-    """Helper function that returns a timestamp suitable for use in a filename on any OS"""
+    """Helper function that returns a timestamp suitable for use
+    in a filename on any OS"""
     return f"{datetime.utcnow().isoformat()}Z".replace(":", "")
 
 
