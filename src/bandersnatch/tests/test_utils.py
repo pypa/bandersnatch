@@ -15,6 +15,7 @@ from bandersnatch.utils import (  # isort:skip
     rewrite,
     unlink_parent_dir,
     user_agent,
+    WINDOWS,
 )
 
 
@@ -66,9 +67,7 @@ def test_rewrite(tmpdir, monkeypatch):
     assert open("sample").read() == "csdf"
     mode = os.stat("sample").st_mode
     # chmod doesn't work on windows machines. Permissions are pinned at 666
-    if sys.platform == "win32":
-        assert True
-    else:
+    if not WINDOWS:
         assert oct(mode) == "0o100644"
 
 

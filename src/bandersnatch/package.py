@@ -30,10 +30,6 @@ if TYPE_CHECKING:  # pragma: no cover
 display_filter_log = True
 logger = logging.getLogger(__name__)
 
-# Bool to help with some Windows-related path operations
-if sys.platform == "win32":
-    is_windows = True
-
 
 class Package:
 

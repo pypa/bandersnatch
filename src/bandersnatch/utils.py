@@ -32,6 +32,7 @@ def user_agent() -> str:
 
 
 USER_AGENT = user_agent()
+WINDOWS = bool(platform.system() == 'Windows')
 
 
 def make_time_stamp() -> str:
