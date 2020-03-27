@@ -19,7 +19,9 @@ from tempfile import gettempdir
 
 from src.bandersnatch.utils import hash
 
-BANDERSNATCH_EXE = Path(which("bandersnatch") or "bandersnatch")
+BANDERSNATCH_EXE = Path(
+    which("bandersnatch") or which("bandersnatch.exe") or "bandersnatch"
+)
 CI_CONFIG = Path("src/bandersnatch/tests/ci.conf")
 EOP = "[CI ERROR]:"
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
@@ -114,7 +116,6 @@ def do_ci(conf: Path) -> int:
 
 def platform_config() -> Path:
     """Ensure the CI_CONFIG is correct for the platform we're running on"""
-    global BANDERSNATCH_EXE
     platform_ci_conf = MIRROR_ROOT / "ci.conf"
     cp = ConfigParser()
     cp.read(str(CI_CONFIG))
@@ -124,10 +125,6 @@ def platform_config() -> Path:
 
     with platform_ci_conf.open("w") as pccfp:
         cp.write(pccfp)
-
-    # TODO: Correct path + see if this actually works
-    if system() == "Windows":
-        BANDERSNATCH_EXE = Path(r"C:\pip\bin\bandersnatch.exe")
 
     return platform_ci_conf
 
