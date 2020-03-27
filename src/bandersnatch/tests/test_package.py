@@ -1,12 +1,13 @@
 import os.path
 import unittest.mock as mock
 from pathlib import Path
-from tempfile import gettempdir
+from tempfile import TemporaryDirectory, gettempdir
 from typing import List
 
 import pytest
 from freezegun import freeze_time
 
+from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch.utils import make_time_stamp
 
@@ -260,6 +261,7 @@ async def test_package_sync_simple_page_with_files(mirror):
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     assert (
         open("web/simple/foo/index.html").read()
@@ -287,6 +289,7 @@ async def test_package_sync_simple_page_with_existing_dir(mirror):
     package = Package("foo", 1, mirror)
     os.makedirs(package.simple_directory)
     await package.sync()
+    assert not mirror.errors
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
@@ -345,9 +348,11 @@ async def test_package_sync_with_error_keeps_it_on_todo_list(mirror):
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = []
 
+    # Make packages_to_sync to generate an error
     mirror.packages_to_sync = {"foo"}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert mirror.errors
     assert "foo" in mirror.packages_to_sync
 
 
@@ -356,6 +361,7 @@ async def test_package_sync_downloads_release_file(mirror):
     mirror.packages_to_sync = {"foo": None}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
 
@@ -380,9 +386,10 @@ async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror):
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = []
 
-    mirror.packages_to_sync = {"foo"}
+    mirror.packages_to_sync = {"foo": None}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     assert test_files[0].exists()
 
@@ -397,8 +404,19 @@ async def test_package_sync_replaces_mismatching_local_files(mirror):
     mirror.packages_to_sync = {"foo": None}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     assert test_files[0].open("r").read() == ""
+
+
+@pytest.mark.asyncio
+async def test_package_sync_handles_non_pep_503_in_packages_to_sync(master):
+    with TemporaryDirectory() as td:
+        mirror = Mirror(td, master, stop_on_error=True)
+        mirror.packages_to_sync = {"Foo": None}
+        package = Package("Foo", 1, mirror)
+        await package.sync()
+        assert not mirror.errors
 
 
 @pytest.mark.asyncio
@@ -406,13 +424,14 @@ async def test_package_sync_does_not_touch_existing_local_file(mirror):
     pkg_file_path_str = "web/packages/any/f/foo/foo.zip"
     pkg_file_path = Path(pkg_file_path_str)
     touch_files((pkg_file_path,))
-    with pkg_file_path.open("wb") as f:
-        f.write(b"")
+    with pkg_file_path.open("w") as f:
+        f.write("")
     old_stat = pkg_file_path.stat()
 
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     # Use Pathlib + create a new object to ensure no caching
     assert old_stat == Path(pkg_file_path_str).stat()
@@ -491,6 +510,7 @@ async def test_keep_index_versions_stores_one_prior_version(mirror):
     mirror.keep_index_versions = 1
     package = Package("foo", 1, mirror)
     await package.sync()
+    assert not mirror.errors
 
     simple_path = Path("web/simple/foo")
     versions_path = simple_path / "versions"
@@ -512,11 +532,13 @@ async def test_keep_index_versions_stores_different_prior_versions(mirror):
     with freeze_time("2018-10-27"):
         package = Package("foo", 1, mirror)
         await package.sync()
+        assert not mirror.errors
 
     mirror.packages_to_sync = {"foo": 1}
     with freeze_time("2018-10-28"):
         package = Package("foo", 1, mirror)
         await package.sync()
+        assert not mirror.errors
 
     version_files = sorted(os.listdir(versions_path))
     assert len(version_files) == 2
