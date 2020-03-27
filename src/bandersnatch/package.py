@@ -91,7 +91,8 @@ class Package:
             self.normalized_legacy_simple_directory,
         ):
             logger.debug(f"Checking if {deprecated_dir} != {self.simple_directory}")
-            if deprecated_dir != self.simple_directory:
+            # Had to compare path strs as Windows did not match path objects ...
+            if str(deprecated_dir) != str(self.simple_directory):
                 if not deprecated_dir.exists():
                     logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
