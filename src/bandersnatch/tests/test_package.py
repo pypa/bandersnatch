@@ -33,7 +33,7 @@ async def test_cleanup_non_pep_503_paths(mirror):
     await package.cleanup_non_pep_503_paths()
 
     # Create a non normailized directory
-    touch_files([Path(f"web/simple/{raw_package_name}/index.html")])
+    touch_files([package.mirror.webdir / "simple" / raw_package_name / "index.html"])
 
     package.cleanup = True
     with mock.patch("bandersnatch.package.rmtree") as mocked_rmtree:

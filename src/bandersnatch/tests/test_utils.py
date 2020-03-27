@@ -2,7 +2,7 @@ import os
 import os.path
 import re
 from pathlib import Path
-from tempfile import TemporaryDirectory, gettempdir
+from tempfile import NamedTemporaryFile, TemporaryDirectory, gettempdir
 
 import aiohttp
 import pytest
@@ -31,14 +31,21 @@ def test_convert_url_to_path():
 
 
 def test_hash():
-    sample = os.path.join(os.path.dirname(__file__), "sample")
-    assert hash(sample, function="md5") == "125765989403df246cecb48fa3e87ff8"
-    assert hash(sample, function="sha256") == (
-        "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18"
-    )
-    assert hash(sample) == (
-        "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18"
-    )
+    expected_md5 = "b2855c4a4340dad73d9d870630390885"
+    expected_sha256 = "a2a5e3823bf4cccfaad4e2f0fbabe72bc8c3cf78bc51eb396b5c7af99e17f07a"
+    with NamedTemporaryFile(delete=False) as ntf:
+        ntf_path = Path(ntf.name)
+        ntf.close()
+        try:
+            with ntf_path.open("w") as ntfp:
+                ntfp.write("Unittest File for hashing Fun!")
+
+            assert hash(ntf_path, function="md5") == expected_md5
+            assert hash(ntf_path, function="sha256") == expected_sha256
+            assert hash(ntf_path) == expected_sha256
+        finally:
+            if ntf_path.exists():
+                ntf_path.unlink()
 
 
 def test_find_files():

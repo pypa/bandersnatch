@@ -11,6 +11,7 @@ from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.filter import filter_project_plugins
 from bandersnatch.mirror import Mirror
+from bandersnatch.utils import WINDOWS
 
 
 class JsonDict(dict):
@@ -228,7 +229,7 @@ async def test_mirror_empty_resume_from_todo_list(mirror):
 
     await mirror.synchronize()
 
-    assert """\
+    expected = """\
 .lock
 generation
 status
@@ -250,9 +251,11 @@ web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(
         sep
-    ) == utils.find(
-        mirror.homedir
     )
+    if WINDOWS:
+        expected = expected.replace(".lock\n", "")
+    assert expected == utils.find(mirror.homedir)
+
     assert (
         open("web{0}simple{0}index.html".format(sep)).read()
         == """\
@@ -311,7 +314,7 @@ async def test_mirror_sync_package_error_no_early_exit(mirror):
     mirror.errors = True
     changed_packages = await mirror.synchronize()
 
-    assert """\
+    expected = """\
 .lock
 generation
 todo
@@ -320,9 +323,10 @@ web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
 web{0}simple{0}index.html""".format(
         sep
-    ) == utils.find(
-        mirror.homedir, dirs=False
     )
+    if WINDOWS:
+        expected = expected.replace(".lock\n", "")
+    assert expected == utils.find(mirror.homedir, dirs=False)
     assert (
         open("web{0}simple{0}index.html".format(sep)).read()
         == """\
