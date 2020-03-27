@@ -85,12 +85,15 @@ class Package:
         if not self.cleanup:
             return
 
+        logger.debug(f"Running Non PEP503 path cleanup for {self.raw_name}")
         for deprecated_dir in (
             self.raw_simple_directory,
             self.normalized_legacy_simple_directory,
         ):
+            logger.debug(f"Checking if {deprecated_dir} != {self.simple_directory}")
             if deprecated_dir != self.simple_directory:
                 if not deprecated_dir.exists():
+                    logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
 
                 logger.info(
