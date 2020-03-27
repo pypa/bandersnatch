@@ -35,7 +35,7 @@ def never_sleep(request):
 @pytest.fixture
 def package_json():
     return {
-        "info": {"name": "foo", "version": "0.1"},
+        "info": {"name": "Foo", "version": "0.1"},
         "last_serial": 654_321,
         "releases": {
             "0.1": [

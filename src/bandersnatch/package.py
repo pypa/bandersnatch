@@ -90,7 +90,6 @@ class Package:
             self.raw_simple_directory,
             self.normalized_legacy_simple_directory,
         ):
-            logger.debug(f"Checking if {deprecated_dir} != {self.simple_directory}")
             # Had to compare path strs as Windows did not match path objects ...
             if str(deprecated_dir) != str(self.simple_directory):
                 if not deprecated_dir.exists():
@@ -170,7 +169,8 @@ class Package:
 
                     await self.sync_release_files()
                     self.sync_simple_page()
-                    self.mirror.record_finished_package(self.name)
+                    # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
+                    self.mirror.record_finished_package(self.raw_name)
                     break
                 except StalePage:
                     self.tries += 1
