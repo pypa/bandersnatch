@@ -11,7 +11,6 @@ then check for expected outputs to exist
 from configparser import ConfigParser
 from os import environ
 from pathlib import Path
-from platform import system
 from shutil import rmtree, which
 from subprocess import run
 from sys import exit

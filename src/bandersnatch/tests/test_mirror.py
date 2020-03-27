@@ -249,7 +249,9 @@ web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple
 web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
-web{0}simple{0}index.html""".format(sep)
+web{0}simple{0}index.html""".format(
+        sep
+    )
     if WINDOWS:
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
@@ -319,12 +321,12 @@ todo
 web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
-web{0}simple{0}index.html""".format(sep)
+web{0}simple{0}index.html""".format(
+        sep
+    )
     if WINDOWS:
         expected = expected.replace(".lock\n", "")
-    assert expected == utils.find(
-        mirror.homedir, dirs=False
-    )
+    assert expected == utils.find(mirror.homedir, dirs=False)
     assert (
         open("web{0}simple{0}index.html".format(sep)).read()
         == """\
