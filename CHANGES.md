@@ -1,13 +1,16 @@
-# 4.0.0 (2020-?-?)
+# 4.0.0 (2020-3-29)
 
 *asyncio aiohttp refactor*
 
-- Replace requests with aiohttp
+- Replace requests with aiohttp - `PR #440`
   - Replace xmlrpc2 with aiohttp-xmlrpc - `PR #404`
-- Add PyPI metadata and Python version plugin filters - `PR #391`
-- Autobuild Docker images with master
-- Only Print conf deprecations if found in config - `PR #327`
-
+- Only store PEP503 Normalized Simple API directories - `PR #465 + #455`
+- Flag errors when KeyboardInterrupt raised during sync - `PR #421`
+- Finish Windows Support + Add CI - `PRs #469 + #471` - Thanks **@FaustinCarter**
+- Autobuild Docker images with master - `PR #88` - Thanks **@abitrolly**
+- Only print conf deprecations if found in config - `PR #327`
+- Add PyPI metadata and Python version plugin filters - `PR #391` - Thanks **@TemptorSent**
+- Add in *GitHub Actions CI* for Linux (Ubuntu), MacOSX + Windows
 
 # 3.6.0 (2019-09-24)
 

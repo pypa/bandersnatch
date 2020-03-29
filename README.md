@@ -8,9 +8,10 @@
 
 ----
 
-This is a PyPI mirror client according to `PEP 381`
+This is a PyPI mirror client according to `PEP 381` + `PEP 503`
 http://www.python.org/dev/peps/pep-0381/.
 
+- bandersnatch >=4.0 supports *Linux*, *MacOSX* + *Windows*
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
 
 **bandersnatch maintainers** are looking for more **help**! Please refer to our
