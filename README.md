@@ -136,6 +136,10 @@ tarring a bandersnatch data directory and moving it to, e.g. Linux with a
 case-sensitive filesystem will lead to inconsistencies. You can fix those by
 deleting the status files and have bandersnatch run a full check on your data.
 
+#### Windows requires elevated prompt
+
+Bandersnatch makes use of symbolic links. On Windows, this permission is turned off by default for non-admin users. In order to run bandersnatch on Windows either call it from an elevated command prompt (i.e. right-click, run-as Administrator) or give yourself symlink permissions in the group policy editor.
+
 #### Many sub-directories needed
 
 The PyPI has a quite extensive list of packages that we need to maintain in a
