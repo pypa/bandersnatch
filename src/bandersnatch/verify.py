@@ -160,10 +160,11 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 
     custom_headers = {"User-Agent": USER_AGENT}
     skip_headers = {"User-Agent"}
+    aiohttp_timeout = aiohttp.ClientTimeout(total=timeout)
     async with aiohttp.ClientSession(
         headers=custom_headers, skip_auto_headers=skip_headers, trust_env=True
     ) as session:
-        async with session.get(url, timeout=timeout) as response:
+        async with session.get(url, timeout=aiohttp_timeout) as response:
             if response.status == 200:
                 with file_path.open("wb") as fd:
                     while True:

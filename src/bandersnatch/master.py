@@ -35,10 +35,11 @@ class Master:
         logger.debug("Initializing Master's aiohttp ClientSession")
         custom_headers = {"User-Agent": USER_AGENT}
         skip_headers = {"User-Agent"}
+        aiohttp_timeout = aiohttp.ClientTimeout(total=self.timeout)
         self.session = aiohttp.ClientSession(
             headers=custom_headers,
             skip_auto_headers=skip_headers,
-            timeout=self.timeout,
+            timeout=aiohttp_timeout,
             trust_env=True,
         )
         return self
@@ -69,11 +70,12 @@ class Master:
                 # returning a stale serial for a package. Ideally, this should
                 # be fixed on the PyPI side, at which point the following code
                 # should be removed.
+                # Timeout: uses self.sessions's timeout value
                 logger.debug(f"Issuing a PURGE for {path} to clear the cache")
                 try:
                     async with self.session.request("PURGE", path):
                         pass
-                except aiohttp.ClientError:
+                except (aiohttp.ClientError, asyncio.TimeoutError):
                     logger.warning(
                         "Got an error when attempting to clear the cache", exc_info=True
                     )
@@ -91,7 +93,7 @@ class Master:
         if not path.startswith(("https://", "http://")):
             path = self.url + path
 
-        timeout = aiohttp.ClientTimeout(total=300)
+        timeout = self.timeout
         if "timeout" in kw:
             timeout = aiohttp.ClientTimeout(total=kw["timeout"])
             del kw["timeout"]
