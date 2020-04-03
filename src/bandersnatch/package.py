@@ -12,7 +12,6 @@ from urllib.parse import unquote, urlparse
 
 from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
-from pkg_resources import safe_name
 
 from . import utils
 from .master import StalePage
@@ -41,7 +40,7 @@ class Package:
     ) -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
-        self.normalized_name_legacy = safe_name(name).lower()
+        self.normalized_name_legacy = utils.safe_name(name).lower()
         self.serial = serial
         self.mirror = mirror
         self.cleanup = cleanup

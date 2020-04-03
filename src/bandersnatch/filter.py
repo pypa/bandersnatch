@@ -113,7 +113,7 @@ class FilterReleaseFilePlugin(Filter):
 
 def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
     """
-    Load all blacklist plugins that are registered with pkg_resources
+    Load all blacklist plugins that are registered with importlib.resources
 
     Parameters
     ==========
