@@ -40,7 +40,7 @@ class Package:
     ) -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
-        self.normalized_name_legacy = utils.safe_name(name).lower()
+        self.normalized_name_legacy = utils.bandersnatch_safe_name(name)
         self.serial = serial
         self.mirror = mirror
         self.cleanup = cleanup

@@ -8,6 +8,7 @@ import aiohttp
 import pytest
 
 from bandersnatch.utils import (  # isort:skip
+    bandersnatch_safe_name,
     convert_url_to_path,
     hash,
     recursive_find_files,
@@ -111,3 +112,8 @@ def test_user_agent():
         + fr"\(aiohttp {aiohttp.__version__}\)",
         user_agent(),
     )
+
+
+def test_bandersnatch_safe_name():
+    bad_name = "Flake_8_Fake"
+    assert "flake-8-fake" == bandersnatch_safe_name(bad_name)
