@@ -5,7 +5,14 @@ import logging
 from configparser import ConfigParser
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
-import pkg_resources
+try:
+    import importlib.resources
+except ImportError:  # For 3.6 and lesser
+    import importlib
+    import importlib_resources
+
+    importlib.resources = importlib_resources
+
 
 logger = logging.getLogger("bandersnatch")
 
@@ -41,9 +48,8 @@ class BandersnatchConfig(metaclass=Singleton):
             Path to the configuration file to use
         """
         self.found_deprecations: List[str] = []
-        self.default_config_file = pkg_resources.resource_filename(
-            "bandersnatch", "default.conf"
-        )
+        with importlib.resources.path("bandersnatch", "default.conf") as config_path:
+            self.default_config_file = str(config_path)
         self.config_file = config_file
         self.load_configuration()
 

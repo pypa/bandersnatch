@@ -3,9 +3,15 @@ import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from pkg_resources import resource_filename
-
 from bandersnatch.configuration import BandersnatchConfig, Singleton
+
+try:
+    import importlib.resources
+except ImportError:  # For 3.6 and lesser
+    import importlib
+    import importlib_resources
+
+    importlib.resources = importlib_resources
 
 
 class TestBandersnatchConf(TestCase):
@@ -36,11 +42,11 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(id(instance1), id(instance2))
 
     def test_single_config__default__all_sections_present(self):
-        config_file = resource_filename("bandersnatch", "unittest.conf")
-        instance = BandersnatchConfig(config_file)
-        # All default values should at least be present and be the write types
-        for section in ["mirror", "plugins", "blacklist"]:
-            self.assertIn(section, instance.config.sections())
+        with importlib.resources.path("bandersnatch", "unittest.conf") as config_file:
+            instance = BandersnatchConfig(str(config_file))
+            # All default values should at least be present and be the write types
+            for section in ["mirror", "plugins", "blacklist"]:
+                self.assertIn(section, instance.config.sections())
 
     def test_single_config__default__mirror__setting_attributes(self):
         instance = BandersnatchConfig()

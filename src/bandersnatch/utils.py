@@ -5,6 +5,7 @@ import logging
 import os
 import os.path
 import platform
+import re
 import shutil
 import sys
 import tempfile
@@ -153,3 +154,10 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
     else:
         shutil.move(filename_tmp, filename)
         tf.has_changed = True  # type: ignore
+
+
+def safe_name(name):
+    """Convert an arbitrary string to a standard distribution name
+    Any runs of non-alphanumeric/. characters are replaced with a single '-'.
+    """
+    return re.sub("[^A-Za-z0-9.]+", "-", name)
