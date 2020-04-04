@@ -32,6 +32,7 @@ def user_agent() -> str:
     return template.format(**locals())
 
 
+SAFE_NAME_REGEX = re.compile(r"[^A-Za-z0-9.]+")
 USER_AGENT = user_agent()
 WINDOWS = bool(platform.system() == "Windows")
 
@@ -156,8 +157,12 @@ def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
         tf.has_changed = True  # type: ignore
 
 
-def safe_name(name):
+def bandersnatch_safe_name(name: str) -> str:
     """Convert an arbitrary string to a standard distribution name
     Any runs of non-alphanumeric/. characters are replaced with a single '-'.
+
+    - This was copied from `pkg_resources` (part of `setuptools`)
+
+    bandersnatch also lower cases the returned name
     """
-    return re.sub("[^A-Za-z0-9.]+", "-", name)
+    return SAFE_NAME_REGEX.sub("-", name).lower()

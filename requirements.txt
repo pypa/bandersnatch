@@ -5,6 +5,7 @@ attrs==19.3.0
 chardet==3.0.4
 filelock==3.0.12
 idna==2.9
+importlib_resources==1.4.0; python_version < '3.7'
 lxml==4.5.0
 multidict==4.7.5
 packaging==20.3
