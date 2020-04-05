@@ -1,3 +1,8 @@
+## 4.0.1 (2020-4-5)
+
+- Pass correct aiohttp timeout objects - `PR #478`
+- Replace pkg_resources with importlib.resources - `PR #479` - Thanks **@SanketDG**
+
 # 4.0.0 (2020-3-29)
 
 *asyncio aiohttp refactor*
