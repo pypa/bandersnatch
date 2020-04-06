@@ -354,16 +354,15 @@ class Mirror:
                 logger.info(f"Setting up mirror directory: {path}")
                 path.mkdir(parents=True)
 
-        if not self.lock_file.parent.exists():
-            self.lock_file.parent.mkdir(parents=True, exist_ok=True)
-        flock = FileLock(str(self.lock_file))
+        flock_path = self.homedir / ".lock"
+        flock = FileLock(str(flock_path))
         try:
             with flock.acquire(timeout=flock_timeout):
                 self._cleanup()
                 self._load()
         except Timeout:
             raise RuntimeError(
-                f"Could not acquire lock on {self.lock_file}. "
+                f"Could not acquire lock on {flock_path}. "
                 + "Another instance could be running?"
             )
 

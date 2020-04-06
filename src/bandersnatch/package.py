@@ -12,6 +12,7 @@ from urllib.parse import unquote, urlparse
 from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
 
+from . import utils
 from .master import StalePage
 
 from .filter import filter_metadata_plugins  # isort:skip
@@ -387,7 +388,9 @@ class Package:
         symlink_path.symlink_to(full_version_path)
 
     def _prepare_versions_path(self) -> Path:
-        versions_path = self.mirror.storage_backend.PATH_BACKEND(self.simple_directory) / "versions"
+        versions_path = (
+            self.mirror.storage_backend.PATH_BACKEND(self.simple_directory) / "versions"
+        )
         if not versions_path.exists():
             versions_path.mkdir()
         else:
