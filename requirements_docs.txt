@@ -1,5 +1,5 @@
 docutils==0.16
-pyparsing==2.4.6
+pyparsing==2.4.7
 python-dateutil==2.8.1
 packaging==20.3
 requests==2.23.0
