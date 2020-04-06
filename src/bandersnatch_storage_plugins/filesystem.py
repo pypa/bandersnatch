@@ -109,7 +109,7 @@ class FilesystemStorage(StoragePlugin):
         """Copy a file from **source** to **dest**"""
         if not self.exists(source):
             raise FileNotFoundError(source)
-        os.rename(source, dest)
+        shutil.copy(source, dest)
         return
 
     def write_file(self, path: PATH_TYPES, contents: Union[str, bytes]) -> None:
