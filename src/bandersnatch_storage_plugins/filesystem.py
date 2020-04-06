@@ -6,14 +6,11 @@ import os
 import pathlib
 import shutil
 import tempfile
-from typing import IO, Any, Dict, Generator, List, Optional, Type, Union, overload
+from typing import IO, Any, Dict, Generator, List, Optional, Type, Union
 
-from bandersnatch.storage import StoragePlugin
+from bandersnatch.storage import PATH_TYPES, StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
-
-
-PATH_TYPES = Union[pathlib.Path, str]
 
 
 class FilesystemStorage(StoragePlugin):
@@ -125,18 +122,6 @@ class FilesystemStorage(StoragePlugin):
             path.write_text(contents)
         else:
             path.write_bytes(contents)
-
-    @overload
-    @contextlib.contextmanager
-    def open_file(self, path: PATH_TYPES, text: bool = True):
-        ...
-
-    @overload
-    @contextlib.contextmanager
-    def open_file(  # noqa
-        self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
-    ):
-        ...
 
     @contextlib.contextmanager
     def open_file(  # noqa

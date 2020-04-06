@@ -17,11 +17,10 @@ import keystoneauth1.identity  # type: ignore
 import swiftclient.client  # type: ignore
 import swiftclient.exceptions  # type: ignore
 
-from bandersnatch.storage import StoragePlugin
+from bandersnatch.storage import PATH_TYPES, StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
 
-PATH_TYPES = Union[pathlib.Path, str]
 
 # See https://stackoverflow.com/a/8571649 for explanation
 BASE64_RE = re.compile(b"^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$")
@@ -108,11 +107,10 @@ class _SwiftAccessor:  # type: ignore
 
 
 _swift_accessor: Type[_SwiftAccessor]
-_posix_flavor = getattr(pathlib, "_posix_flavour", None)
 
 
 class SwiftPath(pathlib.Path):
-    _flavour = getattr(pathlib, "_posix_flavour")
+    _flavour = getattr(pathlib, "_posix_flavour")  # noqa
     BACKEND: "SwiftStorage"
 
     __slots__ = (
