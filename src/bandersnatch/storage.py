@@ -1,6 +1,7 @@
 """
 Storage management
 """
+import configparser
 import contextlib
 import hashlib
 import logging
@@ -54,9 +55,12 @@ class Storage:
             storage_backend = "filesystem"
         if storage_backend != self.name:
             return
-        self.mirror_base_path = self.PATH_BACKEND(
-            self.configuration.get("mirror", "directory")
-        )
+        try:
+            self.mirror_base_path = self.PATH_BACKEND(
+                self.configuration.get("mirror", "directory")
+            )
+        except configparser.NoSectionError:
+            self.mirror_base_path = self.PATH_BACKEND("/srv/pypi")
         self.web_base_path = self.mirror_base_path / "web"
         self.json_base_path = self.web_base_path / "json"
         self.pypi_base_path = self.web_base_path / "pypi"
