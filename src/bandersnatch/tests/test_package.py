@@ -434,7 +434,9 @@ async def test_package_sync_does_not_touch_existing_local_file(mirror):
     assert not mirror.errors
 
     # Use Pathlib + create a new object to ensure no caching
-    assert old_stat == Path(pkg_file_path_str).stat()
+    # Only compare the relevant stat fields
+    assert old_stat.st_mtime == Path(pkg_file_path_str).stat().st_mtime
+    assert old_stat.st_ctime == Path(pkg_file_path_str).stat().st_ctime
 
 
 def test_gen_data_requires_python(mirror):
