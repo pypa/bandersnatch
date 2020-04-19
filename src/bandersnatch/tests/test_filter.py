@@ -1,4 +1,5 @@
 import os
+import unittest
 from collections import defaultdict
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -136,3 +137,7 @@ enabled =
         except Exception:
             error = True
         self.assertFalse(error)
+
+
+if __name__ == "__main__":
+    unittest.main()
