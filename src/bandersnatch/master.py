@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import Any, AsyncGenerator, Dict, Optional
+from contextlib import asynccontextmanager
 
 import aiohttp
 from aiohttp_xmlrpc.client import ServerProxy
@@ -49,7 +50,7 @@ class Master:
         await self.session.close()
 
     async def check_for_stale_cache(
-        self, path: str, required_serial: Optional[int], got_serial: Optional[int]
+            self, path: str, required_serial: Optional[int], got_serial: Optional[int]
     ) -> None:
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
@@ -87,7 +88,7 @@ class Master:
                 )
 
     async def get(
-        self, path: str, required_serial: Optional[int], **kw: Any
+            self, path: str, required_serial: Optional[int], **kw: Any
     ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
@@ -124,27 +125,27 @@ class Master:
         await dummy_client.client.close()
         return custom_headers
 
+    @asynccontextmanager
     async def _gen_xmlrpc_client(self) -> ServerProxy:
         custom_headers = await self._gen_custom_headers()
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         client = ServerProxy(
             self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
         )
-        return client
+        try:
+            yield client
+        finally:
+            await client.close()
 
     # TODO: Add an async context manager to aiohttp-xmlrpc to replace this function
     async def rpc(self, method_name: str, serial: int = 0) -> Any:
-        try:
-            client = await self._gen_xmlrpc_client()
+        async with self._gen_xmlrpc_client() as client:
             method = getattr(client, method_name)
             if serial:
                 return await method(serial)
             return await method()
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
-        finally:
-            # TODO: Fix aiohttp-xml so we do not need to call ClientSession's close
-            await client.client.close()
 
     async def all_packages(self) -> Optional[Dict[str, int]]:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
@@ -162,3 +163,4 @@ class Master:
             if serial > packages.get(package, 0):
                 packages[package] = serial
         return packages
+
