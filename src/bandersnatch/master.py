@@ -41,6 +41,7 @@ class Master:
             skip_auto_headers=skip_headers,
             timeout=aiohttp_timeout,
             trust_env=True,
+            raise_for_status=True,
         )
         return self
 
