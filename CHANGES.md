@@ -1,3 +1,11 @@
+## 4.0.2 (2020-4-26)
+
+- Raise for error HTML response on all aiohttp session requests - `PR #494 / #496` - Thanks **@windtail**
+- Pass str to shutil.move due to Python bug - `PR #497` - Thanks **@SanketDG**
+- Some more type hints added to `verify.py` - `PR #488` - Thanks **@SanketDG**
+- Ignore `atime` on stat in test `test_package_sync_does_not_touch_existing_local_file` comparision
+  as it casues stat compare fail on a slower run - `PR #487` - Thanks **@SanketDG**
+
 ## 4.0.1 (2020-4-5)
 
 - Pass correct aiohttp timeout objects - `PR #478`
