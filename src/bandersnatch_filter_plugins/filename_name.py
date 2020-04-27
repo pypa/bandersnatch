@@ -16,6 +16,19 @@ class ExcludePlatformFilter(FilterReleasePlugin):
     _patterns: List[str] = []
     _packagetypes: List[str] = []
 
+    _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
+
+    _linuxPlatformTypes = [
+        "linux-i686",  # PEP 425
+        "linux-x86_64",  # PEP 425
+        "linux_armv7l",  # https://github.com/pypa/warehouse/pull/2010
+        "linux_armv6l",  # https://github.com/pypa/warehouse/pull/2012
+        "manylinux1_i686",  # PEP 513
+        "manylinux1_x86_64",  # PEP 513
+        "manylinux2010_i686",  # PEP 571
+        "manylinux2010_x86_64",  # PEP 571
+    ]
+
     def initialize_plugin(self):
         """
         Initialize the plugin reading patterns from the config.
@@ -39,7 +52,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
             if lplatform in ("windows", "win"):
                 # PEP 425
                 # see also setuptools/package_index.py
-                self._patterns.extend([".win32", "-win32", "win_amd64", "win-amd64"])
+                self._patterns.extend(self._windowsPlatformTypes)
                 # PEP 527
                 self._packagetypes.extend(["bdist_msi", "bdist_wininst"])
 
@@ -52,17 +65,15 @@ class ExcludePlatformFilter(FilterReleasePlugin):
                 self._patterns.extend([".freebsd", "-freebsd"])
 
             elif lplatform in ("linux"):
-                self._patterns.extend(
-                    [
-                        "linux-i686",  # PEP 425
-                        "linux-x86_64",  # PEP 425
-                        "linux_armv7l",  # https://github.com/pypa/warehouse/pull/2010
-                        "linux_armv6l",  # https://github.com/pypa/warehouse/pull/2012
-                        "manylinux1_",  # PEP 513
-                        "manylinux2010_",  # PEP 571
-                    ]
-                )
+                self._patterns.extend(self.linuxPlatformTypes)
                 self._packagetypes.extend(["bdist_rpm"])
+
+            # check for platform specific architectures
+            elif lplatform in self._windowsPlatformTypes:
+                self._patterns.extend([lplatform])
+
+            elif lplatform in self._linuxPlatformTypes:
+                self._patterns.extend([lplatform])
 
         logger.info(f"Initialized {self.name} plugin with {self._patterns!r}")
 
