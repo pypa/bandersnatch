@@ -65,7 +65,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
                 self._patterns.extend([".freebsd", "-freebsd"])
 
             elif lplatform in ("linux"):
-                self._patterns.extend(self.linuxPlatformTypes)
+                self._patterns.extend(self._linuxPlatformTypes)
                 self._packagetypes.extend(["bdist_rpm"])
 
             # check for platform specific architectures
