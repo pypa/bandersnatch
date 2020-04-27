@@ -53,7 +53,9 @@ enabled =
 [blacklist]
 platforms =
     windows
-    freebsd macos
+    freebsd
+    macos
+    linux-armv7l
 """
 
     def test_plugin_compiles_patterns(self):
@@ -65,7 +67,13 @@ platforms =
             type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
         )
 
-    def test_exclude_platform_keep_linux(self):
+    def test_exclude_platform(self):
+        """
+        Tests the platform filter for what it will keep and excluded
+        based on the config provided. It is expected to drop all windows,
+        freebsd and macos packages while only dropping linux-armv7l from
+        linux packages
+        """
         _mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
@@ -104,6 +112,16 @@ platforms =
                     "packagetype": "bdist_wheel",
                     "filename": "foobar-1.0-linux.tar.gz",
                     "flag": "KEEP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foobar-1.0-manylinux1_i686.whl",
+                    "flag": "KEEP",
+                },
+                {
+                    "packagetype": "bdist_wheel",
+                    "filename": "foobar-1.0-linux_armv7l.whl",
+                    "flag": "DROP",
                 },
                 {
                     "packagetype": "bdist_wheel",
