@@ -272,6 +272,9 @@ class SwiftPath(pathlib.Path):
         assert self.BACKEND is not None
         return self.BACKEND
 
+    def touch(self):
+        return self.write_bytes(b"")
+
     def is_dir(self) -> bool:
         target_path = str(self)
         if (
