@@ -69,6 +69,7 @@ class SwiftFileLock(filelock.BaseFileLock):
         return self.backend.exists(self._lock_file)
 
 
+# TODO: Refactor this out into reusable base class?
 class _SwiftAccessor:  # type: ignore
     BACKEND: "SwiftStorage"
 
@@ -98,7 +99,14 @@ class _SwiftAccessor:  # type: ignore
             _, paths = conn.get_container(
                 _SwiftAccessor.BACKEND.default_container, prefix=target, delimiter="/"
             )
-            results = [p.get("name", p.get("subdir")) for p in paths]
+            for p in paths:
+                if "subdir" in p:
+                    result = p["subdir"]
+                    if not str(result).endswith("/"):
+                        result = type(result)(f"{p['subdir']!s}/")
+                else:
+                    result = p["name"]
+                results.append(result)
         return results
 
     @staticmethod
@@ -348,11 +356,11 @@ class SwiftPath(pathlib.Path):
                 # Yielding a path object for these makes little sense
                 continue
             path = self._make_child_relpath(name)
-            if name.endswith("/") and recurse:
+            if not recurse or not str(name).endswith("/") or not path.is_dir():
                 yield path
-                yield from path.iterdir(conn=conn, recurse=recurse)
             else:
                 yield path
+                yield from path.iterdir(conn=conn, recurse=recurse)
 
 
 class SwiftStorage(StoragePlugin):
@@ -521,10 +529,12 @@ class SwiftStorage(StoragePlugin):
             if conn is None:
                 conn = stack.enter_context(self.connection())
             _, paths = conn.get_container(self.default_container, prefix=str(root))
-            results = [SwiftPath(p["name"]) for p in paths]
-            if dirs:
-                results.extend(list({p.parent for p in results}))
-        results.sort()
+            results = []
+            for p in paths:
+                if "subdir" in p and dirs:
+                    results.append(self.PATH_BACKEND(p["subdir"]))
+                else:
+                    results.append(self.PATH_BACKEND(p["name"]))
         return results
 
     def find(self, root: PATH_TYPES, dirs: bool = True) -> str:
