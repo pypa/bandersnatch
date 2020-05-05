@@ -51,7 +51,7 @@ class Storage:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
         try:
-            storage_backend = self.configuration["mirror"]["storage_backend"]
+            storage_backend = self.configuration["mirror"]["storage-backend"]
         except KeyError:
             storage_backend = "filesystem"
         if storage_backend != self.name:
@@ -270,7 +270,7 @@ def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
     enabled_plugin = "filesystem"
     config = BandersnatchConfig().config
     try:
-        enabled_plugin = config["mirror"]["storage_backend"]
+        enabled_plugin = config["mirror"]["storage-backend"]
     except KeyError:
         pass
 

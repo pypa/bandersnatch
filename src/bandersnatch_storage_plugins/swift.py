@@ -360,7 +360,7 @@ class SwiftPath(pathlib.Path):
         assert isinstance(result, bytes)
         return result
 
-    def unlink(self) -> None:
+    def unlink(self, missing_ok=False) -> None:
         self._accessor.unlink(self)
 
     def iterdir(

@@ -868,7 +868,7 @@ class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
     config_contents = """\
 [mirror]
 directory = srv/pypi
-storage_backend = filesystem
+storage-backend = filesystem
 master = https://pypi.org
 json = false
 timeout = 10
