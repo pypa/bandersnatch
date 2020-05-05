@@ -722,12 +722,17 @@ class SwiftStorage(StoragePlugin):
     def mkdir(
         self, path: PATH_TYPES, exist_ok: bool = False, parents: bool = False
     ) -> None:
-        """Create the provided directory"""
-        logger.warning(f"Not creating directory in object storage: {path}")
-        logger.info(
-            "Directories are auto-created in swift storage if they hold content"
+        """
+        Create the provided directory
+
+        This operation is a no-op on swift.
+        """
+        logger.warning(
+            f"Creating directory in object storage: {path} with .swiftkeep file"
         )
-        return
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.PATH_BACKEND(path)
+        return path.joinpath(".swiftkeep").touch()
 
     def rmdir(
         self,
