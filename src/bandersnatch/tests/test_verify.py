@@ -1,4 +1,5 @@
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from shutil import rmtree
@@ -193,3 +194,7 @@ async def test_metadata_verify(monkeypatch):
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
     await metadata_verify(fc, fa)
+
+
+if __name__ == "__main__":
+    pytest.main(sys.argv)

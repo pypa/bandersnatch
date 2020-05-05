@@ -22,6 +22,11 @@ this project.
 
 - If interested contact @cooperlees
 
+`bandersnatch` has it's dependencies kept up to date by **[pyup.io](https://pyup.io/)**!
+
+- If you'd like to have your dependencies kept up to date in your `requirements.txt` or `setup.cfg`,
+  this is the service for you!
+
 ## Installation
 
 The following instructions will place the bandersnatch executable in a
@@ -181,7 +186,6 @@ https://github.com/pypa/bandersnatch/issues/new
 Everyone interacting in the bandersnatch project's codebases, issue trackers,
 chat rooms, and mailing lists is expected to follow the
 [PyPA Code of Conduct](https://www.pypa.io/en/latest/code-of-conduct/).
-
 
 ### Kudos
 

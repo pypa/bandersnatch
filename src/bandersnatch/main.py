@@ -106,7 +106,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         if status_file.exists():
             tmp_status_file = Path(gettempdir()) / "status"
             try:
-                shutil.move(status_file, tmp_status_file)
+                shutil.move(str(status_file), tmp_status_file)
                 logger.debug(
                     "Force bandersnatch to check everything against the master PyPI"
                     + f" - status file moved to {tmp_status_file}"

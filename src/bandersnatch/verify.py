@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import concurrent.futures
 import json
@@ -41,7 +42,7 @@ async def get_latest_json(
     new_json_path = json_path.parent / f"{json_path.name}.new"
     await url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
-        shutil.move(new_json_path, json_path)
+        shutil.move(str(new_json_path), json_path)
     else:
         logger.error(
             f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
@@ -90,14 +91,14 @@ async def delete_unowned_files(
 
 
 async def verify(
-    config,
-    json_file,
-    mirror_base_path,
-    all_package_files,
-    args,
-    executor,
-    releases_key="releases",
-):
+    config: ConfigParser,
+    json_file: str,
+    mirror_base_path: Path,
+    all_package_files: List[Path],
+    args: argparse.Namespace,
+    executor: concurrent.futures.ThreadPoolExecutor,
+    releases_key: str = "releases",
+) -> None:
     json_base = mirror_base_path / "web" / "json"
     json_full_path = json_base / json_file
     loop = asyncio.get_event_loop()
@@ -122,7 +123,7 @@ async def verify(
 
     # apply releases filter plugins like class Package
     for plugin in filter_release_plugins() or []:
-        plugin.filter(pkg["info"], pkg[releases_key])
+        plugin.filter(pkg["info"])
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
@@ -150,7 +151,13 @@ async def verify(
     logger.info(f"Finished validating {json_file}")
 
 
-async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
+async def url_fetch(
+    url: str,
+    file_path: Path,
+    executor: concurrent.futures.ThreadPoolExecutor,
+    chunk_size: int = 65536,
+    timeout: int = 60,
+) -> None:
     logger.info(f"Fetching {url}")
     loop = asyncio.get_event_loop()
 
@@ -177,13 +184,18 @@ async def url_fetch(url, file_path, executor, chunk_size=65536, timeout=60):
 
 
 async def async_verify(
-    config, all_package_files, mirror_base_path, json_files, args, executor
+    config: ConfigParser,
+    all_package_files: List[Path],
+    mirror_base_path: Path,
+    json_files: List[str],
+    args: argparse.Namespace,
+    executor: concurrent.futures.ThreadPoolExecutor,
 ) -> None:
     queue = asyncio.Queue()  # type: Queue
     for jf in json_files:
         queue.put_nowait(jf)
 
-    async def consume(q: Queue):
+    async def consume(q: Queue) -> None:
         while not q.empty():
             json_file = q.get_nowait()
             await verify(

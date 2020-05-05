@@ -69,3 +69,13 @@ async def test_master_doesnt_raise_if_serial_equal(master):
 async def test_xmlrpc_user_agent(master):
     client = await master._gen_xmlrpc_client()
     assert f"bandersnatch {bandersnatch.__version__}" in client.headers["User-Agent"]
+
+
+@pytest.mark.asyncio
+async def test_session_raise_for_status(master):
+    patcher = asynctest.patch("aiohttp.ClientSession", autospec=True)
+    with patcher as create_session:
+        async with master:
+            pass
+        assert len(create_session.call_args_list) == 1
+        assert create_session.call_args_list[0][1]["raise_for_status"]
