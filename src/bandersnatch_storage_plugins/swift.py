@@ -636,7 +636,7 @@ class SwiftStorage(StoragePlugin):
     def copy_local_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
         """Copy the contents of a local file to a destination in swift"""
         with open(source, "rb") as fh:
-            self.write_file(str(dest), fh)
+            self.write_file(str(dest), fh.read())
         return
 
     def copy_file(
