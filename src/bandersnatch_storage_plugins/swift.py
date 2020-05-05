@@ -742,20 +742,21 @@ class SwiftStorage(StoragePlugin):
         ignore_errors: bool = False,
         dry_run: bool = False,
     ) -> int:
-        """Remove the directory. If recurse is True, allow removing empty children.
-        If force is true, remove contents destructively."""
+        """
+        Remove the directory. If recurse is True, allow removing empty children.
+
+        If force is true, remove contents destructively.
+        """
         if not force:
             raise OSError(
                 "Object container directories are auto-destroyed when they are emptied"
             )
-        if not isinstance(path, SwiftPath):
-            path = SwiftPath(path)
         target_path = str(path)
         if target_path == ".":
             target_path = ""
         log_prefix = "[DRY RUN] " if dry_run else ""
         with self.connection() as conn:
-            for item in self.walk(root=path):
+            for item in self.walk(root=target_path):
                 logger.info(f"{log_prefix}Deleting item from object storage: {item}")
                 if not dry_run:
                     conn.delete_object(self.default_container, str(item))
