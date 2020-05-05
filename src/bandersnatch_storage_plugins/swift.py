@@ -145,8 +145,10 @@ class _SwiftAccessor:  # type: ignore
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
-    def symlink(a, b, target_is_directory):
-        return _SwiftAccessor.BACKEND.copy_file(a, b)
+    def symlink(a, b, src_container=None, src_account=None):
+        return _SwiftAccessor.BACKEND.symlink(
+            a, b, src_container=src_container, src_account=src_account
+        )
 
     @staticmethod
     def utime(target):
@@ -323,6 +325,21 @@ class SwiftPath(pathlib.Path):
             str(self), contents=contents, encoding=encoding, errors=errors
         )
         return 0
+
+    def symlink_to(
+        self, src, target_is_directory=False, src_container=None, src_account=None
+    ):
+        """
+        Make this path a symlink pointing to the given path.
+        Note the order of arguments (self, target) is the reverse of os.symlink's.
+        """
+        self._accessor.symlink(
+            src,
+            self,
+            target_is_directory=target_is_directory,
+            src_account=src_account,
+            src_container=src_container,
+        )
 
     def write_bytes(
         self,
@@ -791,3 +808,30 @@ class SwiftStorage(StoragePlugin):
     def get_hash(self, path: str, function: str = "sha256") -> str:
         h = getattr(hashlib, function)(self.read_file(path, text=False))
         return h.hexdigest()
+
+    def symlink(
+        self,
+        src: PATH_TYPES,
+        dest: PATH_TYPES,
+        src_container: Optional[str] = None,
+        src_account: Optional[str] = None,
+    ):
+        with self.connection() as conn:
+            if src_container is None:
+                src_container = self.default_container
+            src_path = str(src)
+            if not src_path.lstrip("/").startswith(src_container):
+                src_path = f"{src_container}/{src_path.lstrip('/')}"
+            headers = {
+                "X-Symlink-Target": src_path,
+            }
+            if src_account is not None:
+                headers["X-Symlink-Target-Account"] = src_account
+            return conn.put_object(
+                self.default_container,
+                str(dest),
+                b"",
+                content_length=0,
+                content_type="application/symlink",
+                headers=headers,
+            )
