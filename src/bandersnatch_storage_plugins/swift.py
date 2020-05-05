@@ -11,6 +11,7 @@ import sys
 import tempfile
 from typing import IO, Any, Dict, Generator, List, Optional, Type, Union
 
+import filelock
 import keystoneauth1  # type: ignore
 import keystoneauth1.exceptions.catalog  # type: ignore
 import keystoneauth1.identity  # type: ignore
@@ -24,6 +25,48 @@ logger = logging.getLogger("bandersnatch")
 
 # See https://stackoverflow.com/a/8571649 for explanation
 BASE64_RE = re.compile(b"^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$")
+
+
+class SwiftFileLock(filelock.BaseFileLock):
+    """
+    Simply watches the existence of the lock file.
+    """
+
+    def __init__(self, lock_file, timeout=-1, backend=None):
+        # The path to the lock file.
+        self.backend = backend
+        super().__init__(lock_file, timeout=timeout)
+
+    def _acquire(self):
+        try:
+            logging.info("Attempting to acquire lock")
+            fd = self.backend.PATH_BACKEND(self._lock_file)
+            fd.write_bytes(b"")
+        except OSError as exc:
+            logging.error("Failed to acquire lock...")
+            logging.exception(f"Exception: ", exc)
+            pass
+        else:
+            logging.info(f"Acquired lock: {self._lock_file}")
+            self._lock_file_fd = fd
+        return None
+
+    def _release(self):
+        self._lock_file_fd = None
+        try:
+            logging.info(f"Removing lock: {self._lock_file}")
+            self.backend.PATH_BACKEND(self._lock_file).unlink()
+        except OSError as exc:
+            logging.error("Failed to remove lockfile")
+            logging.exception(f"Exception: ", exc)
+            pass
+        else:
+            logging.info("Successfully cleaned up lock")
+        return None
+
+    @property
+    def is_locked(self):
+        return self.backend.exists(self._lock_file)
 
 
 class _SwiftAccessor:  # type: ignore
@@ -376,6 +419,16 @@ class SwiftStorage(StoragePlugin):
         _SwiftAccessor.register_backend(self)
         global _swift_accessor
         _swift_accessor = _SwiftAccessor
+
+    def get_lock(self, path: str) -> SwiftFileLock:
+        """
+        Retrieve the appropriate `FileLock` backend for this storage plugin
+
+        :param str path: The path to use for locking
+        :return: A `FileLock` backend for obtaining locks
+        :rtype: SwiftFileLock
+        """
+        return SwiftFileLock(path, backend=self)
 
     def _test_connection(self) -> None:
         with self.connection() as conn:

@@ -8,6 +8,8 @@ import shutil
 import tempfile
 from typing import IO, Any, Dict, Generator, List, Optional, Type, Union
 
+import filelock
+
 from bandersnatch.storage import PATH_TYPES, StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
@@ -16,6 +18,16 @@ logger = logging.getLogger("bandersnatch")
 class FilesystemStorage(StoragePlugin):
     name = "filesystem"
     PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
+
+    def get_lock(self, path: str) -> filelock.FileLock:
+        """
+        Retrieve the appropriate `FileLock` backend for this storage plugin
+
+        :param str path: The path to use for locking
+        :return: A `FileLock` backend for obtaining locks
+        :rtype: SwiftFileLock
+        """
+        return filelock.FileLock(path)
 
     def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[pathlib.Path]:
         if not isinstance(root, pathlib.Path):

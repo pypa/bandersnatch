@@ -21,6 +21,7 @@ from typing import (
     Union,
 )
 
+import filelock
 import pkg_resources
 from packaging.utils import canonicalize_name
 
@@ -65,11 +66,22 @@ class Storage:
         self.json_base_path = self.web_base_path / "json"
         self.pypi_base_path = self.web_base_path / "pypi"
         self.simple_base_path = self.web_base_path / "simple"
+        self.flock_path: Optional[PATH_TYPES] = None
         self.initialize_plugin()
 
     @staticmethod
     def canonicalize_package(name: str) -> str:
         return canonicalize_name(name)
+
+    def get_lock(self, path: str) -> filelock.BaseFileLock:
+        """
+        Retrieve the appropriate `FileLock` backend for this storage plugin
+
+        :param str path: The path to use for locking
+        :return: A `FileLock` backend for obtaining locks
+        :rtype: filelock.BaseFileLock
+        """
+        raise NotImplementedError
 
     def get_json_paths(self, name: str) -> Sequence[PATH_TYPES]:
         canonicalized_name = self.canonicalize_package(name)
@@ -80,6 +92,9 @@ class Storage:
         if canonicalized_name != name:
             paths.append(self.json_base_path / name)
         return paths
+
+    def get_flock_path(self) -> PATH_TYPES:
+        raise NotImplementedError
 
     def initialize_plugin(self) -> None:
         """

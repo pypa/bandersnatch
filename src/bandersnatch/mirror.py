@@ -9,7 +9,7 @@ from threading import RLock
 from typing import Awaitable, Dict, List, Set, Union
 from unittest.mock import Mock
 
-from filelock import FileLock, Timeout
+from filelock import Timeout
 from packaging.utils import canonicalize_name
 
 from .filter import filter_project_plugins, filter_release_plugins
@@ -73,6 +73,7 @@ class Mirror:
         self.loop = asyncio.get_event_loop()
         self.storage_backend = next(iter(storage_backend_plugins()))
         self.homedir = self.storage_backend.PATH_BACKEND(homedir)
+        self.lockfile_path = os.path.join(homedir, ".lock")
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
@@ -354,15 +355,14 @@ class Mirror:
                 logger.info(f"Setting up mirror directory: {path}")
                 path.mkdir(parents=True)
 
-        flock_path = self.homedir / ".lock"
-        flock = FileLock(str(flock_path))
+        flock = self.storage_backend.get_lock(self.lockfile_path)
         try:
             with flock.acquire(timeout=flock_timeout):
                 self._cleanup()
                 self._load()
         except Timeout:
             raise RuntimeError(
-                f"Could not acquire lock on {flock_path}. "
+                f"Could not acquire lock on {self.lockfile_path}. "
                 + "Another instance could be running?"
             )
 
