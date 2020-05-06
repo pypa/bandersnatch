@@ -8,6 +8,7 @@ from typing import Any, Dict
 import pytest
 
 import bandersnatch.mirror
+import bandersnatch.storage
 from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
 
@@ -69,6 +70,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock):
         "json_save": False,
         "digest_name": "sha256",
         "keep_index_versions": 0,
+        "storage_backend": "filesystem",
         "diff_file": "/tmp/pypi/mirrored-files",
         "diff_append_epoch": False,
         "diff_full_path": "/tmp/pypi/mirrored-files",

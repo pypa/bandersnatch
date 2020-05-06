@@ -1,4 +1,5 @@
 import base64
+import configparser
 import contextlib
 import datetime
 import hashlib
@@ -387,6 +388,13 @@ class SwiftStorage(StoragePlugin):
     name = "swift"
     PATH_BACKEND = SwiftPath
 
+    @property
+    def directory(self):
+        try:
+            return self.configuration.get("mirror", "directory")
+        except configparser.NoOptionError:
+            return "srv/pypi"
+
     def get_config_value(
         self, config_key: str, *env_keys: Any, default: Optional[str] = None
     ) -> Optional[str]:
@@ -448,7 +456,7 @@ class SwiftStorage(StoragePlugin):
         global _swift_accessor
         _swift_accessor = _SwiftAccessor
 
-    def get_lock(self, path: str) -> SwiftFileLock:
+    def get_lock(self, path: str = None) -> SwiftFileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -456,6 +464,8 @@ class SwiftStorage(StoragePlugin):
         :return: A `FileLock` backend for obtaining locks
         :rtype: SwiftFileLock
         """
+        if path is None:
+            path = str(self.mirror_base_path / ".lock")
         return SwiftFileLock(path, backend=self)
 
     def _test_connection(self) -> None:

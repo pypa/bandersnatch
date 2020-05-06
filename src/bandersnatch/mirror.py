@@ -55,6 +55,7 @@ class Mirror:
         self,
         homedir,
         master,
+        storage_backend=None,
         stop_on_error=False,
         workers=3,
         hash_index=False,
@@ -70,8 +71,11 @@ class Mirror:
         *,
         cleanup=False,
     ):
+        if storage_backend:
+            self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
+        else:
+            self.storage_backend = next(iter(storage_backend_plugins()))
         self.loop = asyncio.get_event_loop()
-        self.storage_backend = next(iter(storage_backend_plugins()))
         self.homedir = self.storage_backend.PATH_BACKEND(homedir)
         self.lockfile_path = os.path.join(homedir, ".lock")
         self.master = master
@@ -422,7 +426,6 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
-    storage_plugin = next(iter(storage_backend_plugins()))
 
     # `json` boolean is a new optional option in 2.1.2 - want to support it
     # not existing in old configs and display an error saying that this will
@@ -450,6 +453,25 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
     except configparser.NoOptionError:
         diff_append_epoch = False
+
+    try:
+        logging.debug(f"Checking config for storage backend...")
+        storage_backend_name = config.get("mirror", "storage-backend")
+        logging.debug(f"Found storage backend in config!")
+    except configparser.NoOptionError:
+        storage_backend_name = "filesystem"
+        logging.debug(
+            "Failed to find storage backend in config, falling back to default!"
+        )
+    logging.info(f"Selected storage backend: {storage_backend_name}")
+
+    storage_plugin = next(
+        iter(
+            storage_backend_plugins(
+                storage_backend_name, config=config, clear_cache=True
+            )
+        )
+    )
 
     diff_full_path: Union[str, Path]
     if diff_file:
@@ -495,6 +517,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         mirror = Mirror(
             config.get("mirror", "directory"),
             master,
+            storage_backend=storage_backend_name,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
             hash_index=config.getboolean("mirror", "hash-index"),
@@ -506,7 +529,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
             ),
             diff_file=diff_file,
             diff_append_epoch=diff_append_epoch,
-            diff_full_path=diff_full_path,
+            diff_full_path=str(diff_full_path) if diff_full_path else None,
             cleanup=cleanup,
         )
 

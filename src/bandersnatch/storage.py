@@ -48,26 +48,56 @@ class Storage:
     name = "storage"
     PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.configuration = BandersnatchConfig().config
+    def __init__(
+        self, *args: Any, config: configparser.ConfigParser = None, **kwargs: Any
+    ) -> None:
+        self.flock_path: PATH_TYPES = ".lock"
+        if config is not None:
+            if isinstance(config, BandersnatchConfig):
+                config = config.config
+            self.configuration = config
+        else:
+            self.configuration = BandersnatchConfig().config
         try:
             storage_backend = self.configuration["mirror"]["storage-backend"]
         except KeyError:
             storage_backend = "filesystem"
         if storage_backend != self.name:
             return
+        # register relevant path backends etc
+        self.initialize_plugin()
         try:
             self.mirror_base_path = self.PATH_BACKEND(
                 self.configuration.get("mirror", "directory")
             )
-        except configparser.NoSectionError:
-            self.mirror_base_path = self.PATH_BACKEND("/srv/pypi")
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            self.mirror_base_path = self.PATH_BACKEND(".")
         self.web_base_path = self.mirror_base_path / "web"
         self.json_base_path = self.web_base_path / "json"
         self.pypi_base_path = self.web_base_path / "pypi"
         self.simple_base_path = self.web_base_path / "simple"
-        self.flock_path: Optional[PATH_TYPES] = None
-        self.initialize_plugin()
+
+    def __str__(self):
+        return (
+            f"{self.__class__.__name__}(name={self.name}, "
+            f"mirror_base_path={self.mirror_base_path!s})"
+        )
+
+    def __repr__(self):
+        return (
+            f"<{self.__class__.__name__} object: {self.name} @ "
+            f"{self.mirror_base_path!s}>"
+        )
+
+    def __hash__(self):
+        return hash((self.name, str(self.directory), str(self.flock_path)))
+
+    @property
+    def directory(self):
+        try:
+            return self.configuration.get("mirror", "directory")
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            return "/srv/pypi"
 
     @staticmethod
     def canonicalize_package(name: str) -> str:
@@ -252,7 +282,12 @@ class StoragePlugin(Storage):
     name = "storage_plugin"
 
 
-def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
+def load_storage_plugins(
+    entrypoint_group: str,
+    enabled_plugin: Optional[str] = None,
+    config: Optional[configparser.ConfigParser] = None,
+    clear_cache: bool = False,
+) -> Set[Storage]:
     """
     Load all storage plugins that are registered with pkg_resources
 
@@ -260,6 +295,12 @@ def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
     ==========
     entrypoint_group: str
         The entrypoint group name to load plugins from
+    enabled_plugin: str
+        The optional enabled storage plugin to search for
+    config: configparser.ConfigParser
+        The optional configparser instance to pass in
+    clear_cache: bool
+        Whether to clear the plugin cache
 
     Returns
     =======
@@ -267,12 +308,22 @@ def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
         A list of objects derived from the Storage class
     """
     global loaded_storage_plugins
-    enabled_plugin = "filesystem"
-    config = BandersnatchConfig().config
-    try:
-        enabled_plugin = config["mirror"]["storage-backend"]
-    except KeyError:
-        pass
+    if config is None:
+        config = BandersnatchConfig().config
+    if not enabled_plugin:
+        try:
+            enabled_plugin = config["mirror"]["storage-backend"]
+            logger.info(f"Loading storage plugin: {enabled_plugin}")
+        except KeyError:
+            enabled_plugin = "filesystem"
+            logger.info(
+                "Failed to find configured storage backend, using default: "
+                f"{enabled_plugin}"
+            )
+            pass
+
+    if clear_cache:
+        loaded_storage_plugins = defaultdict(list)
 
     # If the plugins for the entrypoint_group have been loaded return them
     cached_plugins = loaded_storage_plugins.get(entrypoint_group)
@@ -282,7 +333,7 @@ def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
     plugins = set()
     for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
         plugin_class = entry_point.load()
-        plugin_instance = plugin_class()
+        plugin_instance = plugin_class(config=config)
         if plugin_instance.name == enabled_plugin:
             plugins.add(plugin_instance)
 
@@ -291,13 +342,31 @@ def load_storage_plugins(entrypoint_group: str) -> Set[Storage]:
     return plugins
 
 
-def storage_backend_plugins() -> Iterable[Storage]:
+def storage_backend_plugins(
+    backend: Optional[str] = "filesystem",
+    config: Optional[configparser.ConfigParser] = None,
+    clear_cache: bool = False,
+) -> Iterable[Storage]:
     """
     Load and return the release filtering plugin objects
+
+    Parameters
+    ==========
+    backend: str
+        The optional enabled storage plugin to search for
+    config: configparser.ConfigParser
+        The optional configparser instance to pass in
+    clear_cache: bool
+        Whether to clear the plugin cache
 
     Returns
     -------
     list of bandersnatch.storage.Storage:
         List of objects derived from the bandersnatch.storage.Storage class
     """
-    return load_storage_plugins(STORAGE_PLUGIN_RESOURCE)
+    return load_storage_plugins(
+        STORAGE_PLUGIN_RESOURCE,
+        enabled_plugin=backend,
+        config=config,
+        clear_cache=clear_cache,
+    )

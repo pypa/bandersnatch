@@ -19,18 +19,21 @@ logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
 def delete_path(blob_path: Path, dry_run: bool = False) -> int:
-    storage_backends = storage_backend_plugins()
-    for backend in storage_backends:
-        try:
-            backend.delete(blob_path, dry_run=dry_run)
-        except FileNotFoundError:
-            # Due to using threads in executors we sometimes have a
-            # race condition if canonicalize_name == passed in name
-            pass
-        except OSError:
-            logger.exception(f"Unable to delete {blob_path}")
-            return 1
-
+    storage_backend = next(iter(storage_backend_plugins()))
+    if dry_run:
+        logger.info(f" rm {blob_path}")
+    if not storage_backend.exists(blob_path):
+        logger.debug(f"{blob_path} does not exist. Skipping")
+        return 0
+    try:
+        storage_backend.delete(blob_path, dry_run=dry_run)
+    except FileNotFoundError:
+        # Due to using threads in executors we sometimes have a
+        # race condition if canonicalize_name == passed in name
+        pass
+    except OSError:
+        logger.exception(f"Unable to delete {blob_path}")
+        return 1
     return 0
 
 
@@ -38,7 +41,9 @@ async def delete_packages(config: ConfigParser, args: Namespace) -> int:
     loop = asyncio.get_event_loop()
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
-    storage_backend = next(iter(storage_backend_plugins()))
+    storage_backend = next(
+        iter(storage_backend_plugins(config=config, clear_cache=True))
+    )
     web_base_path = storage_backend.web_base_path
     json_base_path = storage_backend.json_base_path
     pypi_base_path = storage_backend.pypi_base_path

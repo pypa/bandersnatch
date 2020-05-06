@@ -19,7 +19,10 @@ class FilesystemStorage(StoragePlugin):
     name = "filesystem"
     PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
-    def get_lock(self, path: str) -> filelock.FileLock:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_lock(self, path: str = None) -> filelock.FileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -27,6 +30,8 @@ class FilesystemStorage(StoragePlugin):
         :return: A `FileLock` backend for obtaining locks
         :rtype: SwiftFileLock
         """
+        if path is None:
+            path = str(self.mirror_base_path / self.flock_path)
         return filelock.FileLock(path)
 
     def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[pathlib.Path]:
