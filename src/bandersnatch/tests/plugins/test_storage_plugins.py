@@ -10,7 +10,6 @@ import shutil
 import sys
 import tempfile
 import unittest
-from collections import defaultdict
 from typing import Any, Dict, Optional, Union
 from unittest import TestCase, mock
 
@@ -19,7 +18,7 @@ from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
-from bandersnatch_storage_plugins import filesystem
+from bandersnatch_storage_plugins import filesystem, swift
 
 BASE_SAMPLE_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample"
@@ -102,6 +101,13 @@ def get_swift_date(date):
 
 
 class MockConnection:
+    """
+    Compatible class to provide local files over the swift interface.
+
+    This is used to mock out the swift interface for testing against the
+    storage plugin system.
+    """
+
     def __init__(self, *args, **kwargs):
         self.tmpdir = kwargs.pop("tmpdir", None)
         if not self.tmpdir:
@@ -161,9 +167,6 @@ class MockConnection:
         try:
             max_date = max(path.stat().st_mtime, path.stat().st_ctime)
             current_timestamp = get_swift_object_date(datetime.datetime.now())
-            date_field = get_swift_object_date(
-                datetime.datetime.fromtimestamp(path.stat().st_mtime)
-            )
             path_contents = path.read_bytes()
         except Exception:
             from swiftclient.exceptions import ClientException
@@ -354,12 +357,12 @@ class BasePluginTestCase(TestCase):
 
     tempdir = None
     cwd = None
-    backend = "filesystem"
+    backend: Optional[str] = None
 
     config_contents = """\
 [mirror]
 directory = srv/pypi
-storage_backend = {0}
+storage-backend = {0}
 master = https://pypi.org
 json = false
 timeout = 10
@@ -374,29 +377,61 @@ workers = 3
 """
 
     def setUp(self):
+        if self.backend is None:
+            raise unittest.SkipTest("Skipping base test case")
         self.cwd = os.getcwd()
         self.tempdir = tempfile.TemporaryDirectory()
         self.pkgs = []
         self.container = None
-        if self.backend == "swift":
-            mirror_path = "srv/pypi"
-            self.container = "bandersnatch"
-            self.setUp_swift()
-        _mock_config(self.config_contents.format(self.backend))
-        bandersnatch.storage.loaded_storage_plugins = defaultdict(list)
+        self.config_data = _mock_config(self.config_contents.format(self.backend))
         os.chdir(self.tempdir.name)
-        self.setUp_mirrorDirs()
-        mirror_path = self.mirror_base_path if self.backend != "swift" else mirror_path
+        self.setUp_backEnd()
+        self.setUp_plugin()
+        self.setUp_mirror()
+        self.setUp_Structure()
+
+    def setUp_dirs(self):
+        self.web_base_path = os.path.join(self.mirror_base_path, "web")
+        self.json_base_path = os.path.join(self.web_base_path, "json")
+        self.pypi_base_path = os.path.join(self.web_base_path, "pypi")
+        self.simple_base_path = os.path.join(self.web_base_path, "simple")
+        paths = (self.json_base_path, self.pypi_base_path, self.simple_base_path)
+        for path in paths:
+            os.makedirs(path, exist_ok=True)
+
+    def setUp_backEnd(self):
+        pypi_dir = mirror_path = "srv/pypi"
+        if self.backend == "swift":
+            self.container = "bandersnatch"
+            pypi_dir = f"{self.container}/{pypi_dir}"
+            self.setUp_swift()
+        self.mirror_base_path = os.path.join(self.tempdir.name, pypi_dir)
+        self.setUp_dirs()
         target_sample_file = "sample"
         if self.container is not None:
             target_sample_file = f"{self.container}/{target_sample_file}"
         self.sample_file = os.path.join(self.tempdir.name, target_sample_file)
         shutil.copy(BASE_SAMPLE_FILE, self.sample_file)
-        self.mirror = Mirror(mirror_path, Master(url="https://foo.bar.com"))
+        if self.backend == "swift":
+            self.mirror_path = mirror_path
+        else:
+            self.mirror_path = self.mirror_base_path
+
+    def setUp_mirror(self):
+        self.mirror = Mirror(self.mirror_path, Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, self.mirror)
         pkg.info = {"name": "foobar", "version": "1.0"}
         pkg.releases = mock.Mock()
         self.pkgs.append(pkg)
+
+    def setUp_plugin(self):
+        self.plugin = next(
+            iter(
+                bandersnatch.storage.storage_backend_plugins(
+                    self.backend, clear_cache=True
+                )
+            )
+        )
 
     def setUp_mirrorDirs(self):
         pypi_dir = (
@@ -410,7 +445,6 @@ workers = 3
         os.makedirs(self.json_base_path, exist_ok=True)
         os.makedirs(self.pypi_base_path, exist_ok=True)
         os.makedirs(self.simple_base_path, exist_ok=True)
-        self.setUp_Structure()
 
     def setUp_swift(self):
         self.setUp_swiftVars()
@@ -512,15 +546,26 @@ workers = 3
 
 
 class BaseStoragePluginTestCase(BasePluginTestCase):
+    plugin_map = {
+        "filesystem": filesystem.FilesystemStorage,
+        "swift": swift.SwiftStorage,
+    }
+    path_backends = {
+        "filesystem": pathlib.Path,
+        "swift": swift.SwiftPath,
+    }
+
     base_find_contents = """\
 .lock
 generation
 sample
+status
 web
 web{0}json
 web{0}last-modified
 web{0}local-stats
 web{0}local-stats{0}days
+web{0}local-stats{0}days{0}.swiftkeep
 web{0}packages
 web{0}packages{0}2.7
 web{0}packages{0}2.7{0}f
@@ -542,11 +587,13 @@ web{0}simple{0}index.html""".format(
         os.sep
     )
 
+    def test_plugin_type(self):
+        self.assertTrue(isinstance(self.plugin, self.plugin_map[self.backend]))
+        self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
+
     def test_json_paths(self):
         config = _mock_config(self.config_contents).config
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        mirror_dir = plugin.PATH_BACKEND(config.get("mirror", "directory"))
+        mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [
                 mirror_dir / "web/json/bandersnatch",
@@ -556,12 +603,9 @@ web{0}simple{0}index.html""".format(
         }
         for name, json_paths in packages.items():
             with self.subTest(name=name, json_paths=json_paths):
-                self.assertEqual(plugin.get_json_paths(name), json_paths)
+                self.assertEqual(self.plugin.get_json_paths(name), json_paths)
 
     def test_canonicalize_package(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         packages = (
             ("SQLAlchemy", "sqlalchemy"),
             ("mypy_extensions", "mypy-extensions"),
@@ -571,13 +615,10 @@ web{0}simple{0}index.html""".format(
         )
         for name, normalized in packages:
             with self.subTest(name=name, normalized=normalized):
-                self.assertEqual(plugin.canonicalize_package(name), normalized)
+                self.assertEqual(self.plugin.canonicalize_package(name), normalized)
 
     def test_hash_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        path = plugin.PATH_BACKEND(self.sample_file)
+        path = self.plugin.PATH_BACKEND(self.sample_file)
         hashes = (
             ("md5", "125765989403df246cecb48fa3e87ff8"),
             (
@@ -587,12 +628,13 @@ web{0}simple{0}index.html""".format(
         )
         for hash_func, hash_val in hashes:
             with self.subTest(hash_func=hash_func, hash_val=hash_val):
-                self.assertEqual(plugin.hash_file(path, function=hash_func), hash_val)
+                self.assertEqual(
+                    self.plugin.hash_file(path, function=hash_func), hash_val
+                )
 
     def test_iter_dir(self):
-        _mock_config(self.config_contents)
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        base_path = plugin.PATH_BACKEND(self.simple_base_path)
+
+        base_path = self.plugin.PATH_BACKEND(self.simple_base_path)
         lists = [
             [base_path.joinpath("foobar"), True],
             [base_path.joinpath("index.html"), False,],
@@ -601,40 +643,31 @@ web{0}simple{0}index.html""".format(
         self.assertListEqual(list(base_path.iterdir()), [elem[0] for elem in lists])
         for expected, is_dir in lists:
             with self.subTest(is_dir=is_dir, produced_path=expected):
-                self.assertIs(is_dir, plugin.is_dir(expected))
+                self.assertIs(is_dir, self.plugin.is_dir(expected))
                 if is_dir is False:
-                    self.assertIs(True, plugin.is_file(expected))
+                    self.assertIs(True, self.plugin.is_file(expected))
 
     def test_rewrite(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         target_file = os.path.join(self.mirror_base_path, "example.txt")
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with plugin.rewrite(target_file) as fh:
+        with self.plugin.rewrite(target_file) as fh:
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
 
     def test_update_safe(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         target_file = os.path.join(self.mirror_base_path, "example.txt")
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with plugin.update_safe(target_file, mode="w") as fh:
+        with self.plugin.update_safe(target_file, mode="w") as fh:
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
 
     def test_compare_files(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         target_file1 = os.path.join(self.mirror_base_path, "cmp_example1.txt")
         target_file2 = os.path.join(self.mirror_base_path, "cmp_example2.txt")
         target_file3 = os.path.join(self.mirror_base_path, "cmp_example3.txt")
@@ -652,26 +685,22 @@ web{0}simple{0}index.html""".format(
         for cmp_file1, cmp_file2, rv in comparisons:
             with self.subTest(cmp_file1=cmp_file1, cmp_file2=cmp_file2, rv=rv):
                 msg = "file1 contents: {}\n\nfile2 contents: {}".format(
-                    plugin.read_file(cmp_file1), plugin.read_file(cmp_file2)
+                    self.plugin.read_file(cmp_file1), self.plugin.read_file(cmp_file2)
                 )
-                self.assertTrue(plugin.compare_files(cmp_file1, cmp_file2) is rv, msg)
+                self.assertTrue(
+                    self.plugin.compare_files(cmp_file1, cmp_file2) is rv, msg
+                )
         for fn in files:
             os.unlink(fn)
 
     def test_find(self):
-        _mock_config(self.config_contents)
         base_path = self.mirror_base_path
         if self.backend == "swift":
             base_path = base_path.lstrip("/")
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        self.assertEqual(self.base_find_contents, plugin.find(base_path))
+        self.assertEqual(self.base_find_contents, self.plugin.find(base_path))
 
     def test_open_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
+        self.plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
         rvs = (
             (
                 os.path.join(self.web_base_path, "simple/index.html"),
@@ -690,33 +719,29 @@ web{0}simple{0}index.html""".format(
         )
         for path, rv in rvs:
             with self.subTest(path=path, rv=rv):
-                with plugin.open_file(path, text=True) as fh:
+                with self.plugin.open_file(path, text=True) as fh:
                     self.assertEqual(fh.read(), rv)
 
     def test_write_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         data = ["this is some text", b"this is some text"]
         tmp_path = os.path.join(self.mirror_base_path, "test_write_file.txt")
         for write_val in data:
             with self.subTest(write_val=write_val):
-                plugin.write_file(tmp_path, write_val)
+                self.plugin.write_file(tmp_path, write_val)
                 if not isinstance(write_val, str):
-                    rv = plugin.PATH_BACKEND(tmp_path).read_bytes()
+                    rv = self.plugin.PATH_BACKEND(tmp_path).read_bytes()
                 else:
-                    rv = plugin.PATH_BACKEND(tmp_path).read_text()
+                    rv = self.plugin.PATH_BACKEND(tmp_path).read_text()
                 self.assertEqual(rv, write_val)
         os.unlink(tmp_path)
 
     def test_read_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
+        self.plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
         rvs = (
             (
-                plugin.PATH_BACKEND(self.web_base_path).joinpath("simple/index.html"),
+                self.plugin.PATH_BACKEND(self.web_base_path).joinpath(
+                    "simple/index.html"
+                ),
                 """\
 <!DOCTYPE html>
 <html>
@@ -728,20 +753,17 @@ web{0}simple{0}index.html""".format(
   </body>
 </html>""",
             ),
-            (plugin.PATH_BACKEND(self.mirror_base_path).joinpath("status"), "20"),
+            (self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath("status"), "20"),
         )
         for path, rv in rvs:
             with self.subTest(path=path, rv=rv):
-                self.assertEqual(plugin.read_file(path), rv)
+                self.assertEqual(self.plugin.read_file(path), rv)
 
     def test_delete(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        delete_path = plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
+        delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
-        delete_dir = plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
+        delete_dir = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete_dir"
         )
         delete_dir.mkdir()
@@ -749,108 +771,96 @@ web{0}simple{0}index.html""".format(
         for path in [delete_path, delete_dir]:
             with self.subTest(path=path):
                 self.assertTrue(path.exists())
-                plugin.delete(path)
+                self.plugin.delete(path)
                 self.assertFalse(path.exists())
 
     def test_delete_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        delete_path = plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
+        delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
         print(f"delete path: {delete_path!r}")
         delete_path.touch()
         self.assertTrue(delete_path.exists())
-        plugin.delete_file(delete_path)
+        self.plugin.delete_file(delete_path)
         self.assertFalse(delete_path.exists())
 
     def test_copy_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         file_content = "this is some data"
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
         with tempfile.NamedTemporaryFile(mode="w") as tf:
             tf.write(file_content)
             tf.flush()
-            plugin.copy_file(tf.name, dest_file)
+            self.plugin.copy_file(tf.name, dest_file)
         with open(dest_file) as fh:
             copied_content = fh.read()
         os.unlink(dest_file)
         self.assertEqual(copied_content, file_content)
 
     def test_mkdir(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        plugin.mkdir(os.path.join(self.mirror_base_path, "test_dir"))
+        self.plugin.mkdir(os.path.join(self.mirror_base_path, "test_dir"))
         self.assertTrue(
-            plugin.PATH_BACKEND(
+            self.plugin.PATH_BACKEND(
                 os.path.join(self.mirror_base_path, "test_dir")
             ).exists()
         )
-        plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")).rmdir()
+        self.plugin.PATH_BACKEND(
+            os.path.join(self.mirror_base_path, "test_dir")
+        ).rmdir()
 
     def test_rmdir(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")).mkdir()
-        assert plugin.PATH_BACKEND(
+        self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir")
-        ).exists()
-        plugin.rmdir(
-            plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir"))
+        ).mkdir()
+        self.assertTrue(
+            self.plugin.PATH_BACKEND(
+                os.path.join(self.mirror_base_path, "test_dir")
+            ).exists()
+        )
+        self.plugin.rmdir(
+            self.plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir"))
         )
         self.assertFalse(
-            plugin.PATH_BACKEND(
+            self.plugin.PATH_BACKEND(
                 os.path.join(self.mirror_base_path, "test_dir")
             ).exists()
         )
 
     def test_is_dir(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")).mkdir()
+        self.plugin.PATH_BACKEND(
+            os.path.join(self.mirror_base_path, "test_dir")
+        ).mkdir()
         self.assertTrue(
-            plugin.is_dir(
-                plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir"))
+            self.plugin.is_dir(
+                self.plugin.PATH_BACKEND(
+                    os.path.join(self.mirror_base_path, "test_dir")
+                )
             )
         )
-        plugin.rmdir(
-            plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")),
+        self.plugin.rmdir(
+            self.plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")),
             force=True,
         )
 
     def test_is_file(self):
-        _mock_config(self.config_contents)
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        delete_path = plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
+        delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
         delete_path.touch()
-        self.assertTrue(plugin.is_file(delete_path))
+        self.assertTrue(self.plugin.is_file(delete_path))
         delete_path.unlink()
 
     def test_symlink(self):
-        _mock_config(self.config_contents)
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         file_content = "this is some text"
-        test_path = plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
+        test_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "symlink_file.txt"
         )
         test_path.write_text(file_content)
         symlink_dest = test_path.parent.joinpath("symlink_dest.txt")
-        plugin.symlink(test_path, symlink_dest)
-        self.assertEqual(plugin.read_file(symlink_dest), file_content)
+        self.plugin.symlink(test_path, symlink_dest)
+        self.assertEqual(self.plugin.read_file(symlink_dest), file_content)
 
     def test_get_hash(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        path = plugin.PATH_BACKEND(self.sample_file)
+        path = self.plugin.PATH_BACKEND(self.sample_file)
         expected_hashes = (
             ("md5", "125765989403df246cecb48fa3e87ff8"),
             (
@@ -860,90 +870,59 @@ web{0}simple{0}index.html""".format(
         )
         for fn, hash_val in expected_hashes:
             with self.subTest(fn=fn, hash_val=hash_val):
-                self.assertEqual(plugin.get_hash(path, function=fn), hash_val)
+                self.assertEqual(self.plugin.get_hash(path, function=fn), hash_val)
 
 
 class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
-
-    config_contents = """\
-[mirror]
-directory = srv/pypi
-storage-backend = filesystem
-master = https://pypi.org
-json = false
-timeout = 10
-verifiers = 3
-diff-file = /tmp/pypi/mirrored-files
-diff-append-epoch = false
-stop-on-error = false
-hash-index = false
-workers = 3
-; keep_index_versions = 0
-; log-config = /etc/bandersnatch-log.conf
-"""
-
-    def test_plugin_is_filesystem(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-
-        assert type(plugin) == filesystem.FilesystemStorage
-        assert plugin.PATH_BACKEND == pathlib.Path
+    backend = "filesystem"
+    base_find_contents = "\n".join(
+        [
+            line
+            for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
+            if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep)
+            != line.strip()
+        ]
+    )
 
 
 class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     backend = "swift"
     base_find_contents = BaseStoragePluginTestCase.base_find_contents.replace(
         ".lock\n", ""
-    )
-
-    def test_plugin_is_swift(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        from bandersnatch_storage_plugins import swift
-
-        assert type(plugin) == swift.SwiftStorage, type(plugin)
-        assert plugin.PATH_BACKEND == swift.SwiftPath
+    ).strip()
 
     def test_mkdir(self):
-        _mock_config(self.config_contents)
         tmp_filename = next(tempfile._get_candidate_names())
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        tmp_file = plugin.PATH_BACKEND(
+        tmp_file = self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir", tmp_filename)
         )
         tmp_file.write_text("")
         self.assertTrue(
-            plugin.PATH_BACKEND(
+            self.plugin.PATH_BACKEND(
                 os.path.join(self.mirror_base_path, "test_dir")
             ).exists()
         )
         tmp_file.unlink()
 
     def test_rmdir(self):
-        _mock_config(self.config_contents)
-
         tmp_filename = next(tempfile._get_candidate_names())
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
-        tmp_file = plugin.PATH_BACKEND(
+        tmp_file = self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir", tmp_filename)
         )
         tmp_file.write_text("")
-        assert plugin.PATH_BACKEND(
-            os.path.join(self.mirror_base_path, "test_dir")
-        ).exists()
+        self.assertTrue(
+            self.plugin.PATH_BACKEND(
+                os.path.join(self.mirror_base_path, "test_dir")
+            ).exists()
+        )
         tmp_file.unlink()
         self.assertFalse(
-            plugin.PATH_BACKEND(
+            self.plugin.PATH_BACKEND(
                 os.path.join(self.mirror_base_path, "test_dir")
             ).exists()
         )
 
     def test_copy_file(self):
-        _mock_config(self.config_contents)
-
-        plugin = next(iter(bandersnatch.storage.storage_backend_plugins()))
         file_content = "this is some data"
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
         with tempfile.NamedTemporaryFile(
@@ -951,7 +930,7 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
         ) as tf:
             tf.write(file_content)
             tf.flush()
-            plugin.copy_file(tf.name, dest_file)
+            self.plugin.copy_file(tf.name, dest_file)
         with open(dest_file) as fh:
             copied_content = fh.read()
         os.unlink(dest_file)
