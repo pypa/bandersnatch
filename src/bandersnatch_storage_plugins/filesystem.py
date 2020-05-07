@@ -88,7 +88,12 @@ class FilesystemStorage(StoragePlugin):
             # put in place actually but also doesn't want to error out.
             return
         os.chmod(filepath_tmp, 0o100644)
+        logger.debug(
+            f"Writing temporary file {filepath_tmp} to target destination: {filepath!s}"
+        )
         self.copy_file(filepath_tmp, filepath)
+        logger.debug(f"Deleting temporary file: {filepath_tmp}")
+        self.delete_file(filepath_tmp)
 
     @contextlib.contextmanager
     def update_safe(self, filename: str, **kw: Any) -> Generator[IO, None, None]:
@@ -112,11 +117,13 @@ class FilesystemStorage(StoragePlugin):
                 return
             filename_tmp = tf.name
         if self.exists(filename) and self.compare_files(filename, filename_tmp):
+            logger.debug(f"File not changed...deleting temporary file: {filename_tmp}")
             os.unlink(filename_tmp)
         else:
-            # TODO: account for other backends (add comparison functionality)
+            logger.debug(f"Modifying destination: {filename!s} with: {filename_tmp}")
             self.copy_file(filename_tmp, filename)
-            tf.has_changed = True  # type: ignore
+            logger.debug(f"Deleting temporary file: {filename_tmp}")
+            self.delete_file(filename_tmp)
 
     def compare_files(self, file1: PATH_TYPES, file2: PATH_TYPES) -> bool:
         """Compare two files, returning true if they are the same and False if not."""
