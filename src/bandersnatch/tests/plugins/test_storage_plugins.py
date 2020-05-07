@@ -334,7 +334,7 @@ def is_dir(self, path) -> bool:
     with self.connection() as conn:
         try:
             _, files = conn.get_container(self.default_container, prefix=target_path)
-        except (FileNotFoundError, OSError):
+        except OSError:
             return False
         return bool(files)
 

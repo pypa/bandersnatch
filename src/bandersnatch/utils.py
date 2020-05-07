@@ -1,5 +1,4 @@
 import contextlib
-import filecmp
 import hashlib
 import logging
 import os
