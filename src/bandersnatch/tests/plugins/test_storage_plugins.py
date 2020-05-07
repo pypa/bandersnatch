@@ -637,10 +637,13 @@ web{0}simple{0}index.html""".format(
         base_path = self.plugin.PATH_BACKEND(self.simple_base_path)
         lists = [
             [base_path.joinpath("foobar"), True],
-            [base_path.joinpath("index.html"), False,],
+            [base_path.joinpath("index.html"), False],
         ]
 
-        self.assertListEqual(list(base_path.iterdir()), [elem[0] for elem in lists])
+        self.assertListEqual(
+            list(sorted(base_path.iterdir(), key=lambda p: str(p))),
+            list(sorted([elem[0] for elem in lists], key=lambda p: str(p))),
+        )
         for expected, is_dir in lists:
             with self.subTest(is_dir=is_dir, produced_path=expected):
                 self.assertIs(is_dir, self.plugin.is_dir(expected))
