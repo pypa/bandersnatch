@@ -130,7 +130,10 @@ class Master:
     async def _gen_xmlrpc_client(self) -> ServerProxy:
         custom_headers = await self._gen_custom_headers()
         client = ServerProxy(
-            self.xmlrpc_url, client=self.session, loop=self.loop, headers=custom_headers,
+            self.xmlrpc_url,
+            client=self.session,
+            loop=self.loop,
+            headers=custom_headers,
         )
         return client
 
