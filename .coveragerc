@@ -1,6 +1,8 @@
 [run]
 branch = True
-source = bandersnatch
+source =
+    bandersnatch
+    bandersnatch_storage_plugins
 
 [report]
 precision = 2
