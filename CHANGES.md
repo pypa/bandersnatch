@@ -1,3 +1,8 @@
+## 4.0.3 (2020-5-7)
+
+- Change aiohttp-xmlrpc to use Master.session to ensure config shared - `PR #506` - Thanks **@alebourdoulous** for reporting
+  - e.g. Maintin trust of proxy server environment variables
+
 ## 4.0.2 (2020-4-26)
 
 - Raise for error HTML response on all aiohttp session requests - `PR #494 / #496` - Thanks **@windtail**
