@@ -2,7 +2,7 @@ asynctest==0.13.0
 black==19.10b0
 codecov==2.0.22
 coverage==5.1
-flake8==3.7.9
+flake8==3.8.0
 flake8-bugbear==20.1.4
 freezegun==0.3.15
 pre-commit==2.3.0
