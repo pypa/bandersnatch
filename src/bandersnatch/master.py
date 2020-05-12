@@ -46,8 +46,11 @@ class Master:
         return self
 
     async def __aexit__(self, *exc) -> None:
-        logger.debug("Closing Master's aiohttp ClientSession")
+        logger.debug("Closing Master's aiohttp ClientSession and waiting 0.1 seconds")
         await self.session.close()
+        # Give time for things to actually close to avoid warnings
+        # https://github.com/aio-libs/aiohttp/issues/1115
+        await asyncio.sleep(0.1)
 
     async def check_for_stale_cache(
         self, path: str, required_serial: Optional[int], got_serial: Optional[int]
@@ -121,15 +124,16 @@ class Master:
                 f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
             )
         }
-        # Need to close to avoid leavig open connection
-        await dummy_client.client.close()
+        await dummy_client.close()
         return custom_headers
 
     async def _gen_xmlrpc_client(self) -> ServerProxy:
         custom_headers = await self._gen_custom_headers()
-        timeout = aiohttp.ClientTimeout(total=self.timeout)
         client = ServerProxy(
-            self.xmlrpc_url, loop=self.loop, headers=custom_headers, timeout=timeout
+            self.xmlrpc_url,
+            client=self.session,
+            loop=self.loop,
+            headers=custom_headers,
         )
         return client
 
@@ -143,9 +147,6 @@ class Master:
             return await method()
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
-        finally:
-            # TODO: Fix aiohttp-xml so we do not need to call ClientSession's close
-            await client.client.close()
 
     async def all_packages(self) -> Optional[Dict[str, int]]:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
