@@ -1,6 +1,7 @@
 import asyncio
 import configparser
 import sys
+import tempfile
 import unittest.mock as mock
 from pathlib import Path
 from typing import Any, Dict
@@ -53,8 +54,17 @@ def test_main_cant_create_config(caplog, tmpdir):
     assert not conf_path.exists()
 
 
-def test_main_reads_config_values(mirror_mock: mock.MagicMock):
-    config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir):
+    base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+    diff_file = (
+        Path(tempfile.gettempdir()).joinpath("srv/pypi/mirrored-files").as_posix()
+    )
+    config_lines = [
+        f"diff-file = {diff_file}\n" if line.startswith("diff-file") else line
+        for line in base_config_path.read_text().splitlines()
+    ]
+    config_path = tmpdir.join("unittest.conf")
+    config_path.write_text("\n".join(config_lines), encoding="utf-8")
     sys.argv = ["bandersnatch", "-c", str(config_path), "mirror"]
     assert config_path.exists()
     main(asyncio.new_event_loop())
@@ -71,9 +81,9 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock):
         "digest_name": "sha256",
         "keep_index_versions": 0,
         "storage_backend": "filesystem",
-        "diff_file": "/tmp/pypi/mirrored-files",
+        "diff_file": diff_file,
         "diff_append_epoch": False,
-        "diff_full_path": "/tmp/pypi/mirrored-files",
+        "diff_full_path": diff_file,
         "cleanup": False,
     } == kwargs
 

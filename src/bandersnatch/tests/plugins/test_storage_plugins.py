@@ -555,7 +555,7 @@ class BaseStoragePluginTestCase(BasePluginTestCase):
         "swift": swift.SwiftPath,
     }
 
-    base_find_contents = r"""\
+    base_find_contents = r"""
 .lock
 generation
 sample
@@ -585,7 +585,7 @@ web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(
         os.sep
-    )
+    ).strip()
 
     def test_plugin_type(self):
         self.assertTrue(isinstance(self.plugin, self.plugin_map[self.backend]))
@@ -897,6 +897,7 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     def setUp(self):
         if os.name == "nt":
             raise unittest.SkipTest("Skipping swift tests on windows")
+        super().setUp()
 
     def test_mkdir(self):
         tmp_filename = next(tempfile._get_candidate_names())
