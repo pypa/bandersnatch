@@ -367,7 +367,7 @@ master = https://pypi.org
 json = false
 timeout = 10
 verifiers = 3
-diff-file = /tmp/pypi/mirrored-files
+diff-file = {{mirror_directory}}/mirrored-files
 diff-append-epoch = false
 stop-on-error = false
 hash-index = false
@@ -893,6 +893,10 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     base_find_contents = BaseStoragePluginTestCase.base_find_contents.replace(
         ".lock\n", ""
     ).strip()
+
+    def setUp(self):
+        if os.name == "nt":
+            raise unittest.SkipTest("Skipping swift tests on windows")
 
     def test_mkdir(self):
         tmp_filename = next(tempfile._get_candidate_names())

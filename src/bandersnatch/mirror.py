@@ -448,6 +448,20 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         diff_file = config.get("mirror", "diff-file")
     except configparser.NoOptionError:
         diff_file = ""
+    if "{{" in diff_file and "}}" in diff_file:
+        diff_file = diff_file.replace("{{", "").replace("}}", "")
+        diff_ref_section, _, diff_ref_key = diff_file.partition("_")
+        try:
+            diff_file = config.get(diff_ref_section, diff_ref_key)
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            logger.error(
+                "Invalid section reference in `diff-file` key. "
+                "Please correct this error. Saving diff files in"
+                " base mirror directory."
+            )
+            diff_file = os.path.join(
+                config.get("mirror", "directory"), "mirrored-files"
+            )
 
     try:
         diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
@@ -551,6 +565,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
             diff_text = f"{os.linesep}".join(
                 [chg.absolute() for chg in mirror.diff_file_list]
             )
-            mirror.diff_full_path.write_text(diff_text)
+            diff_file = mirror.storage_backend.PATH_BACKEND(mirror.diff_full_path)
+            diff_file.write_text(diff_text)
 
     return 0
