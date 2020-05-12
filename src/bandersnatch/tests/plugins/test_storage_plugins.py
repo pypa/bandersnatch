@@ -555,7 +555,7 @@ class BaseStoragePluginTestCase(BasePluginTestCase):
         "swift": swift.SwiftPath,
     }
 
-    base_find_contents = """\
+    base_find_contents = r"""\
 .lock
 generation
 sample
