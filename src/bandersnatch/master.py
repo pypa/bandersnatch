@@ -24,7 +24,8 @@ class XmlRpcError(aiohttp.ClientError):
 class Master:
     def __init__(self, url: str, timeout: float = 10.0) -> None:
         self.loop = asyncio.get_event_loop()
-        self.timeout = timeout
+        # TODO: make total timeout of aio as configurable
+        self.timeout = aiohttp.ClientTimeout(total=3*3600, sock_connect=timeout, sock_read=timeout)
         self.url = url
         if self.url.startswith("http://"):
             err = f"Master URL {url} is not https scheme"
@@ -35,11 +36,10 @@ class Master:
         logger.debug("Initializing Master's aiohttp ClientSession")
         custom_headers = {"User-Agent": USER_AGENT}
         skip_headers = {"User-Agent"}
-        aiohttp_timeout = aiohttp.ClientTimeout(total=self.timeout)
         self.session = aiohttp.ClientSession(
             headers=custom_headers,
             skip_auto_headers=skip_headers,
-            timeout=aiohttp_timeout,
+            timeout=self.timeout,
             trust_env=True,
             raise_for_status=True,
         )
@@ -99,7 +99,8 @@ class Master:
 
         timeout = self.timeout
         if "timeout" in kw:
-            timeout = aiohttp.ClientTimeout(total=kw["timeout"])
+            # TODO: make total timeout of aio as configurable
+            timeout = aiohttp.ClientTimeout(total=3*3600, sock_connect=kw["timeout"], sock_read=kw["timeout"])
             del kw["timeout"]
 
         async with self.session.get(path, timeout=timeout, **kw) as r:
