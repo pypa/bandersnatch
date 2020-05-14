@@ -324,7 +324,7 @@ class Mirror:
                     # We're really trusty that this is all encoded in UTF-8. :/
                     f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
             f.write("  </body>\n</html>")
-        self.diff_file_list.append(str(simple_dir / "index.html"))
+        self.diff_file_list.append(simple_dir / "index.html")
 
     def wrapup_successful_sync(self):
         if self.errors:
