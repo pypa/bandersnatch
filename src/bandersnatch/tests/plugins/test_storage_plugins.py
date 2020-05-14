@@ -66,7 +66,7 @@ def strip_dir_prefix(base_dir, subdir, container=None):
     base_dir_prefix = base_dir.as_posix()[1:]
     result = subdir.as_posix()
     if result.startswith(base_dir_prefix):
-        return type(base_dir)(result[len(base_dir_prefix) :].lstrip("/"))
+        return type(base_dir)(result[len(base_dir_prefix) :].lstrip("/"))  # noqa:E203
     return type(base_dir)(result.lstrip("/"))
 
 
@@ -144,7 +144,7 @@ class MockConnection:
         if container is not None:
             base_dir_prefix = os.path.join(base_dir_prefix, container)
         if prefix.startswith(base_dir_prefix):
-            return prefix[len(base_dir_prefix) :].lstrip("/")
+            return prefix[len(base_dir_prefix) :].lstrip("/")  # noqa:E203
         return prefix.lstrip("/")
 
     def get_account(self):

@@ -40,29 +40,29 @@ class SwiftFileLock(filelock.BaseFileLock):
 
     def _acquire(self):
         try:
-            logging.info("Attempting to acquire lock")
+            logger.info("Attempting to acquire lock")
             fd = self.backend.PATH_BACKEND(self._lock_file)
             fd.write_bytes(b"")
         except OSError as exc:
-            logging.error("Failed to acquire lock...")
-            logging.exception(f"Exception: ", exc)
+            logger.error("Failed to acquire lock...")
+            logger.exception("Exception: ", exc)
             pass
         else:
-            logging.info(f"Acquired lock: {self._lock_file}")
+            logger.info(f"Acquired lock: {self._lock_file}")
             self._lock_file_fd = fd
         return None
 
     def _release(self):
         self._lock_file_fd = None
         try:
-            logging.info(f"Removing lock: {self._lock_file}")
+            logger.info(f"Removing lock: {self._lock_file}")
             self.backend.PATH_BACKEND(self._lock_file).unlink()
         except OSError as exc:
-            logging.error("Failed to remove lockfile")
-            logging.exception(f"Exception: ", exc)
+            logger.error("Failed to remove lockfile")
+            logger.exception("Exception: ", exc)
             pass
         else:
-            logging.info("Successfully cleaned up lock")
+            logger.info("Successfully cleaned up lock")
         return None
 
     @property

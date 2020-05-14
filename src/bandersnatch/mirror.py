@@ -366,7 +366,7 @@ class Mirror:
                 self._cleanup()
                 self._load()
         except Timeout:
-            logger.error(f"Flock timed out!")
+            logger.error("Flock timed out!")
             raise RuntimeError(
                 f"Could not acquire lock on {self.lockfile_path}. "
                 + "Another instance could be running?"
@@ -471,15 +471,15 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         diff_append_epoch = False
 
     try:
-        logging.debug(f"Checking config for storage backend...")
+        logger.debug("Checking config for storage backend...")
         storage_backend_name = config.get("mirror", "storage-backend")
-        logging.debug(f"Found storage backend in config!")
+        logger.debug("Found storage backend in config!")
     except configparser.NoOptionError:
         storage_backend_name = "filesystem"
-        logging.debug(
+        logger.debug(
             "Failed to find storage backend in config, falling back to default!"
         )
-    logging.info(f"Selected storage backend: {storage_backend_name}")
+    logger.info(f"Selected storage backend: {storage_backend_name}")
 
     storage_plugin = next(
         iter(

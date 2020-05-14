@@ -6,3 +6,9 @@ max_line_length = 88
 # W503 is against PEP8
 ignore = E722, P207, W503
 max-complexity = 20
+exclude =
+    build,
+    dist,
+    __pycache__,
+    *.pyc,
+    .git
