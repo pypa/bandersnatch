@@ -31,7 +31,8 @@ class FilesystemStorage(StoragePlugin):
         :rtype: SwiftFileLock
         """
         if path is None:
-            path = str(self.mirror_base_path / self.flock_path)
+            path = self.mirror_base_path.joinpath(self.flock_path).as_posix()
+        logger.debug(f"Retrieving FileLock instance @ {path}")
         return filelock.FileLock(path)
 
     def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[pathlib.Path]:
@@ -246,12 +247,18 @@ class FilesystemStorage(StoragePlugin):
             path = pathlib.Path(path)
         return path.is_file()
 
-    def get_hash(self, path: str, function: str = "sha256") -> str:
+    def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)()
-        with open(path, "rb") as f:
-            while True:
-                chunk = f.read(128 * 1024)
-                if not chunk:
-                    break
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        logger.debug(
+            f"Opening {path.as_posix()} in binary mode for hash calculation..."
+        )
+        logger.debug(f"Contents: {path.read_bytes()!s}")
+        with open(path.absolute().as_posix(), "rb") as f:
+            for chunk in iter(lambda: f.read(128 * 1024), b""):
+                logger.debug(f"Read chunk: {chunk!s}")
                 h.update(chunk)
+        digest = h.hexdigest()
+        logger.debug(f"Calculated digest: {digest!s}")
         return h.hexdigest()

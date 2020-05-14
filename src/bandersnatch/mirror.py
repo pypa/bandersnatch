@@ -77,7 +77,7 @@ class Mirror:
             self.storage_backend = next(iter(storage_backend_plugins()))
         self.loop = asyncio.get_event_loop()
         self.homedir = self.storage_backend.PATH_BACKEND(homedir)
-        self.lockfile_path = os.path.join(homedir, ".lock")
+        self.lockfile_path = self.homedir / ".lock"
         self.master = master
         self.stop_on_error = stop_on_error
         self.json_save = json_save
@@ -361,10 +361,12 @@ class Mirror:
 
         flock = self.storage_backend.get_lock(self.lockfile_path)
         try:
+            logger.debug(f"Acquiring FLock with timeout: {flock_timeout!s}")
             with flock.acquire(timeout=flock_timeout):
                 self._cleanup()
                 self._load()
         except Timeout:
+            logger.error(f"Flock timed out!")
             raise RuntimeError(
                 f"Could not acquire lock on {self.lockfile_path}. "
                 + "Another instance could be running?"
@@ -445,21 +447,21 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         root_uri = ""
 
     try:
-        diff_file = config.get("mirror", "diff-file")
+        diff_file_path = config.get("mirror", "diff-file")
     except configparser.NoOptionError:
-        diff_file = ""
-    if "{{" in diff_file and "}}" in diff_file:
-        diff_file = diff_file.replace("{{", "").replace("}}", "")
-        diff_ref_section, _, diff_ref_key = diff_file.partition("_")
+        diff_file_path = ""
+    if "{{" in diff_file_path and "}}" in diff_file_path:
+        diff_file_path = diff_file_path.replace("{{", "").replace("}}", "")
+        diff_ref_section, _, diff_ref_key = diff_file_path.partition("_")
         try:
-            diff_file = config.get(diff_ref_section, diff_ref_key)
+            diff_file_path = config.get(diff_ref_section, diff_ref_key)
         except (configparser.NoOptionError, configparser.NoSectionError):
             logger.error(
                 "Invalid section reference in `diff-file` key. "
                 "Please correct this error. Saving diff files in"
                 " base mirror directory."
             )
-            diff_file = os.path.join(
+            diff_file_path = os.path.join(
                 config.get("mirror", "directory"), "mirrored-files"
             )
 
@@ -487,18 +489,20 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         )
     )
 
+    diff_file = storage_plugin.PATH_BACKEND(diff_file_path)
     diff_full_path: Union[str, Path]
     if diff_file:
-        storage_plugin.mkdir(str(Path(diff_file).parent), exist_ok=True, parents=True)
+        diff_file.parent.mkdir(exist_ok=True, parents=True)
         if diff_append_epoch:
-            diff_full_path = f"{diff_file}-{int(time.time())}"
+            diff_full_path = diff_file.with_name(f"{diff_file.name}-{int(time.time())}")
         else:
             diff_full_path = diff_file
     else:
         diff_full_path = ""
 
     if diff_full_path:
-        diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
+        if isinstance(diff_full_path, str):
+            diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
         # TODO: this probably needs what, a protocol or something? I have no idea
         if diff_full_path.is_file():  # type: ignore
             diff_full_path.unlink()  # type: ignore
@@ -543,7 +547,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
             ),
             diff_file=diff_file,
             diff_append_epoch=diff_append_epoch,
-            diff_full_path=str(diff_full_path) if diff_full_path else None,
+            diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=cleanup,
         )
 

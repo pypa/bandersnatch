@@ -790,10 +790,11 @@ web{0}simple{0}index.html""".format(
     def test_copy_file(self):
         file_content = "this is some data"
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
-        with tempfile.NamedTemporaryFile(mode="w") as tf:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
+            atexit.register(os.unlink, tf.name)
             tf.write(file_content)
             tf.flush()
-            self.plugin.copy_file(tf.name, dest_file)
+        self.plugin.copy_file(tf.name, dest_file)
         with open(dest_file) as fh:
             copied_content = fh.read()
         os.unlink(dest_file)
