@@ -503,9 +503,10 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     if diff_full_path:
         if isinstance(diff_full_path, str):
             diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
-        # TODO: this probably needs what, a protocol or something? I have no idea
         if diff_full_path.is_file():  # type: ignore
             diff_full_path.unlink()  # type: ignore
+        elif diff_full_path.is_dir():
+            diff_full_path = diff_full_path / "mirrored-files"
 
     try:
         digest_name = config.get("mirror", "digest_name")
