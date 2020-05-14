@@ -867,12 +867,19 @@ web{0}simple{0}index.html""".format(
 
     def test_get_hash(self):
         path = self.plugin.PATH_BACKEND(self.sample_file)
+        md5_digest = "125765989403df246cecb48fa3e87ff8"
+        sha256_digest = (
+            "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18"
+        )
+        # newlines make the hash different here
+        if sys.platform == "win32":
+            md5_digest = "91ef8f60d130b312af17543b34bfb372"
+            sha256_digest = (
+                "398e162e08d9af1d87c8eb2ee46d7c64248867afbe30dee807122022dc497332"
+            )
         expected_hashes = (
-            ("md5", "125765989403df246cecb48fa3e87ff8"),
-            (
-                "sha256",
-                "95c07c174663ebff531eed59b326ebb3fa95f418f680349fc33b07dfbcf29f18",
-            ),
+            ("md5", md5_digest),
+            ("sha256", sha256_digest),
         )
         for fn, hash_val in expected_hashes:
             with self.subTest(fn=fn, hash_val=hash_val):
