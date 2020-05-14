@@ -567,7 +567,7 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         if mirror.diff_full_path:
             logger.info(f"Writing diff file to {mirror.diff_full_path}")
             diff_text = f"{os.linesep}".join(
-                [chg.absolute() for chg in mirror.diff_file_list]
+                [str(chg.absolute()) for chg in mirror.diff_file_list]
             )
             diff_file = mirror.storage_backend.PATH_BACKEND(mirror.diff_full_path)
             diff_file.write_text(diff_text)

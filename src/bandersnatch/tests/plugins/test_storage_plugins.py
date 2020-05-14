@@ -586,6 +586,8 @@ web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(
         os.sep
     ).strip()
+    if os.name == "nt":
+        base_find_contents = base_find_contents.replace(".lock\n", "")
 
     def test_plugin_type(self):
         self.assertTrue(isinstance(self.plugin, self.plugin_map[self.backend]))
