@@ -56,11 +56,11 @@ def test_main_cant_create_config(caplog, tmpdir):
 
 def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir):
     base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
-    diff_file = (
-        Path(tempfile.gettempdir()).joinpath("srv/pypi/mirrored-files").as_posix()
-    )
+    diff_file = Path(tempfile.gettempdir()).joinpath("srv/pypi/mirrored-files")
     config_lines = [
-        f"diff-file = {diff_file}\n" if line.startswith("diff-file") else line
+        f"diff-file = {diff_file.as_posix()}\n"
+        if line.startswith("diff-file")
+        else line
         for line in base_config_path.read_text().splitlines()
     ]
     config_path = tmpdir.join("unittest.conf")
