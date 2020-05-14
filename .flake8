@@ -11,4 +11,5 @@ exclude =
     dist,
     __pycache__,
     *.pyc,
-    .git
+    .git,
+    .tox
