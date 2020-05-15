@@ -7,31 +7,26 @@ from argparse import Namespace
 from configparser import ConfigParser
 from json import JSONDecodeError, load
 from pathlib import Path
-from shutil import rmtree
 from typing import Awaitable, List
 from urllib.parse import urlparse
 
 from packaging.utils import canonicalize_name
 
+from bandersnatch.storage import storage_backend_plugins
 from bandersnatch.verify import get_latest_json
 
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
 def delete_path(blob_path: Path, dry_run: bool = False) -> int:
+    storage_backend = next(iter(storage_backend_plugins()))
     if dry_run:
         logger.info(f" rm {blob_path}")
-        return 0
-
-    if not blob_path.exists():
+    if not storage_backend.exists(blob_path):
         logger.debug(f"{blob_path} does not exist. Skipping")
         return 0
-
     try:
-        if blob_path.is_dir():
-            rmtree(blob_path)
-        else:
-            blob_path.unlink()
+        storage_backend.delete(blob_path, dry_run=dry_run)
     except FileNotFoundError:
         # Due to using threads in executors we sometimes have a
         # race condition if canonicalize_name == passed in name
@@ -39,7 +34,6 @@ def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     except OSError:
         logger.exception(f"Unable to delete {blob_path}")
         return 1
-
     return 0
 
 
@@ -47,11 +41,13 @@ async def delete_packages(config: ConfigParser, args: Namespace) -> int:
     loop = asyncio.get_event_loop()
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
-    mirror_base_path = Path(config.get("mirror", "directory"))
-    web_base_path = mirror_base_path / "web"
-    json_base_path = web_base_path / "json"
-    pypi_base_path = web_base_path / "pypi"
-    simple_path = web_base_path / "simple"
+    storage_backend = next(
+        iter(storage_backend_plugins(config=config, clear_cache=True))
+    )
+    web_base_path = storage_backend.web_base_path
+    json_base_path = storage_backend.json_base_path
+    pypi_base_path = storage_backend.pypi_base_path
+    simple_path = storage_backend.simple_base_path
 
     delete_coros: List[Awaitable] = []
     for package in args.pypi_packages:
@@ -62,7 +58,7 @@ async def delete_packages(config: ConfigParser, args: Namespace) -> int:
         legacy_json_path = pypi_base_path / canon_name
         logger.debug(f"Looking up {canon_name} metadata @ {json_full_path}")
 
-        if not json_full_path.exists():
+        if not storage_backend.exists(json_full_path):
             if args.dry_run:
                 logger.error(
                     f"Skipping {json_full_path} as dry run and no JSON file exists"
@@ -75,7 +71,7 @@ async def delete_packages(config: ConfigParser, args: Namespace) -> int:
                 logger.error(f"Unable to HTTP get JSON for {json_full_path}")
                 continue
 
-        with json_full_path.open("r") as jfp:
+        with storage_backend.open_file(json_full_path, text=True) as jfp:
             try:
                 package_data = load(jfp)
             except JSONDecodeError:

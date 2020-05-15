@@ -1,5 +1,4 @@
 import contextlib
-import filecmp
 import hashlib
 import logging
 import os
@@ -65,6 +64,7 @@ def find(root: Union[Path, str], dirs: bool = True) -> str:
     root.
 
     """
+    # TODO: account for alternative backends
     if isinstance(root, str):
         root = Path(root)
 
@@ -85,6 +85,7 @@ def rewrite(
 ) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
+    # TODO: Account for alternative backends
     if isinstance(filepath, str):
         base_dir = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
@@ -127,34 +128,6 @@ def unlink_parent_dir(path: Path) -> None:
         logger.info(f"rmdir {str(parent_path)}")
     except OSError as oe:
         logger.debug(f"Did not remove {str(parent_path)}: {str(oe)}")
-
-
-@contextlib.contextmanager
-def update_safe(filename: str, **kw: Any) -> Generator[IO, None, None]:
-    """Rewrite a file atomically.
-
-    Clients are allowed to delete the tmpfile to signal that they don't
-    want to have it updated.
-
-    """
-    with tempfile.NamedTemporaryFile(
-        dir=os.path.dirname(filename),
-        delete=False,
-        prefix=f"{os.path.basename(filename)}.",
-        **kw,
-    ) as tf:
-        if os.path.exists(filename):
-            os.chmod(tf.name, os.stat(filename).st_mode & 0o7777)
-        tf.has_changed = False  # type: ignore
-        yield tf
-        if not os.path.exists(tf.name):
-            return
-        filename_tmp = tf.name
-    if os.path.exists(filename) and filecmp.cmp(filename, filename_tmp, shallow=False):
-        os.unlink(filename_tmp)
-    else:
-        shutil.move(filename_tmp, filename)
-        tf.has_changed = True  # type: ignore
 
 
 def bandersnatch_safe_name(name: str) -> str:

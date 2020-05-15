@@ -14,6 +14,7 @@ import bandersnatch.delete
 import bandersnatch.log
 import bandersnatch.mirror
 import bandersnatch.verify
+from bandersnatch.storage import storage_backend_plugins
 
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
@@ -98,7 +99,10 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         return await bandersnatch.verify.metadata_verify(config, args)
 
     if args.force_check:
-        status_file = Path(config.get("mirror", "directory")) / "status"
+        storage_plugin = next(iter(storage_backend_plugins()))
+        status_file = (
+            storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
+        )
         if status_file.exists():
             tmp_status_file = Path(gettempdir()) / "status"
             try:
@@ -173,6 +177,7 @@ def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
 
     # TODO: Go to asyncio.run() when >= 3.7
     loop = loop or asyncio.get_event_loop()
+    loop.set_debug(True)
     try:
         return loop.run_until_complete(async_main(args, config))
     finally:
