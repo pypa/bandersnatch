@@ -61,6 +61,7 @@ class TestBandersnatchConf(TestCase):
                 "json",
                 "master",
                 "stop-on-error",
+                "storage-backend",
                 "timeout",
                 "verifiers",
                 "workers",
@@ -78,6 +79,7 @@ class TestBandersnatchConf(TestCase):
             ("json", bool),
             ("master", str),
             ("stop-on-error", bool),
+            ("storage-backend", str),
             ("timeout", int),
             ("workers", int),
         ]:

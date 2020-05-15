@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 import html
 import logging
-import os.path
 import sys
 from json import dump
 from pathlib import Path
@@ -110,7 +109,8 @@ class Package:
         Take the JSON metadata we just fetched and save to disk
         """
         try:
-            with utils.rewrite(self.json_file) as jf:
+            # TODO: Fix this so it works with swift
+            with self.mirror.storage_backend.rewrite(self.json_file) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
             self.mirror.diff_file_list.append(self.json_file)
         except Exception as e:
@@ -356,13 +356,16 @@ class Package:
     def sync_simple_page(self) -> None:
         logger.info(f"Storing index page: {self.name} - in {self.simple_directory}")
         simple_page_content = self.generate_simple_page()
-        self.simple_directory.mkdir(exist_ok=True, parents=True)
+        if not self.simple_directory.exists():
+            self.simple_directory.mkdir(parents=True)
 
         if self.mirror.keep_index_versions > 0:
             self._save_simple_page_version(simple_page_content)
         else:
             simple_page = self.simple_directory / "index.html"
-            with utils.rewrite(simple_page, "w", encoding="utf-8") as f:
+            with self.mirror.storage_backend.rewrite(
+                simple_page, "w", encoding="utf-8"
+            ) as f:
                 f.write(simple_page_content)
             self.mirror.diff_file_list.append(simple_page)
 
@@ -371,7 +374,10 @@ class Package:
         timestamp = utils.make_time_stamp()
         version_file_name = f"index_{self.serial}_{timestamp}.html"
         full_version_path = versions_path / version_file_name
-        with utils.rewrite(full_version_path, "w", encoding="utf-8") as f:
+        # TODO: Change based on storage backend
+        with self.mirror.storage_backend.rewrite(
+            full_version_path, "w", encoding="utf-8"
+        ) as f:
             f.write(simple_page_content)
         self.mirror.diff_file_list.append(full_version_path)
 
@@ -382,11 +388,13 @@ class Package:
         symlink_path.symlink_to(full_version_path)
 
     def _prepare_versions_path(self) -> Path:
-        versions_path = Path(self.simple_directory) / "versions"
-        try:
+        versions_path = (
+            self.mirror.storage_backend.PATH_BACKEND(self.simple_directory) / "versions"
+        )
+        if not versions_path.exists():
             versions_path.mkdir()
-        except FileExistsError:
-            version_files = sorted(os.listdir(versions_path))
+        else:
+            version_files = list(sorted(versions_path.iterdir()))
             version_files_to_remove = (
                 len(version_files) - self.mirror.keep_index_versions + 1
             )
@@ -402,6 +410,7 @@ class Package:
         prefix = self.mirror.root_uri if self.mirror.root_uri else "../.."
         return prefix + parsed.path
 
+    # TODO: This can also return SwiftPath instances now...
     def _file_url_to_local_path(self, url) -> Path:
         path = urlparse(url).path
         path = unquote(path)
@@ -410,6 +419,7 @@ class Package:
         path = path[1:]
         return self.mirror.webdir / path
 
+    # TODO: This can also return SwiftPath instances now...
     async def download_file(
         self, url: str, sha256sum: str, chunk_size: int = 64 * 1024
     ) -> Optional[Path]:
@@ -417,7 +427,7 @@ class Package:
 
         # Avoid downloading again if we have the file and it matches the hash.
         if path.exists():
-            existing_hash = utils.hash(str(path))
+            existing_hash = self.mirror.storage_backend.get_hash(str(path))
             if existing_hash == sha256sum:
                 return None
             else:
@@ -444,7 +454,7 @@ class Package:
 
         checksum = hashlib.sha256()
 
-        with utils.rewrite(path, "wb") as f:
+        with self.mirror.storage_backend.rewrite(path, "wb") as f:
             while True:
                 chunk = await response.content.read(chunk_size)
                 if not chunk:

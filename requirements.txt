@@ -6,10 +6,13 @@ chardet==3.0.4
 filelock==3.0.12
 idna==2.9
 importlib_resources==1.5.0; python_version < '3.7'
+keystoneauth1==4.0.0
 lxml==4.5.0
 multidict==4.7.5
+openstackclient==4.0.0
 packaging==20.3
 pyparsing==2.4.7
-setuptools==46.2.0
+python-swiftclient==3.9.0
+setuptools==46.3.0
 six==1.14.0
 yarl==1.4.2
