@@ -177,7 +177,7 @@ def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
 
     # TODO: Go to asyncio.run() when >= 3.7
     loop = loop or asyncio.get_event_loop()
-    loop.set_debug(True)
+    loop.set_debug(args.debug)
     try:
         return loop.run_until_complete(async_main(args, config))
     finally:
