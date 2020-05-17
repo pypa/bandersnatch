@@ -13,6 +13,6 @@ openstackclient==4.0.0
 packaging==20.3
 pyparsing==2.4.7
 python-swiftclient==3.9.0
-setuptools==46.3.1
+setuptools==46.4.0
 six==1.14.0
 yarl==1.4.2
