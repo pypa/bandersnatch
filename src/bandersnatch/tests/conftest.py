@@ -44,9 +44,7 @@ def package_json():
                     "filename": "foo.zip",
                     "digests": {
                         "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
-                        "sha256": (
-                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                        ),
+                        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     },
                     "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
                 },
@@ -55,9 +53,7 @@ def package_json():
                     "filename": "foo.whl",
                     "digests": {
                         "md5": "6bd3ddc295176f4dca196b5eb2c4d858",
-                        "sha256": (
-                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-                        ),
+                        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     },
                     "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
                 },

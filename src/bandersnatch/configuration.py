@@ -60,6 +60,6 @@ class BandersnatchConfig(metaclass=Singleton):
         config_file = self.default_config_file
         if self.config_file:
             config_file = self.config_file
-        self.config = ConfigParser(delimiters=("="))
+        self.config = ConfigParser(delimiters="=")
         self.config.optionxform = lambda option: option  # type: ignore
         self.config.read(config_file)

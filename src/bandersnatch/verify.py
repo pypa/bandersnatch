@@ -211,8 +211,8 @@ async def async_verify(
 
 
 async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
-    """ Crawl all saved JSON metadata or online to check we have all packages
-        if delete - generate a diff of unowned files  """
+    """Crawl all saved JSON metadata or online to check we have all packages
+    if delete - generate a diff of unowned files"""
     all_package_files = []  # type: List[Path]
     loop = asyncio.get_event_loop()
     mirror_base_path = Path(config.get("mirror", "directory"))

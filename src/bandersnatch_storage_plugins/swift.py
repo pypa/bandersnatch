@@ -233,7 +233,7 @@ class SwiftPath(pathlib.Path):
             else:
                 raise TypeError(
                     "argument should be a str object or an os.PathLike "
-                    "object returning str, not %r" % type(a)
+                    f"object returning str, not {type(a)}"
                 )
         # Modification to prevent us from starting swift paths with "/"
         if parts[0].startswith("/"):
