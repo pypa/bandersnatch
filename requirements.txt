@@ -10,7 +10,7 @@ keystoneauth1==4.0.0
 lxml==4.5.1
 multidict==4.7.6
 openstackclient==4.0.0
-packaging==20.3
+packaging==20.4
 pyparsing==2.4.7
 python-swiftclient==3.9.0
 setuptools==46.4.0
