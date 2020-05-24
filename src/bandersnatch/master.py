@@ -35,7 +35,9 @@ class Master:
         logger.debug("Initializing Master's aiohttp ClientSession")
         custom_headers = {"User-Agent": USER_AGENT}
         skip_headers = {"User-Agent"}
-        aiohttp_timeout = aiohttp.ClientTimeout(total=self.timeout)
+        aiohttp_timeout = aiohttp.ClientTimeout(
+            total=10 * self.timeout, sock_connect=self.timeout, sock_read=self.timeout,
+        )
         self.session = aiohttp.ClientSession(
             headers=custom_headers,
             skip_auto_headers=skip_headers,
@@ -97,12 +99,7 @@ class Master:
         if not path.startswith(("https://", "http://")):
             path = self.url + path
 
-        timeout = self.timeout
-        if "timeout" in kw:
-            timeout = aiohttp.ClientTimeout(total=kw["timeout"])
-            del kw["timeout"]
-
-        async with self.session.get(path, timeout=timeout, **kw) as r:
+        async with self.session.get(path, **kw) as r:
             got_serial = (
                 int(r.headers[PYPI_SERIAL_HEADER])
                 if PYPI_SERIAL_HEADER in r.headers
