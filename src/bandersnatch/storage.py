@@ -332,10 +332,13 @@ def load_storage_plugins(
 
     plugins = set()
     for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
-        plugin_class = entry_point.load()
-        plugin_instance = plugin_class(config=config)
-        if plugin_instance.name == enabled_plugin:
-            plugins.add(plugin_instance)
+        try:
+            plugin_class = entry_point.load()
+            plugin_instance = plugin_class(config=config)
+            if plugin_instance.name == enabled_plugin:
+                plugins.add(plugin_instance)
+        except ModuleNotFoundError as me:
+            logging.error(f"Unable to load entry point {entry_point}: {me}")
 
     loaded_storage_plugins[entrypoint_group] = list(plugins)
 
