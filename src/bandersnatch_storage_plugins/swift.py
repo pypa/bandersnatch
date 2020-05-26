@@ -140,7 +140,7 @@ class _SwiftAccessor:  # type: ignore
         raise NotImplementedError("lchmod() not available on this system")
 
     @staticmethod
-    def mkdir(*args, **kwargs):
+    def mkdir(*args, **kwargs) -> None:
         return _SwiftAccessor.BACKEND.mkdir(*args, **kwargs)
 
     @staticmethod
@@ -155,7 +155,7 @@ class _SwiftAccessor:  # type: ignore
         return None
 
     @staticmethod
-    def link(*args, **kwargs):
+    def link(*args, **kwargs) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
@@ -167,11 +167,11 @@ class _SwiftAccessor:  # type: ignore
         return None
 
     @staticmethod
-    def rename(*args, **kwargs):
+    def rename(*args, **kwargs) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
-    def replace(*args, **kwargs):
+    def replace(*args, **kwargs) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
@@ -181,7 +181,7 @@ class _SwiftAccessor:  # type: ignore
         )
 
     @staticmethod
-    def utime(target):
+    def utime(target) -> None:
         return _SwiftAccessor.BACKEND.update_timestamp(target)
 
     # Helper for resolve()
@@ -250,7 +250,7 @@ class SwiftPath(pathlib.Path):
         return self._from_parsed_parts(self._drv, self._root, parts)  # type: ignore
 
     @classmethod
-    def _parse_args(cls, args: List[str]) -> "SwiftPath":
+    def _parse_args(cls, args: Sequence[str]) -> "SwiftPath":
         # This is useful when you don't want to create an instance, just
         # canonicalize some constructor arguments.
         parts = []
@@ -283,7 +283,9 @@ class SwiftPath(pathlib.Path):
         return self
 
     @classmethod
-    def _from_parsed_parts(cls, drv, root, parts, init=True):
+    def _from_parsed_parts(
+        cls, drv: Optional[str], root: str, parts: List[str], init: bool = True
+    ):
         self = object.__new__(cls)
         self._drv = drv
         self._root = root
@@ -894,7 +896,7 @@ class SwiftStorage(StoragePlugin):
         dest: PATH_TYPES,
         src_container: Optional[str] = None,
         src_account: Optional[str] = None,
-    ):
+    ) -> None:
         with self.connection() as conn:
             if src_container is None:
                 src_container = self.default_container
