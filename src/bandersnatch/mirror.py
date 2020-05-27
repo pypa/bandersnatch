@@ -531,7 +531,9 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
-        config.get("mirror", "master"), config.getfloat("mirror", "timeout")
+        config.get("mirror", "master"),
+        config.getfloat("mirror", "timeout"),
+        config.getfloat("mirror", "global-timeout", fallback=5 * 60 * 60.0),
     ) as master:
         mirror = Mirror(
             config.get("mirror", "directory"),

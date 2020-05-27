@@ -366,6 +366,7 @@ storage-backend = {0}
 master = https://pypi.org
 json = false
 timeout = 10
+global-timeout = 18000
 verifiers = 3
 diff-file = {{mirror_directory}}/mirrored-files
 diff-append-epoch = false

@@ -57,6 +57,7 @@ class TestBandersnatchConf(TestCase):
             [
                 "cleanup",
                 "directory",
+                "global-timeout",
                 "hash-index",
                 "json",
                 "master",
@@ -81,6 +82,7 @@ class TestBandersnatchConf(TestCase):
             ("stop-on-error", bool),
             ("storage-backend", str),
             ("timeout", int),
+            ("global-timeout", int),
             ("workers", int),
         ]:
             self.assertIsInstance(
