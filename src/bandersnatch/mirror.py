@@ -136,7 +136,7 @@ class Mirror:
                     for line in saved_todo:
                         _, serial = line.strip().split(1)
                         int(serial)
-            except (StopIteration, ValueError):
+            except (StopIteration, ValueError, TypeError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
                 # just have to do whatever happened since the last successful

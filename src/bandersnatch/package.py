@@ -399,7 +399,7 @@ class Package:
                 len(version_files) - self.mirror.keep_index_versions + 1
             )
             for i in range(version_files_to_remove):
-                (versions_path / version_files[i]).unlink()
+                version_files[i].unlink()
 
         return versions_path
 
