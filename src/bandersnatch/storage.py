@@ -60,7 +60,7 @@ class Storage:
             self.configuration = BandersnatchConfig().config
         try:
             storage_backend = self.configuration["mirror"]["storage-backend"]
-        except KeyError:
+        except (KeyError, TypeError):
             storage_backend = "filesystem"
         if storage_backend != self.name:
             return

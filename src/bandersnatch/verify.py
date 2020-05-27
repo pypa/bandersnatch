@@ -18,6 +18,7 @@ import aiohttp
 
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import filter_release_plugins
+from bandersnatch.storage import storage_backend_plugins
 
 from bandersnatch.utils import (  # isort:skip
     USER_AGENT,
@@ -59,7 +60,7 @@ async def delete_unowned_files(
     dry_run: bool,
 ) -> int:
     loop = asyncio.get_event_loop()
-    packages_path = Path(mirror_base) / "web" / "packages"
+    packages_path = mirror_base / "web" / "packages"
     all_fs_files = set()  # type: Set[Path]
     await loop.run_in_executor(
         executor, recursive_find_files, all_fs_files, packages_path
@@ -215,7 +216,10 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     if delete - generate a diff of unowned files"""
     all_package_files = []  # type: List[Path]
     loop = asyncio.get_event_loop()
-    mirror_base_path = Path(config.get("mirror", "directory"))
+    storage_backend = next(
+        iter(storage_backend_plugins(config=config, clear_cache=True))
+    )
+    mirror_base_path = storage_backend.PATH_BACKEND(config.get("mirror", "directory"))
     json_base = mirror_base_path / "web" / "json"
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
