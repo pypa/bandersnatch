@@ -73,7 +73,7 @@ Recommendations for the workers setting:
 
 The hash-index is a boolean (true/false) ot determine if package hashing should be used.
 
-The Recommended setting: the default of false for full pip/pypi compatability.
+The Recommended setting: the default of false for full pip/pypi compatibility.
 
 ```eval_rst
 .. warning:: Package index directory hashing is incompatible with pip, and so this should only be used in an environment where it is behind an application that can translate URIs to filesystem locations.
