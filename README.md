@@ -41,7 +41,7 @@ This will pull latest build. Please use a specific tag if desired.
 - Docker image includes `/bandersnatch/src/runner.py` to periodically
   run a `bandersnatch mirror`
   - Please `/bandersnatch/src/runner.py --help` for usage
-- With docker, we reccomend bind mounting in a read only `bandersnatch.conf`
+- With docker, we recommend bind mounting in a read only `bandersnatch.conf`
   - Defaults to `/conf/bandersnatch.conf`
 
 ```shell
