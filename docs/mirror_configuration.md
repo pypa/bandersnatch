@@ -58,6 +58,18 @@ Example:
 timeout = 10
 ```
 
+### global-timeout
+
+The global-timeout value is an integer that indicates the maximum runtime of individual asyncio coroutines.
+
+The default value for this setting is 18000 seconds, or 5 hours.
+
+Example:
+```ini
+[mirror]
+global-timeout = 18000
+```
+
 ### workers
 
 The workers value is an integer from from 1-10 that indicates the number of concurrent downloads.
