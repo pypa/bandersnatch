@@ -20,27 +20,30 @@ def main() -> int:
     args = parser.parse_args()
 
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
-    while True:
-        start_time = time()
+    try:
+        while True:
+            start_time = time()
 
-        try:
-            cmd = [
-                sys.executable,
-                "-m",
-                "bandersnatch.main",
-                "--config",
-                args.config,
-                "mirror",
-            ]
-            run(cmd, check=True)
-        except CalledProcessError as cpe:
-            return cpe.returncode
+            try:
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "bandersnatch.main",
+                    "--config",
+                    args.config,
+                    "mirror",
+                ]
+                run(cmd, check=True)
+            except CalledProcessError as cpe:
+                return cpe.returncode
 
-        run_time = time() - start_time
-        if run_time < args.interval:
-            sleep_time = args.interval - run_time
-            print(f"Sleeping for {sleep_time}s", file=sys.stderr)
-            sleep(sleep_time)
+            run_time = time() - start_time
+            if run_time < args.interval:
+                sleep_time = args.interval - run_time
+                print(f"Sleeping for {sleep_time}s", file=sys.stderr)
+                sleep(sleep_time)
+    except KeyboardInterrupt:
+        pass
 
     return 0
 

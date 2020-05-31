@@ -51,11 +51,11 @@ class Package:
 
     @property
     def json_file(self) -> Path:
-        return self.mirror.webdir / "json" / self.name
+        return Path(self.mirror.webdir / "json" / self.name)
 
     @property
     def json_pypi_symlink(self) -> Path:
-        return self.mirror.webdir / "pypi" / self.name / "json"
+        return Path(self.mirror.webdir / "pypi" / self.name / "json")
 
     @property
     def normalized_legacy_simple_directory(self) -> Path:
@@ -77,8 +77,8 @@ class Package:
     @property
     def simple_directory(self) -> Path:
         if self.mirror.hash_index:
-            return self.mirror.webdir / "simple" / self.name[0] / self.name
-        return self.mirror.webdir / "simple" / self.name
+            return Path(self.mirror.webdir / "simple" / self.name[0] / self.name)
+        return Path(self.mirror.webdir / "simple" / self.name)
 
     async def cleanup_non_pep_503_paths(self) -> None:
         """
@@ -310,11 +310,7 @@ class Package:
 
     def gen_data_requires_python(self, release: Dict) -> str:
         if "requires_python" in release and release["requires_python"] is not None:
-            return (
-                ' data-requires-python="'
-                + html.escape(release["requires_python"])
-                + '"'
-            )
+            return f' data-requires-python="{html.escape(release["requires_python"])}"'
         return ""
 
     def generate_simple_page(self) -> str:

@@ -104,7 +104,7 @@ class Storage:
 
     @staticmethod
     def canonicalize_package(name: str) -> str:
-        return canonicalize_name(name)
+        return str(canonicalize_name(name))
 
     def get_lock(self, path: str) -> filelock.BaseFileLock:
         """
@@ -143,9 +143,9 @@ class Storage:
     def hash_file(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)()
         with self.open_file(path, text=False) as f:
-            for chunk in iter(lambda: f.read(8192), b""):
+            for chunk in iter(lambda: f.read(8192), b""):  # type: ignore
                 h.update(chunk)
-        return h.hexdigest()
+        return str(h.hexdigest())
 
     def iter_dir(self, path: PATH_TYPES) -> Generator[PATH_TYPES, None, None]:
         """Iterate over the path, returning the sub-paths"""

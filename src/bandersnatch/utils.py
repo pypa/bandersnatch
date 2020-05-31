@@ -54,7 +54,7 @@ def hash(path: str, function: str = "sha256") -> str:
             if not chunk:
                 break
             h.update(chunk)
-    return h.hexdigest()
+    return str(h.hexdigest())
 
 
 def find(root: Union[Path, str], dirs: bool = True) -> str:

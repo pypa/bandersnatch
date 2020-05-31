@@ -154,7 +154,7 @@ class Master:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
         if not all_packages_with_serial:
             raise XmlRpcError("Unable to get full list of packages")
-        return all_packages_with_serial
+        return all_packages_with_serial  # type: ignore
 
     async def changed_packages(self, last_serial: int) -> Dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)
