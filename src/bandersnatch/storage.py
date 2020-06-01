@@ -49,7 +49,10 @@ class Storage:
     PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
     def __init__(
-        self, *args: Any, config: configparser.ConfigParser = None, **kwargs: Any
+        self,
+        *args: Any,
+        config: Optional[configparser.ConfigParser] = None,
+        **kwargs: Any,
     ) -> None:
         self.flock_path: PATH_TYPES = ".lock"
         if config is not None:
@@ -77,23 +80,23 @@ class Storage:
         self.pypi_base_path = self.web_base_path / "pypi"
         self.simple_base_path = self.web_base_path / "simple"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}(name={self.name}, "
             f"mirror_base_path={self.mirror_base_path!s})"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<{self.__class__.__name__} object: {self.name} @ "
             f"{self.mirror_base_path!s}>"
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.name, str(self.directory), str(self.flock_path)))
 
     @property
-    def directory(self):
+    def directory(self) -> str:
         try:
             return self.configuration.get("mirror", "directory")
         except (configparser.NoOptionError, configparser.NoSectionError):
@@ -101,7 +104,7 @@ class Storage:
 
     @staticmethod
     def canonicalize_package(name: str) -> str:
-        return canonicalize_name(name)
+        return str(canonicalize_name(name))
 
     def get_lock(self, path: str) -> filelock.BaseFileLock:
         """
@@ -140,16 +143,16 @@ class Storage:
     def hash_file(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)()
         with self.open_file(path, text=False) as f:
-            for chunk in iter(lambda: f.read(8192), b""):
+            for chunk in iter(lambda: f.read(8192), b""):  # type: ignore
                 h.update(chunk)
-        return h.hexdigest()
+        return str(h.hexdigest())
 
     def iter_dir(self, path: PATH_TYPES) -> Generator[PATH_TYPES, None, None]:
         """Iterate over the path, returning the sub-paths"""
         if not issubclass(type(path), pathlib.Path):
             path = self.PATH_BACKEND(str(path))
         assert isinstance(path, pathlib.Path)
-        yield from path.iterdir()  # type: ignore
+        yield from path.iterdir()
 
     @contextlib.contextmanager
     def rewrite(
@@ -160,7 +163,7 @@ class Storage:
         raise NotImplementedError
 
     @contextlib.contextmanager
-    def update_safe(self, filename: str, **kw: Any) -> Generator[IO, None, None]:
+    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
         """Rewrite a file atomically.
 
         Clients are allowed to delete the tmpfile to signal that they don't
@@ -192,7 +195,9 @@ class Storage:
         raise NotImplementedError
 
     @contextlib.contextmanager
-    def open_file(self, path: PATH_TYPES, text=True) -> Generator[IO, None, None]:
+    def open_file(
+        self, path: PATH_TYPES, text: bool = True
+    ) -> Generator[IO, None, None]:
         """Yield a file context to iterate over. If text is true, open the file with
         'rb' mode specified."""
         raise NotImplementedError
@@ -200,7 +205,7 @@ class Storage:
     def read_file(
         self,
         path: PATH_TYPES,
-        text=True,
+        text: bool = True,
         encoding: str = "utf-8",
         errors: Optional[str] = None,
     ) -> Union[str, bytes]:
@@ -267,7 +272,7 @@ class Storage:
         if not issubclass(type(dest), pathlib.Path):
             dest = self.PATH_BACKEND(dest)
         assert isinstance(dest, pathlib.Path)
-        dest.symlink_to(source)  # type: ignore
+        dest.symlink_to(source)
 
     def get_hash(self, path: str, function: str = "sha256") -> str:
         """Get the sha256sum of a given **path**"""

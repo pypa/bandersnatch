@@ -52,7 +52,7 @@ class Master:
         )
         return self
 
-    async def __aexit__(self, *exc) -> None:
+    async def __aexit__(self, *exc: Any) -> None:
         logger.debug("Closing Master's aiohttp ClientSession and waiting 0.1 seconds")
         await self.session.close()
         # Give time for things to actually close to avoid warnings
@@ -150,11 +150,11 @@ class Master:
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
 
-    async def all_packages(self) -> Optional[Dict[str, int]]:
+    async def all_packages(self) -> Dict[str, int]:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
         if not all_packages_with_serial:
             raise XmlRpcError("Unable to get full list of packages")
-        return all_packages_with_serial
+        return all_packages_with_serial  # type: ignore
 
     async def changed_packages(self, last_serial: int) -> Dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)

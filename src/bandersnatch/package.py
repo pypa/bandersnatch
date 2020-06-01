@@ -6,7 +6,7 @@ import sys
 from json import dump
 from pathlib import Path
 from shutil import rmtree
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse
 
 from aiohttp import ClientResponseError
@@ -35,7 +35,12 @@ class Package:
     sleep_on_stale = 1
 
     def __init__(
-        self, name: str, serial: str, mirror: "Mirror", *, cleanup: bool = False
+        self,
+        name: str,
+        serial: Union[int, str],
+        mirror: "Mirror",
+        *,
+        cleanup: bool = False,
     ) -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
@@ -46,11 +51,11 @@ class Package:
 
     @property
     def json_file(self) -> Path:
-        return self.mirror.webdir / "json" / self.name
+        return Path(self.mirror.webdir / "json" / self.name)
 
     @property
     def json_pypi_symlink(self) -> Path:
-        return self.mirror.webdir / "pypi" / self.name / "json"
+        return Path(self.mirror.webdir / "pypi" / self.name / "json")
 
     @property
     def normalized_legacy_simple_directory(self) -> Path:
@@ -72,8 +77,8 @@ class Package:
     @property
     def simple_directory(self) -> Path:
         if self.mirror.hash_index:
-            return self.mirror.webdir / "simple" / self.name[0] / self.name
-        return self.mirror.webdir / "simple" / self.name
+            return Path(self.mirror.webdir / "simple" / self.name[0] / self.name)
+        return Path(self.mirror.webdir / "simple" / self.name)
 
     async def cleanup_non_pep_503_paths(self) -> None:
         """
@@ -139,7 +144,7 @@ class Package:
                     logger.info(f"Syncing package: {self.name} (serial {self.serial})")
                     try:
                         metadata_generator = self.mirror.master.get(
-                            f"/pypi/{self.name}/json", self.serial
+                            f"/pypi/{self.name}/json", int(self.serial)
                         )
                         metadata_response = await metadata_generator.asend(None)
                         metadata = await metadata_response.json()
@@ -305,11 +310,7 @@ class Package:
 
     def gen_data_requires_python(self, release: Dict) -> str:
         if "requires_python" in release and release["requires_python"] is not None:
-            return (
-                ' data-requires-python="'
-                + html.escape(release["requires_python"])
-                + '"'
-            )
+            return f' data-requires-python="{html.escape(release["requires_python"])}"'
         return ""
 
     def generate_simple_page(self) -> str:
@@ -403,7 +404,7 @@ class Package:
 
         return versions_path
 
-    def _file_url_to_local_url(self, url) -> str:
+    def _file_url_to_local_url(self, url: str) -> str:
         parsed = urlparse(url)
         if not parsed.path.startswith("/packages"):
             raise RuntimeError(f"Got invalid download URL: {url}")
@@ -411,7 +412,7 @@ class Package:
         return prefix + parsed.path
 
     # TODO: This can also return SwiftPath instances now...
-    def _file_url_to_local_path(self, url) -> Path:
+    def _file_url_to_local_path(self, url: str) -> Path:
         path = urlparse(url).path
         path = unquote(path)
         if not path.startswith("/packages"):

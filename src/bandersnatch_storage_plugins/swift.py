@@ -659,7 +659,7 @@ class SwiftStorage(StoragePlugin):
         os.unlink(filepath_tmp)
 
     @contextlib.contextmanager
-    def update_safe(self, filename: str, **kw: Any) -> Generator[IO, None, None]:
+    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
         """Rewrite a file atomically.
 
         Clients are allowed to delete the tmpfile to signal that they don't
