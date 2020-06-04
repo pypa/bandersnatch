@@ -9,11 +9,10 @@ from shutil import rmtree
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse
 
-from aiohttp import ClientResponseError
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .master import StalePage
+from .master import PackageNotFound, StalePage
 
 from .filter import filter_metadata_plugins  # isort:skip
 from .filter import filter_release_file_plugins  # isort:skip
@@ -142,17 +141,15 @@ class Package:
             while self.tries < attempts:
                 try:
                     logger.info(f"Syncing package: {self.name} (serial {self.serial})")
+
                     try:
-                        metadata_generator = self.mirror.master.get(
-                            f"/pypi/{self.name}/json", int(self.serial)
+                        metadata = await self.mirror.master.get_package_metadata(
+                            self.name, serial=int(self.serial)
                         )
-                        metadata_response = await metadata_generator.asend(None)
-                        metadata = await metadata_response.json()
-                    except ClientResponseError as e:
-                        if e.status == 404:
-                            logger.info(f"{self.name} no longer exists on PyPI")
-                            return None
-                        raise
+                    except PackageNotFound as e:
+                        logger.info(str(e))
+                        return None
+
                     # Don't save anything if our metadata filters all fail.
                     if not self._filter_metadata(metadata):
                         return None

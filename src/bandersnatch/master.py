@@ -17,6 +17,10 @@ class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
+class PackageNotFound(Exception):
+    """We asked for package metadata from PyPI and it wasn't available"""
+
+
 class XmlRpcError(aiohttp.ClientError):
     """Issue getting package listing from PyPI Repository"""
 
@@ -166,3 +170,15 @@ class Master:
             if serial > packages.get(package, 0):
                 packages[package] = serial
         return packages
+
+    async def get_package_metadata(self, package_name: str, serial: int = 0) -> Any:
+        try:
+            metadata_generator = self.get(f"/pypi/{package_name}/json", serial)
+            metadata_response = await metadata_generator.asend(None)
+            metadata = await metadata_response.json()
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                raise PackageNotFound(f"{package_name} no longer exists on PyPI")
+            raise
+
+        return metadata
