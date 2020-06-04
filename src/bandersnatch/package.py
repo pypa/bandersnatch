@@ -6,7 +6,7 @@ import sys
 from json import dump
 from pathlib import Path
 from shutil import rmtree
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse
 
 from packaging.utils import canonicalize_name
@@ -28,11 +28,19 @@ display_filter_log = True
 logger = logging.getLogger(__name__)
 
 
+class StaleMetadata(Exception):
+    """We attempted to retreive metadata from PyPI, but it was stale."""
+
+    def __init__(self, package_name: str, attempts: int) -> None:
+        super().__init__()
+        self.package_name = package_name
+        self.attempts = attempts
+
+    def __str__(self) -> str:
+        return f"Stale serial for {self.package_name} after {self.attempts} attempts"
+
+
 class Package:
-
-    tries = 0
-    sleep_on_stale = 1
-
     def __init__(
         self,
         name: str,
@@ -133,68 +141,68 @@ class Package:
 
         return True
 
-    async def sync(self, stop_on_error: bool = False, attempts: int = 3) -> None:
-        loop = asyncio.get_event_loop()
-        self.tries = 0
+    async def fetch_metadata(self, attempts: int = 3) -> Any:
+        tries = 0
+        sleep_on_stale = 1
+
+        while tries < attempts:
+            try:
+                logger.info(
+                    f"Fetching metadata for package: {self.name} (serial {self.serial})"
+                )
+                metadata = await self.mirror.master.get_package_metadata(
+                    self.name, serial=int(self.serial)
+                )
+                return metadata
+            except PackageNotFound as e:
+                logger.info(str(e))
+                return None
+            except StalePage:
+                tries += 1
+                logger.error(f"Stale serial for package {self.name} - Attempt {tries}")
+                if tries < attempts:
+                    logger.debug(f"Sleeping {sleep_on_stale}s to give CDN a chance")
+                    await asyncio.sleep(sleep_on_stale)
+                    sleep_on_stale *= 2
+                    continue
+                logger.error(
+                    f"Stale serial for {self.name} ({self.serial}) "
+                    + "not updating. Giving up."
+                )
+                raise StaleMetadata(package_name=self.name, attempts=attempts)
+
+    async def sync(self, attempts: int = 3) -> None:
         self.json_saved = False
+
         try:
-            while self.tries < attempts:
-                try:
-                    logger.info(f"Syncing package: {self.name} (serial {self.serial})")
+            metadata = await self.fetch_metadata(attempts=attempts)
+            # Don't save anything if our metadata filters all fail.
+            if not metadata or not self._filter_metadata(metadata):
+                return None
 
-                    try:
-                        metadata = await self.mirror.master.get_package_metadata(
-                            self.name, serial=int(self.serial)
-                        )
-                    except PackageNotFound as e:
-                        logger.info(str(e))
-                        return None
+            # save the metadata before filtering releases
+            if self.mirror.json_save and not self.json_saved:
+                loop = asyncio.get_event_loop()
+                self.json_saved = await loop.run_in_executor(
+                    None, self.save_json_metadata, metadata
+                )
 
-                    # Don't save anything if our metadata filters all fail.
-                    if not self._filter_metadata(metadata):
-                        return None
+            self.info = metadata["info"]
+            self.last_serial = metadata["last_serial"]
+            self.releases = metadata["releases"]
 
-                    # save the metadata before filtering releases
-                    if self.mirror.json_save and not self.json_saved:
-                        self.json_saved = await loop.run_in_executor(
-                            None, self.save_json_metadata, metadata
-                        )
+            self._filter_all_releases_files()
+            self._filter_releases()
 
-                    self.info = metadata["info"]
-                    self.last_serial = metadata["last_serial"]
-                    self.releases = metadata["releases"]
-
-                    self._filter_all_releases_files()
-
-                    self._filter_releases()
-
-                    await self.sync_release_files()
-                    self.sync_simple_page()
-                    # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
-                    self.mirror.record_finished_package(self.raw_name)
-                    break
-                except StalePage:
-                    self.tries += 1
-                    logger.error(
-                        f"Stale serial for package {self.name} - Attempt {self.tries}"
-                    )
-                    if self.tries < attempts:
-                        logger.debug(
-                            f"Sleeping {self.sleep_on_stale}s to give CDN a chance"
-                        )
-                        await asyncio.sleep(self.sleep_on_stale)
-                        self.sleep_on_stale *= 2
-                        continue
-                    logger.error(
-                        f"Stale serial for {self.name} ({self.serial}) "
-                        + "not updating. Giving up."
-                    )
-                    self.mirror.errors = True
+            await self.sync_release_files()
+            self.sync_simple_page()
+            # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
+            self.mirror.record_finished_package(self.raw_name)
         except Exception:
             logger.exception(f"Error syncing package: {self.name}@{self.serial}")
             self.mirror.errors = True
 
-        if self.mirror.errors and stop_on_error:
+        if self.mirror.errors and self.mirror.stop_on_error:
             logger.error("Exiting early after error.")
             sys.exit(1)
 

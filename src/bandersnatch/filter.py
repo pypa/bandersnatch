@@ -97,7 +97,7 @@ class FilterMetadataPlugin(Filter):
 
 class FilterReleasePlugin(Filter):
     """
-    Plugin that modify  the download of specific release or dist files
+    Plugin that modifies the download of specific releases or dist files
     """
 
     name = "release_plugin"

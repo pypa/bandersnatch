@@ -231,7 +231,7 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
 
-            await package.sync(self.stop_on_error)
+            await package.sync()
 
     async def sync_packages(self) -> None:
         self.package_queue: asyncio.Queue = asyncio.Queue()
@@ -463,13 +463,13 @@ async def mirror(config: configparser.ConfigParser) -> int:
         elif diff_full_path.is_dir():
             diff_full_path = diff_full_path / "mirrored-files"
 
+    mirror_url = config.get("mirror", "master")
+    timeout = config.getfloat("mirror", "timeout")
+    global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
+
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
-    async with Master(
-        config.get("mirror", "master"),
-        config.getfloat("mirror", "timeout"),
-        config.getfloat("mirror", "global-timeout", fallback=None),
-    ) as master:
+    async with Master(mirror_url, timeout, global_timeout) as master:
         mirror = Mirror(
             config.get("mirror", "directory"),
             master,

@@ -205,9 +205,8 @@ class Master:
             metadata_generator = self.get(f"/pypi/{package_name}/json", serial)
             metadata_response = await metadata_generator.asend(None)
             metadata = await metadata_response.json()
+            return metadata
         except aiohttp.ClientResponseError as e:
             if e.status == 404:
                 raise PackageNotFound(f"{package_name} no longer exists on PyPI")
             raise
-
-        return metadata
