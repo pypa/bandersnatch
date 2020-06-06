@@ -1,13 +1,15 @@
 """
 Module containing classes to access the bandersnatch configuration file
 """
+import configparser
 import logging
-from configparser import ConfigParser
+from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
 try:
     import importlib.resources
-except ImportError:  # For 3.6 and lesser
+except ImportError:  # pragma: no cover
+    # For <=3.6
     import importlib
     import importlib_resources
 
@@ -23,6 +25,16 @@ class DeprecatedKey(NamedTuple):
     new_section: str
     new_key: str
     deprecated_version: str
+
+
+class SetConfigValues(NamedTuple):
+    json_save: bool
+    root_uri: str
+    diff_file_path: str
+    diff_append_epoch: bool
+    digest_name: str
+    storage_backend_name: str
+    cleanup: bool
 
 
 class Singleton(type):  # pragma: no cover
@@ -62,6 +74,88 @@ class BandersnatchConfig(metaclass=Singleton):
         config_file = self.default_config_file
         if self.config_file:
             config_file = self.config_file
-        self.config = ConfigParser(delimiters="=")
+        self.config = configparser.ConfigParser(delimiters="=")
         self.config.optionxform = lambda option: option  # type: ignore
         self.config.read(config_file)
+
+
+# 11-15, 84-89, 98-99, 117-118, 124-126, 144-149
+def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues:
+    try:
+        json_save = config.getboolean("mirror", "json")
+    except configparser.NoOptionError:
+        logger.error(
+            "Please update your config to include a json "
+            + "boolean in the [mirror] section. Setting to False"
+        )
+        json_save = False
+
+    try:
+        root_uri = config.get("mirror", "root_uri")
+    except configparser.NoOptionError:
+        root_uri = ""
+
+    try:
+        diff_file_path = config.get("mirror", "diff-file")
+    except configparser.NoOptionError:
+        diff_file_path = ""
+    if "{{" in diff_file_path and "}}" in diff_file_path:
+        diff_file_path = diff_file_path.replace("{{", "").replace("}}", "")
+        diff_ref_section, _, diff_ref_key = diff_file_path.partition("_")
+        try:
+            diff_file_path = config.get(diff_ref_section, diff_ref_key)
+        except (configparser.NoOptionError, configparser.NoSectionError):
+            logger.error(
+                "Invalid section reference in `diff-file` key. "
+                "Please correct this error. Saving diff files in"
+                " base mirror directory."
+            )
+            diff_file_path = str(
+                Path(config.get("mirror", "directory")) / "mirrored-files"
+            )
+
+    try:
+        diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
+    except configparser.NoOptionError:
+        diff_append_epoch = False
+
+    try:
+        logger.debug("Checking config for storage backend...")
+        storage_backend_name = config.get("mirror", "storage-backend")
+        logger.debug("Found storage backend in config!")
+    except configparser.NoOptionError:
+        storage_backend_name = "filesystem"
+        logger.debug(
+            "Failed to find storage backend in config, falling back to default!"
+        )
+    logger.info(f"Selected storage backend: {storage_backend_name}")
+
+    try:
+        digest_name = config.get("mirror", "digest_name")
+    except configparser.NoOptionError:
+        digest_name = "sha256"
+    if digest_name not in ("md5", "sha256"):
+        raise ValueError(
+            f"Supplied digest_name {digest_name} is not supported! Please "
+            + "update digest_name to one of ('sha256', 'md5') in the [mirror] "
+            + "section."
+        )
+
+    try:
+        cleanup = config.getboolean("mirror", "cleanup")
+    except configparser.NoOptionError:
+        logger.debug(
+            "bandersnatch is not cleaning up non PEP 503 normalized Simple "
+            + "API directories"
+        )
+        cleanup = False
+
+    return SetConfigValues(
+        json_save,
+        root_uri,
+        diff_file_path,
+        diff_append_epoch,
+        digest_name,
+        storage_backend_name,
+        cleanup,
+    )
