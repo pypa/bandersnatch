@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import pytest
 
 from bandersnatch.delete import delete_packages, delete_path
+from bandersnatch.master import Master
 from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
@@ -95,6 +96,7 @@ def test_delete_path() -> None:
 async def test_delete_packages() -> None:
     args = _fake_args()
     config = _fake_config()
+    master = Master("https://unittest.org")
 
     with TemporaryDirectory() as td:
         td_path = Path(td)
@@ -133,11 +135,11 @@ async def test_delete_packages() -> None:
         assert find(web_path) == EXPECTED_WEB_BEFORE_DELETION
 
         args.dry_run = True
-        assert await delete_packages(config, args) == 0
+        assert await delete_packages(config, args, master) == 0
 
         args.dry_run = False
         with patch("bandersnatch.delete.logger.info") as mock_log:
-            assert await delete_packages(config, args) == 0
+            assert await delete_packages(config, args, master) == 0
             assert mock_log.call_count == 1
 
         # See we've deleted it all
@@ -147,6 +149,7 @@ async def test_delete_packages() -> None:
 @pytest.mark.asyncio
 async def test_delete_packages_no_exist() -> None:
     args = _fake_args()
+    master = Master("https://unittest.org")
     with patch("bandersnatch.delete.logger.error") as mock_log:
-        assert await delete_packages(_fake_config(), args) == 0
+        assert await delete_packages(_fake_config(), args, master) == 0
         assert mock_log.call_count == len(args.pypi_packages)

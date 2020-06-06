@@ -1,3 +1,6 @@
+from pathlib import Path
+from tempfile import gettempdir
+
 import asynctest
 import pytest
 
@@ -63,6 +66,13 @@ async def test_master_raises_if_serial_too_small(master):
 async def test_master_doesnt_raise_if_serial_equal(master):
     get_ag = master.get("/asdf", 1)
     await get_ag.asend(None)
+
+
+@pytest.mark.asyncio
+async def test_master_url_fetch(master):
+    fetch_path = Path(gettempdir()) / "unittest_url_fetch"
+    await master.url_fetch("https://unittest.org/asdf", fetch_path)
+    assert master.session.get.called
 
 
 @pytest.mark.asyncio

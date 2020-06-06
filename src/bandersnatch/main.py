@@ -12,6 +12,7 @@ from typing import Optional
 import bandersnatch.configuration
 import bandersnatch.delete
 import bandersnatch.log
+import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.verify
 from bandersnatch.storage import storage_backend_plugins
@@ -94,7 +95,12 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
 
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     if args.op.lower() == "delete":
-        return await bandersnatch.delete.delete_packages(config, args)
+        async with bandersnatch.master.Master(
+            config.get("mirror", "master"),
+            config.getfloat("mirror", "timeout"),
+            config.getfloat("mirror", "global-timeout", fallback=None),
+        ) as master:
+            return await bandersnatch.delete.delete_packages(config, args, master)
     elif args.op.lower() == "verify":
         return await bandersnatch.verify.metadata_verify(config, args)
 

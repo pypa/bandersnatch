@@ -12,10 +12,11 @@ from urllib.parse import urlparse
 
 from packaging.utils import canonicalize_name
 
-from bandersnatch.storage import storage_backend_plugins
-from bandersnatch.verify import get_latest_json
+from .master import Master
+from .storage import storage_backend_plugins
+from .verify import get_latest_json
 
-logger = logging.getLogger(__name__)  # pylint: disable=C0103
+logger = logging.getLogger(__name__)
 
 
 def delete_path(blob_path: Path, dry_run: bool = False) -> int:
@@ -37,7 +38,7 @@ def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     return 0
 
 
-async def delete_packages(config: ConfigParser, args: Namespace) -> int:
+async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
     loop = asyncio.get_event_loop()
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
@@ -66,7 +67,7 @@ async def delete_packages(config: ConfigParser, args: Namespace) -> int:
                 continue
 
             logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
-            await get_latest_json(json_full_path, config, executor, False)
+            await get_latest_json(master, json_full_path, config, executor, False)
             if not json_full_path.exists():
                 logger.error(f"Unable to HTTP get JSON for {json_full_path}")
                 continue
