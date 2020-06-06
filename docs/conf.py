@@ -11,6 +11,17 @@ try:
 except ImportError:
     doc_module = DocStub()
 
+try:
+    from recommonmark.parser import CommonMarkParser
+    from recommonmark.transform import AutoStructify
+
+    github_doc_root = "https://partner.git.corp.yahoo.com/pages/yahoo.platform_init"
+    USE_MARKDOWN = True
+except ImportError:
+    USE_MARKDOWN = False
+
+# If your documentation needs a minimal Sphinx version, state it here.
+needs_sphinx = "3.0"
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -23,13 +34,16 @@ extensions = [
     "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.githubpages",
+    "recommonmark",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+source_suffix = [".rst"]
+if USE_MARKDOWN:
+    source_suffix.append(".md")
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -256,19 +270,6 @@ html_theme = available_theme_settings[selected_theme]["theme"]
 html_theme_path = available_theme_settings[selected_theme]["path"]
 if available_theme_settings[selected_theme].get("options", None):
     html_theme_options = available_theme_settings[selected_theme]["options"]
-
-try:
-    from recommonmark.parser import CommonMarkParser
-    from recommonmark.transform import AutoStructify
-
-    # TODO: "source_parsers" is deprecated. Please use app.add_source_parser()
-    source_parsers = {".md": CommonMarkParser}
-
-    source_suffix = [".rst", ".md"]
-    github_doc_root = "https://partner.git.corp.yahoo.com/pages/yahoo.platform_init"
-    USE_MARKDOWN = True
-except ImportError:
-    USE_MARKDOWN = False
 
 # -- Options for LaTeX output ---------------------------------------------
 
