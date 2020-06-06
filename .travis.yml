@@ -11,6 +11,8 @@ matrix:
       env: TOXENV=doc_build
     - python: 3.8
       env: TOXENV=lint
+    - python: 3.8
+      env: TOXENV=py3
     - python: nightly
       env: TOXENV=INTEGRATION
     - python: nightly

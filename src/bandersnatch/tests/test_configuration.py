@@ -1,9 +1,15 @@
+import configparser
 import os
 import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from bandersnatch.configuration import BandersnatchConfig, Singleton
+from bandersnatch.configuration import (
+    BandersnatchConfig,
+    SetConfigValues,
+    Singleton,
+    validate_config_values,
+)
 
 try:
     import importlib.resources
@@ -122,6 +128,16 @@ class TestBandersnatchConf(TestCase):
 
         instance2 = BandersnatchConfig()
         self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
+
+    def test_validate_config_values(self):
+        default_values = SetConfigValues(
+            False, "", "", False, "sha256", "filesystem", False
+        )
+        no_options_configparser = configparser.ConfigParser()
+        no_options_configparser["mirror"] = {}
+        self.assertEqual(
+            default_values, validate_config_values(no_options_configparser)
+        )
 
 
 if __name__ == "__main__":

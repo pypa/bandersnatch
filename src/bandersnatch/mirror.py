@@ -12,6 +12,7 @@ from unittest.mock import Mock
 from filelock import Timeout
 from packaging.utils import canonicalize_name
 
+from .configuration import validate_config_values
 from .filter import filter_project_plugins, filter_release_plugins
 from .master import Master
 from .package import Package
@@ -429,77 +430,26 @@ class Mirror:
         self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
 
 
-# TODO: Breakup complex method
-async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
+async def mirror(config: configparser.ConfigParser) -> int:
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
 
-    # `json` boolean is a new optional option in 2.1.2 - want to support it
-    # not existing in old configs and display an error saying that this will
-    # error in the not to distance release
-    try:
-        json_save = config.getboolean("mirror", "json")
-    except configparser.NoOptionError:
-        logger.error(
-            "Please update your config to include a json "
-            + "boolean in the [mirror] section. Setting to False"
-        )
-        json_save = False
-
-    try:
-        root_uri = config.get("mirror", "root_uri")
-    except configparser.NoOptionError:
-        root_uri = ""
-
-    try:
-        diff_file_path = config.get("mirror", "diff-file")
-    except configparser.NoOptionError:
-        diff_file_path = ""
-    if "{{" in diff_file_path and "}}" in diff_file_path:
-        diff_file_path = diff_file_path.replace("{{", "").replace("}}", "")
-        diff_ref_section, _, diff_ref_key = diff_file_path.partition("_")
-        try:
-            diff_file_path = config.get(diff_ref_section, diff_ref_key)
-        except (configparser.NoOptionError, configparser.NoSectionError):
-            logger.error(
-                "Invalid section reference in `diff-file` key. "
-                "Please correct this error. Saving diff files in"
-                " base mirror directory."
-            )
-            diff_file_path = os.path.join(
-                config.get("mirror", "directory"), "mirrored-files"
-            )
-
-    try:
-        diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
-    except configparser.NoOptionError:
-        diff_append_epoch = False
-
-    try:
-        logger.debug("Checking config for storage backend...")
-        storage_backend_name = config.get("mirror", "storage-backend")
-        logger.debug("Found storage backend in config!")
-    except configparser.NoOptionError:
-        storage_backend_name = "filesystem"
-        logger.debug(
-            "Failed to find storage backend in config, falling back to default!"
-        )
-    logger.info(f"Selected storage backend: {storage_backend_name}")
+    config_values = validate_config_values(config)
 
     storage_plugin = next(
         iter(
             storage_backend_plugins(
-                storage_backend_name, config=config, clear_cache=True
+                config_values.storage_backend_name, config=config, clear_cache=True
             )
         )
     )
 
-    diff_file = storage_plugin.PATH_BACKEND(diff_file_path)
+    diff_file = storage_plugin.PATH_BACKEND(config_values.diff_file_path)
     diff_full_path: Union[Path, str]
     if diff_file:
         diff_file.parent.mkdir(exist_ok=True, parents=True)
-        if diff_append_epoch:
+        if config_values.diff_append_epoch:
             diff_full_path = diff_file.with_name(f"{diff_file.name}-{int(time.time())}")
         else:
             diff_full_path = diff_file
@@ -514,26 +464,6 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         elif diff_full_path.is_dir():
             diff_full_path = diff_full_path / "mirrored-files"
 
-    try:
-        digest_name = config.get("mirror", "digest_name")
-    except configparser.NoOptionError:
-        digest_name = "sha256"
-    if digest_name not in ("md5", "sha256"):
-        raise ValueError(
-            f"Supplied digest_name {digest_name} is not supported! Please "
-            + "update digest_name to one of ('sha256', 'md5') in the [mirror] "
-            + "section."
-        )
-
-    try:
-        cleanup = config.getboolean("mirror", "cleanup")
-    except configparser.NoOptionError:
-        logger.debug(
-            "bandersnatch is not cleaning up non PEP 503 normalized Simple "
-            + "API directories"
-        )
-        cleanup = False
-
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
@@ -544,20 +474,20 @@ async def mirror(config: configparser.ConfigParser) -> int:  # noqa: C901
         mirror = Mirror(
             config.get("mirror", "directory"),
             master,
-            storage_backend=storage_backend_name,
+            storage_backend=config_values.storage_backend_name,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
             hash_index=config.getboolean("mirror", "hash-index"),
-            json_save=json_save,
-            root_uri=root_uri,
-            digest_name=digest_name,
+            json_save=config_values.json_save,
+            root_uri=config_values.root_uri,
+            digest_name=config_values.digest_name,
             keep_index_versions=config.getint(
                 "mirror", "keep_index_versions", fallback=0
             ),
             diff_file=diff_file,
-            diff_append_epoch=diff_append_epoch,
+            diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path if diff_full_path else None,
-            cleanup=cleanup,
+            cleanup=config_values.cleanup,
         )
 
         # TODO: Remove this terrible hack and async mock the code correctly
