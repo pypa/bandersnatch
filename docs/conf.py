@@ -12,7 +12,7 @@ except ImportError:
     doc_module = DocStub()
 
 try:
-    from recommonmark.parser import CommonMarkParser
+    from recommonmark.parser import CommonMarkParser  # noqa: F401
     from recommonmark.transform import AutoStructify
 
     github_doc_root = "https://partner.git.corp.yahoo.com/pages/yahoo.platform_init"
