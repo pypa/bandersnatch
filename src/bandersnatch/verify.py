@@ -8,40 +8,31 @@ import shutil
 from argparse import Namespace
 from asyncio.queues import Queue
 from configparser import ConfigParser
-from functools import partial
 from pathlib import Path
 from sys import stderr
-from typing import List, Set  # noqa: F401
+from typing import List, Optional, Set
 from urllib.parse import urlparse
 
-import aiohttp
-
-from bandersnatch.configuration import BandersnatchConfig
-from bandersnatch.filter import filter_release_plugins
-from bandersnatch.storage import storage_backend_plugins
-
-from bandersnatch.utils import (  # isort:skip
-    USER_AGENT,
-    convert_url_to_path,
-    hash,
-    recursive_find_files,
-    unlink_parent_dir,
-)
+from .filter import filter_release_plugins
+from .master import Master
+from .storage import storage_backend_plugins
+from .utils import convert_url_to_path, hash, recursive_find_files, unlink_parent_dir
 
 logger = logging.getLogger(__name__)
 
 
 async def get_latest_json(
+    master: Master,
     json_path: Path,
     config: ConfigParser,
-    executor: concurrent.futures.ThreadPoolExecutor,
+    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
     delete_removed_packages: bool = False,
 ) -> None:
     url_parts = urlparse(config.get("mirror", "master"))
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
-    await url_fetch(url, new_json_path, executor)
+    await master.url_fetch(url, new_json_path, executor)
     if new_json_path.exists():
         shutil.move(str(new_json_path), json_path)
     else:
@@ -61,7 +52,7 @@ async def delete_unowned_files(
 ) -> int:
     loop = asyncio.get_event_loop()
     packages_path = mirror_base / "web" / "packages"
-    all_fs_files = set()  # type: Set[Path]
+    all_fs_files: Set[Path] = set()
     await loop.run_in_executor(
         executor, recursive_find_files, all_fs_files, packages_path
     )
@@ -92,12 +83,13 @@ async def delete_unowned_files(
 
 
 async def verify(
+    master: Master,
     config: ConfigParser,
     json_file: str,
     mirror_base_path: Path,
     all_package_files: List[Path],
     args: argparse.Namespace,
-    executor: concurrent.futures.ThreadPoolExecutor,
+    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
     releases_key: str = "releases",
 ) -> None:
     json_base = mirror_base_path / "web" / "json"
@@ -107,7 +99,7 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await get_latest_json(json_full_path, config, executor, args.delete)
+            await get_latest_json(master, json_full_path, config, executor, args.delete)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
@@ -135,13 +127,13 @@ async def verify(
                     all_package_files.append(pkg_file)
                     continue
                 else:
-                    await url_fetch(jpkg["url"], pkg_file, executor)
+                    await master.url_fetch(jpkg["url"], pkg_file, executor)
 
             calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
-                    await url_fetch(jpkg["url"], pkg_file, executor)
+                    await master.url_fetch(jpkg["url"], pkg_file, executor)
                 else:
                     logger.info(
                         f"[DRY RUN] {jpkg['info']['name']} has a sha256 mismatch."
@@ -152,73 +144,47 @@ async def verify(
     logger.info(f"Finished validating {json_file}")
 
 
-async def url_fetch(
-    url: str,
-    file_path: Path,
-    executor: concurrent.futures.ThreadPoolExecutor,
-    chunk_size: int = 65536,
-    timeout: int = 60,
-) -> None:
-    logger.info(f"Fetching {url}")
-    loop = asyncio.get_event_loop()
-
-    await loop.run_in_executor(
-        executor, partial(file_path.parent.mkdir, parents=True, exist_ok=True)
-    )
-
-    custom_headers = {"User-Agent": USER_AGENT}
-    skip_headers = {"User-Agent"}
-    aiohttp_timeout = aiohttp.ClientTimeout(total=timeout)
-    async with aiohttp.ClientSession(
-        headers=custom_headers, skip_auto_headers=skip_headers, trust_env=True
-    ) as session:
-        async with session.get(url, timeout=aiohttp_timeout) as response:
-            if response.status == 200:
-                with file_path.open("wb") as fd:
-                    while True:
-                        chunk = await response.content.read(chunk_size)
-                        if not chunk:
-                            break
-                        fd.write(chunk)
-            else:
-                logger.error(f"Invalid response from {url} ({response.status})")
-
-
-async def async_verify(
+async def verify_producer(
+    master: Master,
     config: ConfigParser,
     all_package_files: List[Path],
     mirror_base_path: Path,
     json_files: List[str],
     args: argparse.Namespace,
-    executor: concurrent.futures.ThreadPoolExecutor,
+    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
 ) -> None:
-    queue = asyncio.Queue()  # type: Queue
+    queue: asyncio.Queue = asyncio.Queue()
     for jf in json_files:
-        queue.put_nowait(jf)
+        await queue.put(jf)
 
     async def consume(q: Queue) -> None:
         while not q.empty():
-            json_file = q.get_nowait()
+            json_file = await q.get()
             await verify(
-                config, json_file, mirror_base_path, all_package_files, args, executor
+                master,
+                config,
+                json_file,
+                mirror_base_path,
+                all_package_files,
+                args,
+                executor,
             )
 
-    # TODO: See if we can use passed in config
-    config = BandersnatchConfig().config
-    verifiers = config.getint("mirror", "verifiers", fallback=3)
-    consumers = [consume(queue)] * verifiers
-
-    await asyncio.gather(*consumers)
+    await asyncio.gather(
+        *[consume(queue)] * config.getint("mirror", "verifiers", fallback=3)
+    )
 
 
 async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     """Crawl all saved JSON metadata or online to check we have all packages
     if delete - generate a diff of unowned files"""
-    all_package_files = []  # type: List[Path]
+    all_package_files: List[Path] = []
     loop = asyncio.get_event_loop()
+
     storage_backend = next(
         iter(storage_backend_plugins(config=config, clear_cache=True))
     )
+
     mirror_base_path = storage_backend.PATH_BACKEND(config.get("mirror", "directory"))
     json_base = mirror_base_path / "web" / "json"
     workers = args.workers or config.getint("mirror", "workers")
@@ -236,9 +202,20 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
 
     logger.debug(f"Found {len(json_files)} objects in {json_base}")
     logger.debug(f"Using a {workers} thread ThreadPoolExecutor")
-    await async_verify(
-        config, all_package_files, mirror_base_path, json_files, args, executor
-    )
+    async with Master(
+        config.get("mirror", "master"),
+        config.getfloat("mirror", "timeout"),
+        config.getfloat("mirror", "global-timeout", fallback=None),
+    ) as master:
+        await verify_producer(
+            master,
+            config,
+            all_package_files,
+            mirror_base_path,
+            json_files,
+            args,
+            executor,
+        )
 
     if not args.delete:
         return 0

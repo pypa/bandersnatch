@@ -19,7 +19,6 @@ from .package import Package
 from .storage import storage_backend_plugins
 
 LOG_PLUGINS = True
-FIVE_HOURS_FLOAT = 5 * 60 * 60.0
 logger = logging.getLogger(__name__)
 
 
@@ -469,7 +468,7 @@ async def mirror(config: configparser.ConfigParser) -> int:
     async with Master(
         config.get("mirror", "master"),
         config.getfloat("mirror", "timeout"),
-        config.getfloat("mirror", "global-timeout", fallback=FIVE_HOURS_FLOAT),
+        config.getfloat("mirror", "global-timeout", fallback=None),
     ) as master:
         mirror = Mirror(
             config.get("mirror", "directory"),

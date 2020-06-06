@@ -1,6 +1,9 @@
 import asyncio
 import logging
-from typing import Any, AsyncGenerator, Dict, Optional
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from functools import partial
+from pathlib import Path
+from typing import Any, AsyncGenerator, Dict, Optional, Union
 
 import aiohttp
 from aiohttp_xmlrpc.client import ServerProxy
@@ -10,6 +13,7 @@ import bandersnatch
 from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
+FIVE_HOURS_FLOAT = 5 * 60 * 60.0
 PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
 
 
@@ -27,11 +31,14 @@ class XmlRpcError(aiohttp.ClientError):
 
 class Master:
     def __init__(
-        self, url: str, timeout: float = 10.0, global_timeout: float = 5 * 60 * 60.0
+        self,
+        url: str,
+        timeout: float = 10.0,
+        global_timeout: Optional[float] = FIVE_HOURS_FLOAT,
     ) -> None:
         self.loop = asyncio.get_event_loop()
         self.timeout = timeout
-        self.global_timeout = global_timeout
+        self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
         self.url = url
         if self.url.startswith("http://"):
             err = f"Master URL {url} is not https scheme"
@@ -116,6 +123,28 @@ class Master:
             )
             await self.check_for_stale_cache(path, required_serial, got_serial)
             yield r
+
+    # TODO: Add storage backend support / refactor - #554
+    async def url_fetch(
+        self,
+        url: str,
+        file_path: Path,
+        executor: Optional[Union[ProcessPoolExecutor, ThreadPoolExecutor]] = None,
+        chunk_size: int = 65536,
+    ) -> None:
+        logger.info(f"Fetching {url}")
+
+        await self.loop.run_in_executor(
+            executor, partial(file_path.parent.mkdir, parents=True, exist_ok=True)
+        )
+
+        async with self.session.get(url) as response:
+            with file_path.open("wb") as fd:
+                while True:
+                    chunk = await response.content.read(chunk_size)
+                    if not chunk:
+                        break
+                    fd.write(chunk)
 
     @property
     def xmlrpc_url(self) -> str:

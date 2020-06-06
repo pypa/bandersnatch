@@ -1,3 +1,4 @@
+import configparser
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -9,13 +10,14 @@ from typing import List
 import pytest
 
 import bandersnatch
+from bandersnatch.master import Master
 from bandersnatch.utils import convert_url_to_path, find
 
 from bandersnatch.verify import (  # isort:skip
     get_latest_json,
-    async_verify,
     delete_unowned_files,
     metadata_verify,
+    verify_producer,
 )
 
 
@@ -41,6 +43,9 @@ class FakeConfig:
             if item == "master":
                 return "https://pypi.org/simple/"
         return ""
+
+    def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
+        return 0.5
 
 
 # TODO: Support testing sharded simple dirs
@@ -123,11 +128,15 @@ class FakeMirror:
 
 
 @pytest.mark.asyncio
-async def test_async_verify(monkeypatch):
+async def test_verify_producer(monkeypatch):
     fm = FakeMirror("test_async_verify")
+    fc = configparser.ConfigParser()
+    fc["mirror"] = {}
+    fc["mirror"]["verifiers"] = "2"
+    master = Master("https://unittest.org")
     json_files = ["web/json/bandersnatch", "web/json/black"]
     monkeypatch.setattr(bandersnatch.verify, "verify", do_nothing)
-    await async_verify(None, [], fm.mirror_base, json_files, None, None)
+    await verify_producer(master, fc, [], fm.mirror_base, json_files, None, None)
 
 
 def test_fake_mirror():
@@ -182,15 +191,16 @@ async def test_get_latest_json(monkeypatch):
     config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
-    monkeypatch.setattr(bandersnatch.verify, "url_fetch", do_nothing)
-    await get_latest_json(json_path, config, executor)
+    master = Master("https://unittest.org")
+    master.url_fetch = do_nothing
+    await get_latest_json(master, json_path, config, executor)
 
 
 @pytest.mark.asyncio
 async def test_metadata_verify(monkeypatch):
     fa = FakeArgs()
     fc = FakeConfig()
-    monkeypatch.setattr(bandersnatch.verify, "async_verify", do_nothing)
+    monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
     await metadata_verify(fc, fa)
