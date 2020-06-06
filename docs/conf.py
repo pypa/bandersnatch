@@ -23,6 +23,10 @@ except ImportError:
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = "3.0"
 
+# Just a protection against an incompatible version of recommonmark.
+# The listed version is the minimal version required for that extension.
+needs_extensions = {"recommonmark": "0.5"}
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
