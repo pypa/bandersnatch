@@ -11,7 +11,19 @@ import pathlib
 import re
 import sys
 import tempfile
-from typing import IO, Any, Dict, Generator, List, Optional, Sequence, Type, Union
+from typing import (
+    IO,
+    Any,
+    Dict,
+    Generator,
+    List,
+    NoReturn,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 import filelock
 import keystoneauth1
@@ -41,7 +53,7 @@ class SwiftFileLock(filelock.BaseFileLock):
         backend: Optional["SwiftStorage"] = None,
     ) -> None:
         # The path to the lock file.
-        self.backend = backend
+        self.backend: Optional["SwiftStorage"] = backend
         self._lock_file_fd: Optional["SwiftPath"]
         super().__init__(lock_file, timeout=timeout)
 
@@ -84,7 +96,7 @@ class SwiftFileLock(filelock.BaseFileLock):
 
 
 # TODO: Refactor this out into reusable base class?
-class _SwiftAccessor:  # type: ignore
+class _SwiftAccessor:
     BACKEND: "SwiftStorage"
 
     @classmethod
@@ -93,16 +105,16 @@ class _SwiftAccessor:  # type: ignore
         return
 
     @staticmethod
-    def stat(target):
+    def stat(target: str) -> NoReturn:
         raise NotImplementedError("stat() not available on this system")
 
     @staticmethod
-    def lstat(target):
+    def lstat(target: str) -> NoReturn:
         raise NotImplementedError("lstat() not available on this system")
 
     @staticmethod
-    def open(*args, **kwargs) -> IO:
-        context = contextlib.ExitStack()
+    def open(*args: Any, **kwargs: Any) -> IO:
+        context: contextlib.ExitStack = contextlib.ExitStack()
         fh: IO = context.enter_context(
             _SwiftAccessor.BACKEND.open_file(*args, **kwargs)
         )
@@ -129,22 +141,22 @@ class _SwiftAccessor:  # type: ignore
         return results
 
     @staticmethod
-    def scandir(target):
+    def scandir(target: str) -> NoReturn:
         raise NotImplementedError("scandir() is not available on this platform")
 
     @staticmethod
-    def chmod(target):
+    def chmod(target: str) -> NoReturn:
         raise NotImplementedError("chmod() is not available on this platform")
 
-    def lchmod(self, pathobj, mode):
+    def lchmod(self, pathobj: str, mode: int) -> NoReturn:
         raise NotImplementedError("lchmod() not available on this system")
 
     @staticmethod
-    def mkdir(*args, **kwargs) -> None:
+    def mkdir(*args: Any, **kwargs: Any) -> None:
         return _SwiftAccessor.BACKEND.mkdir(*args, **kwargs)
 
     @staticmethod
-    def unlink(*args, **kwargs) -> None:
+    def unlink(*args: Any, **kwargs: Any) -> None:
         missing_ok = kwargs.pop("missing_ok", False)
         try:
             _SwiftAccessor.BACKEND.delete_file(*args, **kwargs)
@@ -155,11 +167,11 @@ class _SwiftAccessor:  # type: ignore
         return None
 
     @staticmethod
-    def link(*args, **kwargs) -> None:
+    def link(*args: Any, **kwargs: Any) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
-    def rmdir(*args, **kwargs) -> None:
+    def rmdir(*args: Any, **kwargs: Any) -> None:
         try:
             _SwiftAccessor.BACKEND.rmdir(*args, **kwargs)
         except OSError:
@@ -167,26 +179,32 @@ class _SwiftAccessor:  # type: ignore
         return None
 
     @staticmethod
-    def rename(*args, **kwargs) -> None:
+    def rename(*args: Any, **kwargs: Any) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
-    def replace(*args, **kwargs) -> None:
+    def replace(*args: Any, **kwargs: Any) -> None:
         return _SwiftAccessor.BACKEND.copy_file(*args, **kwargs)
 
     @staticmethod
-    def symlink(a, b, target_is_directory=False, src_container=None, src_account=None):
+    def symlink(
+        a: PATH_TYPES,
+        b: PATH_TYPES,
+        target_is_directory: bool = False,
+        src_container: Optional[str] = None,
+        src_account: Optional[str] = None,
+    ) -> None:
         return _SwiftAccessor.BACKEND.symlink(
             a, b, src_container=src_container, src_account=src_account
         )
 
     @staticmethod
-    def utime(target) -> None:
+    def utime(target: str) -> None:
         return _SwiftAccessor.BACKEND.update_timestamp(target)
 
     # Helper for resolve()
-    def readlink(self, path):
-        return path
+    def readlink(self, path: str) -> str:
+        return str(path)
 
 
 _swift_accessor: Type[_SwiftAccessor]
@@ -208,7 +226,7 @@ class SwiftPath(pathlib.Path):
         "_closed",
     )
 
-    def __new__(cls, *args) -> "SwiftPath":
+    def __new__(cls, *args: Any) -> "SwiftPath":
         self = cls._from_parts(args, init=False)
         self._init()
         return self
@@ -229,7 +247,7 @@ class SwiftPath(pathlib.Path):
                     self._parts,  # type: ignore
                 )
                 or "."
-            )  # type: ignore
+            )
             return self._str
 
     def __fspath__(self) -> str:
@@ -238,7 +256,7 @@ class SwiftPath(pathlib.Path):
     def __bytes__(self) -> bytes:
         """Return the bytes representation of the path.  This is only
         recommended to use under Unix."""
-        return os.fsencode(self)
+        return os.fsencode(str(self))
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.as_posix()!r})"
@@ -250,10 +268,10 @@ class SwiftPath(pathlib.Path):
         return self._from_parsed_parts(self._drv, self._root, parts)  # type: ignore
 
     @classmethod
-    def _parse_args(cls, args: Sequence[str]) -> "SwiftPath":
+    def _parse_args(cls, args: Sequence[str]) -> Tuple[Optional[str], str, List[str]]:
         # This is useful when you don't want to create an instance, just
         # canonicalize some constructor arguments.
-        parts = []
+        parts: List[str] = []
         for a in args:
             a = os.fspath(a)
             if isinstance(a, str):
@@ -267,10 +285,10 @@ class SwiftPath(pathlib.Path):
         # Modification to prevent us from starting swift paths with "/"
         if parts[0].startswith("/"):
             parts[0] = parts[0].lstrip("/")
-        return cls._flavour.parse_parts(parts)
+        return cls._flavour.parse_parts(parts)  # type: ignore
 
     @classmethod
-    def _from_parts(cls, args, init=True):
+    def _from_parts(cls, args: Sequence[str], init: bool = True) -> "SwiftPath":
         # We need to call _parse_args on the instance, so as to get the
         # right flavour.
         self = object.__new__(cls)
@@ -280,19 +298,19 @@ class SwiftPath(pathlib.Path):
         self._parts = parts
         if init:
             self._init()
-        return self
+        return self  # type: ignore
 
     @classmethod
     def _from_parsed_parts(
         cls, drv: Optional[str], root: str, parts: List[str], init: bool = True
-    ):
+    ) -> "SwiftPath":
         self = object.__new__(cls)
         self._drv = drv
         self._root = root
         self._parts = parts
         if init:
             self._init()
-        return self
+        return self  # type: ignore
 
     @classmethod
     def register_backend(cls, backend: "SwiftStorage") -> None:
@@ -307,8 +325,8 @@ class SwiftPath(pathlib.Path):
     def absolute(self) -> "SwiftPath":
         return self
 
-    def touch(self):
-        return self.write_bytes(b"")
+    def touch(self) -> None:  # type: ignore[override]
+        self.write_bytes(b"")
 
     def is_dir(self) -> bool:
         target_path = str(self)
@@ -318,7 +336,7 @@ class SwiftPath(pathlib.Path):
             and not target_path.endswith(self._flavour.sep)
         ):
             target_path = f"{target_path}{self._flavour.sep}"
-        files = []
+        files: List[str] = []
         with self.backend.connection() as conn:
             try:
                 _, files = conn.get_container(
@@ -367,9 +385,9 @@ class SwiftPath(pathlib.Path):
         )
         return 0
 
-    def symlink_to(  # type: ignore
+    def symlink_to(
         self,
-        src: str,
+        src: PATH_TYPES,
         target_is_directory: bool = False,
         src_container: Optional[str] = None,
         src_account: Optional[str] = None,
@@ -380,7 +398,7 @@ class SwiftPath(pathlib.Path):
         """
         self._accessor.symlink(
             src,
-            self,
+            str(self),
             target_is_directory=target_is_directory,
             src_account=src_account,
             src_container=src_container,
@@ -402,8 +420,8 @@ class SwiftPath(pathlib.Path):
         assert isinstance(result, bytes)
         return result
 
-    def unlink(self, missing_ok=False) -> None:
-        self._accessor.unlink(self, missing_ok=missing_ok)
+    def unlink(self, missing_ok: bool = False) -> None:
+        self._accessor.unlink(str(self), missing_ok=missing_ok)
 
     def iterdir(
         self,
@@ -431,7 +449,7 @@ class SwiftStorage(StoragePlugin):
     PATH_BACKEND = SwiftPath
 
     @property
-    def directory(self):
+    def directory(self) -> str:
         try:
             return self.configuration.get("mirror", "directory")
         except configparser.NoOptionError:
@@ -464,7 +482,7 @@ class SwiftStorage(StoragePlugin):
             ),
             "password": self.get_config_value("password", "OS_PASSWORD"),
         }
-        os_options = {}
+        os_options: Dict[str, Any] = {}
         user_id = self.get_config_value("username", "OS_USER_ID", "OS_USERNAME")
         project = self.get_config_value(
             "project_name", "OS_PROJECT_NAME", "OS_TENANT_NAME"
@@ -498,7 +516,7 @@ class SwiftStorage(StoragePlugin):
         global _swift_accessor
         _swift_accessor = _SwiftAccessor
 
-    def get_lock(self, path: str = None) -> SwiftFileLock:
+    def get_lock(self, path: Optional[str] = None) -> SwiftFileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -541,7 +559,7 @@ class SwiftStorage(StoragePlugin):
         ) as swift_conn:
             yield swift_conn
 
-    def get_container(self, container: str = None) -> List[Dict[str, str]]:
+    def get_container(self, container: Optional[str] = None) -> List[Dict[str, str]]:
         """
         Given the name of a container, return its contents.
 
@@ -575,7 +593,7 @@ class SwiftStorage(StoragePlugin):
             container = self.default_container
         with self.connection() as conn:
             _, container_instance = conn.get_container(container)
-            return container_instance
+            return container_instance  # type: ignore
 
     def get_object(self, container_name: str, file_path: str) -> bytes:
         """Retrieve an object from swift, base64 decoding the contents."""
@@ -587,7 +605,7 @@ class SwiftStorage(StoragePlugin):
             else:
                 if len(file_contents) % 4 == 0 and BASE64_RE.fullmatch(file_contents):
                     return base64.b64decode(file_contents)
-                return file_contents
+                return bytes(file_contents)
 
     def walk(
         self,
@@ -601,7 +619,6 @@ class SwiftStorage(StoragePlugin):
             if conn is None:
                 conn = stack.enter_context(self.connection())
             _, paths = conn.get_container(self.default_container, prefix=str(root))
-            results = []
             for p in paths:
                 if "subdir" in p and dirs:
                     results.append(self.PATH_BACKEND(p["subdir"]))
@@ -692,7 +709,7 @@ class SwiftStorage(StoragePlugin):
         return
 
     def copy_file(
-        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: str = None
+        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: Optional[str] = None
     ) -> None:
         """Copy a file from **source** to **dest**"""
         if dest_container is None:
@@ -727,7 +744,9 @@ class SwiftStorage(StoragePlugin):
         return
 
     @contextlib.contextmanager
-    def open_file(self, path: PATH_TYPES, text=True) -> Generator[IO, None, None]:
+    def open_file(
+        self, path: PATH_TYPES, text: bool = True
+    ) -> Generator[IO, None, None]:
         """Yield a file context to iterate over. If text is false, open the file with
         'rb' mode specified."""
         wrapper = io.StringIO if text else io.BytesIO
@@ -737,7 +756,7 @@ class SwiftStorage(StoragePlugin):
     def read_file(
         self,
         path: PATH_TYPES,
-        text=True,
+        text: bool = True,
         encoding: str = "utf-8",
         errors: Optional[str] = None,
     ) -> Union[str, bytes]:
@@ -749,7 +768,7 @@ class SwiftStorage(StoragePlugin):
                 errors = sys.getfilesystemencodeerrors()  # type: ignore
             except AttributeError:
                 errors = "surrogateescape"
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
         if errors:
             kwargs["errors"] = errors
         content = self.get_object(self.default_container, str(path))
@@ -784,7 +803,7 @@ class SwiftStorage(StoragePlugin):
         )
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.joinpath(".swiftkeep").touch()
+        path.joinpath(".swiftkeep").touch()
 
     def rmdir(
         self,
@@ -839,7 +858,7 @@ class SwiftStorage(StoragePlugin):
             target_path = ""
         if target_path and not target_path.endswith("/"):
             target_path = f"{target_path}/"
-        files = []
+        files: List[str] = []
         with self.connection() as conn:
             try:
                 _, files = conn.get_container(
@@ -863,7 +882,6 @@ class SwiftStorage(StoragePlugin):
                 return False
             else:
                 return True
-        return False
 
     def is_symlink(self, path: PATH_TYPES) -> bool:
         """Check whether the provided path is a symlink"""
@@ -875,7 +893,7 @@ class SwiftStorage(StoragePlugin):
             except swiftclient.exceptions.ClientException:
                 return False
             if headers:
-                return headers.get("content-type", "") == "application/symlink"
+                return bool(headers.get("content-type", "") == "application/symlink")
         return False
 
     def update_timestamp(self, path: PATH_TYPES) -> None:
@@ -888,7 +906,7 @@ class SwiftStorage(StoragePlugin):
 
     def get_hash(self, path: str, function: str = "sha256") -> str:
         h = getattr(hashlib, function)(self.read_file(path, text=False))
-        return h.hexdigest()
+        return str(h.hexdigest())
 
     def symlink(
         self,
@@ -908,7 +926,7 @@ class SwiftStorage(StoragePlugin):
             }
             if src_account is not None:
                 headers["X-Symlink-Target-Account"] = src_account
-            return conn.put_object(
+            conn.put_object(
                 self.default_container,
                 str(dest),
                 b"",
