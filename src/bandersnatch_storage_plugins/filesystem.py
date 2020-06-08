@@ -19,10 +19,10 @@ class FilesystemStorage(StoragePlugin):
     name = "filesystem"
     PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def get_lock(self, path: str = None) -> filelock.FileLock:
+    def get_lock(self, path: Optional[str] = None) -> filelock.FileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -164,14 +164,14 @@ class FilesystemStorage(StoragePlugin):
     def read_file(
         self,
         path: PATH_TYPES,
-        text=True,
+        text: bool = True,
         encoding: str = "utf-8",
         errors: Optional[str] = None,
     ) -> Union[str, bytes]:
-        """Return the contents of the requested file, either a a bytestring or a unicode
+        """Return the contents of the requested file, either a bytestring or a unicode
         string depending on whether **text** is True"""
         with self.open_file(path, text=text, encoding=encoding) as fh:
-            contents = fh.read()
+            contents: Union[str, bytes] = fh.read()
         return contents
 
     def delete_file(self, path: PATH_TYPES, dry_run: bool = False) -> int:
@@ -261,4 +261,4 @@ class FilesystemStorage(StoragePlugin):
                 h.update(chunk)
         digest = h.hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
-        return h.hexdigest()
+        return str(h.hexdigest())
