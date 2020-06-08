@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Dict, List
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -29,7 +29,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
         "manylinux2010_x86_64",  # PEP 571
     ]
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin reading patterns from the config.
         """
@@ -77,7 +77,7 @@ class ExcludePlatformFilter(FilterReleasePlugin):
 
         logger.info(f"Initialized {self.name} plugin with {self._patterns!r}")
 
-    def filter(self, metadata):
+    def filter(self, metadata: Dict) -> bool:
         releases = metadata["releases"]
         """
         Remove files from `releases` that match any pattern.
@@ -104,13 +104,13 @@ class ExcludePlatformFilter(FilterReleasePlugin):
         else:
             return True
 
-    def _check_match(self, file_desc) -> bool:
+    def _check_match(self, file_desc: Dict) -> bool:
         """
         Check if a release version matches any of the specified patterns.
 
         Parameters
         ==========
-        name: file_desc
+        file_desc: Dict
             file description entry
 
         Returns
