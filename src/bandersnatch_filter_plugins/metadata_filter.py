@@ -1,6 +1,7 @@
 import logging
 import re
-from typing import Dict, List
+from configparser import SectionProxy
+from typing import Any, Dict, List
 
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse
@@ -25,12 +26,12 @@ class RegexFilter(Filter):
     initilized = False
     patterns: Dict = {}
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin reading patterns from the config.
         """
         try:
-            config = self.configuration[self.name]
+            config: SectionProxy = self.configuration[self.name]
         except KeyError:
             return
         else:
@@ -57,7 +58,7 @@ class RegexFilter(Filter):
         # Walk through keys of patterns dict and return True iff all match
         return all(self._match_node_at_path(k, metadata) for k in self.patterns)
 
-    def _match_node_at_path(self, key: str, metadata):
+    def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
 
         # Grab any tags prepended to key
         tags = key.split(":")
@@ -94,21 +95,23 @@ class RegexFilter(Filter):
         else:
             return self._match_any_patterns(key, node, nulls_match=nulls_match)
 
-    def _find_element_by_dotted_path(self, path, metadata):
+    def _find_element_by_dotted_path(self, path: str, metadata: Dict) -> List:
         # Walk our metadata structure following dotted path.
-        path = path.split(".")
+        split_path = path.split(".")
         node = metadata
-        for p in path:
+        for p in split_path:
             if p in node and node[p] is not None:
                 node = node[p]
             else:
                 return []
-        if isinstance(node, list):
-            return node
+        if isinstance(node, list):  # type: ignore
+            return node  # type: ignore
         else:
             return [node]
 
-    def _match_any_patterns(self, key: str, values: List, nulls_match=True):
+    def _match_any_patterns(
+        self, key: str, values: List[str], nulls_match: bool = True
+    ) -> bool:
         results = []
         for pattern in self.patterns[key]:
             if nulls_match and not values:
@@ -118,7 +121,9 @@ class RegexFilter(Filter):
                 results.append(pattern.match(value))
         return any(results)
 
-    def _match_all_patterns(self, key: str, values: List, nulls_match=True):
+    def _match_all_patterns(
+        self, key: str, values: List[str], nulls_match: bool = True
+    ) -> bool:
         results = []
         for pattern in self.patterns[key]:
             if nulls_match and not values:
@@ -127,14 +132,16 @@ class RegexFilter(Filter):
             results.append(any(pattern.match(v) for v in values))
         return all(results)
 
-    def _match_none_patterns(self, key: str, values: List, nulls_match=True):
+    def _match_none_patterns(
+        self, key: str, values: List[str], nulls_match: bool = True
+    ) -> bool:
         return not self._match_any_patterns(key, values)
 
 
 class RegexProjectMetadataFilter(FilterMetadataPlugin, RegexFilter):
     """
     Plugin to download only packages having metadata matching
-    at least one of the  specified patterns.
+    at least one of the specified patterns.
     """
 
     name = "regex_project_metadata"
@@ -143,10 +150,10 @@ class RegexProjectMetadataFilter(FilterMetadataPlugin, RegexFilter):
     initilized = False
     patterns: Dict = {}
 
-    def initilize_plugin(self):
+    def initilize_plugin(self) -> None:
         RegexFilter.initialize_plugin(self)
 
-    def filter(self, metadata: dict) -> bool:
+    def filter(self, metadata: Dict) -> bool:
         return RegexFilter.filter(self, metadata)
 
 
@@ -162,10 +169,10 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
     initilized = False
     patterns: Dict = {}
 
-    def initilize_plugin(self):
+    def initilize_plugin(self) -> None:
         RegexFilter.initialize_plugin(self)
 
-    def filter(self, metadata: dict) -> bool:
+    def filter(self, metadata: Dict) -> bool:
         return RegexFilter.filter(self, metadata)
 
 
@@ -180,12 +187,14 @@ class VersionRangeFilter(Filter):
     specifiers: Dict = {}
     nulls_match = True
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin reading version ranges from the config.
         """
         try:
-            config = self.configuration["version_range_release_file_metadata"]
+            config: SectionProxy = self.configuration[
+                "version_range_release_file_metadata"
+            ]
         except KeyError:
             return
         else:
@@ -212,11 +221,11 @@ class VersionRangeFilter(Filter):
 
         return all(self._match_node_at_path(k, metadata) for k in self.specifiers)
 
-    def _find_element_by_dotted_path(self, path, metadata):
+    def _find_element_by_dotted_path(self, path: str, metadata: Dict) -> Any:
         # Walk our metadata structure following dotted path.
-        path = path.split(".")
+        split_path = path.split(".")
         node = metadata
-        for p in path:
+        for p in split_path:
             if p in node and node[p] is not None:
                 node = node[p]
             else:
@@ -224,7 +233,7 @@ class VersionRangeFilter(Filter):
 
         return node
 
-    def _match_node_at_path(self, key: str, metadata):
+    def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
 
         # Grab any tags prepended to key
         tags = key.split(":")
@@ -252,7 +261,7 @@ class VersionRangeFilter(Filter):
 
         # Check if SpeciferSet matches target versions
         # TODO: Figure out proper intersection of SpecifierSets
-        ospecs = SpecifierSet(node)
+        ospecs: SpecifierSet = SpecifierSet(node)
         ispecs = self.specifiers[key]
         if any(ospecs.contains(ispec, prereleases=True) for ispec in ispecs):
             return True
@@ -274,7 +283,7 @@ class VersionRangeProjectMetadataFilter(FilterMetadataPlugin, VersionRangeFilter
     specifiers: Dict = {}
     nulls_match = True
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         VersionRangeFilter.initialize_plugin(self)
 
     def filter(self, metadata: dict) -> bool:
@@ -294,7 +303,7 @@ class VersionRangeReleaseFileMetadataFilter(
     specifiers: Dict = {}
     nulls_match = True
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         VersionRangeFilter.initialize_plugin(self)
 
     def filter(self, metadata: dict) -> bool:
