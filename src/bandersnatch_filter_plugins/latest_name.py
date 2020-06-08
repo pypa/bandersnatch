@@ -1,5 +1,6 @@
 import logging
 from operator import itemgetter
+from typing import Dict, List, Optional, Set, Union
 
 from packaging.version import parse
 
@@ -16,7 +17,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
     name = "latest_release"
     keep = 0  # by default, keep 'em all
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin reading patterns from the config.
         """
@@ -32,22 +33,25 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(self, metadata):
+    def filter(  # type: ignore[override]
+        self, metadata: Dict
+    ) -> Optional[bool]:
         """
         Keep the latest releases
         """
+        latest: Union[List, Set]
         info = metadata["info"]
         releases = metadata["releases"]
 
         if self.keep == 0:
-            return
+            return None
 
         versions = list(releases.keys())
         before = len(versions)
 
         if before <= self.keep:
             # not enough releases: do nothing
-            return
+            return None
 
         versions_pair = map(lambda v: (parse(v), v), versions)
         latest = sorted(versions_pair)[-self.keep :]  # noqa: E203
