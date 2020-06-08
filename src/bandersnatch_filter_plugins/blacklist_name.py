@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Any, Dict, List, Set
 
 from packaging.requirements import Requirement
 from packaging.version import InvalidVersion, Version
@@ -14,7 +14,7 @@ class BlacklistProject(FilterProjectPlugin):
     # Requires iterable default
     blacklist_package_names: List[str] = []
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin
         """
@@ -28,7 +28,7 @@ class BlacklistProject(FilterProjectPlugin):
                 + f"{self.blacklist_package_names}"
             )
 
-    def _determine_filtered_package_names(self):
+    def _determine_filtered_package_names(self) -> List[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
@@ -37,7 +37,7 @@ class BlacklistProject(FilterProjectPlugin):
         # configuration contains a PEP440 specifier it will be processed by the
         # blacklist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
-        filtered_packages = set()
+        filtered_packages: Set[str] = set()
         try:
             lines = self.configuration["blacklist"]["packages"]
             package_lines = lines.split("\n")
@@ -61,10 +61,10 @@ class BlacklistProject(FilterProjectPlugin):
         logger.debug("Project blacklist is %r", list(filtered_packages))
         return list(filtered_packages)
 
-    def filter(self, metadata):
+    def filter(self, metadata: Dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
-    def check_match(self, **kwargs):
+    def check_match(self, **kwargs: Any) -> bool:
         """
         Check if the package name matches against a project that is blacklisted
         in the configuration.
@@ -95,7 +95,7 @@ class BlacklistRelease(FilterReleasePlugin):
     # Requires iterable default
     blacklist_package_names: List[Requirement] = []
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin
         """
@@ -111,7 +111,7 @@ class BlacklistRelease(FilterReleasePlugin):
                 + f"{self.blacklist_release_requirements}"
             )
 
-    def _determine_filtered_package_requirements(self):
+    def _determine_filtered_package_requirements(self) -> List[Requirement]:
         """
         Parse the configuration file for [blacklist]packages
 
@@ -120,7 +120,7 @@ class BlacklistRelease(FilterReleasePlugin):
         list of packaging.requirements.Requirement
             For all PEP440 package specifiers
         """
-        filtered_requirements = set()
+        filtered_requirements: Set[Requirement] = set()
         try:
             lines = self.configuration["blacklist"]["packages"]
             package_lines = lines.split("\n")
@@ -133,7 +133,7 @@ class BlacklistRelease(FilterReleasePlugin):
             filtered_requirements.add(Requirement(package_line))
         return list(filtered_requirements)
 
-    def filter(self, metadata):
+    def filter(self, metadata: Dict) -> bool:
         name = metadata["info"]["name"]
         releases = metadata["releases"]
         for version in list(releases.keys()):
@@ -144,7 +144,7 @@ class BlacklistRelease(FilterReleasePlugin):
         else:
             return True
 
-    def _check_match(self, name, version_string) -> bool:
+    def _check_match(self, name: str, version_string: str) -> bool:
         """
         Check if the package name and version matches against a blacklisted
         package version specifier.
