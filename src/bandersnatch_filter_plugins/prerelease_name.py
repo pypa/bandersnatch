@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Dict
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -20,7 +21,7 @@ class PreReleaseFilter(FilterReleasePlugin):
     )
     patterns = None
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin reading patterns from the config.
         """
@@ -31,13 +32,13 @@ class PreReleaseFilter(FilterReleasePlugin):
             ]
             logger.info(f"Initialized prerelease plugin with {self.patterns}")
 
-    def filter(self, metadata):
+    def filter(self, metadata: Dict) -> bool:
         """
         Remove all release versions that match any of the specified patterns.
         """
         releases = metadata["releases"]
         for version in list(releases.keys()):
-            if any(pattern.match(version) for pattern in self.patterns):
+            if any(pattern.match(version) for pattern in self.patterns):  # type: ignore
                 del releases[version]
         if not releases:
             return False
