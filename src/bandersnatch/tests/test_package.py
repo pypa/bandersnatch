@@ -4,9 +4,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
 from typing import List
 
+import asynctest
 import pytest
 from freezegun import freeze_time
 
+from bandersnatch.master import StalePage
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch.utils import make_time_stamp
@@ -65,19 +67,19 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(m
 
 
 @pytest.mark.asyncio
-async def test_package_sync_gives_up_after_3_stale_responses(caplog, mirror):
+async def test_package_fetch_metadata_gives_up_after_3_stale_responses(caplog, mirror):
     mirror.master.package_releases = mock.Mock()
     mirror.master.package_releases.return_value = ["0.1"]
     mirror.master.release_urls = mock.Mock()
     mirror.master.release_urls.return_value = []
+    mirror.master.get_package_metadata = asynctest.CoroutineMock(side_effect=StalePage)
 
     pkg_name = "foo"
     package = Package(pkg_name, 11, mirror)
-    package.sleep_on_stale = 0
 
-    await package.sync()
-    assert package.tries == 3
-    assert mirror.errors
+    with pytest.raises(Exception):
+        await package.fetch_metadata()
+    assert mirror.master.get_package_metadata.await_count == 3
     assert "not updating. Giving up" in caplog.text
 
 
