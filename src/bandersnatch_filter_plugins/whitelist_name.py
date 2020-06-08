@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Any, Dict, List, Set
 
 from bandersnatch.filter import FilterProjectPlugin
 
@@ -11,7 +11,7 @@ class WhitelistProject(FilterProjectPlugin):
     # Requires iterable default
     whitelist_package_names: List[str] = []
 
-    def initialize_plugin(self):
+    def initialize_plugin(self) -> None:
         """
         Initialize the plugin
         """
@@ -25,7 +25,7 @@ class WhitelistProject(FilterProjectPlugin):
                 + f"{self.whitelist_package_names}"
             )
 
-    def _determine_unfiltered_package_names(self):
+    def _determine_unfiltered_package_names(self) -> List[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
@@ -34,7 +34,7 @@ class WhitelistProject(FilterProjectPlugin):
         # configuration contains a PEP440 specifier it will be processed by the
         # blacklist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
-        unfiltered_packages = set()
+        unfiltered_packages: Set[str] = set()
         try:
             lines = self.configuration["whitelist"]["packages"]
             package_lines = lines.split("\n")
@@ -47,10 +47,10 @@ class WhitelistProject(FilterProjectPlugin):
             unfiltered_packages.add(package_line)
         return list(unfiltered_packages)
 
-    def filter(self, metadata):
+    def filter(self, metadata: Dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
-    def check_match(self, **kwargs):
+    def check_match(self, **kwargs: Any) -> bool:
         """
         Check if the package name matches against a project that is blacklisted
         in the configuration.
