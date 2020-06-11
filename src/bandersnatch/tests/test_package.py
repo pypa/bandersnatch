@@ -1,14 +1,14 @@
 import os.path
-import unittest.mock as mock
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
-from typing import List
+from typing import Any, Dict, Iterable, NoReturn
 
 import asynctest
 import pytest
+from _pytest.capture import CaptureFixture
 from freezegun import freeze_time
 
-from bandersnatch.master import StalePage
+from bandersnatch.master import Master, StalePage
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package, StaleMetadata
 from bandersnatch.utils import make_time_stamp
@@ -21,7 +21,7 @@ EXPECTED_REL_HREFS = (
 )
 
 
-def touch_files(paths: List[Path]):
+def touch_files(paths: Iterable[Path]) -> None:
     for path in paths:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
@@ -29,7 +29,7 @@ def touch_files(paths: List[Path]):
             pfp.close()
 
 
-def test_save_json_metadata(mirror, package_json):
+def test_save_json_metadata(mirror: Mirror, package_json: Dict[str, Any]) -> None:
     package = Package("foo", 11, mirror)
     package.json_file.parent.mkdir(parents=True)
     package.json_pypi_symlink.parent.mkdir(parents=True)
@@ -37,10 +37,10 @@ def test_save_json_metadata(mirror, package_json):
     assert package.save_json_metadata(package_json)
 
 
-@pytest.mark.asyncio
-async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(mirror,):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = {}
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
+    mirror: Mirror,
+) -> None:
 
     paths = [Path("web/packages/2.4/f/foo/foo.zip"), Path("web/simple/foo/index.html")]
     touch_files(paths)
@@ -51,25 +51,27 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(m
         assert path.exists()
 
 
-@pytest.mark.asyncio
-async def test_package_fetch_metadata_gives_up_after_3_stale_responses(caplog, mirror):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ["0.1"]
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
-    mirror.master.get_package_metadata = asynctest.CoroutineMock(side_effect=StalePage)
+@pytest.mark.asyncio  # type: ignore
+async def test_package_fetch_metadata_gives_up_after_3_stale_responses(
+    caplog: CaptureFixture, mirror: Mirror
+) -> None:
+    mirror.master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
+        side_effect=StalePage
+    )
 
     pkg_name = "foo"
     package = Package(pkg_name, 11, mirror)
 
     with pytest.raises(StaleMetadata):
         await package.fetch_metadata()
-    assert mirror.master.get_package_metadata.await_count == 3
+    assert mirror.master.get_package_metadata.await_count == 3  # type: ignore
     assert "not updating. Giving up" in caplog.text
 
 
-@pytest.mark.asyncio
-async def test_package_sync_with_release_no_files_syncs_simple_page(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_with_release_no_files_syncs_simple_page(
+    mirror: Mirror,
+) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     await package.sync()
@@ -96,10 +98,10 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(mirror):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore
 async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
-    mirror_hash_index,
-):
+    mirror_hash_index: Mirror,
+) -> None:
     mirror_hash_index.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror_hash_index)
     await package.sync()
@@ -125,8 +127,8 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_with_canonical_simple_page(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_with_canonical_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo": 1}
     package = Package("Foo", 1, mirror)
     await package.sync()
@@ -153,8 +155,10 @@ async def test_package_sync_with_canonical_simple_page(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_index):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_with_canonical_simple_page_with_hash(
+    mirror_hash_index: Mirror,
+) -> None:
     mirror_hash_index.packages_to_sync = {"Foo": 1}
     package = Package("Foo", 1, mirror_hash_index)
     await package.sync()
@@ -180,8 +184,8 @@ async def test_package_sync_with_canonical_simple_page_with_hash(mirror_hash_ind
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_with_normalized_simple_page(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_with_normalized_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo.bar-thing_other": 1}
     package = Package("Foo.bar-thing_other", 1, mirror)
     await package.sync()
@@ -207,8 +211,8 @@ async def test_package_sync_with_normalized_simple_page(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_simple_page_root_uri(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_simple_page_root_uri(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     mirror.root_uri = "https://files.pythonhosted.org"
     package = Package("foo", 1, mirror)
@@ -243,8 +247,8 @@ async def test_package_sync_simple_page_root_uri(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_simple_page_with_files(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_simple_page_with_files(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     await package.sync()
@@ -270,8 +274,8 @@ async def test_package_sync_simple_page_with_files(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_simple_page_with_existing_dir(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_simple_page_with_existing_dir(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     os.makedirs(package.simple_directory)
@@ -300,8 +304,10 @@ async def test_package_sync_simple_page_with_existing_dir(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_simple_page_with_existing_dir_with_hash(mirror_hash_index):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_simple_page_with_existing_dir_with_hash(
+    mirror_hash_index: Mirror,
+) -> None:
     mirror_hash_index.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror_hash_index)
     os.makedirs(package.simple_directory)
@@ -328,24 +334,19 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(mirror_hash_
     )
 
 
-@pytest.mark.asyncio
-async def test_package_sync_with_error_keeps_it_on_todo_list(mirror):
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ["0.1"]
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
-
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_with_error_keeps_it_on_todo_list(mirror: Mirror) -> None:
     # Make packages_to_sync to generate an error
-    mirror.packages_to_sync = {"foo"}
+    mirror.packages_to_sync = {"foo"}  # type: ignore
     package = Package("foo", 1, mirror)
     await package.sync()
     assert mirror.errors
     assert "foo" in mirror.packages_to_sync
 
 
-@pytest.mark.asyncio
-async def test_package_sync_downloads_release_file(mirror):
-    mirror.packages_to_sync = {"foo": None}
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_downloads_release_file(mirror: Mirror) -> None:
+    mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
     await package.sync()
     assert not mirror.errors
@@ -353,9 +354,11 @@ async def test_package_sync_downloads_release_file(mirror):
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
 
 
-@pytest.mark.asyncio
-async def test_package_download_rejects_non_package_directory_links(mirror):
-    mirror.packages_to_sync = {"foo"}
+@pytest.mark.asyncio  # type: ignore
+async def test_package_download_rejects_non_package_directory_links(
+    mirror: Mirror,
+) -> None:
+    mirror.packages_to_sync = {"foo"}  # type: ignore
     package = Package("foo", 1, mirror)
     await package.sync()
     assert mirror.errors
@@ -363,17 +366,14 @@ async def test_package_download_rejects_non_package_directory_links(mirror):
     assert not os.path.exists("web/foo/bar/foo/foo.zip")
 
 
-@pytest.mark.asyncio
-async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(
+    mirror: Mirror,
+) -> None:
     test_files = [Path("web/packages/2.4/f/foo/foo.zip")]
     touch_files(test_files)
 
-    mirror.master.package_releases = mock.Mock()
-    mirror.master.package_releases.return_value = ["0.1"]
-    mirror.master.release_urls = mock.Mock()
-    mirror.master.release_urls.return_value = []
-
-    mirror.packages_to_sync = {"foo": None}
+    mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
     await package.sync()
     assert not mirror.errors
@@ -381,14 +381,14 @@ async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(mirror):
     assert test_files[0].exists()
 
 
-@pytest.mark.asyncio
-async def test_package_sync_replaces_mismatching_local_files(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_replaces_mismatching_local_files(mirror: Mirror) -> None:
     test_files = [Path("web/packages/any/f/foo/foo.zip")]
     touch_files(test_files)
     with test_files[0].open("wb") as f:
         f.write(b"this is not the release content")
 
-    mirror.packages_to_sync = {"foo": None}
+    mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
     await package.sync()
     assert not mirror.errors
@@ -396,18 +396,20 @@ async def test_package_sync_replaces_mismatching_local_files(mirror):
     assert test_files[0].open("r").read() == ""
 
 
-@pytest.mark.asyncio
-async def test_package_sync_handles_non_pep_503_in_packages_to_sync(master):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_handles_non_pep_503_in_packages_to_sync(
+    master: Master,
+) -> None:
     with TemporaryDirectory() as td:
-        mirror = Mirror(td, master, stop_on_error=True)
-        mirror.packages_to_sync = {"Foo": None}
+        mirror = Mirror(Path(td), master, stop_on_error=True)
+        mirror.packages_to_sync = {"Foo": ""}
         package = Package("Foo", 1, mirror)
         await package.sync()
         assert not mirror.errors
 
 
-@pytest.mark.asyncio
-async def test_package_sync_does_not_touch_existing_local_file(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_package_sync_does_not_touch_existing_local_file(mirror: Mirror) -> None:
     pkg_file_path_str = "web/packages/any/f/foo/foo.zip"
     pkg_file_path = Path(pkg_file_path_str)
     touch_files((pkg_file_path,))
@@ -426,8 +428,8 @@ async def test_package_sync_does_not_touch_existing_local_file(mirror):
     assert old_stat.st_ctime == Path(pkg_file_path_str).stat().st_ctime
 
 
-def test_gen_data_requires_python(mirror):
-    fake_no_release = {}
+def test_gen_data_requires_python(mirror: Mirror) -> None:
+    fake_no_release: Dict[str, str] = {}
     fake_release = {"requires_python": ">=3.6"}
     package = Package("foo", 10, mirror)
 
@@ -438,8 +440,10 @@ def test_gen_data_requires_python(mirror):
     )
 
 
-@pytest.mark.asyncio
-async def test_sync_incorrect_download_with_current_serial_fails(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_sync_incorrect_download_with_current_serial_fails(
+    mirror: Mirror,
+) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 2, mirror)
     await package.sync()
@@ -448,8 +452,8 @@ async def test_sync_incorrect_download_with_current_serial_fails(mirror):
     assert mirror.errors
 
 
-@pytest.mark.asyncio
-async def test_sync_incorrect_download_with_old_serials_retries(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_sync_incorrect_download_with_old_serials_retries(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 2, mirror)
     await package.sync()
@@ -458,15 +462,15 @@ async def test_sync_incorrect_download_with_old_serials_retries(mirror):
     assert mirror.errors
 
 
-@pytest.mark.asyncio
-async def test_survives_exceptions_from_record_finished_package(mirror):
-    def record_finished_package(name):
+@pytest.mark.asyncio  # type: ignore
+async def test_survives_exceptions_from_record_finished_package(mirror: Mirror) -> None:
+    def record_finished_package(name: str) -> NoReturn:
         import errno
 
         raise OSError(errno.EBADF, "Some transient error?")
 
     mirror.packages_to_sync = {"Foo": 1}
-    mirror.record_finished_package = record_finished_package
+    mirror.record_finished_package = record_finished_package  # type: ignore
 
     package = Package("Foo", 1, mirror)
     await package.sync()
@@ -492,10 +496,10 @@ async def test_survives_exceptions_from_record_finished_package(mirror):
     assert mirror.errors
 
 
-@freeze_time("2018-10-28")
-@pytest.mark.asyncio
-async def test_keep_index_versions_stores_one_prior_version(mirror):
-    mirror.packages_to_sync = {"foo": None}
+@freeze_time("2018-10-28")  # type: ignore
+@pytest.mark.asyncio  # type: ignore
+async def test_keep_index_versions_stores_one_prior_version(mirror: Mirror) -> None:
+    mirror.packages_to_sync = {"foo": ""}
     mirror.keep_index_versions = 1
     package = Package("foo", 1, mirror)
     await package.sync()
@@ -511,8 +515,10 @@ async def test_keep_index_versions_stores_one_prior_version(mirror):
     assert os.path.basename(os.readlink(str(link_path))) == version_files[0]
 
 
-@pytest.mark.asyncio
-async def test_keep_index_versions_stores_different_prior_versions(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_keep_index_versions_stores_different_prior_versions(
+    mirror: Mirror,
+) -> None:
     simple_path = Path("web/simple/foo")
     versions_path = simple_path / "versions"
     mirror.packages_to_sync = {"foo": 1}
@@ -538,13 +544,13 @@ async def test_keep_index_versions_stores_different_prior_versions(mirror):
     assert os.path.basename(os.readlink(str(link_path))) == version_files[1]
 
 
-@pytest.mark.asyncio
-async def test_keep_index_versions_removes_old_versions(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_keep_index_versions_removes_old_versions(mirror: Mirror) -> None:
     simple_path = Path("web/simple/foo/")
     versions_path = simple_path / "versions"
     versions_path.mkdir(parents=True)
-    versions_path.joinpath("index_1_2018-10-26T000000Z.html").touch()
-    versions_path.joinpath("index_1_2018-10-27T000000Z.html").touch()
+    (versions_path / "index_1_2018-10-26T000000Z.html").touch()
+    (versions_path / "index_1_2018-10-27T000000Z.html").touch()
 
     mirror.keep_index_versions = 2
     with freeze_time("2018-10-28"):

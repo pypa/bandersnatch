@@ -3,7 +3,7 @@ import unittest.mock as mock
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import Any, Iterator, List
 
 import asynctest
 import pytest
@@ -19,10 +19,10 @@ from bandersnatch.utils import WINDOWS
 class JsonDict(dict):
     """ Class to fake the object returned from requests lib in master.get() """
 
-    def json(self):
+    def json(self) -> "JsonDict":
         return self
 
-    def iter_content(*args, **kwargs):
+    def iter_content(*args: Any, **kwargs: Any) -> Iterator[bytes]:
         yield b"abcdefg69"
 
 
@@ -52,7 +52,7 @@ FAKE_RELEASE_DATA = JsonDict(
 )
 
 
-def touch_files(paths: List[Path]):
+def touch_files(paths: List[Path]) -> None:
     for path in paths:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
@@ -60,32 +60,32 @@ def touch_files(paths: List[Path]):
             pfp.close()
 
 
-def test_limit_workers():
+def test_limit_workers() -> None:
     try:
-        Mirror("/tmp", None, workers=11)
+        Mirror(Path("/tmp"), mock.Mock(), workers=11)
     except ValueError:
         pass
 
 
-def test_mirror_loads_serial(tmpdir):
+def test_mirror_loads_serial(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("5")
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
-    m = Mirror(str(tmpdir), mock.Mock())
+    m = Mirror(tmpdir, mock.Mock())
     assert m.synced_serial == 1234
 
 
-def test_mirror_recovers_from_inconsistent_serial(tmpdir):
+def test_mirror_recovers_from_inconsistent_serial(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("")
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
-    m = Mirror(str(tmpdir), mock.Mock())
+    m = Mirror(tmpdir, mock.Mock())
     assert m.synced_serial == 0
 
 
-def test_mirror_generation_3_resets_status_files(tmpdir):
+def test_mirror_generation_3_resets_status_files(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("2")
     with open(str(tmpdir / "status"), "w") as status:
@@ -93,14 +93,14 @@ def test_mirror_generation_3_resets_status_files(tmpdir):
     with open(str(tmpdir / "todo"), "w") as status:
         status.write("asdf")
 
-    m = Mirror(str(tmpdir), mock.Mock())
+    m = Mirror(tmpdir, mock.Mock())
     assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation")).read() == "5"
 
 
-def test_mirror_generation_4_resets_status_files(tmpdir):
+def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("4")
     with open(str(tmpdir / "status"), "w") as status:
@@ -108,14 +108,14 @@ def test_mirror_generation_4_resets_status_files(tmpdir):
     with open(str(tmpdir / "todo"), "w") as status:
         status.write("asdf")
 
-    m = Mirror(str(tmpdir), mock.Mock())
+    m = Mirror(tmpdir, mock.Mock())
     assert m.synced_serial == 0
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation")).read() == "5"
 
 
-def test_mirror_filter_packages_match(tmpdir):
+def test_mirror_filter_packages_match(tmpdir: Path) -> None:
     """
     Packages that exist in the blacklist should be removed from the list of
     packages to sync.
@@ -132,13 +132,13 @@ packages =
     BandersnatchConfig("test.conf")
     for plugin in filter_project_plugins():
         plugin.initialize_plugin()
-    m = Mirror(str(tmpdir), mock.Mock())
-    m.packages_to_sync = {"example1": None, "example2": None}
+    m = Mirror(tmpdir, mock.Mock())
+    m.packages_to_sync = {"example1": "", "example2": ""}
     m._filter_packages()
     assert "example1" not in m.packages_to_sync.keys()
 
 
-def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir):
+def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
     """
     Package lines with a PEP440 spec on them should not be filtered from the
     list of packages.
@@ -154,46 +154,46 @@ packages =
     BandersnatchConfig("test.conf")
     for plugin in filter_project_plugins():
         plugin.initialize_plugin()
-    m = Mirror(str(tmpdir), mock.Mock())
-    m.packages_to_sync = {"example1": None, "example3": None}
+    m = Mirror(tmpdir, mock.Mock())
+    m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()
     assert "example3" in m.packages_to_sync.keys()
 
 
-def test_mirror_removes_empty_todo_list(tmpdir):
+def test_mirror_removes_empty_todo_list(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("3")
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
     with open(str(tmpdir / "todo"), "w") as status:
         status.write("")
-    Mirror(str(tmpdir), mock.Mock())
+    Mirror(tmpdir, mock.Mock())
     assert not os.path.exists(str(tmpdir / "todo"))
 
 
-def test_mirror_removes_broken_todo_list(tmpdir):
+def test_mirror_removes_broken_todo_list(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("3")
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
     with open(str(tmpdir / "todo"), "w") as status:
         status.write("foo")
-    Mirror(str(tmpdir), mock.Mock())
+    Mirror(tmpdir, mock.Mock())
     assert not os.path.exists(str(tmpdir / "todo"))
 
 
-def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir):
+def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir: Path) -> None:
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
     with open(str(tmpdir / "todo"), "w") as status:
         status.write("foo")
-    Mirror(str(tmpdir), mock.Mock())
+    Mirror(tmpdir, mock.Mock())
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation")).read().strip() == "5"
 
 
-def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
+def test_mirror_with_same_homedir_needs_lock(mirror: Mirror, tmpdir: Path) -> None:
     try:
         Mirror(mirror.homedir, mirror.master)
     except RuntimeError:
@@ -201,9 +201,11 @@ def test_mirror_with_same_homedir_needs_lock(mirror, tmpdir):
     Mirror(mirror.homedir / "test", mirror.master)
 
 
-@pytest.mark.asyncio
-async def test_mirror_empty_master_gets_index(mirror):
-    mirror.master.all_packages = asynctest.asynctest.CoroutineMock(return_value={})
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_empty_master_gets_index(mirror: Mirror) -> None:
+    mirror.master.all_packages = asynctest.asynctest.CoroutineMock(  # type: ignore
+        return_value={}
+    )
     await mirror.synchronize()
 
     assert """\
@@ -232,8 +234,8 @@ simple{0}index.html""".format(
     assert open("status").read() == "0"
 
 
-@pytest.mark.asyncio
-async def test_mirror_empty_resume_from_todo_list(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_empty_resume_from_todo_list(mirror: Mirror) -> None:
     with open("todo", "w") as todo:
         todo.write("20\nfoobar 1")
 
@@ -282,9 +284,11 @@ web{0}simple{0}index.html""".format(
     assert open("status").read() == "20"
 
 
-@pytest.mark.asyncio
-async def test_mirror_sync_package(mirror):
-    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_sync_package(mirror: Mirror) -> None:
+    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
+        return_value={"foo": 1}
+    )
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
@@ -318,9 +322,11 @@ simple{0}index.html""".format(
     assert open("status", "rb").read() == b"1"
 
 
-@pytest.mark.asyncio
-async def test_mirror_sync_package_error_no_early_exit(mirror):
-    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_sync_package_error_no_early_exit(mirror: Mirror) -> None:
+    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
+        return_value={"foo": 1}
+    )
     mirror.errors = True
     changed_packages = await mirror.synchronize()
 
@@ -354,19 +360,21 @@ web{0}simple{0}index.html""".format(
     assert open("todo").read() == "1\n"
 
     # Check the returned dict is accurate
-    expected = {
+    expected_dict = {
         "foo": {
             "web{0}packages{0}2.7{0}f{0}foo{0}foo.whl".format(sep),
             "web{0}packages{0}any{0}f{0}foo{0}foo.zip".format(sep),
         }
     }
-    assert changed_packages == expected
+    assert changed_packages == expected_dict
 
 
 # TODO: Fix - Raises SystemExit but pytest does not like asyncio tasks
-@pytest.mark.asyncio
-async def mirror_sync_package_error_early_exit(mirror):
-    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
+@pytest.mark.asyncio  # type: ignore
+async def mirror_sync_package_error_early_exit(mirror: Mirror) -> None:
+    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
+        return_value={"foo": 1}
+    )
 
     with Path("web/simple/index.html").open("wb") as index:
         index.write(b"old index")
@@ -390,9 +398,9 @@ web{0}simple{0}index.html""".format(
     assert open("todo").read() == "1\n"
 
 
-@pytest.mark.asyncio
-async def test_mirror_sync_package_with_hash(mirror_hash_index):
-    mirror_hash_index.master.all_packages = asynctest.CoroutineMock(
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_sync_package_with_hash(mirror_hash_index: Mirror) -> None:
+    mirror_hash_index.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
     )
     await mirror_hash_index.synchronize()
@@ -423,9 +431,13 @@ simple{0}index.html""".format(
     assert open("status").read() == "1"
 
 
-@pytest.mark.asyncio
-async def test_mirror_serial_current_no_sync_of_packages_and_index_page(mirror):
-    mirror.master.changed_packages = asynctest.CoroutineMock(return_value={})
+@pytest.mark.asyncio  # type: ignore
+async def test_mirror_serial_current_no_sync_of_packages_and_index_page(
+    mirror: Mirror,
+) -> None:
+    mirror.master.changed_packages = asynctest.CoroutineMock(  # type: ignore
+        return_value={}
+    )
     mirror.synced_serial = 1
     await mirror.synchronize()
 
@@ -435,7 +447,7 @@ last-modified""" == utils.find(
     )
 
 
-def test_find_package_indexes_in_dir_threaded(mirror):
+def test_find_package_indexes_in_dir_threaded(mirror: Mirror) -> None:
     directories = (
         "web/simple/peerme",
         "web/simple/click",
@@ -446,28 +458,26 @@ def test_find_package_indexes_in_dir_threaded(mirror):
     )
     with TemporaryDirectory() as td:
         # Create local mirror first so we '_bootstrap'
-        local_mirror = Mirror(td, mirror.master, stop_on_error=True)
-        # Create fake file system objects
         mirror_base = Path(td)
+        local_mirror = Mirror(mirror_base, mirror.master, stop_on_error=True)
+        # Create fake file system objects
         for directory in directories:
-            mirror_base.joinpath(directory).mkdir(parents=True, exist_ok=True)
-        with mirror_base.joinpath("web/simple/index.html").open("w") as index:
+            (mirror_base / directory).mkdir(parents=True, exist_ok=True)
+        with (mirror_base / "web/simple/index.html").open("w") as index:
             index.write("<html></html>")
 
-        packages = local_mirror.find_package_indexes_in_dir(
-            mirror_base.joinpath("web/simple").as_posix()
-        )
+        packages = local_mirror.find_package_indexes_in_dir(mirror_base / "web/simple")
         assert "index.html" not in packages  # This should never be in the list
         assert len(packages) == 6  # We expect 6 packages with 6 dirs created
         assert packages[0] == "click"  # Check sorted - click should be first
 
 
-def test_validate_todo(mirror):
+def test_validate_todo(mirror: Mirror) -> None:
     valid_todo = "69\ncooper 69\ndan 1\n"
     invalid_todo = "cooper l33t\ndan n00b\n"
 
     with TemporaryDirectory() as td:
-        test_mirror = Mirror(td, mirror.master)
+        test_mirror = Mirror(Path(td), mirror.master)
         for todo_data in (valid_todo, invalid_todo):
             with test_mirror.todolist.open("w") as tdfp:
                 tdfp.write(todo_data)
@@ -479,8 +489,8 @@ def test_validate_todo(mirror):
                 assert not test_mirror.todolist.exists()
 
 
-@pytest.mark.asyncio
-async def test_cleanup_non_pep_503_paths(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_cleanup_non_pep_503_paths(mirror: Mirror) -> None:
     raw_package_name = "CatDogPython69"
     package = Package(raw_package_name, 11, mirror)
     await mirror.cleanup_non_pep_503_paths(package)

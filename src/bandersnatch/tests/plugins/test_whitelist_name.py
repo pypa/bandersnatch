@@ -12,7 +12,7 @@ from bandersnatch.mirror import Mirror
 TEST_CONF = "test.conf"
 
 
-def _mock_config(contents, filename=TEST_CONF):
+def _mock_config(contents: str, filename: str = TEST_CONF) -> BandersnatchConfig:
     """
     Creates a config file with contents and loads them into a
     BandersnatchConfig instance.
@@ -34,20 +34,21 @@ class TestWhitelistProject(TestCase):
     tempdir = None
     cwd = None
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         bandersnatch.storage.loaded_storage_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.tempdir:
+            assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
             self.tempdir = None
 
-    def test__plugin__loads__explicitly_enabled(self):
+    def test__plugin__loads__explicitly_enabled(self) -> None:
         _mock_config(
             contents="""\
 [plugins]
@@ -61,7 +62,7 @@ enabled =
         self.assertListEqual(names, ["whitelist_project"])
         self.assertEqual(len(plugins), 1)
 
-    def test__plugin__loads__default(self):
+    def test__plugin__loads__default(self) -> None:
         _mock_config(
             """\
 [mirror]
@@ -75,7 +76,7 @@ storage-backend = filesystem
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("whitelist_project", names)
 
-    def test__filter__matches__package(self):
+    def test__filter__matches__package(self) -> None:
         _mock_config(
             """\
 [mirror]
@@ -97,7 +98,7 @@ packages =
 
         self.assertIn("foo", mirror.packages_to_sync.keys())
 
-    def test__filter__nomatch_package(self):
+    def test__filter__nomatch_package(self) -> None:
         _mock_config(
             """\
 [mirror]

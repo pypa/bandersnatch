@@ -1,13 +1,15 @@
 import configparser
 import os
 import sys
+import unittest.mock as mock
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
-from typing import List
+from typing import Any, List
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 
 import bandersnatch
 from bandersnatch.master import Master
@@ -21,11 +23,11 @@ from bandersnatch.verify import (  # isort:skip
 )
 
 
-async def do_nothing(*args, **kwargs) -> None:
+async def do_nothing(*args: Any, **kwargs: Any) -> None:
     pass
 
 
-def some_dirs(*args, **kwargs) -> List[str]:
+def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
 
 
@@ -99,11 +101,11 @@ class FakeMirror:
         self.setup_simple()
         self.setup_packages()
 
-    def clean_up(self):
+    def clean_up(self) -> None:
         if self.mirror_base.exists():
             rmtree(self.mirror_base)
 
-    def setup_json(self):
+    def setup_json(self) -> None:
         for pkg in self.pypi_packages.keys():
             pkg_json = self.json_path / pkg
             pkg_json.touch()
@@ -111,7 +113,7 @@ class FakeMirror:
             pkg_legacy_json.parent.mkdir()
             pkg_legacy_json.symlink_to(str(pkg_json))
 
-    def setup_packages(self):
+    def setup_packages(self) -> None:
         for _pkg, dists in self.pypi_packages.items():
             for _version, metadata in dists.items():
                 dist_file = self.web_base / convert_url_to_path(metadata["url"])
@@ -119,7 +121,7 @@ class FakeMirror:
                 with dist_file.open("w") as dfp:
                     dfp.write(metadata["contents"])
 
-    def setup_simple(self):
+    def setup_simple(self) -> None:
         for pkg in self.pypi_packages.keys():
             pkg_dir = self.simple_path / pkg
             pkg_dir.mkdir()
@@ -127,8 +129,8 @@ class FakeMirror:
             index_path.touch()
 
 
-@pytest.mark.asyncio
-async def test_verify_producer(monkeypatch):
+@pytest.mark.asyncio  # type: ignore
+async def test_verify_producer(monkeypatch: MonkeyPatch) -> None:
     fm = FakeMirror("test_async_verify")
     fc = configparser.ConfigParser()
     fc["mirror"] = {}
@@ -136,10 +138,10 @@ async def test_verify_producer(monkeypatch):
     master = Master("https://unittest.org")
     json_files = ["web/json/bandersnatch", "web/json/black"]
     monkeypatch.setattr(bandersnatch.verify, "verify", do_nothing)
-    await verify_producer(master, fc, [], fm.mirror_base, json_files, None, None)
+    await verify_producer(master, fc, [], fm.mirror_base, json_files, mock.Mock(), None)
 
 
-def test_fake_mirror():
+def test_fake_mirror() -> None:
     expected_mirror_layout = """\
 web
 web{0}json
@@ -170,7 +172,7 @@ web{0}simple{0}black{0}index.html""".format(
     fm.clean_up()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore
 async def test_delete_unowned_files() -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     fm = FakeMirror("_test_delete_files")
@@ -186,24 +188,24 @@ async def test_delete_unowned_files() -> None:
     fm.clean_up()
 
 
-@pytest.mark.asyncio
-async def test_get_latest_json(monkeypatch):
+@pytest.mark.asyncio  # type: ignore
+async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
-    master.url_fetch = do_nothing
-    await get_latest_json(master, json_path, config, executor)
+    master.url_fetch = do_nothing  # type: ignore
+    await get_latest_json(master, json_path, config, executor)  # type: ignore
 
 
-@pytest.mark.asyncio
-async def test_metadata_verify(monkeypatch):
+@pytest.mark.asyncio  # type: ignore
+async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
     fa = FakeArgs()
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
-    await metadata_verify(fc, fa)
+    await metadata_verify(fc, fa)  # type: ignore
 
 
 if __name__ == "__main__":

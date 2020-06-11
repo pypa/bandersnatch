@@ -48,7 +48,7 @@ class Mirror:
     # This is generally not necessary, but was added for the official internal
     # PyPI mirror, which requires serving packages from
     # https://files.pythonhosted.org
-    root_uri = ""
+    root_uri: Optional[str] = ""
 
     diff_file = None
     diff_append_epoch = False
@@ -56,7 +56,7 @@ class Mirror:
 
     def __init__(
         self,
-        homedir: str,
+        homedir: Path,
         master: Master,
         storage_backend: Optional[str] = None,
         stop_on_error: bool = False,
@@ -538,7 +538,7 @@ async def mirror(
     # allow them being patched by mock libraries!
     async with Master(mirror_url, timeout, global_timeout) as master:
         mirror = Mirror(
-            config.get("mirror", "directory"),
+            Path(config.get("mirror", "directory")),
             master,
             storage_backend=config_values.storage_backend_name,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),

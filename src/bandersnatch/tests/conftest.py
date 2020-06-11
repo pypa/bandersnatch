@@ -1,39 +1,48 @@
 # flake8: noqa
 
 import unittest.mock as mock
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import pytest
+from _pytest.capture import CaptureFixture
+from _pytest.fixtures import FixtureRequest
+from _pytest.monkeypatch import MonkeyPatch
 from asynctest import asynctest
 
+if TYPE_CHECKING:
+    from bandersnatch.mirror import Mirror
+    from bandersnatch.master import Master
 
-@pytest.fixture(autouse=True)
-def stop_std_logging(request, capfd):
+
+@pytest.fixture(autouse=True)  # type: ignore
+def stop_std_logging(request: FixtureRequest, capfd: CaptureFixture) -> None:
     patcher = mock.patch("bandersnatch.log.setup_logging")
     patcher.start()
 
-    def tearDown():
+    def tearDown() -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
 
 
-async def _nosleep(*args):
+async def _nosleep(*args: Any) -> None:
     pass
 
 
-@pytest.fixture(autouse=True)
-def never_sleep(request):
+@pytest.fixture(autouse=True)  # type: ignore
+def never_sleep(request: FixtureRequest) -> None:
     patcher = mock.patch("asyncio.sleep", _nosleep)
     patcher.start()
 
-    def tearDown():
+    def tearDown() -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
 
 
-@pytest.fixture
-def package_json():
+@pytest.fixture  # type: ignore
+def package_json() -> Dict[str, Any]:
     return {
         "info": {"name": "Foo", "version": "0.1"},
         "last_serial": 654_321,
@@ -62,72 +71,74 @@ def package_json():
     }
 
 
-@pytest.fixture
-def master(package_json):
+@pytest.fixture  # type: ignore
+def master(package_json: Dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
 
     class FakeReader:
-        async def read(self, *args):
+        async def read(self, *args: Any) -> bytes:
             return b""
 
     class FakeAiohttpClient:
         headers = {"X-PYPI-LAST-SERIAL": "1"}
 
-        async def __aenter__(self):
+        async def __aenter__(self) -> "FakeAiohttpClient":
             return self
 
-        async def __aexit__(self, *args):
+        async def __aexit__(self, *args: Any) -> None:
             pass
 
         @property
-        def content(self, *args):
+        def content(self) -> "FakeReader":
             return FakeReader()
 
-        async def json(self, *args):
+        async def json(self, *args: Any) -> Dict[str, Any]:
             return package_json
 
     master = Master("https://pypi.example.com")
-    master.rpc = mock.Mock()
+    master.rpc = mock.Mock()  # type: ignore
     master.session = asynctest.MagicMock()
     master.session.get = asynctest.MagicMock(return_value=FakeAiohttpClient())
     master.session.request = asynctest.MagicMock(return_value=FakeAiohttpClient())
     return master
 
 
-@pytest.fixture
-def mirror(tmpdir, master, monkeypatch):
+@pytest.fixture  # type: ignore
+def mirror(tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch) -> "Mirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror
 
-    return Mirror(str(tmpdir), master)
+    return Mirror(tmpdir, master)
 
 
-@pytest.fixture
-def mirror_hash_index(tmpdir, master, monkeypatch):
+@pytest.fixture  # type: ignore
+def mirror_hash_index(
+    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+) -> "Mirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror
 
-    return Mirror(str(tmpdir), master, hash_index=True)
+    return Mirror(tmpdir, master, hash_index=True)
 
 
-@pytest.fixture
-def mirror_mock(request):
+@pytest.fixture  # type: ignore
+def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
     patcher = mock.patch("bandersnatch.mirror.Mirror")
-    mirror = patcher.start()
+    mirror: mock.MagicMock = patcher.start()
 
-    def tearDown():
+    def tearDown() -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
     return mirror
 
 
-@pytest.fixture
-def logging_mock(request):
+@pytest.fixture  # type: ignore
+def logging_mock(request: FixtureRequest) -> mock.MagicMock:
     patcher = mock.patch("logging.config.fileConfig")
-    logger = patcher.start()
+    logger: mock.MagicMock = patcher.start()
 
-    def tearDown():
+    def tearDown() -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
