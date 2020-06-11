@@ -10,7 +10,7 @@ from freezegun import freeze_time
 
 from bandersnatch.master import StalePage
 from bandersnatch.mirror import Mirror
-from bandersnatch.package import Package
+from bandersnatch.package import Package, StaleMetadata
 from bandersnatch.utils import make_time_stamp
 
 EXPECTED_REL_HREFS = (
@@ -77,7 +77,7 @@ async def test_package_fetch_metadata_gives_up_after_3_stale_responses(caplog, m
     pkg_name = "foo"
     package = Package(pkg_name, 11, mirror)
 
-    with pytest.raises(Exception):
+    with pytest.raises(StaleMetadata):
         await package.fetch_metadata()
     assert mirror.master.get_package_metadata.await_count == 3
     assert "not updating. Giving up" in caplog.text
