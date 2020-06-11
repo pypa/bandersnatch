@@ -126,7 +126,7 @@ class Mirror:
 
         return self.altered_packages
 
-    def _cleanup(self) -> None:
+    def _validate_todo(self) -> None:
         """Does a couple of cleanup tasks to ensure consistent data for later
         processing."""
         if self.storage_backend.exists(self.todolist):
@@ -135,14 +135,14 @@ class Mirror:
                     saved_todo = iter(fh)
                     int(next(saved_todo).strip())
                     for line in saved_todo:
-                        _, serial = line.strip().split(1)
+                        _, serial = line.strip().split(maxsplit=1)
                         int(serial)
             except (StopIteration, ValueError, TypeError):
                 # The todo list was inconsistent. This may happen if we get
                 # killed e.g. by the timeout wrapper. Just remove it - we'll
                 # just have to do whatever happened since the last successful
                 # sync.
-                logger.info("Removing inconsistent todo list.")
+                logger.error("Removing inconsistent todo list.")
                 self.storage_backend.delete_file(self.todolist)
 
     def _filter_packages(self) -> None:
@@ -369,7 +369,7 @@ class Mirror:
         try:
             logger.debug(f"Acquiring FLock with timeout: {flock_timeout!s}")
             with flock.acquire(timeout=flock_timeout):
-                self._cleanup()
+                self._validate_todo()
                 self._load()
         except Timeout:
             logger.error("Flock timed out!")
