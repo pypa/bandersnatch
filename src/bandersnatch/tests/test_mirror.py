@@ -450,3 +450,20 @@ def test_find_package_indexes_in_dir_threaded(mirror):
         assert "index.html" not in packages  # This should never be in the list
         assert len(packages) == 6  # We expect 6 packages with 6 dirs created
         assert packages[0] == "click"  # Check sorted - click should be first
+
+
+def test_validate_todo(mirror):
+    valid_todo = "69\ncooper 69\ndan 1\n"
+    invalid_todo = "cooper l33t\ndan n00b\n"
+
+    with TemporaryDirectory() as td:
+        test_mirror = Mirror(td, mirror.master)
+        for todo_data in (valid_todo, invalid_todo):
+            with test_mirror.todolist.open("w") as tdfp:
+                tdfp.write(todo_data)
+
+            test_mirror._validate_todo()
+            if todo_data == valid_todo:
+                assert test_mirror.todolist.exists()
+            else:
+                assert not test_mirror.todolist.exists()
