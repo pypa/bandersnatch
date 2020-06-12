@@ -12,6 +12,7 @@ from unittest.mock import Mock
 from filelock import Timeout
 from packaging.utils import canonicalize_name
 
+from . import utils
 from .configuration import validate_config_values
 from .filter import filter_project_plugins, filter_release_plugins
 from .master import Master
@@ -112,17 +113,33 @@ class Mirror:
     def todolist(self) -> Path:
         return self.homedir / "todo"
 
-    async def synchronize(self) -> Dict[str, Set[str]]:
+    async def synchronize(
+        self, specific_packages: Optional[List[str]] = None
+    ) -> Dict[str, Set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
         # - others importing may not reset this like our main.py
         self.altered_packages = {}
 
-        await self.determine_packages_to_sync()
-        await self.sync_packages()
-        self.sync_index_page()
-        self.wrapup_successful_sync()
+        if specific_packages is None:
+            # Changelog-based synchronization
+            await self.determine_packages_to_sync()
+            await self.sync_packages()
+            self.sync_index_page()
+            self.wrapup_successful_sync()
+        else:
+            # Synchronize specific packages. This method doesn't update the
+            # self.statusfile
+
+            # Pass serial number 0 to bypass the stale serial check in Package class
+            SERIAL_DONT_CARE = 0
+            self.packages_to_sync = {
+                utils.bandersnatch_safe_name(name): SERIAL_DONT_CARE
+                for name in specific_packages
+            }
+            await self.sync_packages()
+            self.sync_index_page()
 
         return self.altered_packages
 
@@ -429,7 +446,9 @@ class Mirror:
         self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
 
 
-async def mirror(config: configparser.ConfigParser) -> int:
+async def mirror(
+    config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
+) -> int:
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
     filter_release_plugins()
@@ -494,7 +513,7 @@ async def mirror(config: configparser.ConfigParser) -> int:
         # MagicMock can't be used in 'await' expression"
         changed_packages: Dict[str, Set[str]] = {}
         if not isinstance(mirror, Mock):  # type: ignore
-            changed_packages = await mirror.synchronize()
+            changed_packages = await mirror.synchronize(specific_packages)
         logger.info(f"{len(changed_packages)} packages had changes")
         for package_name, changes in changed_packages.items():
             for change in changes:
