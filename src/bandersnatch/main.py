@@ -93,6 +93,16 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
     v.set_defaults(op="verify")
 
 
+def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
+    m = subparsers.add_parser(
+        "sync", help="Synchronize specific packages with the PyPI master server.",
+    )
+    m.add_argument(
+        "package", nargs="+", help="The name of package to sync",
+    )
+    m.set_defaults(op="sync")
+
+
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     if args.op.lower() == "delete":
         async with bandersnatch.master.Master(
@@ -103,6 +113,8 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
             return await bandersnatch.delete.delete_packages(config, args, master)
     elif args.op.lower() == "verify":
         return await bandersnatch.verify.metadata_verify(config, args)
+    elif args.op.lower() == "sync":
+        return await bandersnatch.mirror.mirror(config, args.package)
 
     if args.force_check:
         storage_plugin = next(iter(storage_backend_plugins()))
@@ -152,6 +164,7 @@ def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
     _delete_parser(subparsers)
     _mirror_parser(subparsers)
     _verify_parser(subparsers)
+    _sync_parser(subparsers)
 
     if len(sys.argv) < 2:
         parser.print_help()
