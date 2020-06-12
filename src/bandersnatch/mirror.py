@@ -114,7 +114,7 @@ class Mirror:
         return self.homedir / "todo"
 
     async def synchronize(
-        self, specific_packages: List[str] = None
+        self, specific_packages: Optional[List[str]] = None
     ) -> Dict[str, Set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
@@ -441,7 +441,7 @@ class Mirror:
 
 
 async def mirror(
-    config: configparser.ConfigParser, specific_packages: List[str] = None
+    config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
 ) -> int:
     # Load the filter plugins so the loading doesn't happen in the fast path
     filter_project_plugins()
