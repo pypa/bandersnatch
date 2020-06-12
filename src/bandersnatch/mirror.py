@@ -129,8 +129,13 @@ class Mirror:
             self.sync_index_page()
             self.wrapup_successful_sync()
         else:
+            # Synchronize specific packages. This method doesn't update the self.statusfile
+
+            # Pass serial number 0 to bypass the stale serial check in Package class
+            SERIAL_DONT_CARE = 0
             self.packages_to_sync = {
-                utils.bandersnatch_safe_name(name): 1 for name in specific_packages
+                utils.bandersnatch_safe_name(name): SERIAL_DONT_CARE
+                for name in specific_packages
             }
             await self.sync_packages()
             self.sync_index_page()

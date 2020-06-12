@@ -98,7 +98,7 @@ def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
         "sync", help="Synchronize specific packages with the PyPI master server.",
     )
     m.add_argument(
-        "package", nargs="+", help="The name of package to sync",
+        "packages", metavar="package", nargs="+", help="The name of package to sync",
     )
     m.set_defaults(op="sync")
 
@@ -114,7 +114,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     elif args.op.lower() == "verify":
         return await bandersnatch.verify.metadata_verify(config, args)
     elif args.op.lower() == "sync":
-        return await bandersnatch.mirror.mirror(config, args.package)
+        return await bandersnatch.mirror.mirror(config, args.packages)
 
     if args.force_check:
         storage_plugin = next(iter(storage_backend_plugins()))
