@@ -129,7 +129,8 @@ class Mirror:
             self.sync_index_page()
             self.wrapup_successful_sync()
         else:
-            # Synchronize specific packages. This method doesn't update the self.statusfile
+            # Synchronize specific packages. This method doesn't update the
+            # self.statusfile
 
             # Pass serial number 0 to bypass the stale serial check in Package class
             SERIAL_DONT_CARE = 0
