@@ -33,9 +33,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(  # type: ignore[override]
-        self, metadata: Dict
-    ) -> Optional[bool]:
+    def filter(self, metadata: Dict) -> Optional[bool]:  # type: ignore[override]
         """
         Keep the latest releases
         """
