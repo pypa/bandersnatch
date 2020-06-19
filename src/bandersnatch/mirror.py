@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
+from shutil import rmtree
 from threading import RLock
 from typing import Awaitable, Dict, List, Optional, Set, Union
 from unittest.mock import Mock
@@ -250,15 +251,16 @@ class Mirror:
 
             await package.sync()
 
+            # Cleanup non normalized name directory
+            await self.cleanup_non_pep_503_paths(package)
+
     async def sync_packages(self) -> None:
         self.package_queue: asyncio.Queue = asyncio.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
             serial = self.packages_to_sync[name]
-            await self.package_queue.put(
-                Package(name, serial, self, cleanup=self.cleanup)
-            )
+            await self.package_queue.put(Package(name, serial, self))
 
         sync_coros: List[Awaitable] = [
             self.package_syncer(idx) for idx in range(self.workers)
@@ -289,6 +291,52 @@ class Mirror:
                     for name_, serial in self.packages_to_sync.items()
                 ]
                 f.write("\n".join(todo))
+
+    async def cleanup_non_pep_503_paths(self, package: Package) -> None:
+        """
+        Before 4.0 we use to store backwards compatible named dirs for older pip
+        This function checks for them and cleans them up
+        """
+
+        def raw_simple_directory() -> Path:
+            if self.hash_index:
+                return self.webdir / "simple" / package.raw_name[0] / package.raw_name
+            return self.webdir / "simple" / package.raw_name
+
+        def normalized_legacy_simple_directory() -> Path:
+            normalized_name_legacy = utils.bandersnatch_safe_name(package.raw_name)
+            if self.hash_index:
+                return (
+                    self.webdir
+                    / "simple"
+                    / normalized_name_legacy[0]
+                    / normalized_name_legacy
+                )
+            return self.webdir / "simple" / normalized_name_legacy
+
+        if not self.cleanup:
+            return
+
+        logger.debug(f"Running Non PEP503 path cleanup for {package.raw_name}")
+        for deprecated_dir in (
+            raw_simple_directory(),
+            normalized_legacy_simple_directory(),
+        ):
+            # Had to compare path strs as Windows did not match path objects ...
+            if str(deprecated_dir) != str(package.simple_directory):
+                if not deprecated_dir.exists():
+                    logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
+                    continue
+
+                logger.info(
+                    f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
+                )
+                try:
+                    rmtree(deprecated_dir)
+                except Exception:
+                    logger.exception(
+                        f"Unable to cleanup non PEP 503 dir {deprecated_dir}"
+                    )
 
     # TODO: This can return SwiftPath types now
     def get_simple_dirs(self, simple_dir: Path) -> List[Path]:

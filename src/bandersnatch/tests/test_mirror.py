@@ -3,6 +3,7 @@ import unittest.mock as mock
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import List
 
 import asynctest
 import pytest
@@ -11,6 +12,7 @@ from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.filter import filter_project_plugins
 from bandersnatch.mirror import Mirror
+from bandersnatch.package import Package
 from bandersnatch.utils import WINDOWS
 
 
@@ -48,6 +50,14 @@ FAKE_RELEASE_DATA = JsonDict(
         },
     }
 )
+
+
+def touch_files(paths: List[Path]):
+    for path in paths:
+        if not path.parent.exists():
+            path.parent.mkdir(parents=True)
+        with path.open("wb") as pfp:
+            pfp.close()
 
 
 def test_limit_workers():
@@ -467,3 +477,18 @@ def test_validate_todo(mirror):
                 assert test_mirror.todolist.exists()
             else:
                 assert not test_mirror.todolist.exists()
+
+
+@pytest.mark.asyncio
+async def test_cleanup_non_pep_503_paths(mirror):
+    raw_package_name = "CatDogPython69"
+    package = Package(raw_package_name, 11, mirror)
+    await mirror.cleanup_non_pep_503_paths(package)
+
+    # Create a non normailized directory
+    touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
+
+    mirror.cleanup = True
+    with mock.patch("bandersnatch.mirror.rmtree") as mocked_rmtree:
+        await mirror.cleanup_non_pep_503_paths(package)
+        assert mocked_rmtree.call_count == 1
