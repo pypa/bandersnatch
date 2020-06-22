@@ -5,7 +5,6 @@ import logging
 import sys
 from json import dump
 from pathlib import Path
-from shutil import rmtree
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from urllib.parse import unquote, urlparse
 
@@ -41,20 +40,11 @@ class StaleMetadata(Exception):
 
 
 class Package:
-    def __init__(
-        self,
-        name: str,
-        serial: Union[int, str],
-        mirror: "Mirror",
-        *,
-        cleanup: bool = False,
-    ) -> None:
+    def __init__(self, name: str, serial: Union[int, str], mirror: "Mirror",) -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
-        self.normalized_name_legacy = utils.bandersnatch_safe_name(name)
         self.serial = serial
         self.mirror = mirror
-        self.cleanup = cleanup
 
     @property
     def json_file(self) -> Path:
@@ -65,56 +55,10 @@ class Package:
         return Path(self.mirror.webdir / "pypi" / self.name / "json")
 
     @property
-    def normalized_legacy_simple_directory(self) -> Path:
-        if self.mirror.hash_index:
-            return (
-                self.mirror.webdir
-                / "simple"
-                / self.normalized_name_legacy[0]
-                / self.normalized_name_legacy
-            )
-        return self.mirror.webdir / "simple" / self.normalized_name_legacy
-
-    @property
-    def raw_simple_directory(self) -> Path:
-        if self.mirror.hash_index:
-            return self.mirror.webdir / "simple" / self.raw_name[0] / self.raw_name
-        return self.mirror.webdir / "simple" / self.raw_name
-
-    @property
     def simple_directory(self) -> Path:
         if self.mirror.hash_index:
             return Path(self.mirror.webdir / "simple" / self.name[0] / self.name)
         return Path(self.mirror.webdir / "simple" / self.name)
-
-    async def cleanup_non_pep_503_paths(self) -> None:
-        """
-        Before 4.0 we use to store backwards compatible named dirs for older pip
-        This function checks for them and cleans them up
-        """
-        if not self.cleanup:
-            return
-
-        logger.debug(f"Running Non PEP503 path cleanup for {self.raw_name}")
-        for deprecated_dir in (
-            self.raw_simple_directory,
-            self.normalized_legacy_simple_directory,
-        ):
-            # Had to compare path strs as Windows did not match path objects ...
-            if str(deprecated_dir) != str(self.simple_directory):
-                if not deprecated_dir.exists():
-                    logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
-                    continue
-
-                logger.info(
-                    f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
-                )
-                try:
-                    rmtree(deprecated_dir)
-                except Exception:
-                    logger.exception(
-                        f"Unable to cleanup non PEP 503 dir {deprecated_dir}"
-                    )
 
     def save_json_metadata(self, package_info: Dict) -> bool:
         """
@@ -205,9 +149,6 @@ class Package:
         if self.mirror.errors and self.mirror.stop_on_error:
             logger.error("Exiting early after error.")
             sys.exit(1)
-
-        # Cleanup non normalized name directory
-        await self.cleanup_non_pep_503_paths()
 
     def _filter_metadata(self, metadata: Dict) -> bool:
         """

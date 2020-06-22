@@ -105,3 +105,6 @@ UNKNOWN.egg-info/
 
 # MonkeyType
 monkeytype.sqlite3
+
+# Integration test
+mirrored-files

@@ -10,7 +10,7 @@ from freezegun import freeze_time
 
 from bandersnatch.master import StalePage
 from bandersnatch.mirror import Mirror
-from bandersnatch.package import Package
+from bandersnatch.package import Package, StaleMetadata
 from bandersnatch.utils import make_time_stamp
 
 EXPECTED_REL_HREFS = (
@@ -27,21 +27,6 @@ def touch_files(paths: List[Path]):
             path.parent.mkdir(parents=True)
         with path.open("wb") as pfp:
             pfp.close()
-
-
-@pytest.mark.asyncio
-async def test_cleanup_non_pep_503_paths(mirror):
-    raw_package_name = "CatDogPython69"
-    package = Package(raw_package_name, 11, mirror)
-    await package.cleanup_non_pep_503_paths()
-
-    # Create a non normailized directory
-    touch_files([package.mirror.webdir / "simple" / raw_package_name / "index.html"])
-
-    package.cleanup = True
-    with mock.patch("bandersnatch.package.rmtree") as mocked_rmtree:
-        await package.cleanup_non_pep_503_paths()
-        assert mocked_rmtree.call_count == 1
 
 
 def test_save_json_metadata(mirror, package_json):
@@ -77,7 +62,7 @@ async def test_package_fetch_metadata_gives_up_after_3_stale_responses(caplog, m
     pkg_name = "foo"
     package = Package(pkg_name, 11, mirror)
 
-    with pytest.raises(Exception):
+    with pytest.raises(StaleMetadata):
         await package.fetch_metadata()
     assert mirror.master.get_package_metadata.await_count == 3
     assert "not updating. Giving up" in caplog.text
