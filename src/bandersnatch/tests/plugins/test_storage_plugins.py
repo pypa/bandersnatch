@@ -414,8 +414,8 @@ workers = 3
             self.mirror_path = Path(self.mirror_base_path)
 
     def setUp_mirror(self) -> None:
-        self.mirror = Mirror(self.mirror_path, Master(url="https://foo.bar.com"))
-        pkg = Package("foobar", 1, self.mirror)
+        self.master = Master(url="https://foo.bar.com")
+        pkg = Package("foobar", self.master, serial=1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},
             "releases": mock.Mock(),

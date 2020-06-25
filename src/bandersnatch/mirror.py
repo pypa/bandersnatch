@@ -1,14 +1,19 @@
 import asyncio
 import configparser
 import datetime
+import hashlib
+import html
 import logging
 import os
+import sys
 import time
+from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
 from typing import Awaitable, Dict, List, Optional, Set, Union
 from unittest.mock import Mock
+from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
 from packaging.utils import canonicalize_name
@@ -115,6 +120,11 @@ class Mirror:
     @property
     def todolist(self) -> Path:
         return self.homedir / "todo"
+
+    def package_simple_directory(self, package: Package) -> Path:
+        if self.hash_index:
+            return Path(self.webdir / "simple" / package.name[0] / package.name)
+        return Path(self.webdir / "simple" / package.name)
 
     async def synchronize(
         self, specific_packages: Optional[List[str]] = None
@@ -251,18 +261,105 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
 
-            await package.sync(self.filters)
+            try:
+                await package.update_metadata(attempts=3)
+                # Don't save anything if our metadata filters all fail.
+                if not package._filter_metadata(self.filters.filter_metadata_plugins()):
+                    return
+
+                # save the metadata before filtering releases
+                if self.json_save:
+                    loop = asyncio.get_event_loop()
+                    json_saved = await loop.run_in_executor(
+                        None, self.save_json_metadata_for_package, package
+                    )
+                    assert json_saved
+
+                package._filter_all_releases_files(
+                    self.filters.filter_release_file_plugins()
+                )
+                package._filter_all_releases(self.filters.filter_release_plugins())
+
+                await self.sync_release_files_for_package(package)
+                self.sync_simple_page(package)
+                # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
+                self.record_finished_package(package.raw_name)
+            except PackageNotFound:
+                return
+            except Exception:
+                logger.exception(
+                    f"Error syncing package: {package.name}@{package.serial}"
+                )
+                self.errors = True
+
+            if self.errors and self.stop_on_error:
+                logger.error("Exiting early after error.")
+                sys.exit(1)
 
             # Cleanup non normalized name directory
             await self.cleanup_non_pep_503_paths(package)
+
+    async def sync_release_files_for_package(self, package) -> None:
+        """ Purge + download files returning files removed + added """
+        release_files: List[Dict] = []
+
+        for release in package.releases.values():
+            release_files.extend(release)
+
+        downloaded_files = set()
+        deferred_exception = None
+        for release_file in release_files:
+            try:
+                downloaded_file = await self.download_file(
+                    release_file["url"], release_file["digests"]["sha256"]
+                )
+                if downloaded_file:
+                    downloaded_files.add(str(downloaded_file.relative_to(self.homedir)))
+            except Exception as e:
+                logger.exception(
+                    "Continuing to next file after error downloading: "
+                    f"{release_file['url']}"
+                )
+                if not deferred_exception:  # keep first exception
+                    deferred_exception = e
+        if deferred_exception:
+            raise deferred_exception  # raise the exception after trying all files
+
+        self.altered_packages[package.name] = downloaded_files
+
+    def save_json_metadata_for_package(self, package: Package) -> bool:
+        """
+        Take the JSON metadata we just fetched and save to disk
+        """
+        json_file = Path(self.webdir / "json" / package.name)
+        json_pypi_symlink = Path(self.webdir / "pypi" / package.name / "json")
+
+        try:
+            # TODO: Fix this so it works with swift
+            with self.storage_backend.rewrite(json_file) as jf:
+                dump(package.metadata, jf, indent=4, sort_keys=True)
+            self.diff_file_list.append(json_file)
+        except Exception as e:
+            logger.error(f"Unable to write json to {json_file}: {str(e)} ({type(e)})")
+            return False
+
+        symlink_dir = json_pypi_symlink.parent
+        symlink_dir.mkdir(exist_ok=True)
+        # Lets always ensure symlink is pointing to correct self.json_file
+        # In 4.0 we move to normalized name only so want to overwrite older symlinks
+        if json_pypi_symlink.exists():
+            json_pypi_symlink.unlink()
+        json_pypi_symlink.symlink_to(json_file)
+
+        return True
 
     async def sync_packages(self) -> None:
         self.package_queue: asyncio.Queue = asyncio.Queue()
         # Sorting the packages alphabetically makes it more predicatable:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
-            serial = self.packages_to_sync[name]
-            await self.package_queue.put(Package(name, serial, self))
+            serial = int(self.packages_to_sync[name])
+            await self.package_queue.put(Package(name, self.master, serial=serial))
 
         sync_coros: List[Awaitable] = [
             self.package_syncer(idx) for idx in range(self.workers)
@@ -325,7 +422,7 @@ class Mirror:
             normalized_legacy_simple_directory(),
         ):
             # Had to compare path strs as Windows did not match path objects ...
-            if str(deprecated_dir) != str(package.simple_directory):
+            if str(deprecated_dir) != str(self.package_simple_directory(package)):
                 if not deprecated_dir.exists():
                     logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
@@ -494,6 +591,174 @@ class Mirror:
 
     def _save(self) -> None:
         self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
+
+    def gen_data_requires_python(self, release: Dict) -> str:
+        if "requires_python" in release and release["requires_python"] is not None:
+            return f' data-requires-python="{html.escape(release["requires_python"])}"'
+        return ""
+
+    def generate_simple_page_for_package(self, package: Package) -> str:
+        # Generate the header of our simple page.
+        simple_page_content = (
+            "<!DOCTYPE html>\n"
+            "<html>\n"
+            "  <head>\n"
+            "    <title>Links for {0}</title>\n"
+            "  </head>\n"
+            "  <body>\n"
+            "    <h1>Links for {0}</h1>\n"
+        ).format(package.raw_name)
+
+        # Get a list of all of the files.
+        release_files: List[Dict] = []
+        logger.debug(
+            f"There are {len(package.releases.values())} releases for {package.name}"
+        )
+        for release in package.releases.values():
+            release_files.extend(release)
+        # Lets sort based on the filename rather than the whole URL
+        release_files.sort(key=lambda x: x["filename"])
+
+        simple_page_content += "\n".join(
+            [
+                '    <a href="{}#{}={}"{}>{}</a><br/>'.format(
+                    self._file_url_to_local_url(r["url"]),
+                    self.digest_name,
+                    r["digests"][self.digest_name],
+                    self.gen_data_requires_python(r),
+                    r["filename"],
+                )
+                for r in release_files
+            ]
+        )
+
+        simple_page_content += (
+            f"\n  </body>\n</html>\n<!--SERIAL {package.last_serial}-->"
+        )
+
+        return simple_page_content
+
+    def sync_simple_page(self, package: Package) -> None:
+        logger.info(
+            f"Storing index page: {package.name} - in {self.package_simple_directory(package)}"
+        )
+        simple_page_content = self.generate_simple_page_for_package(package)
+        if not self.package_simple_directory(package).exists():
+            self.package_simple_directory(package).mkdir(parents=True)
+
+        if self.keep_index_versions > 0:
+            self._save_simple_page_version(simple_page_content, package)
+        else:
+            simple_page = self.package_simple_directory(package) / "index.html"
+            with self.storage_backend.rewrite(simple_page, "w", encoding="utf-8") as f:
+                f.write(simple_page_content)
+            self.diff_file_list.append(simple_page)
+
+    def _save_simple_page_version(
+        self, simple_page_content: str, package: Package
+    ) -> None:
+        versions_path = self._prepare_versions_path(package)
+        timestamp = utils.make_time_stamp()
+        version_file_name = f"index_{package.serial}_{timestamp}.html"
+        full_version_path = versions_path / version_file_name
+        # TODO: Change based on storage backend
+        with self.storage_backend.rewrite(
+            full_version_path, "w", encoding="utf-8"
+        ) as f:
+            f.write(simple_page_content)
+        self.diff_file_list.append(full_version_path)
+
+        symlink_path = self.package_simple_directory(package) / "index.html"
+        if symlink_path.exists() or symlink_path.is_symlink():
+            symlink_path.unlink()
+
+        symlink_path.symlink_to(full_version_path)
+
+    def _prepare_versions_path(self, package: Package) -> Path:
+        versions_path = (
+            self.storage_backend.PATH_BACKEND(self.package_simple_directory(package))
+            / "versions"
+        )
+        if not versions_path.exists():
+            versions_path.mkdir()
+        else:
+            version_files = list(sorted(versions_path.iterdir()))
+            version_files_to_remove = len(version_files) - self.keep_index_versions + 1
+            for i in range(version_files_to_remove):
+                version_files[i].unlink()
+
+        return versions_path
+
+    def _file_url_to_local_url(self, url: str) -> str:
+        parsed = urlparse(url)
+        if not parsed.path.startswith("/packages"):
+            raise RuntimeError(f"Got invalid download URL: {url}")
+        prefix = self.root_uri if self.root_uri else "../.."
+        return prefix + parsed.path
+
+    # TODO: This can also return SwiftPath instances now...
+    def _file_url_to_local_path(self, url: str) -> Path:
+        path = urlparse(url).path
+        path = unquote(path)
+        if not path.startswith("/packages"):
+            raise RuntimeError(f"Got invalid download URL: {url}")
+        path = path[1:]
+        return self.webdir / path
+
+    # TODO: This can also return SwiftPath instances now...
+    async def download_file(
+        self, url: str, sha256sum: str, chunk_size: int = 64 * 1024
+    ) -> Optional[Path]:
+        path = self._file_url_to_local_path(url)
+
+        # Avoid downloading again if we have the file and it matches the hash.
+        if path.exists():
+            existing_hash = self.storage_backend.get_hash(str(path))
+            if existing_hash == sha256sum:
+                return None
+            else:
+                logger.info(
+                    f"Checksum mismatch with local file {path}: expected {sha256sum} "
+                    + f"got {existing_hash}, will re-download."
+                )
+                path.unlink()
+
+        logger.info(f"Downloading: {url}")
+
+        dirname = path.parent
+        if not dirname.exists():
+            dirname.mkdir(parents=True)
+
+        # Even more special handling for the serial of package files here:
+        # We do not need to track a serial for package files
+        # as PyPI generally only allows a file to be uploaded once
+        # and then maybe deleted. Re-uploading (and thus changing the hash)
+        # is only allowed in extremely rare cases with intervention from the
+        # PyPI admins.
+        r_generator = self.master.get(url, required_serial=None)
+        response = await r_generator.asend(None)
+
+        checksum = hashlib.sha256()
+
+        with self.storage_backend.rewrite(path, "wb") as f:
+            while True:
+                chunk = await response.content.read(chunk_size)
+                if not chunk:
+                    break
+                checksum.update(chunk)
+                f.write(chunk)
+
+            existing_hash = checksum.hexdigest()
+            if existing_hash != sha256sum:
+                # Bad case: the file we got does not match the expected
+                # checksum. Even if this should be the rare case of a
+                # re-upload this will fix itself in a later run.
+                raise ValueError(
+                    f"Inconsistent file. {url} has hash {existing_hash} "
+                    + f"instead of {sha256sum}."
+                )
+
+        return path
 
 
 async def mirror(

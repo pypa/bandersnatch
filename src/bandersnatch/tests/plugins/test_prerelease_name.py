@@ -61,7 +61,7 @@ enabled =
         mock_config(self.config_contents)
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        pkg = Package("foo", mirror, serial=1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "1.2.0"},
             "releases": {
