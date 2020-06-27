@@ -4,6 +4,8 @@ from collections import defaultdict
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from mock_config import mock_config
+
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 
@@ -14,8 +16,6 @@ from bandersnatch.filter import (  # isort:skip
     filter_project_plugins,
     filter_release_plugins,
 )
-
-TEST_CONF = "test.conf"
 
 
 class TestBandersnatchFilter(TestCase):
@@ -40,8 +40,7 @@ class TestBandersnatchFilter(TestCase):
             self.tempdir = None
 
     def test__filter_project_plugins__loads(self) -> None:
-        with open(TEST_CONF, "w") as testconfig_handle:
-            testconfig_handle.write(
+        mock_config(
                 """\
 [plugins]
 enabled = all
@@ -52,9 +51,6 @@ enabled = all
             "regex_project",
             "whitelist_project",
         ]
-        instance = BandersnatchConfig()
-        instance.config_file = TEST_CONF
-        instance.load_configuration()
 
         plugins = filter_project_plugins()
         names = [plugin.name for plugin in plugins]
@@ -62,8 +58,7 @@ enabled = all
             self.assertIn(name, names)
 
     def test__filter_release_plugins__loads(self) -> None:
-        with open(TEST_CONF, "w") as testconfig_handle:
-            testconfig_handle.write(
+        mock_config(
                 """\
 [plugins]
 enabled = all
@@ -76,9 +71,6 @@ enabled = all
             "exclude_platform",
             "latest_release",
         ]
-        instance = BandersnatchConfig()
-        instance.config_file = TEST_CONF
-        instance.load_configuration()
 
         plugins = filter_release_plugins()
         names = [plugin.name for plugin in plugins]
@@ -86,17 +78,12 @@ enabled = all
             self.assertIn(name, names)
 
     def test__filter_no_plugin(self) -> None:
-        with open(TEST_CONF, "w") as testconfig_handle:
-            testconfig_handle.write(
+        mock_config(
                 """\
 [plugins]
 enabled =
 """
             )
-
-        instance = BandersnatchConfig()
-        instance.config_file = TEST_CONF
-        instance.load_configuration()
 
         plugins = list(filter_release_plugins())
         self.assertEqual(len(plugins), 0)

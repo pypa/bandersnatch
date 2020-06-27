@@ -24,6 +24,8 @@ from typing import (
 )
 from unittest import TestCase, mock
 
+from mock_config import mock_config
+
 import bandersnatch.storage
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
@@ -344,20 +346,6 @@ class MockConnection:
             target.parent.rmdir()
 
 
-def _mock_config(contents: str, filename: str="test.conf") -> BandersnatchConfig:
-    """
-    Creates a config file with contents and loads them into a
-    BandersnatchConfig instance.
-    """
-    with open(filename, "w") as fd:
-        fd.write(contents)
-
-    instance = BandersnatchConfig()
-    instance.config_file = filename
-    instance.load_configuration()
-    return instance
-
-
 class BasePluginTestCase(TestCase):
 
     tempdir = None
@@ -389,7 +377,7 @@ workers = 3
         self.tempdir = tempfile.TemporaryDirectory()
         self.pkgs: List[Package] = []
         self.container: Optional[str] = None
-        self.config_data = _mock_config(self.config_contents.format(self.backend))
+        self.config_data = mock_config(self.config_contents.format(self.backend))
         os.chdir(self.tempdir.name)
         self.setUp_backEnd()
         self.setUp_plugin()
@@ -620,7 +608,7 @@ web{0}simple{0}index.html""".format(
         self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
 
     def test_json_paths(self) -> None:
-        config = _mock_config(self.config_contents).config
+        config = mock_config(self.config_contents).config
         mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [

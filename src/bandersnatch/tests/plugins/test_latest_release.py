@@ -4,26 +4,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from mock_config import mock_config
+
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import latest_name
-
-
-def _mock_config(contents: str, filename: str ="test.conf") -> BandersnatchConfig:
-    """
-    Creates a config file with contents and loads them into a
-    BandersnatchConfig instance.
-    """
-    with open(filename, "w") as fd:
-        fd.write(contents)
-
-    instance = BandersnatchConfig()
-    instance.config_file = filename
-    instance.load_configuration()
-    return instance
 
 
 class BasePluginTestCase(TestCase):
@@ -57,7 +45,7 @@ keep = 2
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
@@ -72,7 +60,7 @@ keep = 2
         assert plugin.keep == 2
 
     def test_latest_releases_keep_latest(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
@@ -93,7 +81,7 @@ keep = 2
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
     def test_latest_releases_keep_stable(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
@@ -125,7 +113,7 @@ enabled =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
@@ -140,7 +128,7 @@ enabled =
         assert plugin.keep == 0
 
     def test_latest_releases_uninitialized(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 

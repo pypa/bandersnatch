@@ -5,26 +5,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from mock_config import mock_config
+
 import bandersnatch.filter
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import prerelease_name
-
-
-def _mock_config(contents: str, filename: str ="test.conf") -> BandersnatchConfig:
-    """
-    Creates a config file with contents and loads them into a
-    BandersnatchConfig instance.
-    """
-    with open(filename, "w") as fd:
-        fd.write(contents)
-
-    instance = BandersnatchConfig()
-    instance.config_file = filename
-    instance.load_configuration()
-    return instance
 
 
 class BasePluginTestCase(TestCase):
@@ -55,7 +43,7 @@ enabled =
 """
 
     def test_plugin_includes_predefined_patterns(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
@@ -73,7 +61,7 @@ enabled =
         assert plugin.patterns == expected_patterns
 
     def test_plugin_check_match(self) -> None:
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
