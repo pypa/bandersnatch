@@ -46,7 +46,7 @@ SWIFT_CONTAINER_FILE = os.path.join(
 )
 
 
-def get_swift_file_attrs(path: Path, base: Path, container: str ="") -> Dict[str, Any]:
+def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[str, Any]:
     path = strip_dir_prefix(base, path, container=container)
     if not path.is_absolute():
         path = "/" / path
@@ -78,7 +78,9 @@ def get_swift_file_attrs(path: Path, base: Path, container: str ="") -> Dict[str
     return result_dict
 
 
-def strip_dir_prefix(base_dir: Path, subdir: Path, container: Optional[str]=None) -> Path:
+def strip_dir_prefix(
+    base_dir: Path, subdir: Path, container: Optional[str] = None
+) -> Path:
     if container is not None:
         base_dir = base_dir.joinpath(container)
     base_dir_prefix = base_dir.as_posix()[1:]
@@ -89,10 +91,7 @@ def strip_dir_prefix(base_dir: Path, subdir: Path, container: Optional[str]=None
 
 
 def iter_dir(
-    path: Path,
-    base: Optional[Path] = None,
-    recurse: bool = False,
-    container: str = ""
+    path: Path, base: Optional[Path] = None, recurse: bool = False, container: str = ""
 ) -> Iterator[Dict[str, Any]]:
     if base is None:
         base = path
@@ -162,7 +161,7 @@ class MockConnection:
             obj = Path(f"/{obj!s}")
         return obj
 
-    def _strip_prefix(self, prefix: str, container: Optional[str]=None) -> str:
+    def _strip_prefix(self, prefix: str, container: Optional[str] = None) -> str:
         base_dir_prefix = self.tmpdir.name[1:]
         if container is not None:
             base_dir_prefix = os.path.join(base_dir_prefix, container)
@@ -181,7 +180,13 @@ class MockConnection:
             raise ClientException(f"No such path: {path!s}")
         return {}, path.read_bytes()
 
-    def head_object(self, container: str, obj: str, headers: Optional[Dict[str, str]]=None, query_string: Optional[str]=None) -> Dict[str, str]:
+    def head_object(
+        self,
+        container: str,
+        obj: str,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
+    ) -> Dict[str, str]:
         path = self.clean_path(container, obj)
         if not path.exists():
             from swiftclient.exceptions import ClientException
@@ -214,22 +219,28 @@ class MockConnection:
             "x-openstack-request-id": "txfcbf2e82791411eaa6bd-cf51efeb8527",
         }
 
-    def post_object(self, container: str, obj: str, headers: Dict[str, str], response_dict: Optional[Dict[str, Any]]=None) -> None:
+    def post_object(
+        self,
+        container: str,
+        obj: str,
+        headers: Dict[str, str],
+        response_dict: Optional[Dict[str, Any]] = None,
+    ) -> None:
         path = self.clean_path(container, obj)
         path.touch()
 
     def _get_container(
         self,
         container: str,
-        marker: Optional[str] =None,
-        limit: Optional[int] =None,
-        prefix: Optional[str] =None,
-        delimiter: Optional[str] =None,
-        end_marker: Optional[str]=None,
-        path: Optional[Path]=None,
-        full_listing: bool=False,
-        headers: Optional[Dict[str, str]]=None,
-        query_string: Optional[str] =None,
+        marker: Optional[str] = None,
+        limit: Optional[int] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        end_marker: Optional[str] = None,
+        path: Optional[Path] = None,
+        full_listing: bool = False,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         base = self.base
         if container:
@@ -467,7 +478,9 @@ workers = 3
             files = []
             with self.connection() as conn:
                 try:
-                    files = conn.get_container(self.default_container, prefix=target_path)
+                    files = conn.get_container(
+                        self.default_container, prefix=target_path
+                    )
                 except OSError:
                     return False
                 return bool(files)

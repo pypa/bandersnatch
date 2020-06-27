@@ -862,9 +862,7 @@ class SwiftStorage(StoragePlugin):
         files: List[str] = []
         with self.connection() as conn:
             try:
-                files = conn.get_container(
-                    self.default_container, prefix=target_path
-                )
+                files = conn.get_container(self.default_container, prefix=target_path)
             except swiftclient.exceptions.ClientException:
                 return False
             return bool(files)

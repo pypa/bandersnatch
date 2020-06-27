@@ -35,12 +35,13 @@ class TestBlacklistProject(TestCase):
             self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self) -> None:
-        mock_config("""\
+        mock_config(
+            """\
 [plugins]
 enabled =
     blacklist_project
 """
-            )
+        )
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
@@ -49,12 +50,12 @@ enabled =
 
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
     blacklist_release
 """
-            )
+        )
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
@@ -62,10 +63,10 @@ enabled =
 
     def test__plugin__loads__default(self) -> None:
         mock_config(
-                """\
+            """\
 [blacklist]
 """
-            )
+        )
 
         plugins = bandersnatch.filter.filter_project_plugins()
         names = [plugin.name for plugin in plugins]
@@ -73,7 +74,7 @@ enabled =
 
     def test__filter__matches__package(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
     blacklist_project
@@ -81,7 +82,7 @@ enabled =
 packages =
     foo
 """
-            )
+        )
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo": ""}
@@ -91,14 +92,14 @@ packages =
 
     def test__filter__nomatch_package(self) -> None:
         mock_config(
-                """\
+            """\
         [blacklist]
         plugins =
             blacklist_project
         packages =
             foo
         """
-            )
+        )
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo2": ""}
@@ -130,12 +131,12 @@ class TestBlacklistRelease(TestCase):
 
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
     blacklist_release
 """
-            )
+        )
 
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
@@ -144,12 +145,12 @@ enabled =
 
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
     blacklist_package
 """
-            )
+        )
 
         plugins = bandersnatch.filter.filter_release_plugins()
         names = [plugin.name for plugin in plugins]
@@ -157,7 +158,7 @@ enabled =
 
     def test__filter__matches__release(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
     blacklist_release
@@ -165,7 +166,7 @@ enabled =
 packages =
     foo==1.2.0
 """
-            )
+        )
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)

@@ -41,11 +41,11 @@ class TestBandersnatchFilter(TestCase):
 
     def test__filter_project_plugins__loads(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled = all
 """
-            )
+        )
         builtin_plugin_names = [
             "blacklist_project",
             "regex_project",
@@ -59,11 +59,11 @@ enabled = all
 
     def test__filter_release_plugins__loads(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled = all
 """
-            )
+        )
         builtin_plugin_names = [
             "blacklist_release",
             "prerelease_release",
@@ -79,11 +79,11 @@ enabled = all
 
     def test__filter_no_plugin(self) -> None:
         mock_config(
-                """\
+            """\
 [plugins]
 enabled =
 """
-            )
+        )
 
         plugins = list(filter_release_plugins())
         self.assertEqual(len(plugins), 0)
