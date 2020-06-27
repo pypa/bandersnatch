@@ -26,19 +26,20 @@ class TestBandersnatchFilter(TestCase):
     tempdir = None
     cwd = None
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.tempdir:
+            assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
             self.tempdir = None
 
-    def test__filter_project_plugins__loads(self):
+    def test__filter_project_plugins__loads(self) -> None:
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
@@ -60,7 +61,7 @@ enabled = all
         for name in builtin_plugin_names:
             self.assertIn(name, names)
 
-    def test__filter_release_plugins__loads(self):
+    def test__filter_release_plugins__loads(self) -> None:
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
@@ -84,7 +85,7 @@ enabled = all
         for name in builtin_plugin_names:
             self.assertIn(name, names)
 
-    def test__filter_no_plugin(self):
+    def test__filter_no_plugin(self) -> None:
         with open(TEST_CONF, "w") as testconfig_handle:
             testconfig_handle.write(
                 """\
@@ -97,13 +98,13 @@ enabled =
         instance.config_file = TEST_CONF
         instance.load_configuration()
 
-        plugins = filter_release_plugins()
+        plugins = list(filter_release_plugins())
         self.assertEqual(len(plugins), 0)
 
-        plugins = filter_project_plugins()
+        plugins = list(filter_project_plugins())
         self.assertEqual(len(plugins), 0)
 
-    def test__filter_base_clases(self):
+    def test__filter_base_clases(self) -> None:
         """
         Test the base filter classes
         """

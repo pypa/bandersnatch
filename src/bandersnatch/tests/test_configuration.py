@@ -28,7 +28,7 @@ class TestBandersnatchConf(TestCase):
     tempdir = None
     cwd = None
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
@@ -36,25 +36,28 @@ class TestBandersnatchConf(TestCase):
         # We have a dedicated test to ensure we're creating a singleton
         Singleton._instances = {}
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.tempdir:
+            assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
             self.tempdir = None
 
-    def test_is_singleton(self):
+    def test_is_singleton(self) -> None:
         instance1 = BandersnatchConfig()
         instance2 = BandersnatchConfig()
         self.assertEqual(id(instance1), id(instance2))
 
-    def test_single_config__default__all_sections_present(self):
-        with importlib.resources.path("bandersnatch", "unittest.conf") as config_file:
+    def test_single_config__default__all_sections_present(self) -> None:
+        with importlib.resources.path(  # type: ignore
+            "bandersnatch", "unittest.conf"
+        ) as config_file:
             instance = BandersnatchConfig(str(config_file))
             # All default values should at least be present and be the write types
             for section in ["mirror", "plugins", "blacklist"]:
                 self.assertIn(section, instance.config.sections())
 
-    def test_single_config__default__mirror__setting_attributes(self):
+    def test_single_config__default__mirror__setting_attributes(self) -> None:
         instance = BandersnatchConfig()
         options = [option for option in instance.config["mirror"]]
         options.sort()
@@ -75,7 +78,7 @@ class TestBandersnatchConf(TestCase):
             ],
         )
 
-    def test_single_config__default__mirror__setting__types(self):
+    def test_single_config__default__mirror__setting__types(self) -> None:
         """
         Make sure all default mirror settings will cast to the correct types
         """
@@ -95,7 +98,7 @@ class TestBandersnatchConf(TestCase):
                 option_type(instance.config["mirror"].get(option)), option_type
             )
 
-    def test_single_config_custom_setting_boolean(self):
+    def test_single_config_custom_setting_boolean(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nhash-index=false\n")
         instance = BandersnatchConfig()
@@ -103,7 +106,7 @@ class TestBandersnatchConf(TestCase):
         instance.load_configuration()
         self.assertFalse(instance.config["mirror"].getboolean("hash-index"))
 
-    def test_single_config_custom_setting_int(self):
+    def test_single_config_custom_setting_int(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\ntimeout=999\n")
         instance = BandersnatchConfig()
@@ -111,7 +114,7 @@ class TestBandersnatchConf(TestCase):
         instance.load_configuration()
         self.assertEqual(int(instance.config["mirror"]["timeout"]), 999)
 
-    def test_single_config_custom_setting_str(self):
+    def test_single_config_custom_setting_str(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
         instance = BandersnatchConfig()
@@ -119,7 +122,7 @@ class TestBandersnatchConf(TestCase):
         instance.load_configuration()
         self.assertEqual(instance.config["mirror"]["master"], "https://foo.bar.baz")
 
-    def test_multiple_instances_custom_setting_str(self):
+    def test_multiple_instances_custom_setting_str(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
         instance1 = BandersnatchConfig()
@@ -129,7 +132,7 @@ class TestBandersnatchConf(TestCase):
         instance2 = BandersnatchConfig()
         self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
 
-    def test_validate_config_values(self):
+    def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(
             False, "", "", False, "sha256", "filesystem", False
         )

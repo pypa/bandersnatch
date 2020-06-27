@@ -4,16 +4,19 @@ import asynctest
 import pytest
 
 from bandersnatch import utils
+from bandersnatch.mirror import Mirror
 
 
-@pytest.mark.asyncio
-async def test_sync_specific_packages(mirror):
+@pytest.mark.asyncio  # type: ignore
+async def test_sync_specific_packages(mirror: Mirror) -> None:
     FAKE_SERIAL = b"112233"
     with open("status", "wb") as f:
         f.write(FAKE_SERIAL)
     # Package names should be normalized by synchronize()
     specific_packages = ["Foo"]
-    mirror.master.all_packages = asynctest.CoroutineMock(return_value={"foo": 1})
+    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
+        return_value={"foo": 1}
+    )
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()

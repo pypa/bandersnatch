@@ -46,7 +46,7 @@ def convert_url_to_path(url: str) -> str:
     return urlparse(url).path[1:]
 
 
-def hash(path: str, function: str = "sha256") -> str:
+def hash(path: Path, function: str = "sha256") -> str:
     h = getattr(hashlib, function)()
     with open(path, "rb") as f:
         while True:
