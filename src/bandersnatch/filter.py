@@ -2,7 +2,7 @@
 Blacklist management
 """
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List, Set
 
 import pkg_resources
 
@@ -111,7 +111,7 @@ class FilterReleaseFilePlugin(Filter):
     name = "release_file_plugin"
 
 
-def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
+def load_filter_plugins(entrypoint_group: str) -> List[Filter]:
     """
     Load all blacklist plugins that are registered with importlib.resources
 
@@ -153,12 +153,12 @@ def load_filter_plugins(entrypoint_group: str) -> Iterable[Filter]:
         if "all" in enabled_plugins or plugin_instance.name in enabled_plugins:
             plugins.add(plugin_instance)
 
-    loaded_filter_plugins[entrypoint_group] = list(plugins)
+    plugins_list = list(plugins)
+    loaded_filter_plugins[entrypoint_group] = plugins_list
+    return plugins_list
 
-    return plugins
 
-
-def filter_project_plugins() -> Iterable[Filter]:
+def filter_project_plugins() -> List[Filter]:
     """
     Load and return the release filtering plugin objects
 
@@ -170,7 +170,7 @@ def filter_project_plugins() -> Iterable[Filter]:
     return load_filter_plugins(PROJECT_PLUGIN_RESOURCE)
 
 
-def filter_metadata_plugins() -> Iterable[Filter]:
+def filter_metadata_plugins() -> List[Filter]:
     """
     Load and return the release filtering plugin objects
 
@@ -182,7 +182,7 @@ def filter_metadata_plugins() -> Iterable[Filter]:
     return load_filter_plugins(METADATA_PLUGIN_RESOURCE)
 
 
-def filter_release_plugins() -> Iterable[Filter]:
+def filter_release_plugins() -> List[Filter]:
     """
     Load and return the release filtering plugin objects
 
@@ -194,7 +194,7 @@ def filter_release_plugins() -> Iterable[Filter]:
     return load_filter_plugins(RELEASE_PLUGIN_RESOURCE)
 
 
-def filter_release_file_plugins() -> Iterable[Filter]:
+def filter_release_file_plugins() -> List[Filter]:
     """
     Load and return the release file filtering plugin objects
 

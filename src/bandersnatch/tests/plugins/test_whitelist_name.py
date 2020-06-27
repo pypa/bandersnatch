@@ -1,6 +1,8 @@
 import os
 from collections import defaultdict
+from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Dict, Union
 from unittest import TestCase
 
 import bandersnatch.filter
@@ -92,8 +94,8 @@ packages =
 """
         )
 
-        mirror = Mirror(".", Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo": {}}
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo": ""}
         mirror._filter_packages()
 
         self.assertIn("foo", mirror.packages_to_sync.keys())
@@ -114,8 +116,8 @@ packages =
 """
         )
 
-        mirror = Mirror(".", Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo": {}, "foo2": {}}
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
         self.assertIn("foo", mirror.packages_to_sync.keys())

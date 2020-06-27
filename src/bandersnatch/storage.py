@@ -274,7 +274,7 @@ class Storage:
         assert isinstance(dest, pathlib.Path)
         dest.symlink_to(source)
 
-    def get_hash(self, path: str, function: str = "sha256") -> str:
+    def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
         """Get the sha256sum of a given **path**"""
         raise NotImplementedError
 
