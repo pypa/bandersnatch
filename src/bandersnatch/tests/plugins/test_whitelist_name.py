@@ -2,14 +2,12 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, Union
 from unittest import TestCase
 
 from mock_config import mock_config
 
 import bandersnatch.filter
 import bandersnatch.storage
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 

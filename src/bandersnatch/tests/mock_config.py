@@ -1,5 +1,3 @@
-import pytest
-
 from bandersnatch.configuration import BandersnatchConfig
 
 

@@ -7,7 +7,6 @@ from unittest import TestCase
 from mock_config import mock_config
 
 import bandersnatch.filter
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package

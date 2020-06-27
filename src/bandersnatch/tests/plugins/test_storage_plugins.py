@@ -11,23 +11,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Generator,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 from unittest import TestCase, mock
 
 from mock_config import mock_config
 
 import bandersnatch.storage
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
