@@ -30,4 +30,4 @@ repos:
     rev: v0.770
     hooks:
     -   id: mypy
-        exclude: (docs/.*|src/bandersnatch/tests/plugins/.*)
+        exclude: (docs/.*)
