@@ -10,15 +10,22 @@ import shutil
 import sys
 import tempfile
 import unittest
-from typing import Any, Dict, Optional, Union
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 from unittest import TestCase, mock
 
+from mock_config import mock_config
+
 import bandersnatch.storage
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
+from bandersnatch.storage import PATH_TYPES
 from bandersnatch_storage_plugins import filesystem, swift
+
+if TYPE_CHECKING:
+    import swiftclient
+
 
 BASE_SAMPLE_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample"
@@ -28,10 +35,10 @@ SWIFT_CONTAINER_FILE = os.path.join(
 )
 
 
-def get_swift_file_attrs(path, base, container=""):
+def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[str, Any]:
     path = strip_dir_prefix(base, path, container=container)
-    if not str(path).startswith("/"):
-        path = type(path)(f"/{path!s}")
+    if not path.is_absolute():
+        path = "/" / path
     try:
         last_modified = get_swift_date(
             datetime.datetime.fromtimestamp(path.stat().st_mtime)
@@ -53,14 +60,16 @@ def get_swift_file_attrs(path, base, container=""):
     result_dict = {
         "bytes": len(data),
         "hash": hashlib.md5(data).hexdigest(),
-        "name": type(path)(name.lstrip("/")),
+        "name": Path(name.lstrip("/")),
         "content_type": mimetype,
         "last_modified": last_modified,
     }
     return result_dict
 
 
-def strip_dir_prefix(base_dir, subdir, container=None):
+def strip_dir_prefix(
+    base_dir: Path, subdir: Path, container: Optional[str] = None
+) -> Path:
     if container is not None:
         base_dir = base_dir.joinpath(container)
     base_dir_prefix = base_dir.as_posix()[1:]
@@ -70,7 +79,9 @@ def strip_dir_prefix(base_dir, subdir, container=None):
     return type(base_dir)(result.lstrip("/"))
 
 
-def iter_dir(path, base=None, recurse=False, container=""):
+def iter_dir(
+    path: Path, base: Optional[Path] = None, recurse: bool = False, container: str = ""
+) -> Iterator[Dict[str, Any]]:
     if base is None:
         base = path
     if path.is_dir():
@@ -88,7 +99,7 @@ def iter_dir(path, base=None, recurse=False, container=""):
         yield get_swift_file_attrs(path, base, container=container)
 
 
-def get_swift_object_date(date):
+def get_swift_object_date(date: datetime.datetime) -> str:
     return (
         date.astimezone(datetime.timezone.utc)
         .strftime("%a, %d %b %Y %H:%M:%S %Z")
@@ -96,7 +107,7 @@ def get_swift_object_date(date):
     )
 
 
-def get_swift_date(date):
+def get_swift_date(date: datetime.datetime) -> str:
     return date.astimezone(datetime.timezone.utc).isoformat()
 
 
@@ -108,7 +119,7 @@ class MockConnection:
     storage plugin system.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.tmpdir = kwargs.pop("tmpdir", None)
         if not self.tmpdir:
             self.tmpdir = tempfile.TemporaryDirectory()
@@ -121,25 +132,25 @@ class MockConnection:
         _connection.get_account.return_value = ("", "")
         self._connection = _connection
 
-    def __getattr__(self, key, *args, **kwargs):
+    def __getattr__(self, key: str) -> Any:
         try:
-            return self.__getattribute__(key, *args, **kwargs)
+            return self.__getattribute__(key)
         except AttributeError:
-            return self.__getattribute__("_connection").getattr(key, *args, **kwargs)
+            return self.__getattribute__("_connection").getattr(key)
 
-    def clean_path(self, container, obj):
+    def clean_path(self, container: PATH_TYPES, obj: PATH_TYPES) -> Path:
         base_prefix = f"{self.tmpdir.name}/{container}"
         if isinstance(obj, str):
-            obj = type(self.base)(obj)
+            obj = Path(obj)
         if not any(
             str(obj).startswith(prefix) for prefix in (base_prefix, base_prefix[1:])
         ):
-            obj = type(obj)(f"{base_prefix}/{obj!s}")
+            obj = Path(f"{base_prefix}/{obj!s}")
         if not obj.anchor:
-            obj = type(obj)(f"/{obj!s}")
+            obj = Path(f"/{obj!s}")
         return obj
 
-    def _strip_prefix(self, prefix, container=None):
+    def _strip_prefix(self, prefix: str, container: Optional[str] = None) -> str:
         base_dir_prefix = self.tmpdir.name[1:]
         if container is not None:
             base_dir_prefix = os.path.join(base_dir_prefix, container)
@@ -147,10 +158,10 @@ class MockConnection:
             return prefix[len(base_dir_prefix) :].lstrip("/")  # noqa:E203
         return prefix.lstrip("/")
 
-    def get_account(self):
+    def get_account(self) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
         return {}, {}
 
-    def get_object(self, container, obj):
+    def get_object(self, container: str, obj: str) -> Tuple[Dict[Any, Any], bytes]:
         path = self.clean_path(container, obj)
         if not path.exists():
             from swiftclient.exceptions import ClientException
@@ -158,7 +169,13 @@ class MockConnection:
             raise ClientException(f"No such path: {path!s}")
         return {}, path.read_bytes()
 
-    def head_object(self, container, obj, headers=None, query_string=None):
+    def head_object(
+        self,
+        container: str,
+        obj: str,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
+    ) -> Dict[str, str]:
         path = self.clean_path(container, obj)
         if not path.exists():
             from swiftclient.exceptions import ClientException
@@ -191,23 +208,29 @@ class MockConnection:
             "x-openstack-request-id": "txfcbf2e82791411eaa6bd-cf51efeb8527",
         }
 
-    def post_object(self, container, obj, headers, response_dict=None):
+    def post_object(
+        self,
+        container: str,
+        obj: str,
+        headers: Dict[str, str],
+        response_dict: Optional[Dict[str, Any]] = None,
+    ) -> None:
         path = self.clean_path(container, obj)
         path.touch()
 
     def _get_container(
         self,
-        container,
-        marker=None,
-        limit=None,
-        prefix=None,
-        delimiter=None,
-        end_marker=None,
-        path=None,
-        full_listing=False,
-        headers=None,
-        query_string=None,
-    ):
+        container: str,
+        marker: Optional[str] = None,
+        limit: Optional[int] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        end_marker: Optional[str] = None,
+        path: Optional[Path] = None,
+        full_listing: bool = False,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         base = self.base
         if container:
             base = base / container
@@ -229,11 +252,11 @@ class MockConnection:
         prefix: Optional[str] = None,
         delimiter: Optional[str] = None,
         end_marker: Optional[str] = None,
-        path: Optional[str] = None,
+        path: Optional[Path] = None,
         full_listing: bool = False,
         headers: Optional[Dict[str, str]] = None,
         query_string: Optional[str] = None,
-    ):
+    ) -> List[Dict[str, Any]]:
         with open(SWIFT_CONTAINER_FILE) as fh:
             contents = json.load(fh)
         if prefix:
@@ -257,7 +280,7 @@ class MockConnection:
             results.extend(contents)
         if limit:
             results = results[:limit]
-        return {}, results
+        return results
 
     def copy_object(
         self,
@@ -267,7 +290,7 @@ class MockConnection:
         headers: Optional[Dict[str, str]] = None,
         fresh_metadata: Any = None,
         response_dict: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         # destination path always starts with container/
         dest_container, _, dest_path = destination.partition("/")
         dest = self.clean_path(dest_container, dest_path)
@@ -288,7 +311,7 @@ class MockConnection:
         headers: Optional[Dict[str, str]] = None,
         query_string: Optional[str] = None,
         response_dict: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> None:
         dest = self.clean_path(container, obj)
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True)
@@ -311,8 +334,8 @@ class MockConnection:
         obj: str,
         query_string: Optional[str] = None,
         response_dict: Optional[Dict[str, Any]] = None,
-        headers: Dict[str, str] = None,
-    ):
+        headers: Optional[Dict[str, str]] = None,
+    ) -> None:
         target = self.clean_path(container, obj)
         if not target.exists():
             from swiftclient.exceptions import ClientException
@@ -321,36 +344,6 @@ class MockConnection:
         target.unlink()
         if not list(target.parent.iterdir()):
             target.parent.rmdir()
-
-
-def is_dir(self, path) -> bool:
-    """Check whether the provided path is a directory."""
-    target_path = str(path)
-    if target_path == ".":
-        target_path = ""
-    if target_path and not target_path.endswith("/"):
-        target_path = f"{target_path}/"
-    files = []
-    with self.connection() as conn:
-        try:
-            _, files = conn.get_container(self.default_container, prefix=target_path)
-        except OSError:
-            return False
-        return bool(files)
-
-
-def _mock_config(contents, filename="test.conf"):
-    """
-    Creates a config file with contents and loads them into a
-    BandersnatchConfig instance.
-    """
-    with open(filename, "w") as fd:
-        fd.write(contents)
-
-    instance = BandersnatchConfig()
-    instance.config_file = filename
-    instance.load_configuration()
-    return instance
 
 
 class BasePluginTestCase(TestCase):
@@ -377,21 +370,21 @@ workers = 3
 ; log-config = /etc/bandersnatch-log.conf
 """
 
-    def setUp(self):
+    def setUp(self) -> None:
         if self.backend is None:
             raise unittest.SkipTest("Skipping base test case")
         self.cwd = os.getcwd()
         self.tempdir = tempfile.TemporaryDirectory()
-        self.pkgs = []
-        self.container = None
-        self.config_data = _mock_config(self.config_contents.format(self.backend))
+        self.pkgs: List[Package] = []
+        self.container: Optional[str] = None
+        self.config_data = mock_config(self.config_contents.format(self.backend))
         os.chdir(self.tempdir.name)
         self.setUp_backEnd()
         self.setUp_plugin()
         self.setUp_mirror()
         self.setUp_Structure()
 
-    def setUp_dirs(self):
+    def setUp_dirs(self) -> None:
         self.web_base_path = os.path.join(self.mirror_base_path, "web")
         self.json_base_path = os.path.join(self.web_base_path, "json")
         self.pypi_base_path = os.path.join(self.web_base_path, "pypi")
@@ -400,32 +393,34 @@ workers = 3
         for path in paths:
             os.makedirs(path, exist_ok=True)
 
-    def setUp_backEnd(self):
+    def setUp_backEnd(self) -> None:
         pypi_dir = mirror_path = "srv/pypi"
         if self.backend == "swift":
             self.container = "bandersnatch"
             pypi_dir = f"{self.container}/{pypi_dir}"
             self.setUp_swift()
+        assert self.tempdir
         self.mirror_base_path = os.path.join(self.tempdir.name, pypi_dir)
         self.setUp_dirs()
         target_sample_file = "sample"
         if self.container is not None:
             target_sample_file = f"{self.container}/{target_sample_file}"
+        assert self.tempdir
         self.sample_file = os.path.join(self.tempdir.name, target_sample_file)
         shutil.copy(BASE_SAMPLE_FILE, self.sample_file)
         if self.backend == "swift":
-            self.mirror_path = mirror_path
+            self.mirror_path = Path(mirror_path)
         else:
-            self.mirror_path = self.mirror_base_path
+            self.mirror_path = Path(self.mirror_base_path)
 
-    def setUp_mirror(self):
+    def setUp_mirror(self) -> None:
         self.mirror = Mirror(self.mirror_path, Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, self.mirror)
         pkg.info = {"name": "foobar", "version": "1.0"}
         pkg.releases = mock.Mock()
         self.pkgs.append(pkg)
 
-    def setUp_plugin(self):
+    def setUp_plugin(self) -> None:
         self.plugin = next(
             iter(
                 bandersnatch.storage.storage_backend_plugins(
@@ -434,10 +429,11 @@ workers = 3
             )
         )
 
-    def setUp_mirrorDirs(self):
+    def setUp_mirrorDirs(self) -> None:
         pypi_dir = (
             "srv/pypi" if self.container is None else f"{self.container}/srv/pypi"
         )
+        assert self.tempdir
         self.mirror_base_path = os.path.join(self.tempdir.name, pypi_dir)
         self.web_base_path = os.path.join(self.mirror_base_path, "web")
         self.json_base_path = os.path.join(self.web_base_path, "json")
@@ -447,7 +443,7 @@ workers = 3
         os.makedirs(self.pypi_base_path, exist_ok=True)
         os.makedirs(self.simple_base_path, exist_ok=True)
 
-    def setUp_swift(self):
+    def setUp_swift(self) -> None:
         self.setUp_swiftVars()
         self.conn_patcher = mock.patch(
             "swiftclient.client.Connection", side_effect=MockConnection
@@ -455,11 +451,28 @@ workers = 3
         Connection = self.conn_patcher.start()
         Connection.get_account.return_value = ("", "")
 
+        from bandersnatch_storage_plugins.swift import SwiftStorage
+
         @contextlib.contextmanager
-        def connection(o):
+        def connection(o: SwiftStorage) -> Iterator["swiftclient.client.Connection"]:
             yield Connection(tmpdir=self.tempdir)
 
-        from bandersnatch_storage_plugins.swift import SwiftStorage
+        def is_dir(self: SwiftStorage, path: Path) -> bool:
+            """Check whether the provided path is a directory."""
+            target_path = str(path)
+            if target_path == ".":
+                target_path = ""
+            if target_path and not target_path.endswith("/"):
+                target_path = f"{target_path}/"
+            files = []
+            with self.connection() as conn:
+                try:
+                    files = conn.get_container(
+                        self.default_container, prefix=target_path
+                    )
+                except OSError:
+                    return False
+                return bool(files)
 
         self.swift_patcher = mock.patch.object(SwiftStorage, "connection", connection)
         self.is_dir_patcher = mock.patch(
@@ -468,7 +481,7 @@ workers = 3
         self.swift_patcher.start()
         self.is_dir_patcher.start()
 
-    def setUp_swiftVars(self):
+    def setUp_swiftVars(self) -> None:
         swift_keys = (
             "OS_USER_DOMAIN_NAME",
             "OS_PROJECT_DOMAIN_NAME",
@@ -498,7 +511,7 @@ workers = 3
         }
         os.environ.update(self.os_dict)
 
-    def tearDown_swiftVars(self):
+    def tearDown_swiftVars(self) -> None:
         for k in self.os_dict.keys():
             if k in os.environ:
                 del os.environ[k]
@@ -507,7 +520,7 @@ workers = 3
         self.swift_patcher.stop()
         self.conn_patcher.stop()
 
-    def setUp_Structure(self):
+    def setUp_Structure(self) -> None:
         web_files = [
             "last-modified",
             "local-stats/days",
@@ -538,8 +551,9 @@ workers = 3
 </html>""".strip()
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.tempdir:
+            assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
         if self.backend == "swift":
@@ -590,12 +604,13 @@ web{0}simple{0}index.html""".format(
     if sys.platform == "win32":
         base_find_contents = base_find_contents.replace(".lock\n", "")
 
-    def test_plugin_type(self):
+    def test_plugin_type(self) -> None:
+        assert self.backend
         self.assertTrue(isinstance(self.plugin, self.plugin_map[self.backend]))
         self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
 
-    def test_json_paths(self):
-        config = _mock_config(self.config_contents).config
+    def test_json_paths(self) -> None:
+        config = mock_config(self.config_contents).config
         mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [
@@ -608,7 +623,7 @@ web{0}simple{0}index.html""".format(
             with self.subTest(name=name, json_paths=json_paths):
                 self.assertEqual(self.plugin.get_json_paths(name), json_paths)
 
-    def test_canonicalize_package(self):
+    def test_canonicalize_package(self) -> None:
         packages = (
             ("SQLAlchemy", "sqlalchemy"),
             ("mypy_extensions", "mypy-extensions"),
@@ -620,7 +635,7 @@ web{0}simple{0}index.html""".format(
             with self.subTest(name=name, normalized=normalized):
                 self.assertEqual(self.plugin.canonicalize_package(name), normalized)
 
-    def test_hash_file(self):
+    def test_hash_file(self) -> None:
         path = self.plugin.PATH_BACKEND(self.sample_file)
         md5_digest = "125765989403df246cecb48fa3e87ff8"
         sha256_digest = (
@@ -642,12 +657,12 @@ web{0}simple{0}index.html""".format(
                     self.plugin.hash_file(path, function=hash_func), hash_val
                 )
 
-    def test_iter_dir(self):
+    def test_iter_dir(self) -> None:
 
         base_path = self.plugin.PATH_BACKEND(self.simple_base_path)
         lists = [
-            [base_path.joinpath("foobar"), True],
-            [base_path.joinpath("index.html"), False],
+            (base_path.joinpath("foobar"), True),
+            (base_path.joinpath("index.html"), False),
         ]
 
         self.assertListEqual(
@@ -660,27 +675,27 @@ web{0}simple{0}index.html""".format(
                 if is_dir is False:
                     self.assertIs(True, self.plugin.is_file(expected))
 
-    def test_rewrite(self):
+    def test_rewrite(self) -> None:
         target_file = os.path.join(self.mirror_base_path, "example.txt")
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with self.plugin.rewrite(target_file) as fh:
+        with self.plugin.rewrite(target_file) as fh:  # type: ignore
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
 
-    def test_update_safe(self):
+    def test_update_safe(self) -> None:
         target_file = os.path.join(self.mirror_base_path, "example.txt")
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with self.plugin.update_safe(target_file, mode="w") as fh:
+        with self.plugin.update_safe(target_file, mode="w") as fh:  # type: ignore
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
 
-    def test_compare_files(self):
+    def test_compare_files(self) -> None:
         target_file1 = os.path.join(self.mirror_base_path, "cmp_example1.txt")
         target_file2 = os.path.join(self.mirror_base_path, "cmp_example2.txt")
         target_file3 = os.path.join(self.mirror_base_path, "cmp_example3.txt")
@@ -697,7 +712,7 @@ web{0}simple{0}index.html""".format(
         )
         for cmp_file1, cmp_file2, rv in comparisons:
             with self.subTest(cmp_file1=cmp_file1, cmp_file2=cmp_file2, rv=rv):
-                msg = "file1 contents: {}\n\nfile2 contents: {}".format(
+                msg = "file1 contents: {!r}\n\nfile2 contents: {!r}".format(
                     self.plugin.read_file(cmp_file1), self.plugin.read_file(cmp_file2)
                 )
                 self.assertTrue(
@@ -706,13 +721,13 @@ web{0}simple{0}index.html""".format(
         for fn in files:
             os.unlink(fn)
 
-    def test_find(self):
+    def test_find(self) -> None:
         base_path = self.mirror_base_path
         if self.backend == "swift":
             base_path = base_path.lstrip("/")
         self.assertEqual(self.base_find_contents, self.plugin.find(base_path))
 
-    def test_open_file(self):
+    def test_open_file(self) -> None:
         self.plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
         rvs = (
             (
@@ -735,12 +750,13 @@ web{0}simple{0}index.html""".format(
                 with self.plugin.open_file(path, text=True) as fh:
                     self.assertEqual(fh.read(), rv)
 
-    def test_write_file(self):
-        data = ["this is some text", b"this is some text"]
+    def test_write_file(self) -> None:
+        data: List[Union[str, bytes]] = ["this is some text", b"this is some text"]
         tmp_path = os.path.join(self.mirror_base_path, "test_write_file.txt")
         for write_val in data:
             with self.subTest(write_val=write_val):
                 self.plugin.write_file(tmp_path, write_val)
+                rv: Union[str, bytes]
                 if not isinstance(write_val, str):
                     rv = self.plugin.PATH_BACKEND(tmp_path).read_bytes()
                 else:
@@ -748,7 +764,7 @@ web{0}simple{0}index.html""".format(
                 self.assertEqual(rv, write_val)
         os.unlink(tmp_path)
 
-    def test_read_file(self):
+    def test_read_file(self) -> None:
         self.plugin.write_file(os.path.join(self.mirror_base_path, "status"), "20")
         rvs = (
             (
@@ -772,7 +788,7 @@ web{0}simple{0}index.html""".format(
             with self.subTest(path=path, rv=rv):
                 self.assertEqual(self.plugin.read_file(path), rv)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
@@ -787,7 +803,7 @@ web{0}simple{0}index.html""".format(
                 self.plugin.delete(path)
                 self.assertFalse(path.exists())
 
-    def test_delete_file(self):
+    def test_delete_file(self) -> None:
         delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
@@ -797,7 +813,7 @@ web{0}simple{0}index.html""".format(
         self.plugin.delete_file(delete_path)
         self.assertFalse(delete_path.exists())
 
-    def test_copy_file(self):
+    def test_copy_file(self) -> None:
         file_content = "this is some data"
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
@@ -810,7 +826,7 @@ web{0}simple{0}index.html""".format(
         os.unlink(dest_file)
         self.assertEqual(copied_content, file_content)
 
-    def test_mkdir(self):
+    def test_mkdir(self) -> None:
         self.plugin.mkdir(os.path.join(self.mirror_base_path, "test_dir"))
         self.assertTrue(
             self.plugin.PATH_BACKEND(
@@ -821,7 +837,7 @@ web{0}simple{0}index.html""".format(
             os.path.join(self.mirror_base_path, "test_dir")
         ).rmdir()
 
-    def test_rmdir(self):
+    def test_rmdir(self) -> None:
         self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir")
         ).mkdir()
@@ -839,7 +855,7 @@ web{0}simple{0}index.html""".format(
             ).exists()
         )
 
-    def test_is_dir(self):
+    def test_is_dir(self) -> None:
         self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir")
         ).mkdir()
@@ -855,7 +871,7 @@ web{0}simple{0}index.html""".format(
             force=True,
         )
 
-    def test_is_file(self):
+    def test_is_file(self) -> None:
         delete_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "test_delete.txt"
         )
@@ -863,7 +879,7 @@ web{0}simple{0}index.html""".format(
         self.assertTrue(self.plugin.is_file(delete_path))
         delete_path.unlink()
 
-    def test_symlink(self):
+    def test_symlink(self) -> None:
         file_content = "this is some text"
         test_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
             "symlink_file.txt"
@@ -873,7 +889,7 @@ web{0}simple{0}index.html""".format(
         self.plugin.symlink(test_path, symlink_dest)
         self.assertEqual(self.plugin.read_file(symlink_dest), file_content)
 
-    def test_get_hash(self):
+    def test_get_hash(self) -> None:
         path = self.plugin.PATH_BACKEND(self.sample_file)
         md5_digest = "125765989403df246cecb48fa3e87ff8"
         sha256_digest = (
@@ -912,13 +928,13 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
         ".lock\n", ""
     ).strip()
 
-    def setUp(self):
+    def setUp(self) -> None:
         if os.name == "nt":
             raise unittest.SkipTest("Skipping swift tests on windows")
         super().setUp()
 
-    def test_mkdir(self):
-        tmp_filename = next(tempfile._get_candidate_names())
+    def test_mkdir(self) -> None:
+        tmp_filename = next(tempfile._get_candidate_names())  # type: ignore
         tmp_file = self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir", tmp_filename)
         )
@@ -930,8 +946,8 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
         )
         tmp_file.unlink()
 
-    def test_rmdir(self):
-        tmp_filename = next(tempfile._get_candidate_names())
+    def test_rmdir(self) -> None:
+        tmp_filename = next(tempfile._get_candidate_names())  # type: ignore
         tmp_file = self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir", tmp_filename)
         )
@@ -948,9 +964,10 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
             ).exists()
         )
 
-    def test_copy_file(self):
+    def test_copy_file(self) -> None:
         file_content = "this is some data"
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
+        assert self.tempdir
         with tempfile.NamedTemporaryFile(
             dir=os.path.join(self.tempdir.name, "bandersnatch"), mode="w"
         ) as tf:

@@ -127,7 +127,7 @@ class _SwiftAccessor:
         if not target.endswith("/"):
             target = f"{target}/"
         with _SwiftAccessor.BACKEND.connection() as conn:
-            _, paths = conn.get_container(
+            paths = conn.get_container(
                 _SwiftAccessor.BACKEND.default_container, prefix=target, delimiter="/"
             )
             for p in paths:
@@ -339,7 +339,7 @@ class SwiftPath(pathlib.Path):
         files: List[str] = []
         with self.backend.connection() as conn:
             try:
-                _, files = conn.get_container(
+                files = conn.get_container(
                     self.backend.default_container, prefix=target_path
                 )
             except swiftclient.exceptions.ClientException:
@@ -592,8 +592,7 @@ class SwiftStorage(StoragePlugin):
         if not container:
             container = self.default_container
         with self.connection() as conn:
-            _, container_instance = conn.get_container(container)
-            return container_instance  # type: ignore
+            return conn.get_container(container)  # type: ignore
 
     def get_object(self, container_name: str, file_path: str) -> bytes:
         """Retrieve an object from swift, base64 decoding the contents."""
@@ -618,7 +617,7 @@ class SwiftStorage(StoragePlugin):
         with contextlib.ExitStack() as stack:
             if conn is None:
                 conn = stack.enter_context(self.connection())
-            _, paths = conn.get_container(self.default_container, prefix=str(root))
+            paths = conn.get_container(self.default_container, prefix=str(root))
             for p in paths:
                 if "subdir" in p and dirs:
                     results.append(self.PATH_BACKEND(p["subdir"]))
@@ -861,9 +860,7 @@ class SwiftStorage(StoragePlugin):
         files: List[str] = []
         with self.connection() as conn:
             try:
-                _, files = conn.get_container(
-                    self.default_container, prefix=target_path
-                )
+                files = conn.get_container(self.default_container, prefix=target_path)
             except swiftclient.exceptions.ClientException:
                 return False
             return bool(files)
@@ -904,7 +901,7 @@ class SwiftStorage(StoragePlugin):
                 {"x-timestamp": str(datetime.datetime.now().timestamp())},
             )
 
-    def get_hash(self, path: str, function: str = "sha256") -> str:
+    def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)(self.read_file(path, text=False))
         return str(h.hexdigest())
 

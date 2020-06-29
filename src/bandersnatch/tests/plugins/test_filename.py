@@ -1,28 +1,16 @@
 import os
 from collections import defaultdict
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from mock_config import mock_config
+
 import bandersnatch.filter
-from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.master import Master
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import filename_name
-
-
-def _mock_config(contents, filename="test.conf"):
-    """
-    Creates a config file with contents and loads them into a
-    BandersnatchConfig instance.
-    """
-    with open(filename, "w") as fd:
-        fd.write(contents)
-
-    instance = BandersnatchConfig()
-    instance.config_file = filename
-    instance.load_configuration()
-    return instance
 
 
 class BasePluginTestCase(TestCase):
@@ -30,14 +18,15 @@ class BasePluginTestCase(TestCase):
     tempdir = None
     cwd = None
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.tempdir:
+            assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
             self.tempdir = None
@@ -58,8 +47,8 @@ platforms =
     linux-armv7l
 """
 
-    def test_plugin_compiles_patterns(self):
-        _mock_config(self.config_contents)
+    def test_plugin_compiles_patterns(self) -> None:
+        mock_config(self.config_contents)
 
         plugins = bandersnatch.filter.filter_release_plugins()
 
@@ -67,18 +56,18 @@ platforms =
             type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
         )
 
-    def test_exclude_platform(self):
+    def test_exclude_platform(self) -> None:
         """
         Tests the platform filter for what it will keep and excluded
         based on the config provided. It is expected to drop all windows,
         freebsd and macos packages while only dropping linux-armv7l from
         linux packages
         """
-        _mock_config(self.config_contents)
+        mock_config(self.config_contents)
 
         bandersnatch.filter.filter_release_plugins()
 
-        mirror = Mirror(".", Master(url="https://foo.bar.com"))
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, mirror)
         pkg.info = {"name": "foobar", "version": "1.0"}
         pkg.releases = {
