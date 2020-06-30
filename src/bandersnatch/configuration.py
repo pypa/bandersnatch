@@ -21,7 +21,7 @@ logger = logging.getLogger("bandersnatch")
 
 
 class SetConfigValues(NamedTuple):
-    json_save: bool
+    save_json: bool
     root_uri: str
     diff_file_path: str
     diff_append_epoch: bool
@@ -92,13 +92,13 @@ class BandersnatchConfig(metaclass=Singleton):
 # 11-15, 84-89, 98-99, 117-118, 124-126, 144-149
 def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues:
     try:
-        json_save = config.getboolean("mirror", "json")
+        save_json = config.getboolean("mirror", "json")
     except configparser.NoOptionError:
         logger.error(
             "Please update your config to include a json "
             + "boolean in the [mirror] section. Setting to False"
         )
-        json_save = False
+        save_json = False
 
     try:
         root_uri = config.get("mirror", "root_uri")
@@ -161,7 +161,7 @@ def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues
         cleanup = False
 
     return SetConfigValues(
-        json_save,
+        save_json,
         root_uri,
         diff_file_path,
         diff_append_epoch,

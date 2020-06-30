@@ -11,7 +11,7 @@ from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
-from typing import Awaitable, Dict, List, Optional, Set, Union
+from typing import Awaitable, Dict, List, Optional, Set, Tuple, Union
 from unittest.mock import Mock
 from urllib.parse import unquote, urlparse
 
@@ -30,10 +30,167 @@ LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
 
 
-class MetadataWriter:
-    diff_append_epoch = False
-    diff_full_path = None
+class BandersnatchState:
+    def __init__(self, storage_backend: Storage, homedir: Path) -> None:
+        self.storage_backend = storage_backend
+        self.homedir = self.storage_backend.PATH_BACKEND(homedir)
 
+    @property
+    def todolist(self) -> Path:
+        return self.storage_backend.PATH_BACKEND(self.homedir) / "todo"
+
+    @property
+    def lockfile(self) -> Path:
+        return self.storage_backend.PATH_BACKEND(self.homedir) / ".lock"
+
+    @property
+    def statusfile(self) -> Path:
+        return self.storage_backend.PATH_BACKEND(self.homedir) / "status"
+
+    @property
+    def generationfile(self) -> Path:
+        return self.storage_backend.PATH_BACKEND(self.homedir) / "generation"
+
+    def reset(self) -> None:
+        for path in [self.statusfile, self.todolist]:
+            if path.exists():
+                path.unlink()
+
+    def clean_todo(self) -> None:
+        if self.todolist.exists():
+            self.todolist.unlink()
+
+    def validate_todofile(self) -> None:
+        # Does a couple of cleanup tasks to ensure consistent data for later
+        # processing.
+        if self.storage_backend.exists(self.todolist):
+            try:
+                with self.storage_backend.open_file(self.todolist, text=True) as fh:
+                    saved_todo = iter(fh)
+                    int(next(saved_todo).strip())
+                    for line in saved_todo:
+                        _, serial = line.strip().split(maxsplit=1)
+                        int(serial)
+            except (StopIteration, ValueError, TypeError):
+                # The todo list was inconsistent. This may happen if we get
+                # killed e.g. by the timeout wrapper. Just remove it - we'll
+                # just have to do whatever happened since the last successful
+                # sync.
+                logger.error("Removing inconsistent todo list.")
+                self.storage_backend.delete_file(self.todolist)
+
+    def load_todofile(self) -> Optional[Tuple[int, dict]]:
+        self.validate_todofile()
+
+        target_serial = 0  # what is the serial we are trying to reach?
+        packages_to_sync = {}
+        if self.storage_backend.exists(self.todolist):
+            # We started a sync previously and left a todo list as well as the
+            # targeted serial. We'll try to keep going through the todo list
+            # and then mark the targeted serial as done.
+            with self.storage_backend.open_file(self.todolist, text=True) as fh:
+                saved_todo = iter(fh)
+                target_serial = int(next(saved_todo).strip())
+                for line in saved_todo:
+                    package, serial = line.strip().split()
+                    packages_to_sync[package] = int(serial)
+            return (target_serial, packages_to_sync)
+
+    def update_todofile(self, target_serial: int, packages_to_sync: dict) -> None:
+        with self.storage_backend.update_safe(
+            self.todolist, mode="w+", encoding="utf-8"
+        ) as f:
+            # First line is the target serial we're working on.
+            f.write(f"{target_serial}\n")
+            # Consecutive lines are the packages we still have to sync
+            todo = [f"{name_} {serial}" for name_, serial in packages_to_sync.items()]
+            f.write("\n".join(todo))
+
+    def update_status(self, new_serial: int) -> None:
+        self.statusfile.write_text(str(new_serial), encoding="ascii")
+
+    def get_status(self) -> Optional[int]:
+        if self.statusfile.exists():
+            return int(self.statusfile.read_text(encoding="ascii").strip())
+
+    def get_generation(self) -> int:
+        return int(self.generationfile.read_text(encoding="ascii").strip())
+
+    def update_generation(self, generation: int) -> None:
+        self.generationfile.write_text(str(generation), encoding="ascii")
+
+    def load_serial(self, flock_timeout: float = 1.0) -> int:
+        flock = self.storage_backend.get_lock(str(self.lockfile))
+        try:
+            logger.debug(f"Acquiring FLock with timeout: {flock_timeout!s}")
+            with flock.acquire(timeout=flock_timeout):
+                # Simple generation mechanism to support transparent software
+                # updates.
+                CURRENT_GENERATION = 5  # noqa
+                try:
+                    generation = self.get_generation()
+                except ValueError:
+                    logger.info(
+                        "Generation file inconsistent. Reinitialising status files."
+                    )
+                    self.reset()
+                    generation = CURRENT_GENERATION
+                except OSError:
+                    logger.info("Generation file missing. Reinitialising status files.")
+                    # This is basically the 'install' generation: anything previous to
+                    # release 1.0.2.
+                    self.reset()
+                    generation = CURRENT_GENERATION
+                if generation in [2, 3, 4]:
+                    # In generation 2 -> 3 we changed the way we generate simple
+                    # page package directory names. Simply run a full update.
+                    # Generation 3->4 is intended to counter a data bug on PyPI.
+                    # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
+                    # Generation 4->5 is intended to ensure that we have PEP 503
+                    # compatible /simple/ URLs generated for everything.
+                    self.reset()
+                    generation = 5
+                if generation != CURRENT_GENERATION:
+                    raise RuntimeError(f"Unknown generation {generation} found")
+                self.update_generation(CURRENT_GENERATION)
+                # Now, actually proceed towards using the status files.
+                status = self.get_status()
+                if not status:
+                    logger.info(
+                        f"Status file {self.statusfile} missing. Starting over."
+                    )
+                    return 0
+                return status
+        except Timeout:
+            logger.error("Flock timed out!")
+            raise RuntimeError(
+                f"Could not acquire lock on {self.lockfile}. "
+                + "Another instance could be running?"
+            )
+
+    def init_dirs(self, json_dirs: bool) -> None:
+        paths = [
+            self.storage_backend.PATH_BACKEND(""),
+            self.storage_backend.PATH_BACKEND("web/simple"),
+            self.storage_backend.PATH_BACKEND("web/packages"),
+            self.storage_backend.PATH_BACKEND("web/local-stats/days"),
+        ]
+        if json_dirs:
+            logger.debug("Adding json directories to bootstrap")
+            paths.extend(
+                [
+                    self.storage_backend.PATH_BACKEND("web/json"),
+                    self.storage_backend.PATH_BACKEND("web/pypi"),
+                ]
+            )
+        for path in paths:
+            path = self.homedir / path
+            if not path.exists():
+                logger.info(f"Setting up mirror directory: {path}")
+                path.mkdir(parents=True)
+
+
+class MetadataWriter:
     need_index_sync = True
     # Allow configuring a root_uri to make generated index pages absolute.
     # This is generally not necessary, but was added for the official internal
@@ -43,22 +200,21 @@ class MetadataWriter:
 
     def __init__(
         self,
-        homedir: Path,
         storage_backend: Storage,
+        bandersnatch_state: BandersnatchState,
         hash_index: bool = False,
         root_uri: Optional[str] = None,
-        json_save: bool = False,
+        save_json: bool = False,
         digest_name: Optional[str] = None,
         flock_timeout: int = 1,
         keep_index_versions: int = 0,
         diff_append_epoch: bool = False,
         diff_full_path: Optional[Union[Path, str]] = None,
         diff_file_list: Optional[List] = None,
-        cleanup: bool = False,
     ):
         self.storage_backend = storage_backend
-        self.homedir = self.storage_backend.PATH_BACKEND(homedir)
-        self.lockfile_path = self.homedir / ".lock"
+        self.bandersnatch_state = bandersnatch_state
+        self.homedir = self.bandersnatch_state.homedir
         self.hash_index = hash_index
         self.root_uri = root_uri or ""
         self.flock_timeout = flock_timeout
@@ -66,17 +222,16 @@ class MetadataWriter:
         self.keep_index_versions = keep_index_versions
 
         # Whether or not to mirror PyPI JSON metadata to disk
-        self.json_save = json_save
+        self.save_json = save_json
         self.digest_name = digest_name if digest_name else "sha256"
 
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
         self.diff_file_list = diff_file_list or []
 
-        # Cleanup old legacy non PEP 503 Directories created for the Simple API
-        self.cleanup = cleanup
-
         self._finish_lock = RLock()
+
+        self.bandersnatch_state.init_dirs(self.save_json)
 
     @property
     def webdir(self) -> Path:
@@ -108,9 +263,6 @@ class MetadataWriter:
                     / normalized_name_legacy
                 )
             return self.webdir / "simple" / normalized_name_legacy
-
-        if not self.cleanup:
-            return
 
         logger.debug(f"Running Non PEP503 path cleanup for {package.raw_name}")
         for deprecated_dir in (
@@ -304,7 +456,7 @@ class MetadataWriter:
             }
         )
 
-    def sync_index_page(self) -> None:
+    def write_index_page(self) -> None:
         if not self.need_index_sync:
             return
         logger.info("Generating global index page.")
@@ -346,135 +498,30 @@ class Mirror:
         self,
         master: Master,
         writer: MetadataWriter,
+        bandersnatch_state: BandersnatchState,
         stop_on_error: bool = False,
         workers: int = 3,
+        cleanup: bool = False,
     ):
         self.loop = asyncio.get_event_loop()
         self.master = master
         self.writer = writer
         self.filters = LoadedFilters(load_all=True)
+        self.bandersnatch_state = bandersnatch_state
         self.stop_on_error = stop_on_error
         self.workers = workers
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
+        self.cleanup = cleanup
 
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
         # Class Instance variable so each package can add their changes
         self.altered_packages: Dict[str, Set[str]] = {}
 
-        self._bootstrap(self.writer.flock_timeout)
-
-    def _bootstrap(self, flock_timeout: float = 1.0) -> None:
-        paths = [
-            self.writer.storage_backend.PATH_BACKEND(""),
-            self.writer.storage_backend.PATH_BACKEND("web/simple"),
-            self.writer.storage_backend.PATH_BACKEND("web/packages"),
-            self.writer.storage_backend.PATH_BACKEND("web/local-stats/days"),
-        ]
-        if self.writer.json_save:
-            logger.debug("Adding json directories to bootstrap")
-            paths.extend(
-                [
-                    self.writer.storage_backend.PATH_BACKEND("web/json"),
-                    self.writer.storage_backend.PATH_BACKEND("web/pypi"),
-                ]
-            )
-        for path in paths:
-            path = self.writer.homedir / path
-            if not path.exists():
-                logger.info(f"Setting up mirror directory: {path}")
-                path.mkdir(parents=True)
-
-        flock = self.writer.storage_backend.get_lock(str(self.writer.lockfile_path))
-        try:
-            logger.debug(f"Acquiring FLock with timeout: {flock_timeout!s}")
-            with flock.acquire(timeout=self.writer.flock_timeout):
-                self._validate_todo()
-                self._load()
-        except Timeout:
-            logger.error("Flock timed out!")
-            raise RuntimeError(
-                f"Could not acquire lock on {self.writer.lockfile_path}. "
-                + "Another instance could be running?"
-            )
-
-    @property
-    def statusfile(self) -> Path:
-        return self.writer.storage_backend.PATH_BACKEND(self.writer.homedir) / "status"
-
-    @property
-    def generationfile(self) -> Path:
-        return (
-            self.writer.storage_backend.PATH_BACKEND(self.writer.homedir) / "generation"
+        self.synced_serial = self.bandersnatch_state.load_serial(
+            self.writer.flock_timeout
         )
-
-    def _load(self) -> None:
-        # Simple generation mechanism to support transparent software
-        # updates.
-        CURRENT_GENERATION = 5  # noqa
-        try:
-            generation = int(self.generationfile.read_text(encoding="ascii").strip())
-        except ValueError:
-            logger.info("Generation file inconsistent. Reinitialising status files.")
-            self._reset_mirror_status()
-            generation = CURRENT_GENERATION
-        except OSError:
-            logger.info("Generation file missing. Reinitialising status files.")
-            # This is basically the 'install' generation: anything previous to
-            # release 1.0.2.
-            self._reset_mirror_status()
-            generation = CURRENT_GENERATION
-        if generation in [2, 3, 4]:
-            # In generation 2 -> 3 we changed the way we generate simple
-            # page package directory names. Simply run a full update.
-            # Generation 3->4 is intended to counter a data bug on PyPI.
-            # https://bitbucket.org/pypa/bandersnatch/issue/56/setuptools-went-missing
-            # Generation 4->5 is intended to ensure that we have PEP 503
-            # compatible /simple/ URLs generated for everything.
-            self._reset_mirror_status()
-            generation = 5
-        if generation != CURRENT_GENERATION:
-            raise RuntimeError(f"Unknown generation {generation} found")
-        self.generationfile.write_text(str(CURRENT_GENERATION), encoding="ascii")
-        # Now, actually proceed towards using the status files.
-        if not self.statusfile.exists():
-            logger.info(f"Status file {self.statusfile} missing. Starting over.")
-            return
-        self.synced_serial = int(self.statusfile.read_text(encoding="ascii").strip())
-
-    def _save(self) -> None:
-        self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
-
-    @property
-    def todolist(self) -> Path:
-        return self.writer.homedir / "todo"
-
-    def _validate_todo(self) -> None:
-        """Does a couple of cleanup tasks to ensure consistent data for later
-        processing."""
-        if self.writer.storage_backend.exists(self.todolist):
-            try:
-                with self.writer.storage_backend.open_file(
-                    self.todolist, text=True
-                ) as fh:
-                    saved_todo = iter(fh)
-                    int(next(saved_todo).strip())
-                    for line in saved_todo:
-                        _, serial = line.strip().split(maxsplit=1)
-                        int(serial)
-            except (StopIteration, ValueError, TypeError):
-                # The todo list was inconsistent. This may happen if we get
-                # killed e.g. by the timeout wrapper. Just remove it - we'll
-                # just have to do whatever happened since the last successful
-                # sync.
-                logger.error("Removing inconsistent todo list.")
-                self.writer.storage_backend.delete_file(self.todolist)
-
-    def _reset_mirror_status(self) -> None:
-        for path in [self.statusfile, self.todolist]:
-            if path.exists():
-                path.unlink()
 
     async def synchronize(
         self, specific_packages: Optional[List[str]] = None
@@ -489,12 +536,10 @@ class Mirror:
             # Changelog-based synchronization
             await self.determine_packages_to_sync()
             await self.sync_packages()
-            self.writer.sync_index_page()
+            self.writer.write_index_page()
             self.wrapup_successful_sync()
         else:
-            # Synchronize specific packages. This method doesn't update the
-            # self.statusfile
-
+            # Synchronize specific packages. This method doesn't update the statusfile
             # Pass serial number 0 to bypass the stale serial check in Package class
             SERIAL_DONT_CARE = 0
             self.packages_to_sync = {
@@ -502,7 +547,7 @@ class Mirror:
                 for name in specific_packages
             }
             await self.sync_packages()
-            self.writer.sync_index_page()
+            self.writer.write_index_page()
 
         return self.altered_packages
 
@@ -546,17 +591,10 @@ class Mirror:
         self.packages_to_sync = {}
         logger.info(f"Current mirror serial: {self.synced_serial}")
 
-        if self.writer.storage_backend.exists(self.todolist):
-            # We started a sync previously and left a todo list as well as the
-            # targetted serial. We'll try to keep going through the todo list
-            # and then mark the targetted serial as done.
+        todo_state = self.bandersnatch_state.load_todofile()
+        if todo_state:
             logger.info("Resuming interrupted sync from local todo list.")
-            with self.writer.storage_backend.open_file(self.todolist, text=True) as fh:
-                saved_todo = iter(fh)
-                self.target_serial = int(next(saved_todo).strip())
-                for line in saved_todo:
-                    package, serial = line.strip().split()
-                    self.packages_to_sync[package] = int(serial)
+            (self.target_serial, self.packages_to_sync) = todo_state
         elif not self.synced_serial:
             logger.info("Syncing all packages.")
             # First get the current serial, then start to sync. This makes us
@@ -599,7 +637,7 @@ class Mirror:
                     return
 
                 # save the metadata before filtering releases
-                if self.writer.json_save:
+                if self.writer.save_json:
                     loop = asyncio.get_event_loop()
                     json_saved = await loop.run_in_executor(
                         None, self.writer.save_json_metadata_for_package, package
@@ -627,8 +665,10 @@ class Mirror:
                 logger.error("Exiting early after error.")
                 sys.exit(1)
 
-            # Cleanup non normalized name directory
-            await self.writer.cleanup_non_pep_503_paths(package)
+            # Cleanup old legacy non PEP 503 Directories created for the Simple API
+            if self.cleanup:
+                # Cleanup non normalized name directory
+                await self.writer.cleanup_non_pep_503_paths(package)
 
     async def sync_release_files_for_package(self, package) -> None:
         """ Purge + download files returning files removed + added """
@@ -641,7 +681,9 @@ class Mirror:
                 )
                 if downloaded_file:
                     downloaded_files.add(
-                        str(downloaded_file.relative_to(self.writer.homedir))
+                        str(
+                            downloaded_file.relative_to(self.bandersnatch_state.homedir)
+                        )
                     )
             except Exception as e:
                 logger.exception(
@@ -736,35 +778,28 @@ class Mirror:
     def record_finished_package(self, name: str) -> None:
         with self.writer._finish_lock:
             del self.packages_to_sync[name]
-            with self.writer.storage_backend.update_safe(
-                self.todolist, mode="w+", encoding="utf-8"
-            ) as f:
-                # First line is the target serial we're working on.
-                f.write(f"{self.target_serial}\n")
-                # Consecutive lines are the packages we still have to sync
-                todo = [
-                    f"{name_} {serial}"
-                    for name_, serial in self.packages_to_sync.items()
-                ]
-                f.write("\n".join(todo))
+            self.bandersnatch_state.update_todofile(
+                self.target_serial, self.packages_to_sync
+            )
 
     def wrapup_successful_sync(self) -> None:
         if self.errors:
             return
         self.synced_serial = int(self.target_serial) if self.target_serial else 0
-        if self.todolist.exists():
-            self.todolist.unlink()
+        self.bandersnatch_state.clean_todo()
         logger.info(f"New mirror serial: {self.synced_serial}")
-        last_modified = self.writer.homedir / "web" / "last-modified"
+
         if not self.now:
             logger.error(
                 "strftime did not return a valid time - Not updating last modified"
             )
             return
 
-        with self.writer.storage_backend.rewrite(str(last_modified)) as f:
+        with self.writer.storage_backend.rewrite(
+            str(self.bandersnatch_state.homedir / "web" / "last-modified")
+        ) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
-        self._save()
+        self.bandersnatch_state.update_status(self.synced_serial)
 
 
 async def mirror(
@@ -804,21 +839,23 @@ async def mirror(
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
     storage_backend = config_values.storage_backend_name
+    homedir = Path(config.get("mirror", "directory"))
 
     if storage_backend:
         storage_backend = next(iter(storage_backend_plugins(storage_backend)))
     else:
         storage_backend = next(iter(storage_backend_plugins()))
 
+    bandersnatch_state = BandersnatchState(storage_backend, homedir)
+
     writer = MetadataWriter(
-        homedir=config.get("mirror", "directory"),
         storage_backend=storage_backend,
+        bandersnatch_state=bandersnatch_state,
         hash_index=config.getboolean("mirror", "hash-index"),
         root_uri=config_values.root_uri,
-        json_save=config_values.json_save,
+        save_json=config_values.save_json,
         keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
         digest_name=config_values.digest_name,
-        cleanup=config_values.cleanup,
         diff_append_epoch=config_values.diff_append_epoch,
         diff_full_path=diff_full_path if diff_full_path else None,
     )
@@ -829,8 +866,10 @@ async def mirror(
         mirror = Mirror(
             master,
             writer,
+            bandersnatch_state,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
+            cleanup=config_values.cleanup,
         )
 
         # TODO: Remove this terrible hack and async mock the code correctly

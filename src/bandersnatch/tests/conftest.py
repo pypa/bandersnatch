@@ -113,7 +113,15 @@ def master(package_json: Dict[str, Any]) -> "Master":
     return master
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore
+def bandersnatch_state(tmpdir: Path, monkeypatch: MonkeyPatch) -> "Mirror":
+    monkeypatch.chdir(tmpdir)
+    from bandersnatch.mirror import BandersnatchState
+
+    return BandersnatchState(tmpdir)
+
+
+@pytest.fixture  # type: ignore
 def mirror(tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch) -> "Mirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror

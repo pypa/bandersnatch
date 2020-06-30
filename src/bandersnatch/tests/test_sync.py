@@ -17,7 +17,7 @@ async def test_sync_specific_packages(mirror: Mirror) -> None:
     mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
     )
-    mirror.json_save = True
+    mirror.save_json = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
     await mirror.synchronize(specific_packages)
