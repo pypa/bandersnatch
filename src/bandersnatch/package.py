@@ -13,14 +13,9 @@ from packaging.utils import canonicalize_name
 from . import utils
 from .master import PackageNotFound, StalePage
 
-from .filter import filter_metadata_plugins  # isort:skip
-from .filter import filter_release_file_plugins  # isort:skip
-from .filter import filter_release_plugins  # isort:skip
-
-
 if TYPE_CHECKING:  # pragma: no cover
     from .mirror import Mirror
-
+    from .filter import Filter, LoadedFilters
 
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
@@ -40,7 +35,7 @@ class StaleMetadata(Exception):
 
 
 class Package:
-    def __init__(self, name: str, serial: Union[int, str], mirror: "Mirror",) -> None:
+    def __init__(self, name: str, serial: Union[int, str], mirror: "Mirror") -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
         self.serial = serial
@@ -115,13 +110,15 @@ class Package:
                 )
                 raise StaleMetadata(package_name=self.name, attempts=attempts)
 
-    async def sync(self, attempts: int = 3) -> None:
+    async def sync(self, filters: "LoadedFilters", attempts: int = 3) -> None:
         self.json_saved = False
 
         try:
             metadata = await self.fetch_metadata(attempts=attempts)
             # Don't save anything if our metadata filters all fail.
-            if not metadata or not self._filter_metadata(metadata):
+            if not metadata or not self._filter_metadata(
+                metadata, filters.filter_metadata_plugins()
+            ):
                 return None
 
             # save the metadata before filtering releases
@@ -135,8 +132,8 @@ class Package:
             self.last_serial = metadata["last_serial"]
             self.releases = metadata["releases"]
 
-            self._filter_all_releases_files()
-            self._filter_releases()
+            self._filter_all_releases_files(filters.filter_release_file_plugins())
+            self._filter_releases(filters.filter_release_plugins())
 
             await self.sync_release_files()
             self.sync_simple_page()
@@ -150,12 +147,14 @@ class Package:
             logger.error("Exiting early after error.")
             sys.exit(1)
 
-    def _filter_metadata(self, metadata: Dict) -> bool:
+    def _filter_metadata(
+        self, metadata: Dict, metadata_filters: List["Filter"]
+    ) -> bool:
         """
         Run the metadata filtering plugins
         """
         global display_filter_log
-        filter_plugins = filter_metadata_plugins()
+        filter_plugins = metadata_filters
         if not filter_plugins:
             if display_filter_log:
                 logger.info(
@@ -166,12 +165,12 @@ class Package:
 
         return all(plugin.filter(metadata) for plugin in filter_plugins)
 
-    def _filter_releases(self) -> bool:
+    def _filter_releases(self, release_filters: List["Filter"]) -> bool:
         """
         Run the release filtering plugins
         """
         global display_filter_log
-        filter_plugins = filter_release_plugins()
+        filter_plugins = release_filters
         if not filter_plugins:
             if display_filter_log:
                 logger.info(
@@ -185,12 +184,14 @@ class Package:
             for plugin in filter_plugins
         )
 
-    def _filter_release_file(self, metadata: Dict) -> bool:
+    def _filter_release_file(
+        self, metadata: Dict, release_file_filters: List["Filter"]
+    ) -> bool:
         """
         Run the release file filtering plugins
         """
         global display_filter_log
-        filter_plugins = filter_release_file_plugins()
+        filter_plugins = release_file_filters
         if not filter_plugins:
             if display_filter_log:
                 logger.info(
@@ -201,7 +202,7 @@ class Package:
 
         return all(plugin.filter(metadata) for plugin in filter_plugins)
 
-    def _filter_all_releases_files(self) -> bool:
+    def _filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
         """
         Filter release files and remove empty releases after doing so.
         """
@@ -214,7 +215,8 @@ class Package:
                         "info": self.info,
                         "release": release,
                         "release_file": self.releases[release][rfindex],
-                    }
+                    },
+                    release_file_filters,
                 ):
                     del self.releases[release][rfindex]
             if not self.releases[release]:

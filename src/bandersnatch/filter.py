@@ -21,7 +21,6 @@ RELEASE_PLUGIN_RESOURCE = f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.r
 RELEASE_FILE_PLUGIN_RESOURCE = (
     f"bandersnatch_filter_plugins.v{PLUGIN_API_REVISION}.release_file"
 )
-loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
 
 
 class Filter:
@@ -111,96 +110,112 @@ class FilterReleaseFilePlugin(Filter):
     name = "release_file_plugin"
 
 
-def load_filter_plugins(entrypoint_group: str) -> List[Filter]:
+class LoadedFilters:
     """
-    Load all blacklist plugins that are registered with importlib.resources
-
-    Parameters
-    ==========
-    entrypoint_group: str
-        The entrypoint group name to load plugins from
-
-    Returns
-    =======
-    List of Blacklist:
-        A list of objects derived from the Blacklist class
+    A class to load all of the filters enabled
     """
-    global loaded_filter_plugins
-    enabled_plugins: List[str] = []
-    config = BandersnatchConfig().config
-    try:
-        config_blacklist_plugins = config["plugins"]["enabled"]
-        split_plugins = config_blacklist_plugins.split("\n")
-        if "all" in split_plugins:
-            enabled_plugins = ["all"]
-        else:
-            for plugin in split_plugins:
-                if not plugin:
-                    continue
-                enabled_plugins.append(plugin)
-    except KeyError:
-        pass
 
-    # If the plugins for the entrypoint_group have been loaded return them
-    cached_plugins = loaded_filter_plugins.get(entrypoint_group)
-    if cached_plugins:
-        return cached_plugins
+    ENTRYPOINT_GROUPS = [
+        PROJECT_PLUGIN_RESOURCE,
+        METADATA_PLUGIN_RESOURCE,
+        RELEASE_PLUGIN_RESOURCE,
+        RELEASE_FILE_PLUGIN_RESOURCE,
+    ]
 
-    plugins = set()
-    for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
-        plugin_class = entry_point.load()
-        plugin_instance = plugin_class()
-        if "all" in enabled_plugins or plugin_instance.name in enabled_plugins:
-            plugins.add(plugin_instance)
+    def __init__(self, load_all: bool = False) -> None:
+        """
+        Loads and stores all of specified filters from the config file
+        """
+        self.config = BandersnatchConfig().config
+        self.loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
+        self.enabled_plugins = self._load_enabled()
+        if load_all:
+            self._load_filters(self.ENTRYPOINT_GROUPS)
 
-    plugins_list = list(plugins)
-    loaded_filter_plugins[entrypoint_group] = plugins_list
-    return plugins_list
+    def _load_enabled(self) -> List[str]:
+        """
+        Reads the config and returns all the enabled plugins
+        """
+        enabled_plugins: List[str] = []
+        try:
+            config_plugins = self.config["plugins"]["enabled"]
+            split_plugins = config_plugins.split("\n")
+            if "all" in split_plugins:
+                enabled_plugins = ["all"]
+            else:
+                for plugin in split_plugins:
+                    if not plugin:
+                        continue
+                    enabled_plugins.append(plugin)
+        except KeyError:
+            pass
+        return enabled_plugins
 
+    def _load_filters(self, groups: List[str]) -> None:
+        """
+        Loads filters from the entry-point groups specified in groups
+        """
+        for group in groups:
+            plugins = set()
+            for entry_point in pkg_resources.iter_entry_points(group=group):
+                plugin_class = entry_point.load()
+                plugin_instance = plugin_class()
+                if (
+                    "all" in self.enabled_plugins
+                    or plugin_instance.name in self.enabled_plugins
+                ):
+                    plugins.add(plugin_instance)
 
-def filter_project_plugins() -> List[Filter]:
-    """
-    Load and return the release filtering plugin objects
+            self.loaded_filter_plugins[group] = list(plugins)
 
-    Returns
-    -------
-    list of bandersnatch.filter.Filter:
-        List of objects derived from the bandersnatch.filter.Filter class
-    """
-    return load_filter_plugins(PROJECT_PLUGIN_RESOURCE)
+    def filter_project_plugins(self) -> List[Filter]:
+        """
+        Load and return the release filtering plugin objects
 
+        Returns
+        -------
+        list of bandersnatch.filter.Filter:
+            List of objects derived from the bandersnatch.filter.Filter class
+        """
+        if PROJECT_PLUGIN_RESOURCE not in self.loaded_filter_plugins:
+            self._load_filters([PROJECT_PLUGIN_RESOURCE])
+        return self.loaded_filter_plugins[PROJECT_PLUGIN_RESOURCE]
 
-def filter_metadata_plugins() -> List[Filter]:
-    """
-    Load and return the release filtering plugin objects
+    def filter_metadata_plugins(self) -> List[Filter]:
+        """
+        Load and return the release filtering plugin objects
 
-    Returns
-    -------
-    list of bandersnatch.filter.Filter:
-        List of objects derived from the bandersnatch.filter.Filter class
-    """
-    return load_filter_plugins(METADATA_PLUGIN_RESOURCE)
+        Returns
+        -------
+        list of bandersnatch.filter.Filter:
+            List of objects derived from the bandersnatch.filter.Filter class
+        """
+        if METADATA_PLUGIN_RESOURCE not in self.loaded_filter_plugins:
+            self._load_filters([METADATA_PLUGIN_RESOURCE])
+        return self.loaded_filter_plugins[METADATA_PLUGIN_RESOURCE]
 
+    def filter_release_plugins(self) -> List[Filter]:
+        """
+        Load and return the release filtering plugin objects
 
-def filter_release_plugins() -> List[Filter]:
-    """
-    Load and return the release filtering plugin objects
+        Returns
+        -------
+        list of bandersnatch.filter.Filter:
+            List of objects derived from the bandersnatch.filter.Filter class
+        """
+        if RELEASE_PLUGIN_RESOURCE not in self.loaded_filter_plugins:
+            self._load_filters([RELEASE_PLUGIN_RESOURCE])
+        return self.loaded_filter_plugins[RELEASE_PLUGIN_RESOURCE]
 
-    Returns
-    -------
-    list of bandersnatch.filter.Filter:
-        List of objects derived from the bandersnatch.filter.Filter class
-    """
-    return load_filter_plugins(RELEASE_PLUGIN_RESOURCE)
+    def filter_release_file_plugins(self) -> List[Filter]:
+        """
+        Load and return the release file filtering plugin objects
 
-
-def filter_release_file_plugins() -> List[Filter]:
-    """
-    Load and return the release file filtering plugin objects
-
-    Returns
-    -------
-    list of bandersnatch.filter.Filter:
-        List of objects derived from the bandersnatch.filter.Filter class
-    """
-    return load_filter_plugins(RELEASE_FILE_PLUGIN_RESOURCE)
+        Returns
+        -------
+        list of bandersnatch.filter.Filter:
+            List of objects derived from the bandersnatch.filter.Filter class
+        """
+        if RELEASE_FILE_PLUGIN_RESOURCE not in self.loaded_filter_plugins:
+            self._load_filters([RELEASE_FILE_PLUGIN_RESOURCE])
+        return self.loaded_filter_plugins[RELEASE_FILE_PLUGIN_RESOURCE]

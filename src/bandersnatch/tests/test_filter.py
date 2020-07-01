@@ -1,19 +1,15 @@
 import os
 import unittest
-from collections import defaultdict
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from mock_config import mock_config
 
-import bandersnatch.filter
-
 from bandersnatch.filter import (  # isort:skip
     Filter,
     FilterProjectPlugin,
     FilterReleasePlugin,
-    filter_project_plugins,
-    filter_release_plugins,
+    LoadedFilters,
 )
 
 
@@ -28,7 +24,6 @@ class TestBandersnatchFilter(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -51,7 +46,7 @@ enabled = all
             "whitelist_project",
         ]
 
-        plugins = filter_project_plugins()
+        plugins = LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
@@ -71,7 +66,7 @@ enabled = all
             "latest_release",
         ]
 
-        plugins = filter_release_plugins()
+        plugins = LoadedFilters().filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
@@ -84,10 +79,10 @@ enabled =
 """
         )
 
-        plugins = list(filter_release_plugins())
+        plugins = LoadedFilters().filter_release_plugins()
         self.assertEqual(len(plugins), 0)
 
-        plugins = list(filter_project_plugins())
+        plugins = LoadedFilters().filter_project_plugins()
         self.assertEqual(len(plugins), 0)
 
     def test__filter_base_clases(self) -> None:

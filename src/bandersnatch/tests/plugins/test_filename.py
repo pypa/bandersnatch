@@ -1,5 +1,4 @@
 import os
-from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -21,7 +20,6 @@ class BasePluginTestCase(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -50,7 +48,7 @@ platforms =
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
             type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
@@ -64,8 +62,6 @@ platforms =
         linux packages
         """
         mock_config(self.config_contents)
-
-        bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, mirror)
@@ -153,7 +149,7 @@ platforms =
         rv = pkg.releases.values()
         keep_count = sum(f["flag"] == "KEEP" for r in rv for f in r)
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         # we should have the same keep count and no drop
         rv = pkg.releases.values()

@@ -46,7 +46,7 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
     touch_files(paths)
 
     package = Package("foo", 10, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     for path in paths:
         assert path.exists()
 
@@ -74,7 +74,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(
 ) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
@@ -104,7 +104,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
 ) -> None:
     mirror_hash_index.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror_hash_index)
-    await package.sync()
+    await package.sync(mirror_hash_index.filters)
 
     assert not os.path.exists("web/simple/foo/index.html")
     assert (
@@ -131,7 +131,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
 async def test_package_sync_with_canonical_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo": 1}
     package = Package("Foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
@@ -161,7 +161,7 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
 ) -> None:
     mirror_hash_index.packages_to_sync = {"Foo": 1}
     package = Package("Foo", 1, mirror_hash_index)
-    await package.sync()
+    await package.sync(mirror_hash_index.filters)
 
     assert not os.path.exists("web/simple/foo/index.html")
     assert (
@@ -188,7 +188,7 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
 async def test_package_sync_with_normalized_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo.bar-thing_other": 1}
     package = Package("Foo.bar-thing_other", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     # PEP 503 normalization
     assert (
@@ -216,7 +216,7 @@ async def test_package_sync_simple_page_root_uri(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     mirror.root_uri = "https://files.pythonhosted.org"
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     mirror.root_uri = None
 
     expected_root_uri_hrefs = (
@@ -251,7 +251,7 @@ async def test_package_sync_simple_page_root_uri(mirror: Mirror) -> None:
 async def test_package_sync_simple_page_with_files(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     assert (
@@ -279,7 +279,7 @@ async def test_package_sync_simple_page_with_existing_dir(mirror: Mirror) -> Non
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
     os.makedirs(package.simple_directory)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     # Cross-check that simple directory hashing is disabled.
@@ -311,7 +311,7 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(
     mirror_hash_index.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror_hash_index)
     os.makedirs(package.simple_directory)
-    await package.sync()
+    await package.sync(mirror_hash_index.filters)
 
     assert not os.path.exists("web/simple/foo/index.html")
     assert (
@@ -339,7 +339,7 @@ async def test_package_sync_with_error_keeps_it_on_todo_list(mirror: Mirror) -> 
     # Make packages_to_sync to generate an error
     mirror.packages_to_sync = {"foo"}  # type: ignore
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert mirror.errors
     assert "foo" in mirror.packages_to_sync
 
@@ -348,7 +348,7 @@ async def test_package_sync_with_error_keeps_it_on_todo_list(mirror: Mirror) -> 
 async def test_package_sync_downloads_release_file(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
@@ -360,7 +360,7 @@ async def test_package_download_rejects_non_package_directory_links(
 ) -> None:
     mirror.packages_to_sync = {"foo"}  # type: ignore
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert mirror.errors
     assert "foo" in mirror.packages_to_sync
     assert not os.path.exists("web/foo/bar/foo/foo.zip")
@@ -375,7 +375,7 @@ async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(
 
     mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     assert test_files[0].exists()
@@ -390,7 +390,7 @@ async def test_package_sync_replaces_mismatching_local_files(mirror: Mirror) -> 
 
     mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     assert test_files[0].open("r").read() == ""
@@ -404,7 +404,7 @@ async def test_package_sync_handles_non_pep_503_in_packages_to_sync(
         mirror = Mirror(Path(td), master, stop_on_error=True)
         mirror.packages_to_sync = {"Foo": ""}
         package = Package("Foo", 1, mirror)
-        await package.sync()
+        await package.sync(mirror.filters)
         assert not mirror.errors
 
 
@@ -419,7 +419,7 @@ async def test_package_sync_does_not_touch_existing_local_file(mirror: Mirror) -
 
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     # Use Pathlib + create a new object to ensure no caching
@@ -446,7 +446,7 @@ async def test_sync_incorrect_download_with_current_serial_fails(
 ) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 2, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     assert not Path("web/packages/any/f/foo/foo.zip").exists()
     assert mirror.errors
@@ -456,7 +456,7 @@ async def test_sync_incorrect_download_with_current_serial_fails(
 async def test_sync_incorrect_download_with_old_serials_retries(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 2, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     assert not Path("web/packages/any/f/foo/foo.zip").exists()
     assert mirror.errors
@@ -473,7 +473,7 @@ async def test_survives_exceptions_from_record_finished_package(mirror: Mirror) 
     mirror.record_finished_package = record_finished_package  # type: ignore
 
     package = Package("Foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
 
     assert (
         Path("web/simple/foo/index.html").open().read()
@@ -502,7 +502,7 @@ async def test_keep_index_versions_stores_one_prior_version(mirror: Mirror) -> N
     mirror.packages_to_sync = {"foo": ""}
     mirror.keep_index_versions = 1
     package = Package("foo", 1, mirror)
-    await package.sync()
+    await package.sync(mirror.filters)
     assert not mirror.errors
 
     simple_path = Path("web/simple/foo")
@@ -526,13 +526,13 @@ async def test_keep_index_versions_stores_different_prior_versions(
 
     with freeze_time("2018-10-27"):
         package = Package("foo", 1, mirror)
-        await package.sync()
+        await package.sync(mirror.filters)
         assert not mirror.errors
 
     mirror.packages_to_sync = {"foo": 1}
     with freeze_time("2018-10-28"):
         package = Package("foo", 1, mirror)
-        await package.sync()
+        await package.sync(mirror.filters)
         assert not mirror.errors
 
     version_files = sorted(os.listdir(versions_path))
@@ -555,7 +555,7 @@ async def test_keep_index_versions_removes_old_versions(mirror: Mirror) -> None:
     mirror.keep_index_versions = 2
     with freeze_time("2018-10-28"):
         package = Package("foo", 1, mirror)
-        await package.sync()
+        await package.sync(mirror.filters)
 
     version_files = sorted(f for f in versions_path.iterdir())
     assert len(version_files) == 2

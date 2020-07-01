@@ -1,5 +1,4 @@
 import os
-from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -23,7 +22,6 @@ class TestBlacklistProject(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -42,7 +40,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["blacklist_project"])
         self.assertEqual(len(plugins), 1)
@@ -56,7 +54,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blacklist_project", names)
 
@@ -67,7 +65,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blacklist_project", names)
 
@@ -118,7 +116,6 @@ class TestBlacklistRelease(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -137,7 +134,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["blacklist_release"])
         self.assertEqual(len(plugins), 1)
@@ -151,7 +148,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blacklist_release", names)
 
@@ -172,6 +169,6 @@ packages =
         pkg.info = {"name": "foo"}
         pkg.releases = {"1.2.0": {}, "1.2.1": {}}
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.2.1": {}})
