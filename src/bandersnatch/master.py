@@ -10,6 +10,7 @@ from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
 
+from .errors import PackageNotFound
 from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
@@ -19,17 +20,6 @@ PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
 
 class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
-
-
-class PackageNotFound(Exception):
-    """We asked for package metadata from PyPI and it wasn't available"""
-
-    def __init__(self, package_name: str) -> None:
-        super().__init__()
-        self.package_name = package_name
-
-    def __str__(self) -> str:
-        return f"{self.package_name} no longer exists on PyPI"
 
 
 class XmlRpcError(aiohttp.ClientError):

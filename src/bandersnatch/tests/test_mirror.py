@@ -495,7 +495,7 @@ async def test_cleanup_non_pep_503_paths(mirror: Mirror) -> None:
     package = Package(raw_package_name, 11, mirror)
     await mirror.cleanup_non_pep_503_paths(package)
 
-    # Create a non normailized directory
+    # Create a non normalized directory
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
     mirror.cleanup = True

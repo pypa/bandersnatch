@@ -15,6 +15,7 @@ from packaging.utils import canonicalize_name
 
 from . import utils
 from .configuration import validate_config_values
+from .errors import PackageNotFound
 from .filter import LoadedFilters
 from .master import Master
 from .package import Package

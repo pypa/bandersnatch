@@ -8,9 +8,10 @@ import pytest
 from _pytest.capture import CaptureFixture
 from freezegun import freeze_time
 
+from bandersnatch.errors import PackageNotFound, StaleMetadata
 from bandersnatch.master import Master, StalePage
 from bandersnatch.mirror import Mirror
-from bandersnatch.package import Package, StaleMetadata
+from bandersnatch.package import Package
 from bandersnatch.utils import make_time_stamp
 
 EXPECTED_REL_HREFS = (
@@ -67,20 +68,33 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
 async def test_package_update_metadata_gives_up_after_3_stale_responses(
     caplog: CaptureFixture, mirror: Mirror
 ) -> None:
+    pkg_name = "foo"
+
     mirror.master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
         side_effect=StalePage
     )
-
-    pkg_name = "foo"
     package = Package(pkg_name, 11, mirror)
 
     with pytest.raises(StaleMetadata):
-        await package.update_metadata()
+        await package.update_metadata(attempts=3)
     assert mirror.master.get_package_metadata.await_count == 3  # type: ignore
     assert "not updating. Giving up" in caplog.text
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio  # type: ignore
+async def test_package_not_found(caplog: CaptureFixture, mirror: Mirror) -> None:
+    pkg_name = "foo"
+    mirror.master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
+        side_effect=PackageNotFound(pkg_name)
+    )
+    package = Package(pkg_name, 11, mirror)
+
+    with pytest.raises(PackageNotFound):
+        await package.update_metadata()
+    assert "foo no longer exists on PyPI" in caplog.text
+
+
+@pytest.mark.asyncio  # type: ignore
 async def test_package_sync_with_release_no_files_syncs_simple_page(
     mirror: Mirror,
 ) -> None:

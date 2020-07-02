@@ -12,7 +12,8 @@ from urllib.parse import unquote, urlparse
 from packaging.utils import canonicalize_name
 
 from . import utils
-from .master import PackageNotFound, StalePage
+from .errors import PackageNotFound, StaleMetadata
+from .master import StalePage
 
 if TYPE_CHECKING:  # pragma: no cover
     from .mirror import Mirror
@@ -21,18 +22,6 @@ if TYPE_CHECKING:  # pragma: no cover
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
 logger = logging.getLogger(__name__)
-
-
-class StaleMetadata(Exception):
-    """We attempted to retreive metadata from PyPI, but it was stale."""
-
-    def __init__(self, package_name: str, attempts: int) -> None:
-        super().__init__()
-        self.package_name = package_name
-        self.attempts = attempts
-
-    def __str__(self) -> str:
-        return f"Stale serial for {self.package_name} after {self.attempts} attempts"
 
 
 class Package:
@@ -125,7 +114,7 @@ class Package:
                 return
             except PackageNotFound as e:
                 logger.info(str(e))
-                return
+                raise
             except StalePage:
                 tries += 1
                 logger.error(f"Stale serial for package {self.name} - Attempt {tries}")
@@ -146,10 +135,8 @@ class Package:
         try:
             await self.update_metadata(attempts=attempts)
             # Don't save anything if our metadata filters all fail.
-            if not self.metadata or not self._filter_metadata(
-                self.metadata, filters.filter_metadata_plugins()
-            ):
-                return None
+            if not self._filter_metadata(filters.filter_metadata_plugins()):
+                return
 
             # save the metadata before filtering releases
             if self.mirror.json_save and not self.json_saved:
@@ -165,6 +152,8 @@ class Package:
             self.sync_simple_page()
             # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
             self.mirror.record_finished_package(self.raw_name)
+        except PackageNotFound:
+            return
         except Exception:
             logger.exception(f"Error syncing package: {self.name}@{self.serial}")
             self.mirror.errors = True
@@ -173,9 +162,7 @@ class Package:
             logger.error("Exiting early after error.")
             sys.exit(1)
 
-    def _filter_metadata(
-        self, metadata: Dict, metadata_filters: List["Filter"]
-    ) -> bool:
+    def _filter_metadata(self, metadata_filters: List["Filter"]) -> bool:
         """
         Run the metadata filtering plugins
         """
@@ -188,7 +175,7 @@ class Package:
                 display_filter_log = False
             return True
 
-        return all(plugin.filter(metadata) for plugin in metadata_filters)
+        return all(plugin.filter(self.metadata) for plugin in metadata_filters)
 
     def _filter_release(
         self, release_data: Dict, release_filters: List["Filter"]
