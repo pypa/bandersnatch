@@ -13,8 +13,8 @@ from .errors import PackageNotFound, StaleMetadata
 from .master import StalePage
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .master import Master
     from .filter import Filter
+    from .master import Master
 
 # Bool to help us not spam the logs with certain log messages
 display_filter_log = True
@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 class Package:
-    def __init__(self, name: str, master: "Master", serial: int = 0) -> None:
+    def __init__(self, name: str, serial: int = 0) -> None:
         self.name = canonicalize_name(name)
         self.raw_name = name
         self.serial = serial
-        self.master = master
+
         self._metadata: Optional[Dict] = None
 
     @property
@@ -105,7 +105,7 @@ class Package:
                 logger.info(
                     f"Fetching metadata for package: {self.name} (serial {self.serial})"
                 )
-                self._metadata = await self.master.get_package_metadata(
+                self._metadata = await master.get_package_metadata(
                     self.name, serial=self.serial
                 )
                 return

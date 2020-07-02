@@ -329,12 +329,8 @@ class MetadataWriter:
         ).format(package.raw_name)
 
         # Get a list of all of the files.
-        release_files: List[Dict] = []
-        logger.debug(
-            f"There are {len(package.releases.values())} releases for {package.name}"
-        )
-        for release in package.releases.values():
-            release_files.extend(release)
+        release_files = package.release_files
+        logger.debug(f"There are {len(release_files)} releases for {package.name}")
         # Lets sort based on the filename rather than the whole URL
         release_files.sort(key=lambda x: x["filename"])
 
@@ -357,7 +353,7 @@ class MetadataWriter:
 
         return simple_page_content
 
-    def sync_simple_page(self, package: Package) -> None:
+    def write_simple_page(self, package: Package) -> None:
         logger.info(
             f"Storing index page: {package.name} - in {self._package_simple_directory(package)}"
         )
@@ -501,9 +497,7 @@ class Mirror:
         bandersnatch_state: BandersnatchState,
         stop_on_error: bool = False,
         workers: int = 3,
-        cleanup: bool = False,
     ):
-        self.loop = asyncio.get_event_loop()
         self.master = master
         self.writer = writer
         self.filters = LoadedFilters(load_all=True)
@@ -512,16 +506,11 @@ class Mirror:
         self.workers = workers
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
-        self.cleanup = cleanup
 
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
         # Class Instance variable so each package can add their changes
         self.altered_packages: Dict[str, Set[str]] = {}
-
-        self.synced_serial = self.bandersnatch_state.load_serial(
-            self.writer.flock_timeout
-        )
 
     async def synchronize(
         self, specific_packages: Optional[List[str]] = None
@@ -537,7 +526,7 @@ class Mirror:
             await self.determine_packages_to_sync()
             await self.sync_packages()
             self.writer.write_index_page()
-            self.wrapup_successful_sync()
+            self.finalize_sync()
         else:
             # Synchronize specific packages. This method doesn't update the statusfile
             # Pass serial number 0 to bypass the stale serial check in Package class
@@ -585,74 +574,18 @@ class Mirror:
         Update the self.packages_to_sync to contain packages that need to be
         synced.
         """
-        # In case we don't find any changes we will stay on the currently
-        # synced serial.
-        self.target_serial = self.synced_serial
-        self.packages_to_sync = {}
-        logger.info(f"Current mirror serial: {self.synced_serial}")
-
-        todo_state = self.bandersnatch_state.load_todofile()
-        if todo_state:
-            logger.info("Resuming interrupted sync from local todo list.")
-            (self.target_serial, self.packages_to_sync) = todo_state
-        elif not self.synced_serial:
-            logger.info("Syncing all packages.")
-            # First get the current serial, then start to sync. This makes us
-            # more defensive in case something changes on the server between
-            # those two calls.
-            all_packages = await self.master.all_packages()
-            self.packages_to_sync.update(all_packages)
-            self.target_serial = max(
-                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-            )
-        else:
-            logger.info("Syncing based on changelog.")
-            changed_packages = await self.master.changed_packages(self.synced_serial)
-            self.packages_to_sync.update(changed_packages)
-            self.target_serial = max(
-                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-            )
-            # We can avoid writing the main index page if we don't have
-            # anything todo at all during a changelog-based sync.
-            self.writer.need_index_sync = bool(self.packages_to_sync)
-
-        self._filter_packages()
-        logger.info(f"Trying to reach serial: {self.target_serial}")
-        pkg_count = len(self.packages_to_sync)
-        logger.info(f"{pkg_count} packages to sync.")
+        raise NotImplementedError()
 
     async def package_syncer(self, idx: int) -> None:
         logger.debug(f"Package syncer {idx} started for duty")
         while True:
             try:
                 package = self.package_queue.get_nowait()
+                await package.update_metadata(self.master, attempts=3)
+                await self.process_package(package)
             except asyncio.QueueEmpty:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
-
-            try:
-                await package.update_metadata(attempts=3)
-                # Don't save anything if our metadata filters all fail.
-                if not package._filter_metadata(self.filters.filter_metadata_plugins()):
-                    return
-
-                # save the metadata before filtering releases
-                if self.writer.save_json:
-                    loop = asyncio.get_event_loop()
-                    json_saved = await loop.run_in_executor(
-                        None, self.writer.save_json_metadata_for_package, package
-                    )
-                    assert json_saved
-
-                package._filter_all_releases_files(
-                    self.filters.filter_release_file_plugins()
-                )
-                package._filter_all_releases(self.filters.filter_release_plugins())
-
-                await self.sync_release_files_for_package(package)
-                self.writer.sync_simple_page(package)
-                # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
-                self.record_finished_package(package.raw_name)
             except PackageNotFound:
                 return
             except Exception:
@@ -665,20 +598,33 @@ class Mirror:
                 logger.error("Exiting early after error.")
                 sys.exit(1)
 
-            # Cleanup old legacy non PEP 503 Directories created for the Simple API
-            if self.cleanup:
-                # Cleanup non normalized name directory
-                await self.writer.cleanup_non_pep_503_paths(package)
+
+    async def process_package(self, package: Package) -> None:
+        raise NotImplementedError()
 
     async def sync_release_files_for_package(self, package) -> None:
         """ Purge + download files returning files removed + added """
         downloaded_files = set()
         deferred_exception = None
         for release_file in package.release_files:
+            url = release_file["url"]
+            path = self.writer._file_url_to_local_path(release_file["url"])
+            sha256sum = release_file["digests"]["sha256"]
+            # Avoid downloading again if we have the file and it matches the hash.
+            if path.exists():
+                existing_hash = self.writer.storage_backend.get_hash(str(path))
+                if existing_hash == sha256sum:
+                    return None
+                else:
+                    logger.info(
+                        f"Checksum mismatch with local file {path}: expected {sha256sum} "
+                        + f"got {existing_hash}, will re-download."
+                    )
+                    path.unlink()
+
+            logger.info(f"Downloading: {url}")
             try:
-                downloaded_file = await self.download_file(
-                    release_file["url"], release_file["digests"]["sha256"]
-                )
+                downloaded_file = await self.download_file(url, path, sha256sum)
                 if downloaded_file:
                     downloaded_files.add(
                         str(
@@ -699,24 +645,8 @@ class Mirror:
 
     # TODO: This can also return SwiftPath instances now...
     async def download_file(
-        self, url: str, sha256sum: str, chunk_size: int = 64 * 1024
+        self, url: str, path: Path, sha256sum: str, chunk_size: int = 64 * 1024
     ) -> Optional[Path]:
-        path = self.writer._file_url_to_local_path(url)
-
-        # Avoid downloading again if we have the file and it matches the hash.
-        if path.exists():
-            existing_hash = self.writer.storage_backend.get_hash(str(path))
-            if existing_hash == sha256sum:
-                return None
-            else:
-                logger.info(
-                    f"Checksum mismatch with local file {path}: expected {sha256sum} "
-                    + f"got {existing_hash}, will re-download."
-                )
-                path.unlink()
-
-        logger.info(f"Downloading: {url}")
-
         dirname = path.parent
         if not dirname.exists():
             dirname.mkdir(parents=True)
@@ -758,7 +688,7 @@ class Mirror:
         # easier to debug and easier to follow in the logs.
         for name in sorted(self.packages_to_sync):
             serial = int(self.packages_to_sync[name])
-            await self.package_queue.put(Package(name, self.master, serial=serial))
+            await self.package_queue.put(Package(name, serial=serial))
 
         sync_coros: List[Awaitable] = [
             self.package_syncer(idx) for idx in range(self.workers)
@@ -775,14 +705,94 @@ class Mirror:
                 + "Next sync will start from previous serial"
             )
 
-    def record_finished_package(self, name: str) -> None:
+    def finalize_sync(self) -> None:
+        return None
+
+
+class BandersnatchMirror(Mirror):
+
+    def __init__(self, *args, cleanup, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.cleanup = cleanup
+
+        self.synced_serial = self.bandersnatch_state.load_serial(
+            self.writer.flock_timeout
+        )
+
+    async def determine_packages_to_sync(self) -> None:
+        """
+        Update the self.packages_to_sync to contain packages that need to be
+        synced.
+        """
+        # In case we don't find any changes we will stay on the currently
+        # synced serial.
+        self.target_serial = self.synced_serial
+        self.packages_to_sync = {}
+        logger.info(f"Current mirror serial: {self.synced_serial}")
+
+        todo_state = self.bandersnatch_state.load_todofile()
+        if todo_state:
+            logger.info("Resuming interrupted sync from local todo list.")
+            (self.target_serial, self.packages_to_sync) = todo_state
+        elif not self.synced_serial:
+            logger.info("Syncing all packages.")
+            # First get the current serial, then start to sync. This makes us
+            # more defensive in case something changes on the server between
+            # those two calls.
+            all_packages = await self.master.all_packages()
+            self.packages_to_sync.update(all_packages)
+            self.target_serial = max(
+                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
+            )
+        else:
+            logger.info("Syncing based on changelog.")
+            changed_packages = await self.master.changed_packages(self.synced_serial)
+            self.packages_to_sync.update(changed_packages)
+            self.target_serial = max(
+                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
+            )
+            # We can avoid writing the main index page if we don't have
+            # anything todo at all during a changelog-based sync.
+            self.writer.need_index_sync = bool(self.packages_to_sync)
+
+        self._filter_packages()
+        logger.info(f"Trying to reach serial: {self.target_serial}")
+        pkg_count = len(self.packages_to_sync)
+        logger.info(f"{pkg_count} packages to sync.")
+
+    async def process_package(self, package: Package) -> None:
+        # Don't save anything if our metadata filters all fail.
+        if not package._filter_metadata(self.filters.filter_metadata_plugins()):
+            return
+
+        # save the metadata before filtering releases
+        if self.writer.save_json:
+            loop = asyncio.get_event_loop()
+            json_saved = await loop.run_in_executor(
+                None, self.writer.save_json_metadata_for_package, package
+            )
+            assert json_saved
+
+        package._filter_all_releases_files(
+            self.filters.filter_release_file_plugins()
+        )
+        package._filter_all_releases(self.filters.filter_release_plugins())
+
+        await self.sync_release_files_for_package(package)
+        self.writer.write_simple_page(package)
+        # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
         with self.writer._finish_lock:
-            del self.packages_to_sync[name]
+            del self.packages_to_sync[package.raw_name]
             self.bandersnatch_state.update_todofile(
                 self.target_serial, self.packages_to_sync
             )
 
-    def wrapup_successful_sync(self) -> None:
+        # Cleanup old legacy non PEP 503 Directories created for the Simple API
+        if self.cleanup:
+            # Cleanup non normalized name directory
+            await self.writer.cleanup_non_pep_503_paths(package)
+
+    async def finalize_sync(self) -> None:
         if self.errors:
             return
         self.synced_serial = int(self.target_serial) if self.target_serial else 0
@@ -863,7 +873,7 @@ async def mirror(
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(mirror_url, timeout, global_timeout) as master:
-        mirror = Mirror(
+        mirror = BandersnatchMirror(
             master,
             writer,
             bandersnatch_state,

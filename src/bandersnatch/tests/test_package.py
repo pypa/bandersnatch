@@ -52,17 +52,13 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
 async def test_package_update_metadata_gives_up_after_3_stale_responses(
     caplog: CaptureFixture, master: Master
 ) -> None:
-    pkg_name = "foo"
-
     master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
         side_effect=StalePage
     )
-
-    pkg_name = "foo"
-    package = Package(pkg_name, master, serial=11)
+    package = Package("foo", serial=11)
 
     with pytest.raises(StaleMetadata):
-        await package.update_metadata(attempts=3)
+        await package.update_metadata(master, attempts=3)
     assert master.get_package_metadata.await_count == 3  # type: ignore
     assert "not updating. Giving up" in caplog.text
 
@@ -73,9 +69,9 @@ async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None
     master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
         side_effect=PackageNotFound(pkg_name)
     )
-    package = Package(pkg_name, master, serial=11)
+    package = Package(pkg_name, serial=11)
 
     with pytest.raises(PackageNotFound):
-        await package.update_metadata()
+        await package.update_metadata(master)
     assert "foo no longer exists on PyPI" in caplog.text
 

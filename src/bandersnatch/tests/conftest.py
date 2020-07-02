@@ -46,7 +46,7 @@ def never_sleep(request: FixtureRequest) -> None:
 def package(package_json: dict, mirror: "Mirror") -> "Package":
     from bandersnatch.package import Package
 
-    pkg = Package(package_json["info"]["name"], 0, mirror)
+    pkg = Package(package_json["info"]["name"], mirror, serial=11)
     pkg._metadata = package_json
     return pkg
 
