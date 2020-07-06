@@ -40,6 +40,33 @@ class Package:
         self.raw_name = name
         self.serial = serial
         self.mirror = mirror
+        self._metadata: Optional[Dict] = None
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        assert self._metadata is not None, "Must fetch metadata before accessing it"
+        return self._metadata
+
+    @property
+    def info(self) -> Dict[str, Any]:
+        return self.metadata["info"]  # type: ignore
+
+    @property
+    def last_serial(self) -> int:
+        return self.metadata["last_serial"]  # type: ignore
+
+    @property
+    def releases(self) -> Dict[str, List]:
+        return self.metadata["releases"]  # type: ignore
+
+    @property
+    def release_files(self) -> List:
+        release_files: List[Dict] = []
+
+        for release in self.releases.values():
+            release_files.extend(release)
+
+        return release_files
 
     @property
     def json_file(self) -> Path:
@@ -80,7 +107,7 @@ class Package:
 
         return True
 
-    async def fetch_metadata(self, attempts: int = 3) -> Any:
+    async def update_metadata(self, attempts: int = 3) -> None:
         tries = 0
         sleep_on_stale = 1
 
@@ -89,13 +116,13 @@ class Package:
                 logger.info(
                     f"Fetching metadata for package: {self.name} (serial {self.serial})"
                 )
-                metadata = await self.mirror.master.get_package_metadata(
+                self._metadata = await self.mirror.master.get_package_metadata(
                     self.name, serial=int(self.serial)
                 )
-                return metadata
+                return
             except PackageNotFound as e:
                 logger.info(str(e))
-                return None
+                return
             except StalePage:
                 tries += 1
                 logger.error(f"Stale serial for package {self.name} - Attempt {tries}")
@@ -114,10 +141,10 @@ class Package:
         self.json_saved = False
 
         try:
-            metadata = await self.fetch_metadata(attempts=attempts)
+            await self.update_metadata(attempts=attempts)
             # Don't save anything if our metadata filters all fail.
-            if not metadata or not self._filter_metadata(
-                metadata, filters.filter_metadata_plugins()
+            if not self.metadata or not self._filter_metadata(
+                self.metadata, filters.filter_metadata_plugins()
             ):
                 return None
 
@@ -125,12 +152,8 @@ class Package:
             if self.mirror.json_save and not self.json_saved:
                 loop = asyncio.get_event_loop()
                 self.json_saved = await loop.run_in_executor(
-                    None, self.save_json_metadata, metadata
+                    None, self.save_json_metadata, self.metadata
                 )
-
-            self.info = metadata["info"]
-            self.last_serial = metadata["last_serial"]
-            self.releases = metadata["releases"]
 
             self._filter_all_releases_files(filters.filter_release_file_plugins())
             self._filter_releases(filters.filter_release_plugins())
@@ -228,14 +251,9 @@ class Package:
 
     async def sync_release_files(self) -> None:
         """ Purge + download files returning files removed + added """
-        release_files: List[Dict] = []
-
-        for release in self.releases.values():
-            release_files.extend(release)
-
         downloaded_files = set()
         deferred_exception = None
-        for release_file in release_files:
+        for release_file in self.release_files:
             try:
                 downloaded_file = await self.download_file(
                     release_file["url"], release_file["digests"]["sha256"]
@@ -273,13 +291,10 @@ class Package:
             "    <h1>Links for {0}</h1>\n"
         ).format(self.raw_name)
 
-        # Get a list of all of the files.
-        release_files: List[Dict] = []
         logger.debug(
             f"There are {len(self.releases.values())} releases for {self.name}"
         )
-        for release in self.releases.values():
-            release_files.extend(release)
+        release_files = self.release_files
         # Lets sort based on the filename rather than the whole URL
         release_files.sort(key=lambda x: x["filename"])
 

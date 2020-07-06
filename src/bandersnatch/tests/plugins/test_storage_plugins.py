@@ -416,8 +416,10 @@ workers = 3
     def setUp_mirror(self) -> None:
         self.mirror = Mirror(self.mirror_path, Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, self.mirror)
-        pkg.info = {"name": "foobar", "version": "1.0"}
-        pkg.releases = mock.Mock()
+        pkg._metadata = {
+            "info": {"name": "foobar", "version": "1.0"},
+            "releases": mock.Mock(),
+        }
         self.pkgs.append(pkg)
 
     def setUp_plugin(self) -> None:

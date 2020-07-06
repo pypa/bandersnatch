@@ -65,84 +65,86 @@ platforms =
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foobar", 1, mirror)
-        pkg.info = {"name": "foobar", "version": "1.0"}
-        pkg.releases = {
-            "1.0": [
-                {
-                    "packagetype": "sdist",
-                    "filename": "foobar-1.0-win32.tar.gz",
-                    "flag": "KEEP",
-                },
-                {
-                    "packagetype": "bdist_msi",
-                    "filename": "foobar-1.0.msi",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_wininst",
-                    "filename": "foobar-1.0.exe",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_dmg",
-                    "filename": "foobar-1.0.dmg",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-1.0-win32.zip",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-1.0-linux.tar.gz",
-                    "flag": "KEEP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-1.0-manylinux1_i686.whl",
-                    "flag": "KEEP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-1.0-linux_armv7l.whl",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-1.0-macosx_10_14_x86_64.whl",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "bdist_egg",
-                    "filename": "foobar-1.0-win_amd64.zip",
-                    "flag": "DROP",
-                },
-                {
-                    "packagetype": "unknown",
-                    "filename": "foobar-1.0-unknown",
-                    "flag": "KEEP",
-                },
-            ],
-            "0.1": [
-                {
-                    "packagetype": "sdist",
-                    "filename": "foobar-0.1-win32.msi",
-                    "flag": "KEEP",
-                },
-                {
-                    "packagetype": "bdist_wheel",
-                    "filename": "foobar-0.1-win32.whl",
-                    "flag": "DROP",
-                },
-            ],
-            "0.2": [
-                {
-                    "packagetype": "bdist_egg",
-                    "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
-                    "flag": "DROP",
-                }
-            ],
+        pkg._metadata = {
+            "info": {"name": "foobar", "version": "1.0"},
+            "releases": {
+                "1.0": [
+                    {
+                        "packagetype": "sdist",
+                        "filename": "foobar-1.0-win32.tar.gz",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_msi",
+                        "filename": "foobar-1.0.msi",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wininst",
+                        "filename": "foobar-1.0.exe",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_dmg",
+                        "filename": "foobar-1.0.dmg",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-win32.zip",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-linux.tar.gz",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-manylinux1_i686.whl",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-linux_armv7l.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-macosx_10_14_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_egg",
+                        "filename": "foobar-1.0-win_amd64.zip",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "unknown",
+                        "filename": "foobar-1.0-unknown",
+                        "flag": "KEEP",
+                    },
+                ],
+                "0.1": [
+                    {
+                        "packagetype": "sdist",
+                        "filename": "foobar-0.1-win32.msi",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.1-win32.whl",
+                        "flag": "DROP",
+                    },
+                ],
+                "0.2": [
+                    {
+                        "packagetype": "bdist_egg",
+                        "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
+                        "flag": "DROP",
+                    }
+                ],
+            },
         }
 
         # count the files we should keep

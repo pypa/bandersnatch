@@ -166,8 +166,10 @@ packages =
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
-        pkg.info = {"name": "foo"}
-        pkg.releases = {"1.2.0": {}, "1.2.1": {}}
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}},
+        }
 
         pkg._filter_releases(mirror.filters.filter_release_plugins())
 

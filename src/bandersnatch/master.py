@@ -24,6 +24,13 @@ class StalePage(Exception):
 class PackageNotFound(Exception):
     """We asked for package metadata from PyPI and it wasn't available"""
 
+    def __init__(self, package_name: str) -> None:
+        super().__init__()
+        self.package_name = package_name
+
+    def __str__(self) -> str:
+        return f"{self.package_name} no longer exists on PyPI"
+
 
 class XmlRpcError(aiohttp.ClientError):
     """Issue getting package listing from PyPI Repository"""
@@ -208,5 +215,5 @@ class Master:
             return metadata
         except aiohttp.ClientResponseError as e:
             if e.status == 404:
-                raise PackageNotFound(f"{package_name} no longer exists on PyPI")
+                raise PackageNotFound(package_name)
             raise
