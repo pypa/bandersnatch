@@ -68,6 +68,14 @@ bandersnatch.package module
    :undoc-members:
    :show-inheritance:
 
+bandersnatch.storage module
+---------------------------
+
+.. automodule:: bandersnatch.storage
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 bandersnatch.utils module
 -------------------------
 
