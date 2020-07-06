@@ -29,6 +29,16 @@ def touch_files(paths: Iterable[Path]) -> None:
             pfp.close()
 
 
+def test_package_accessors(package: Package) -> None:
+    assert package.info == {"name": "Foo", "version": "0.1"}
+    assert package.last_serial == 654_321
+    assert list(package.releases.keys()) == ["0.1"]
+    assert len(package.release_files) == 2
+    for f in package.release_files:
+        assert "filename" in f
+        assert "digests" in f
+
+
 def test_save_json_metadata(mirror: Mirror, package_json: Dict[str, Any]) -> None:
     package = Package("foo", 11, mirror)
     package.json_file.parent.mkdir(parents=True)
@@ -52,7 +62,7 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
 
 
 @pytest.mark.asyncio  # type: ignore
-async def test_package_fetch_metadata_gives_up_after_3_stale_responses(
+async def test_package_update_metadata_gives_up_after_3_stale_responses(
     caplog: CaptureFixture, mirror: Mirror
 ) -> None:
     mirror.master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
@@ -63,7 +73,7 @@ async def test_package_fetch_metadata_gives_up_after_3_stale_responses(
     package = Package(pkg_name, 11, mirror)
 
     with pytest.raises(StaleMetadata):
-        await package.fetch_metadata()
+        await package.update_metadata()
     assert mirror.master.get_package_metadata.await_count == 3  # type: ignore
     assert "not updating. Giving up" in caplog.text
 

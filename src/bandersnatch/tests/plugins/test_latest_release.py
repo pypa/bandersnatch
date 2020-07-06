@@ -61,14 +61,16 @@ keep = 2
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
-        pkg.info = {"name": "foo", "version": "2.0.0"}
-        pkg.releases = {
-            "1.0.0": {},
-            "1.1.0": {},
-            "1.1.1": {},
-            "1.1.2": {},
-            "1.1.3": {},
-            "2.0.0": {},
+        pkg._metadata = {
+            "info": {"name": "foo", "version": "2.0.0"},
+            "releases": {
+                "1.0.0": {},
+                "1.1.0": {},
+                "1.1.1": {},
+                "1.1.2": {},
+                "1.1.3": {},
+                "2.0.0": {},
+            },
         }
 
         pkg._filter_releases(mirror.filters.filter_release_plugins())
@@ -80,16 +82,18 @@ keep = 2
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
-        pkg.info = {"name": "foo", "version": "2.0.0"}  # stable version
-        pkg.releases = {
-            "1.0.0": {},
-            "1.1.0": {},
-            "1.1.1": {},
-            "1.1.2": {},
-            "1.1.3": {},
-            "2.0.0": {},  # <= stable version, keep it
-            "2.0.1b1": {},
-            "2.0.1b2": {},  # <= most recent, keep it
+        pkg._metadata = {
+            "info": {"name": "foo", "version": "2.0.0"},  # stable version
+            "releases": {
+                "1.0.0": {},
+                "1.1.0": {},
+                "1.1.1": {},
+                "1.1.2": {},
+                "1.1.3": {},
+                "2.0.0": {},  # <= stable version, keep it
+                "2.0.1b1": {},
+                "2.0.1b2": {},  # <= most recent, keep it
+            },
         }
 
         pkg._filter_releases(mirror.filters.filter_release_plugins())
@@ -125,14 +129,16 @@ enabled =
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
-        pkg.info = {"name": "foo", "version": "2.0.0"}
-        pkg.releases = {
-            "1.0.0": {},
-            "1.1.0": {},
-            "1.1.1": {},
-            "1.1.2": {},
-            "1.1.3": {},
-            "2.0.0": {},
+        pkg._metadata = {
+            "info": {"name": "foo", "version": "2.0.0"},
+            "releases": {
+                "1.0.0": {},
+                "1.1.0": {},
+                "1.1.1": {},
+                "1.1.2": {},
+                "1.1.3": {},
+                "2.0.0": {},
+            },
         }
 
         pkg._filter_releases(mirror.filters.filter_release_plugins())

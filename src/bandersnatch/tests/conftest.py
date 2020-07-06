@@ -2,7 +2,7 @@
 
 import unittest.mock as mock
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict
 
 import pytest
 from _pytest.capture import CaptureFixture
@@ -13,6 +13,7 @@ from asynctest import asynctest
 if TYPE_CHECKING:
     from bandersnatch.mirror import Mirror
     from bandersnatch.master import Master
+    from bandersnatch.package import Package
 
 
 @pytest.fixture(autouse=True)  # type: ignore
@@ -39,6 +40,15 @@ def never_sleep(request: FixtureRequest) -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
+
+
+@pytest.fixture  # type: ignore
+def package(package_json: dict, mirror: "Mirror") -> "Package":
+    from bandersnatch.package import Package
+
+    pkg = Package(package_json["info"]["name"], 0, mirror)
+    pkg._metadata = package_json
+    return pkg
 
 
 @pytest.fixture  # type: ignore
