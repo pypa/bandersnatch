@@ -10,7 +10,6 @@ import pytest
 
 from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
-from bandersnatch.filter import filter_project_plugins
 from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 from bandersnatch.utils import WINDOWS
@@ -121,8 +120,10 @@ def test_mirror_filter_packages_match(tmpdir: Path) -> None:
     packages to sync.
     """
     test_configuration = """\
+[plugins]
+enabled =
+    blacklist_project
 [blacklist]
-plugins = blacklist_project
 packages =
     example1
 """
@@ -130,8 +131,6 @@ packages =
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
     BandersnatchConfig("test.conf")
-    for plugin in filter_project_plugins():
-        plugin.initialize_plugin()
     m = Mirror(tmpdir, mock.Mock())
     m.packages_to_sync = {"example1": "", "example2": ""}
     m._filter_packages()
@@ -144,6 +143,9 @@ def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
     list of packages.
     """
     test_configuration = """\
+[plugins]
+enable =
+    blacklist_project
 [blacklist]
 packages =
     example3>2.0.0
@@ -152,8 +154,6 @@ packages =
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
     BandersnatchConfig("test.conf")
-    for plugin in filter_project_plugins():
-        plugin.initialize_plugin()
     m = Mirror(tmpdir, mock.Mock())
     m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()

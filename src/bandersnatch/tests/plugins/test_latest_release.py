@@ -1,5 +1,4 @@
 import os
-from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -21,7 +20,6 @@ class BasePluginTestCase(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -46,7 +44,7 @@ keep = 2
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
             type(plugin) == latest_name.LatestReleaseFilter for plugin in plugins
@@ -61,8 +59,6 @@ keep = 2
     def test_latest_releases_keep_latest(self) -> None:
         mock_config(self.config_contents)
 
-        bandersnatch.filter.filter_release_plugins()
-
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
         pkg.info = {"name": "foo", "version": "2.0.0"}
@@ -75,14 +71,12 @@ keep = 2
             "2.0.0": {},
         }
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
     def test_latest_releases_keep_stable(self) -> None:
         mock_config(self.config_contents)
-
-        bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
@@ -98,7 +92,7 @@ keep = 2
             "2.0.1b2": {},  # <= most recent, keep it
         }
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
@@ -114,7 +108,7 @@ enabled =
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
             type(plugin) == latest_name.LatestReleaseFilter for plugin in plugins
@@ -129,8 +123,6 @@ enabled =
     def test_latest_releases_uninitialized(self) -> None:
         mock_config(self.config_contents)
 
-        bandersnatch.filter.filter_release_plugins()
-
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
         pkg.info = {"name": "foo", "version": "2.0.0"}
@@ -143,7 +135,7 @@ enabled =
             "2.0.0": {},
         }
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {
             "1.0.0": {},

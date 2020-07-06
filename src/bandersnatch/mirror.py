@@ -15,7 +15,7 @@ from packaging.utils import canonicalize_name
 
 from . import utils
 from .configuration import validate_config_values
-from .filter import filter_project_plugins, filter_release_plugins
+from .filter import LoadedFilters
 from .master import Master
 from .package import Package
 from .storage import storage_backend_plugins
@@ -82,6 +82,7 @@ class Mirror:
         self.homedir = self.storage_backend.PATH_BACKEND(homedir)
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
+        self.filters = LoadedFilters(load_all=True)
         self.stop_on_error = stop_on_error
         self.json_save = json_save
         self.hash_index = hash_index
@@ -171,7 +172,7 @@ class Mirror:
         """
         global LOG_PLUGINS
 
-        filter_plugins = filter_project_plugins()
+        filter_plugins = self.filters.filter_project_plugins()
         if not filter_plugins:
             if LOG_PLUGINS:
                 logger.info("No project filters are enabled. Skipping filtering")
@@ -249,7 +250,7 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
 
-            await package.sync()
+            await package.sync(self.filters)
 
             # Cleanup non normalized name directory
             await self.cleanup_non_pep_503_paths(package)
@@ -497,9 +498,6 @@ class Mirror:
 async def mirror(
     config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
 ) -> int:
-    # Load the filter plugins so the loading doesn't happen in the fast path
-    filter_project_plugins()
-    filter_release_plugins()
 
     config_values = validate_config_values(config)
 

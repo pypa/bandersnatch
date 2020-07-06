@@ -1,6 +1,5 @@
 import os
 import re
-from collections import defaultdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -22,7 +21,6 @@ class BasePluginTestCase(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
     def tearDown(self) -> None:
@@ -49,7 +47,7 @@ releases =
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(type(plugin) == regex_name.RegexReleaseFilter for plugin in plugins)
         plugin = next(
@@ -62,14 +60,12 @@ releases =
     def test_plugin_check_match(self) -> None:
         mock_config(self.config_contents)
 
-        bandersnatch.filter.filter_release_plugins()
-
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1, mirror)
         pkg.info = {"name": "foo", "version": "foo-1.2.0"}
         pkg.releases = {"foo-1.2.0rc2": {}, "foo-1.2.0": {}, "foo-1.2.0alpha2": {}}
 
-        pkg._filter_releases()
+        pkg._filter_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"foo-1.2.0": {}}
 
@@ -90,7 +86,7 @@ packages =
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
 
         assert any(type(plugin) == regex_name.RegexProjectFilter for plugin in plugins)
         plugin = next(
@@ -102,8 +98,6 @@ packages =
 
     def test_plugin_check_match(self) -> None:
         mock_config(self.config_contents)
-
-        bandersnatch.filter.filter_release_plugins()
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo-good": "", "foo-evil": "", "foo-neutral": ""}

@@ -13,7 +13,7 @@ from sys import stderr
 from typing import List, Optional, Set
 from urllib.parse import urlparse
 
-from .filter import filter_release_plugins
+from .filter import LoadedFilters
 from .master import Master
 from .storage import storage_backend_plugins
 from .utils import convert_url_to_path, hash, recursive_find_files, unlink_parent_dir
@@ -115,7 +115,7 @@ async def verify(
         return
 
     # apply releases filter plugins like class Package
-    for plugin in filter_release_plugins() or []:
+    for plugin in LoadedFilters().filter_release_plugins() or []:
         plugin.filter(pkg["info"])
 
     for release_version in pkg[releases_key]:

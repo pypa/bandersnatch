@@ -23,7 +23,6 @@ class TestWhitelistProject(TestCase):
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
-        bandersnatch.filter.loaded_filter_plugins = defaultdict(list)
         bandersnatch.storage.loaded_storage_plugins = defaultdict(list)
         os.chdir(self.tempdir.name)
 
@@ -43,7 +42,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["whitelist_project"])
         self.assertEqual(len(plugins), 1)
@@ -58,7 +57,7 @@ storage-backend = filesystem
 """
         )
 
-        plugins = bandersnatch.filter.filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("whitelist_project", names)
 
