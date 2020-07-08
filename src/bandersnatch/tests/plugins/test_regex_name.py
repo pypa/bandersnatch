@@ -67,7 +67,7 @@ releases =
             "releases": {"foo-1.2.0rc2": {}, "foo-1.2.0": {}, "foo-1.2.0alpha2": {}},
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"foo-1.2.0": {}}
 

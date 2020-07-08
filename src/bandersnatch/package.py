@@ -156,7 +156,7 @@ class Package:
                 )
 
             self._filter_all_releases_files(filters.filter_release_file_plugins())
-            self._filter_releases(filters.filter_release_plugins())
+            self._filter_all_releases(filters.filter_release_plugins())
 
             await self.sync_release_files()
             self.sync_simple_page()
@@ -177,8 +177,7 @@ class Package:
         Run the metadata filtering plugins
         """
         global display_filter_log
-        filter_plugins = metadata_filters
-        if not filter_plugins:
+        if not metadata_filters:
             if display_filter_log:
                 logger.info(
                     "No metadata filters are enabled. Skipping metadata filtering"
@@ -186,15 +185,16 @@ class Package:
                 display_filter_log = False
             return True
 
-        return all(plugin.filter(metadata) for plugin in filter_plugins)
+        return all(plugin.filter(metadata) for plugin in metadata_filters)
 
-    def _filter_releases(self, release_filters: List["Filter"]) -> bool:
+    def _filter_release(
+        self, release_data: Dict, release_filters: List["Filter"]
+    ) -> bool:
         """
         Run the release filtering plugins
         """
         global display_filter_log
-        filter_plugins = release_filters
-        if not filter_plugins:
+        if not release_filters:
             if display_filter_log:
                 logger.info(
                     "No release filters are enabled. Skipping release filtering"
@@ -202,10 +202,22 @@ class Package:
                 display_filter_log = False
             return True
 
-        return all(
-            plugin.filter({"info": self.info, "releases": self.releases})
-            for plugin in filter_plugins
-        )
+        return all(plugin.filter(release_data) for plugin in release_filters)
+
+    def _filter_all_releases(self, release_filters: List["Filter"]) -> bool:
+        """
+        Filter releases and removes releases that fail the filters
+        """
+        releases = list(self.releases.keys())
+        for version in releases:
+            if not self._filter_release(
+                {"version": version, "releases": self.releases, "info": self.info},
+                release_filters,
+            ):
+                del self.releases[version]
+        if releases:
+            return True
+        return False
 
     def _filter_release_file(
         self, metadata: Dict, release_file_filters: List["Filter"]
@@ -214,8 +226,7 @@ class Package:
         Run the release file filtering plugins
         """
         global display_filter_log
-        filter_plugins = release_file_filters
-        if not filter_plugins:
+        if not release_file_filters:
             if display_filter_log:
                 logger.info(
                     "No release file filters are enabled. Skipping release file filtering"  # noqa: E501
@@ -223,27 +234,27 @@ class Package:
                 display_filter_log = False
             return True
 
-        return all(plugin.filter(metadata) for plugin in filter_plugins)
+        return all(plugin.filter(metadata) for plugin in release_file_filters)
 
     def _filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
         """
         Filter release files and remove empty releases after doing so.
         """
         releases = list(self.releases.keys())
-        for release in releases:
-            release_files = list(self.releases[release])
+        for version in releases:
+            release_files = list(self.releases[version])
             for rfindex in reversed(range(len(release_files))):
                 if not self._filter_release_file(
                     {
                         "info": self.info,
-                        "release": release,
-                        "release_file": self.releases[release][rfindex],
+                        "release": version,
+                        "release_file": self.releases[version][rfindex],
                     },
                     release_file_filters,
                 ):
-                    del self.releases[release][rfindex]
-            if not self.releases[release]:
-                del self.releases[release]
+                    del self.releases[version][rfindex]
+            if not self.releases[version]:
+                del self.releases[version]
 
         if releases:
             return True

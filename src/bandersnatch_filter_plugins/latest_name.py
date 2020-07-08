@@ -1,8 +1,8 @@
 import logging
 from operator import itemgetter
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, Sequence, Tuple, Union
 
-from packaging.version import parse
+from packaging.version import LegacyVersion, Version, parse
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -16,6 +16,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
 
     name = "latest_release"
     keep = 0  # by default, keep 'em all
+    latest: Sequence[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -33,44 +34,35 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(self, metadata: Dict) -> Optional[bool]:  # type: ignore[override]
+    def filter(self, metadata: Dict) -> bool:
         """
-        Keep the latest releases
+        Returns False if version fails the filter, i.e. is not a latest/current release
         """
-        latest: Union[List, Set]
-        info = metadata["info"]
-        releases = metadata["releases"]
-
         if self.keep == 0:
-            return None
-
-        versions = list(releases.keys())
-        before = len(versions)
-
-        if before <= self.keep:
-            # not enough releases: do nothing
-            return None
-
-        versions_pair = map(lambda v: (parse(v), v), versions)
-        latest = sorted(versions_pair)[-self.keep :]  # noqa: E203
-        latest = list(map(itemgetter(1), latest))
-
-        current_version = info.get("version")
-        if current_version and (current_version not in latest):
-            # never remove the stable/official version
-            latest[0] = current_version
-
-        logger.debug(f"old {versions}")
-        logger.debug(f"new {latest}")
-
-        after = len(latest)
-        latest = set(latest)
-        for version in list(releases.keys()):
-            if version not in latest:
-                del releases[version]
-
-        logger.debug(f"{self.name}: releases removed: {before - after}")
-        if not releases:
-            return False
-        else:
             return True
+
+        if not self.latest:
+            info = metadata["info"]
+            releases = metadata["releases"]
+            versions = list(releases.keys())
+            before = len(versions)
+
+            if before <= self.keep:
+                # not enough releases: do nothing
+                return True
+
+            versions_pair = map(lambda v: (parse(v), v), versions)
+            latest_sorted: Sequence[Tuple[Union[LegacyVersion, Version], str]] = sorted(
+                versions_pair
+            )[
+                -self.keep :  # noqa: E203
+            ]
+            self.latest = list(map(itemgetter(1), latest_sorted))
+
+            current_version = info.get("version")
+            if current_version and (current_version not in self.latest):
+                # never remove the stable/official version
+                self.latest[0] = current_version
+
+        version = metadata["version"]
+        return version in self.latest

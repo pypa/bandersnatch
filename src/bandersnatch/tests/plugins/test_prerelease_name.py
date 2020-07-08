@@ -74,6 +74,6 @@ enabled =
             },
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"1.2.0": {}}

@@ -73,7 +73,7 @@ keep = 2
             },
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
@@ -96,7 +96,7 @@ keep = 2
             },
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
@@ -141,7 +141,7 @@ enabled =
             },
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {
             "1.0.0": {},

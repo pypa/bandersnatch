@@ -171,6 +171,6 @@ packages =
             "releases": {"1.2.0": {}, "1.2.1": {}},
         }
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.2.1": {}})

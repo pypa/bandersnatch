@@ -134,15 +134,13 @@ class BlacklistRelease(FilterReleasePlugin):
         return list(filtered_requirements)
 
     def filter(self, metadata: Dict) -> bool:
+        """
+        Returns False if version fails the filter,
+        i.e. matches a blocklist version specifier
+        """
         name = metadata["info"]["name"]
-        releases = metadata["releases"]
-        for version in list(releases.keys()):
-            if self._check_match(name, version):
-                del releases[version]
-        if not releases:
-            return False
-        else:
-            return True
+        version = metadata["version"]
+        return not self._check_match(name, version)
 
     def _check_match(self, name: str, version_string: str) -> bool:
         """
