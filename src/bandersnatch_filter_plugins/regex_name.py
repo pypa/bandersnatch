@@ -36,17 +36,10 @@ class RegexReleaseFilter(FilterReleasePlugin):
 
     def filter(self, metadata: Dict) -> bool:
         """
-        Remove all release versions that match any of the specified patterns.
+        Returns False if version fails the filter, i.e. follows a regex pattern
         """
-        releases = metadata["releases"]
-
-        for version in list(releases.keys()):
-            if any(pattern.match(version) for pattern in self.patterns):
-                del releases[version]
-        if not releases:
-            return False
-        else:
-            return True
+        version = metadata["version"]
+        return not any(pattern.match(version) for pattern in self.patterns)
 
 
 class RegexProjectFilter(FilterProjectPlugin):

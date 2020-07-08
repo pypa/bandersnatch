@@ -42,13 +42,13 @@ platforms =
     windows
     freebsd
     macos
-    linux-armv7l
+    linux_armv7l
 """
 
     def test_plugin_compiles_patterns(self) -> None:
         mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
 
         assert any(
             type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
@@ -151,12 +151,12 @@ platforms =
         rv = pkg.releases.values()
         keep_count = sum(f["flag"] == "KEEP" for r in rv for f in r)
 
-        pkg._filter_releases(mirror.filters.filter_release_plugins())
+        pkg._filter_all_releases_files(mirror.filters.filter_release_file_plugins())
 
         # we should have the same keep count and no drop
         rv = pkg.releases.values()
         assert sum(f["flag"] == "KEEP" for r in rv for f in r) == keep_count
-        assert all(f["flag"] == "DROP" for r in rv for f in r) is False
+        assert sum(f["flag"] == "DROP" for r in rv for f in r) == 0
 
         # the release "0.2" should have been deleted since there is no more file in it
         assert len(pkg.releases.keys()) == 2

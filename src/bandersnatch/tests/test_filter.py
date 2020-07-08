@@ -62,7 +62,6 @@ enabled = all
             "blacklist_release",
             "prerelease_release",
             "regex_release",
-            "exclude_platform",
             "latest_release",
         ]
 
