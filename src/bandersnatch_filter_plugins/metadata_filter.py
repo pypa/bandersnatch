@@ -118,7 +118,7 @@ class RegexFilter(Filter):
                 results.append(True)
                 continue
             for value in values:
-                results.append(pattern.match(value))
+                results.append(pattern.search(value))
         return any(results)
 
     def _match_all_patterns(
@@ -129,7 +129,7 @@ class RegexFilter(Filter):
             if nulls_match and not values:
                 results.append(True)
                 continue
-            results.append(any(pattern.match(v) for v in values))
+            results.append(any(pattern.search(v) for v in values))
         return all(results)
 
     def _match_none_patterns(
