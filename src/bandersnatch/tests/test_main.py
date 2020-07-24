@@ -16,7 +16,7 @@ from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
 
 if TYPE_CHECKING:
-    from bandersnatch.mirror import Mirror
+    from bandersnatch.mirror import BandersnatchMirror
 
 
 async def empty_dict(*args: Any, **kwargs: Any) -> Dict:
@@ -94,7 +94,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
 
 
 def test_main_reads_custom_config_values(
-    mirror_mock: "Mirror", logging_mock: mock.MagicMock, customconfig: Path
+    mirror_mock: "BandersnatchMirror", logging_mock: mock.MagicMock, customconfig: Path
 ) -> None:
     setup()
     conffile = str(customconfig / "bandersnatch.conf")

@@ -8,7 +8,7 @@ from mock_config import mock_config
 
 import bandersnatch.filter
 from bandersnatch.master import Master
-from bandersnatch.mirror import Mirror
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import prerelease_name
 
@@ -60,8 +60,8 @@ enabled =
     def test_plugin_check_match(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", mirror, serial=1)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", serial=1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "1.2.0"},
             "releases": {
@@ -74,6 +74,6 @@ enabled =
             },
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"1.2.0": {}}

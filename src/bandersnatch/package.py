@@ -126,7 +126,7 @@ class Package:
                 )
                 raise StaleMetadata(package_name=self.name, attempts=attempts)
 
-    def _filter_metadata(self, metadata_filters: List["Filter"]) -> bool:
+    def filter_metadata(self, metadata_filters: List["Filter"]) -> bool:
         """
         Run the metadata filtering plugins
         """
@@ -158,7 +158,7 @@ class Package:
 
         return all(plugin.filter(release_data) for plugin in release_filters)
 
-    def _filter_all_releases(self, release_filters: List["Filter"]) -> bool:
+    def filter_all_releases(self, release_filters: List["Filter"]) -> bool:
         """
         Filter releases and removes releases that fail the filters
         """
@@ -190,7 +190,7 @@ class Package:
 
         return all(plugin.filter(metadata) for plugin in release_file_filters)
 
-    def _filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
+    def filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
         """
         Filter release files and remove empty releases after doing so.
         """

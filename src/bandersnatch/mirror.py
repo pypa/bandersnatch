@@ -11,7 +11,7 @@ from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
-from typing import Awaitable, Dict, List, Optional, Set, Tuple, Union
+from typing import Awaitable, Dict, List, Optional, Set, Union
 from unittest.mock import Mock
 from urllib.parse import unquote, urlparse
 
@@ -24,7 +24,7 @@ from .errors import PackageNotFound
 from .filter import LoadedFilters
 from .master import Master
 from .package import Package
-from .storage import Storage, storage_backend_plugins
+from .storage import storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 class Mirror:
 
-    synced_serial = 0  # The last serial we have consistently synced to.
-    target_serial = None  # What is the serial we are trying to reach?
+    synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
+    target_serial: Optional[int] = None  # What is the serial we are trying to reach?
     errors = False
     packages_to_sync: Dict[str, Union[int, str]] = {}
 
@@ -47,10 +47,7 @@ class Mirror:
     now = None
 
     def __init__(
-            self,
-            master: Master,
-            stop_on_error: bool = False,
-            workers: int = 3,
+        self, master: Master, stop_on_error: bool = False, workers: int = 3,
     ):
         self.master = master
         self.filters = LoadedFilters(load_all=True)
@@ -64,7 +61,9 @@ class Mirror:
         # Class Instance variable so each package can add their changes
         self.altered_packages: Dict[str, Set[str]] = {}
 
-    async def synchronize(self, specific_packages: Optional[List[str]] = None) -> Dict[str, Set[str]]:
+    async def synchronize(
+        self, specific_packages: Optional[List[str]] = None
+    ) -> Dict[str, Set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
@@ -82,7 +81,7 @@ class Mirror:
                 utils.bandersnatch_safe_name(name): SERIAL_DONT_CARE
                 for name in specific_packages
             }
-            
+
         await self.sync_packages()
         self.finalize_sync()
         return self.altered_packages
@@ -107,9 +106,9 @@ class Mirror:
         packages = list(self.packages_to_sync.keys())
         for package_name in packages:
             if not all(
-                    plugin.filter({"info": {"name": package_name}})
-                    for plugin in filter_plugins
-                    if plugin
+                plugin.filter({"info": {"name": package_name}})
+                for plugin in filter_plugins
+                if plugin
             ):
                 if package_name not in self.packages_to_sync:
                     logger.debug(f"{package_name} not found in packages to sync")
@@ -134,7 +133,7 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
             except PackageNotFound:
-                return
+                return  # I think this should be a continue
             except Exception:
                 logger.exception(
                     f"Error syncing package: {package.name}@{package.serial}"
@@ -149,30 +148,34 @@ class Mirror:
         raise NotImplementedError()
 
     async def sync_packages(self) -> None:
-        self.package_queue: asyncio.Queue = asyncio.Queue()
-        # Sorting the packages alphabetically makes it more predictable:
-        # easier to debug and easier to follow in the logs.
-        for name in sorted(self.packages_to_sync):
-            serial = int(self.packages_to_sync[name])
-            await self.package_queue.put(Package(name, serial=serial))
-
-        sync_coros: List[Awaitable] = [
-            self.package_syncer(idx) for idx in range(self.workers)
-        ]
         try:
-            await asyncio.gather(*sync_coros)
-        except KeyboardInterrupt:
-            # Setting self.errors to True to ensure we don't save Serial
-            # and thus save to disk that we've had a successful sync
+            self.package_queue: asyncio.Queue = asyncio.Queue()
+            # Sorting the packages alphabetically makes it more predictable:
+            # easier to debug and easier to follow in the logs.
+            for name in sorted(self.packages_to_sync):
+                serial = int(self.packages_to_sync[name])
+                await self.package_queue.put(Package(name, serial=serial))
+
+            sync_coros: List[Awaitable] = [
+                self.package_syncer(idx) for idx in range(self.workers)
+            ]
+            try:
+                await asyncio.gather(*sync_coros)
+            except KeyboardInterrupt:
+                # Setting self.errors to True to ensure we don't save Serial
+                # and thus save to disk that we've had a successful sync
+                self.errors = True
+                logger.info(
+                    "Cancelling, all downloads are forcibly stopped, data may be "
+                    + "corrupted. Serial will not be saved to disk. "
+                    + "Next sync will start from previous serial"
+                )
+        except (ValueError, TypeError):
+            # This is for when self.packages_to_sync isn't of type Dict[str, int]
             self.errors = True
-            logger.info(
-                "Cancelling, all downloads are forcibly stopped, data may be "
-                + "corrupted. Serial will not be saved to disk. "
-                + "Next sync will start from previous serial"
-            )
 
     def finalize_sync(self) -> None:
-        return None
+        raise NotImplementedError()
 
 
 class BandersnatchMirror(Mirror):
@@ -192,26 +195,28 @@ class BandersnatchMirror(Mirror):
     diff_append_epoch = False
     diff_full_path = None
 
+    need_wrapup = False
+
     def __init__(
-            self,
-            homedir: Path,
-            master: Master,
-            storage_backend: Optional[str] = None,
-            stop_on_error: bool = False,
-            workers: int = 3,
-            hash_index: bool = False,
-            json_save: bool = False,
-            digest_name: Optional[str] = None,
-            root_uri: Optional[str] = None,
-            keep_index_versions: int = 0,
-            diff_file: Optional[Union[Path, str]] = None,
-            diff_append_epoch: bool = False,
-            diff_full_path: Optional[Union[Path, str]] = None,
-            flock_timeout: int = 1,
-            diff_file_list: Optional[List] = None,
-            *,
-            cleanup: bool = False,
-             ) -> None:
+        self,
+        homedir: Path,
+        master: Master,
+        storage_backend: Optional[str] = None,
+        stop_on_error: bool = False,
+        workers: int = 3,
+        hash_index: bool = False,
+        json_save: bool = False,
+        digest_name: Optional[str] = None,
+        root_uri: Optional[str] = None,
+        keep_index_versions: int = 0,
+        diff_file: Optional[Union[Path, str]] = None,
+        diff_append_epoch: bool = False,
+        diff_full_path: Optional[Union[Path, str]] = None,
+        flock_timeout: int = 1,
+        diff_file_list: Optional[List] = None,
+        *,
+        cleanup: bool = False,
+    ) -> None:
         super().__init__(master=master, stop_on_error=stop_on_error, workers=workers)
         self.cleanup = cleanup
 
@@ -220,7 +225,7 @@ class BandersnatchMirror(Mirror):
         else:
             self.storage_backend = next(iter(storage_backend_plugins()))
         self.loop = asyncio.get_event_loop()
-        self.homedir = self.storage_backend.PATH_BACKEND(homedir)
+        self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
         self.filters = LoadedFilters(load_all=True)
@@ -258,6 +263,7 @@ class BandersnatchMirror(Mirror):
         self.target_serial = self.synced_serial
         self.packages_to_sync = {}
         logger.info(f"Current mirror serial: {self.synced_serial}")
+        self.need_wrapup = True
 
         if self.storage_backend.exists(self.todolist):
             # We started a sync previously and left a todo list as well as the
@@ -298,60 +304,33 @@ class BandersnatchMirror(Mirror):
 
     async def process_package(self, package: Package) -> None:
         # Don't save anything if our metadata filters all fail.
-        if not package._filter_metadata(self.filters.filter_metadata_plugins()):
-            return
+        if not package.filter_metadata(self.filters.filter_metadata_plugins()):
+            return None
 
         # save the metadata before filtering releases
         if self.json_save:
             loop = asyncio.get_event_loop()
             json_saved = await loop.run_in_executor(
-                None, self.save_json_metadata, package
+                None, self.save_json_metadata, package.metadata, package.name
             )
             assert json_saved
 
-        package._filter_all_releases_files(
-            self.filters.filter_release_file_plugins()
-        )
-        package._filter_all_releases(self.filters.filter_release_plugins())
+        package.filter_all_releases_files(self.filters.filter_release_file_plugins())
+        package.filter_all_releases(self.filters.filter_release_plugins())
 
         await self.sync_release_files(package)
         self.sync_simple_page(package)
         # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
-        with self._finish_lock:
-            del self.packages_to_sync[package.raw_name]
-            with self.storage_backend.update_safe(
-                    self.todolist, mode="w+", encoding="utf-8"
-            ) as f:
-                # First line is the target serial we're working on.
-                f.write(f"{self.target_serial}\n")
-                # Consecutive lines are the packages we still have to sync
-                todo = [f"{name_} {serial}" for name_, serial in self.packages_to_sync.items()]
-                f.write("\n".join(todo))
+        self.record_finished_package(package.raw_name)
 
         # Cleanup old legacy non PEP 503 Directories created for the Simple API
-        if self.cleanup:
-            # Cleanup non normalized name directory
-            await self.cleanup_non_pep_503_paths(package)
+        await self.cleanup_non_pep_503_paths(package)
 
-    async def finalize_sync(self) -> None:
-        if self.errors:
-            return
-        self.synced_serial = int(self.target_serial) if self.target_serial else 0
-        if self.todolist.exists():
-            self.todolist.unlink()
-        logger.info(f"New mirror serial: {self.synced_serial}")
-
-        if not self.now:
-            logger.error(
-                "strftime did not return a valid time - Not updating last modified"
-            )
-            return
-
-        with self.storage_backend.rewrite(
-                str(self.homedir / "web" / "last-modified")
-        ) as f:
-            f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
-        self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
+    def finalize_sync(self) -> None:
+        self.sync_index_page()
+        if self.need_wrapup:
+            self.wrapup_successful_sync()
+        return None
 
     def _validate_todo(self) -> None:
         """Does a couple of cleanup tasks to ensure consistent data for later
@@ -596,7 +575,7 @@ class BandersnatchMirror(Mirror):
     def json_file(self, package_name: str) -> Path:
         return Path(self.webdir / "json" / package_name)
 
-    def json_pypi_symlink(self, package_name : str) -> Path:
+    def json_pypi_symlink(self, package_name: str) -> Path:
         return Path(self.webdir / "pypi" / package_name / "json")
 
     def simple_directory(self, package: Package) -> Path:
@@ -604,28 +583,28 @@ class BandersnatchMirror(Mirror):
             return Path(self.webdir / "simple" / package.name[0] / package.name)
         return Path(self.webdir / "simple" / package.name)
 
-    def save_json_metadata(self, package_info: Dict) -> bool:
+    def save_json_metadata(self, package_info: Dict, name: str) -> bool:
         """
         Take the JSON metadata we just fetched and save to disk
         """
         try:
             # TODO: Fix this so it works with swift
-            with self.storage_backend.rewrite(self.json_file(package_info["name"])) as jf:
+            with self.storage_backend.rewrite(self.json_file(name)) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
-            self.diff_file_list.append(self.json_file(package_info["name"]))
+            self.diff_file_list.append(self.json_file(name))
         except Exception as e:
             logger.error(
-                f"Unable to write json to {self.json_file(package_info['name'])}: {str(e)} ({type(e)})"
+                f"Unable to write json to {self.json_file(name)}: {str(e)} ({type(e)})"
             )
             return False
 
-        symlink_dir = self.json_pypi_symlink(package_info["name"]).parent
+        symlink_dir = self.json_pypi_symlink(name).parent
         symlink_dir.mkdir(exist_ok=True)
         # Lets always ensure symlink is pointing to correct self.json_file
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
-        if self.json_pypi_symlink(package_info["name"]).exists():
-            self.json_pypi_symlink(package_info["name"]).unlink()
-        self.json_pypi_symlink(package_info["name"]).symlink_to(self.json_file(package_info["name"]))
+        if self.json_pypi_symlink(name).exists():
+            self.json_pypi_symlink(name).unlink()
+        self.json_pypi_symlink(name).symlink_to(self.json_file(name))
 
         return True
 
@@ -639,9 +618,7 @@ class BandersnatchMirror(Mirror):
                     release_file["url"], release_file["digests"]["sha256"]
                 )
                 if downloaded_file:
-                    downloaded_files.add(
-                        str(downloaded_file.relative_to(self.homedir))
-                    )
+                    downloaded_files.add(str(downloaded_file.relative_to(self.homedir)))
             except Exception as e:
                 logger.exception(
                     "Continuing to next file after error downloading: "
@@ -672,9 +649,7 @@ class BandersnatchMirror(Mirror):
         ).format(package.raw_name)
 
         release_files = package.release_files
-        logger.debug(
-            f"There are {len(release_files)} releases for {package.name}"
-        )
+        logger.debug(f"There are {len(release_files)} releases for {package.name}")
         # Lets sort based on the filename rather than the whole URL
         release_files.sort(key=lambda x: x["filename"])
 
@@ -693,27 +668,31 @@ class BandersnatchMirror(Mirror):
             ]
         )
 
-        simple_page_content += f"\n  </body>\n</html>\n<!--SERIAL {package.last_serial}-->"
+        simple_page_content += (
+            f"\n  </body>\n</html>\n<!--SERIAL {package.last_serial}-->"
+        )
 
         return simple_page_content
 
     def sync_simple_page(self, package: Package) -> None:
-        logger.info(f"Storing index page: {package.name} - in {self.simple_directory(package)}")
+        logger.info(
+            f"Storing index page: {package.name} - in {self.simple_directory(package)}"
+        )
         simple_page_content = self.generate_simple_page(package)
         if not self.simple_directory(package).exists():
             self.simple_directory(package).mkdir(parents=True)
 
         if self.keep_index_versions > 0:
-            self._save_simple_page_version(simple_page_content)
+            self._save_simple_page_version(simple_page_content, package)
         else:
             simple_page = self.simple_directory(package) / "index.html"
-            with self.storage_backend.rewrite(
-                simple_page, "w", encoding="utf-8"
-            ) as f:
+            with self.storage_backend.rewrite(simple_page, "w", encoding="utf-8") as f:
                 f.write(simple_page_content)
             self.diff_file_list.append(simple_page)
 
-    def _save_simple_page_version(self, simple_page_content: str, package: Package) -> None:
+    def _save_simple_page_version(
+        self, simple_page_content: str, package: Package
+    ) -> None:
         versions_path = self._prepare_versions_path(package)
         timestamp = utils.make_time_stamp()
         version_file_name = f"index_{package.serial}_{timestamp}.html"
@@ -733,15 +712,14 @@ class BandersnatchMirror(Mirror):
 
     def _prepare_versions_path(self, package: Package) -> Path:
         versions_path = (
-            self.storage_backend.PATH_BACKEND(str(self.simple_directory(package))) / "versions"
+            self.storage_backend.PATH_BACKEND(str(self.simple_directory(package)))
+            / "versions"
         )
         if not versions_path.exists():
             versions_path.mkdir()
         else:
             version_files = list(sorted(versions_path.iterdir()))
-            version_files_to_remove = (
-                len(version_files) - self.keep_index_versions + 1
-            )
+            version_files_to_remove = len(version_files) - self.keep_index_versions + 1
             for i in range(version_files_to_remove):
                 version_files[i].unlink()
 
@@ -858,26 +836,24 @@ async def mirror(
     storage_backend = config_values.storage_backend_name
     homedir = Path(config.get("mirror", "directory"))
 
-    if storage_backend:
-        storage_backend = next(iter(storage_backend_plugins(storage_backend)))
-    else:
-        storage_backend = next(iter(storage_backend_plugins()))
-
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(mirror_url, timeout, global_timeout) as master:
         mirror = BandersnatchMirror(
-            Path(config.get("mirror", "directory")),
+            homedir,
             master,
-            storage_backend=config_values.storage_backend_name,
+            storage_backend=storage_backend,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
             hash_index=config.getboolean("mirror", "hash-index"),
-            json_save=config_values.save_json,
+            json_save=config_values.json_save,
             root_uri=config_values.root_uri,
             digest_name=config_values.digest_name,
-            keep_index_versions=config.getint("mirror", "keep_index_versions", fallback=0),
+            keep_index_versions=config.getint(
+                "mirror", "keep_index_versions", fallback=0
+            ),
             diff_file=diff_file,
+            diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=config_values.cleanup,
         )

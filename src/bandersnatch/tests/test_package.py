@@ -63,7 +63,7 @@ async def test_package_update_metadata_gives_up_after_3_stale_responses(
     assert "not updating. Giving up" in caplog.text
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None:
     pkg_name = "foo"
     master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
@@ -74,4 +74,3 @@ async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None
     with pytest.raises(PackageNotFound):
         await package.update_metadata(master)
     assert "foo no longer exists on PyPI" in caplog.text
-

@@ -8,7 +8,7 @@ from mock_config import mock_config
 
 import bandersnatch.filter
 from bandersnatch.master import Master
-from bandersnatch.mirror import Mirror
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import regex_name
 
@@ -60,14 +60,14 @@ releases =
     def test_plugin_check_match(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "foo-1.2.0"},
             "releases": {"foo-1.2.0rc2": {}, "foo-1.2.0": {}, "foo-1.2.0alpha2": {}},
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"foo-1.2.0": {}}
 
@@ -101,7 +101,7 @@ packages =
     def test_plugin_check_match(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo-good": "", "foo-evil": "", "foo-neutral": ""}
         mirror._filter_packages()
 
