@@ -201,7 +201,7 @@ def test_mirror_with_same_homedir_needs_lock(mirror: Mirror, tmpdir: Path) -> No
     Mirror(mirror.homedir / "test", mirror.master)
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_empty_master_gets_index(mirror: Mirror) -> None:
     mirror.master.all_packages = asynctest.asynctest.CoroutineMock(  # type: ignore
         return_value={}
@@ -234,7 +234,7 @@ simple{0}index.html""".format(
     assert open("status").read() == "0"
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_empty_resume_from_todo_list(mirror: Mirror) -> None:
     with open("todo", "w") as todo:
         todo.write("20\nfoobar 1")
@@ -284,7 +284,7 @@ web{0}simple{0}index.html""".format(
     assert open("status").read() == "20"
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_sync_package(mirror: Mirror) -> None:
     mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
@@ -322,7 +322,7 @@ simple{0}index.html""".format(
     assert open("status", "rb").read() == b"1"
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_sync_package_error_no_early_exit(mirror: Mirror) -> None:
     mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
@@ -370,7 +370,7 @@ web{0}simple{0}index.html""".format(
 
 
 # TODO: Fix - Raises SystemExit but pytest does not like asyncio tasks
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def mirror_sync_package_error_early_exit(mirror: Mirror) -> None:
     mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
@@ -398,7 +398,7 @@ web{0}simple{0}index.html""".format(
     assert open("todo").read() == "1\n"
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_sync_package_with_hash(mirror_hash_index: Mirror) -> None:
     mirror_hash_index.master.all_packages = asynctest.CoroutineMock(  # type: ignore
         return_value={"foo": 1}
@@ -431,7 +431,7 @@ simple{0}index.html""".format(
     assert open("status").read() == "1"
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_mirror_serial_current_no_sync_of_packages_and_index_page(
     mirror: Mirror,
 ) -> None:
@@ -489,7 +489,7 @@ def test_validate_todo(mirror: Mirror) -> None:
                 assert not test_mirror.todolist.exists()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_cleanup_non_pep_503_paths(mirror: Mirror) -> None:
     raw_package_name = "CatDogPython69"
     package = Package(raw_package_name, 11, mirror)

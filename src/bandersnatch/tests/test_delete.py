@@ -92,7 +92,7 @@ def test_delete_path() -> None:
             assert mock_log.call_count == 1
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_delete_packages() -> None:
     args = _fake_args()
     config = _fake_config()
@@ -146,7 +146,7 @@ async def test_delete_packages() -> None:
         assert find(web_path) == EXPECTED_WEB_AFTER_DELETION
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_delete_packages_no_exist() -> None:
     args = _fake_args()
     master = Master("https://unittest.org")

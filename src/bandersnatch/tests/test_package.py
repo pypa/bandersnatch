@@ -47,7 +47,7 @@ def test_save_json_metadata(mirror: Mirror, package_json: Dict[str, Any]) -> Non
     assert package.save_json_metadata(package_json)
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
     mirror: Mirror,
 ) -> None:
@@ -61,7 +61,7 @@ async def test_package_sync_404_json_info_keeps_package_on_non_deleting_mirror(
         assert path.exists()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_update_metadata_gives_up_after_3_stale_responses(
     caplog: CaptureFixture, mirror: Mirror
 ) -> None:
@@ -78,7 +78,7 @@ async def test_package_update_metadata_gives_up_after_3_stale_responses(
     assert "not updating. Giving up" in caplog.text
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_release_no_files_syncs_simple_page(
     mirror: Mirror,
 ) -> None:
@@ -108,7 +108,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     mirror_hash_index: Mirror,
 ) -> None:
@@ -137,7 +137,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_canonical_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo": 1}
     package = Package("Foo", 1, mirror)
@@ -165,7 +165,7 @@ async def test_package_sync_with_canonical_simple_page(mirror: Mirror) -> None:
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_canonical_simple_page_with_hash(
     mirror_hash_index: Mirror,
 ) -> None:
@@ -194,7 +194,7 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_normalized_simple_page(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"Foo.bar-thing_other": 1}
     package = Package("Foo.bar-thing_other", 1, mirror)
@@ -221,7 +221,7 @@ async def test_package_sync_with_normalized_simple_page(mirror: Mirror) -> None:
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_simple_page_root_uri(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     mirror.root_uri = "https://files.pythonhosted.org"
@@ -257,7 +257,7 @@ async def test_package_sync_simple_page_root_uri(mirror: Mirror) -> None:
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_simple_page_with_files(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
@@ -284,7 +284,7 @@ async def test_package_sync_simple_page_with_files(mirror: Mirror) -> None:
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_simple_page_with_existing_dir(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 1, mirror)
@@ -314,7 +314,7 @@ async def test_package_sync_simple_page_with_existing_dir(mirror: Mirror) -> Non
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_simple_page_with_existing_dir_with_hash(
     mirror_hash_index: Mirror,
 ) -> None:
@@ -344,7 +344,7 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_with_error_keeps_it_on_todo_list(mirror: Mirror) -> None:
     # Make packages_to_sync to generate an error
     mirror.packages_to_sync = {"foo"}  # type: ignore
@@ -354,7 +354,7 @@ async def test_package_sync_with_error_keeps_it_on_todo_list(mirror: Mirror) -> 
     assert "foo" in mirror.packages_to_sync
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_downloads_release_file(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": ""}
     package = Package("foo", 1, mirror)
@@ -364,7 +364,7 @@ async def test_package_sync_downloads_release_file(mirror: Mirror) -> None:
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_download_rejects_non_package_directory_links(
     mirror: Mirror,
 ) -> None:
@@ -376,7 +376,7 @@ async def test_package_download_rejects_non_package_directory_links(
     assert not os.path.exists("web/foo/bar/foo/foo.zip")
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(
     mirror: Mirror,
 ) -> None:
@@ -391,7 +391,7 @@ async def test_sync_keeps_superfluous_files_on_nondeleting_mirror(
     assert test_files[0].exists()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_replaces_mismatching_local_files(mirror: Mirror) -> None:
     test_files = [Path("web/packages/any/f/foo/foo.zip")]
     touch_files(test_files)
@@ -406,7 +406,7 @@ async def test_package_sync_replaces_mismatching_local_files(mirror: Mirror) -> 
     assert test_files[0].open("r").read() == ""
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_handles_non_pep_503_in_packages_to_sync(
     master: Master,
 ) -> None:
@@ -418,7 +418,7 @@ async def test_package_sync_handles_non_pep_503_in_packages_to_sync(
         assert not mirror.errors
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_package_sync_does_not_touch_existing_local_file(mirror: Mirror) -> None:
     pkg_file_path_str = "web/packages/any/f/foo/foo.zip"
     pkg_file_path = Path(pkg_file_path_str)
@@ -450,7 +450,7 @@ def test_gen_data_requires_python(mirror: Mirror) -> None:
     )
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_sync_incorrect_download_with_current_serial_fails(
     mirror: Mirror,
 ) -> None:
@@ -462,7 +462,7 @@ async def test_sync_incorrect_download_with_current_serial_fails(
     assert mirror.errors
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_sync_incorrect_download_with_old_serials_retries(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
     package = Package("foo", 2, mirror)
@@ -472,7 +472,7 @@ async def test_sync_incorrect_download_with_old_serials_retries(mirror: Mirror) 
     assert mirror.errors
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_survives_exceptions_from_record_finished_package(mirror: Mirror) -> None:
     def record_finished_package(name: str) -> NoReturn:
         import errno
@@ -506,8 +506,8 @@ async def test_survives_exceptions_from_record_finished_package(mirror: Mirror) 
     assert mirror.errors
 
 
-@freeze_time("2018-10-28")  # type: ignore
-@pytest.mark.asyncio  # type: ignore
+@freeze_time("2018-10-28")
+@pytest.mark.asyncio
 async def test_keep_index_versions_stores_one_prior_version(mirror: Mirror) -> None:
     mirror.packages_to_sync = {"foo": ""}
     mirror.keep_index_versions = 1
@@ -525,7 +525,7 @@ async def test_keep_index_versions_stores_one_prior_version(mirror: Mirror) -> N
     assert os.path.basename(os.readlink(str(link_path))) == version_files[0]
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_keep_index_versions_stores_different_prior_versions(
     mirror: Mirror,
 ) -> None:
@@ -554,7 +554,7 @@ async def test_keep_index_versions_stores_different_prior_versions(
     assert os.path.basename(os.readlink(str(link_path))) == version_files[1]
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_keep_index_versions_removes_old_versions(mirror: Mirror) -> None:
     simple_path = Path("web/simple/foo/")
     versions_path = simple_path / "versions"

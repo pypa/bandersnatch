@@ -129,7 +129,7 @@ class FakeMirror:
             index_path.touch()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_verify_producer(monkeypatch: MonkeyPatch) -> None:
     fm = FakeMirror("test_async_verify")
     fc = configparser.ConfigParser()
@@ -172,7 +172,7 @@ web{0}simple{0}black{0}index.html""".format(
     fm.clean_up()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_delete_unowned_files() -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     fm = FakeMirror("_test_delete_files")
@@ -188,7 +188,7 @@ async def test_delete_unowned_files() -> None:
     fm.clean_up()
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
@@ -198,7 +198,7 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     await get_latest_json(master, json_path, config, executor)  # type: ignore
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
     fa = FakeArgs()
     fc = FakeConfig()

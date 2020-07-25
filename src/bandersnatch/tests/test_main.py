@@ -121,7 +121,7 @@ def test_main_throws_exception_on_unsupported_digest_name(customconfig: Path,) -
     assert "foobar is not supported" in str(e.value)
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def customconfig(tmpdir: Path) -> Path:
     default_path = Path(bandersnatch.__file__).parent / "unittest.conf"
     with default_path.open("r") as dfp:
