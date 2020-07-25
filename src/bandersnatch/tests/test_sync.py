@@ -7,7 +7,7 @@ from bandersnatch import utils
 from bandersnatch.mirror import Mirror
 
 
-@pytest.mark.asyncio  # type: ignore
+@pytest.mark.asyncio
 async def test_sync_specific_packages(mirror: Mirror) -> None:
     FAKE_SERIAL = b"112233"
     with open("status", "wb") as f:

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from bandersnatch.package import Package
 
 
-@pytest.fixture(autouse=True)  # type: ignore
+@pytest.fixture(autouse=True)
 def stop_std_logging(request: FixtureRequest, capfd: CaptureFixture) -> None:
     patcher = mock.patch("bandersnatch.log.setup_logging")
     patcher.start()
@@ -31,7 +31,7 @@ async def _nosleep(*args: Any) -> None:
     pass
 
 
-@pytest.fixture(autouse=True)  # type: ignore
+@pytest.fixture(autouse=True)
 def never_sleep(request: FixtureRequest) -> None:
     patcher = mock.patch("asyncio.sleep", _nosleep)
     patcher.start()
@@ -42,7 +42,7 @@ def never_sleep(request: FixtureRequest) -> None:
     request.addfinalizer(tearDown)
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def package(package_json: dict, mirror: "Mirror") -> "Package":
     from bandersnatch.package import Package
 
@@ -51,7 +51,7 @@ def package(package_json: dict, mirror: "Mirror") -> "Package":
     return pkg
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def package_json() -> Dict[str, Any]:
     return {
         "info": {"name": "Foo", "version": "0.1"},
@@ -81,7 +81,7 @@ def package_json() -> Dict[str, Any]:
     }
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def master(package_json: Dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
 
@@ -113,7 +113,7 @@ def master(package_json: Dict[str, Any]) -> "Master":
     return master
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def mirror(tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch) -> "Mirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import Mirror
@@ -121,7 +121,7 @@ def mirror(tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch) -> "Mirror"
     return Mirror(tmpdir, master)
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def mirror_hash_index(
     tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
 ) -> "Mirror":
@@ -131,7 +131,7 @@ def mirror_hash_index(
     return Mirror(tmpdir, master, hash_index=True)
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
     patcher = mock.patch("bandersnatch.mirror.Mirror")
     mirror: mock.MagicMock = patcher.start()
@@ -143,7 +143,7 @@ def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
     return mirror
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture
 def logging_mock(request: FixtureRequest) -> mock.MagicMock:
     patcher = mock.patch("logging.config.fileConfig")
     logger: mock.MagicMock = patcher.start()
