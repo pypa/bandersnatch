@@ -11,4 +11,4 @@ pytest==6.0.0rc1
 pytest-asyncio==0.14.0
 pytest-timeout==1.4.2
 setuptools==49.2.0
-tox==3.18.0
+tox==3.18.1
