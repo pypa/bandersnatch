@@ -10,3 +10,8 @@ xmlrpc2==0.3.1
 
 git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
 git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
+
+# This is needed since autodoc imports all bandersnatch packages and modules
+# so imports must not fail or its containing module will NOT be documented.
+# Also, it will cause the doc build to fail since it raises a warning.
+-r requirements_swift.txt
