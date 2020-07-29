@@ -48,9 +48,9 @@ This is useful to avoid syncing broken or malicious packages.
 
 ### packages
 
-The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored.
+The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored. Enable version specifier filtering for whitelist and blacklist packages through enabling the 'blacklist_release' and 'allowlist_release' plugins, respectively.
 
-Any packages matching the version specifier will not be downloaded.
+Any packages matching the version specifier for blacklist packages will not be downloaded. Any packages not matching the version specifier for whitelist packages will not be downloaded.
 
 Example:
 
@@ -58,7 +58,9 @@ Example:
 [plugins]
 enabled =
     blacklist_project
+    blacklist_release
     whitelist_project
+    allowlist_release
 
 [blacklist]
 packages =
@@ -67,7 +69,7 @@ packages =
 
 [whitelist]
 packages =
-    black
+    black==18.5
     ptr
 ```
 
