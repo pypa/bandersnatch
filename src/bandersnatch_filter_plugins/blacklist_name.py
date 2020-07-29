@@ -44,7 +44,7 @@ class BlacklistProject(FilterProjectPlugin):
         except KeyError:
             package_lines = []
         for package_line in package_lines:
-            package_line = package_line.strip()
+            package_line = package_line.strip().casefold()
             if not package_line or package_line.startswith("#"):
                 continue
             package_requirement = Requirement(package_line)
@@ -84,7 +84,7 @@ class BlacklistProject(FilterProjectPlugin):
         if not name:
             return False
 
-        if name in self.blacklist_package_names:
+        if name.casefold() in self.blacklist_package_names:
             logger.info(f"Package {name!r} is blacklisted")
             return True
         return False
