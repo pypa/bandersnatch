@@ -6,11 +6,11 @@ The mirror filter configuration settings are in the same configuration file as t
 There are different configuration sections for the different plugin types.
 
 Filtering Plugin pacakage lists need to use the **Raw PyPI Name**
-(non [PEP503](https://www.python.org/dev/peps/pep-0503/#normalized-names) normailized)
+(non [PEP503](https://www.python.org/dev/peps/pep-0503/#normalized-names) normalized)
 in order to get filtered.
 
 E.g. to Blacklist [ACMPlus](https://pypi.org/project/ACMPlus/) you'd need to
-use that *exact* case in `bandersnatch.conf`
+use that *exact* casing in `bandersnatch.conf`
 
 - A PR would be welcome fixing the normalization but it's an invasive PR
 
@@ -42,9 +42,9 @@ enabled =
 
 ### blacklist / whitelist filtering settings
 
-The blacklist settings are in a configuration sections named **\[blacklist\]** and **\[whitelist\]**
-this section provides settings to indicate packages, projects and releases that should
-not be mirrored from PyPI.
+The blacklist / whitelist settings are in configuration sections named **\[blacklist\]** and **\[whitelist\]**
+these section provides settings to indicate packages, projects and releases that should /
+should not be mirrored from PyPI.
 
 This is useful to avoid syncing broken or malicious packages.
 

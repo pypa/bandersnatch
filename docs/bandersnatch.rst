@@ -1,6 +1,14 @@
 bandersnatch package
 ====================
 
+Package contents
+----------------
+
+.. automodule:: bandersnatch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Submodules
 ----------
 
@@ -88,15 +96,6 @@ bandersnatch.verify module
 --------------------------
 
 .. automodule:: bandersnatch.verify
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: bandersnatch
    :members:
    :undoc-members:
    :show-inheritance:

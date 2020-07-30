@@ -6,11 +6,11 @@ maintainers hold and can conduct.
 ## Summary of being a Maintainer of `bandersnatch`
 
 - **Issue Triage**
-  - Asses if the Issue is accurate + reproducible
-  - If feature, asses if this fits the *bandersnatch mission*
+  - Assesses if the Issue is accurate + reproducible
+  - If the issue is a feature request, assesses if it fits the *bandersnatch mission*
 - **PR Merging**
-  - Access Pull Requests for suitability and adherence to the *bandersnatch mission*
-- If is preferred that big changes be pulling in from *branches* via *Pull Requests*
+  - Accesses Pull Requests for suitability and adherence to the *bandersnatch mission*
+- It is preferred that big changes be pulling in from *branches* via *Pull Requests*
   - Peer reviewed by another maintainer
 - **Releases**
 - You will have **"the commit bit"** access
@@ -27,7 +27,7 @@ maintainers hold and can conduct.
 ### Evaluating Issues and Pull Requests
 
 Please always think of the mission of bandersnatch. We should just mirror in a
-compatible way a PEP381 mirror. Simple is always better than complex and all *bug*
+compatible way like a PEP381 mirror. Simple is always better than complex and all *bug*
 issues need to be reproducable for our developers.
 
 #### pyup.io
