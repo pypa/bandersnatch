@@ -1,5 +1,7 @@
 ## Mirror filtering
 
+_NOTE: All references to whitelist/blacklist are deprecated, and will be replaced with allowlist/denylist in 5.0_
+
 The mirror filter configuration settings are in the same configuration file as the mirror settings.
 There are different configuration sections for the different plugin types.
 

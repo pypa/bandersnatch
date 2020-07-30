@@ -37,7 +37,7 @@ class TestExcludePlatformFilter(BasePluginTestCase):
 enabled =
     exclude_platform
 
-[blacklist]
+[denylist]
 platforms =
     windows
     freebsd

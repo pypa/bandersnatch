@@ -11,7 +11,7 @@ from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 
 
-class TestBlacklistProject(TestCase):
+class TestDenyListProject(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
@@ -36,13 +36,13 @@ class TestBlacklistProject(TestCase):
             """\
 [plugins]
 enabled =
-    blacklist_project
+    denylist_project
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ["blacklist_project"])
+        self.assertListEqual(names, ["denylist_project"])
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
@@ -50,32 +50,32 @@ enabled =
             """\
 [plugins]
 enabled =
-    blacklist_release
+    denylist_release
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blacklist_project", names)
+        self.assertNotIn("denylist_project", names)
 
     def test__plugin__loads__default(self) -> None:
         mock_config(
             """\
-[blacklist]
+[denylist]
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blacklist_project", names)
+        self.assertNotIn("denylist_project", names)
 
     def test__filter__matches__package(self) -> None:
         mock_config(
             """\
 [plugins]
 enabled =
-    blacklist_project
-[blacklist]
+    denylist_project
+[denylist]
 packages =
     foo
 """
@@ -90,9 +90,9 @@ packages =
     def test__filter__nomatch_package(self) -> None:
         mock_config(
             """\
-        [blacklist]
+        [denylist]
         plugins =
-            blacklist_project
+            denylist_project
         packages =
             foo
         """
@@ -105,7 +105,7 @@ packages =
         self.assertIn("foo2", mirror.packages_to_sync.keys())
 
 
-class TestBlacklistRelease(TestCase):
+class TestDenyListRelease(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
@@ -130,13 +130,13 @@ class TestBlacklistRelease(TestCase):
             """\
 [plugins]
 enabled =
-    blacklist_release
+    denylist_release
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ["blacklist_release"])
+        self.assertListEqual(names, ["denylist_release"])
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
@@ -144,21 +144,21 @@ enabled =
             """\
 [plugins]
 enabled =
-    blacklist_package
+    denylist_package
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blacklist_release", names)
+        self.assertNotIn("denylist_release", names)
 
     def test__filter__matches__release(self) -> None:
         mock_config(
             """\
 [plugins]
 enabled =
-    blacklist_release
-[blacklist]
+    denylist_release
+[denylist]
 packages =
     foo==1.2.0
 """

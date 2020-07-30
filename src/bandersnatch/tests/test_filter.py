@@ -41,9 +41,9 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "blacklist_project",
+            "denylist_project",
             "regex_project",
-            "whitelist_project",
+            "allowlist_project",
         ]
 
         plugins = LoadedFilters().filter_project_plugins()
@@ -59,7 +59,7 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "blacklist_release",
+            "denylist_release",
             "prerelease_release",
             "regex_release",
             "latest_release",
