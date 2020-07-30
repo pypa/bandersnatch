@@ -67,15 +67,14 @@ class BandersnatchConfig(metaclass=Singleton):
     def check_for_deprecations(self) -> None:
         if self.SHOWN_DEPRECATIONS:
             return
-
-        err_msg = (
-            "whitelist/blacklist filter plugins will be renamed to "
-            "allowlist_*/denylist_* in version 5.0 "
-            " - Documentation @ https://bandersnatch.readthedocs.io/"
-        )
-        warnings.warn(err_msg, DeprecationWarning, stacklevel=2)
-        logger.warning(err_msg)
-
+        if self.config.has_section("whitelist") or self.config.has_section("blacklist"):
+            err_msg = (
+                "whitelist/blacklist filter plugins will be renamed to "
+                "allowlist_*/denylist_* in version 5.0 "
+                " - Documentation @ https://bandersnatch.readthedocs.io/"
+            )
+            warnings.warn(err_msg, DeprecationWarning, stacklevel=2)
+            logger.warning(err_msg)
         self.SHOWN_DEPRECATIONS = True
 
     def load_configuration(self) -> None:
