@@ -28,8 +28,8 @@ bandersnatch_filter_plugins.filename_name module
    :undoc-members:
    :show-inheritance:
 
-bandersnatch.latest_name module
--------------------------------
+bandersnatch_filter_plugins.latest_name module
+----------------------------------------------
 
 .. automodule:: bandersnatch_filter_plugins.latest_name
    :members:
