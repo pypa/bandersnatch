@@ -3,6 +3,7 @@ Module containing classes to access the bandersnatch configuration file
 """
 import configparser
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
@@ -17,14 +18,6 @@ except ImportError:  # pragma: no cover
 
 
 logger = logging.getLogger("bandersnatch")
-
-
-class DeprecatedKey(NamedTuple):
-    old_section: str
-    old_key: str
-    new_section: str
-    new_key: str
-    deprecated_version: str
 
 
 class SetConfigValues(NamedTuple):
@@ -47,6 +40,9 @@ class Singleton(type):  # pragma: no cover
 
 
 class BandersnatchConfig(metaclass=Singleton):
+    # Ensure we only show the deprecations once
+    SHOWN_DEPRECATIONS = False
+
     def __init__(self, config_file: Optional[str] = None) -> None:
         """
         Bandersnatch configuration class singleton
@@ -66,6 +62,21 @@ class BandersnatchConfig(metaclass=Singleton):
             self.default_config_file = str(config_path)
         self.config_file = config_file
         self.load_configuration()
+        self.check_for_deprecations()
+
+    def check_for_deprecations(self) -> None:
+        if self.SHOWN_DEPRECATIONS:
+            return
+
+        err_msg = (
+            "whitelist/blacklist filter plugins will be renamed to "
+            "allowlist_*/denylist_* in version 5.0 "
+            " - Documentation @ https://bandersnatch.readthedocs.io/"
+        )
+        warnings.warn(err_msg, DeprecationWarning, stacklevel=2)
+        logger.warning(err_msg)
+
+        self.SHOWN_DEPRECATIONS = True
 
     def load_configuration(self) -> None:
         """
