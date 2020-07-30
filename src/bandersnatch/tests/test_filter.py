@@ -5,6 +5,8 @@ from unittest import TestCase
 
 from mock_config import mock_config
 
+from bandersnatch.configuration import BandersnatchConfig
+
 from bandersnatch.filter import (  # isort:skip
     Filter,
     FilterProjectPlugin,
@@ -118,6 +120,16 @@ enabled =
         except Exception:
             error = True
         self.assertFalse(error)
+
+    def test_deprecated_keys(self) -> None:
+        with open("test.conf", "w") as f:
+            f.write("[whitelist]\npackages=foo\n[blacklist]\npackages=bar\n")
+        instance = BandersnatchConfig()
+        instance.config_file = "test.conf"
+        instance.load_configuration()
+        plugin = Filter()
+        assert plugin.allowlist.name == "whitelist"
+        assert plugin.denylist.name == "blacklist"
 
 
 if __name__ == "__main__":
