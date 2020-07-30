@@ -19,8 +19,8 @@ class AllowListProject(FilterProjectPlugin):
         """
         Initialize the plugin
         """
-        # Generate a list of denylisted packages from the configuration and
-        # store it into self.denylist_package_names attribute so this
+        # Generate a list of alloylisted packages from the configuration and
+        # store it into self.allowlist_package_names attribute so this
         # operation doesn't end up in the fastpath.
         if not self.allowlist_package_names:
             self.allowlist_package_names = self._determine_unfiltered_package_names()
