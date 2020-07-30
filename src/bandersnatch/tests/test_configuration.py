@@ -1,6 +1,7 @@
 import configparser
 import os
 import unittest
+import warnings
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 

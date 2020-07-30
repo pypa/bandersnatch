@@ -2,7 +2,7 @@
 Blacklist management
 """
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import pkg_resources
 
@@ -33,6 +33,7 @@ class Filter:
     """
 
     name = "filter"
+    deprecated_name: Optional[str] = None
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
@@ -43,7 +44,12 @@ class Filter:
             return
 
         split_plugins = self.configuration["plugins"]["enabled"].split("\n")
-        if "all" not in split_plugins and self.name not in split_plugins:
+        if (
+            "all" not in split_plugins
+            and self.name not in split_plugins
+            # NOTE: Remove after 5.0
+            and not (self.deprecated_name and self.deprecated_name in split_plugins)
+        ):
             return
 
         self.initialize_plugin()
