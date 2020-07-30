@@ -23,6 +23,10 @@ except ImportError:
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = "3.0"
 
+# epub build warns about .nojekyll of which Sphinx creates on build,
+# so just ignore the warning since we can't do anything a-boat it :D
+suppress_warnings = ["epub.unknown_project_files"]
+
 # Just a protection against an incompatible version of recommonmark.
 # The listed version is the minimal version required for that extension.
 needs_extensions = {"recommonmark": "0.5"}
@@ -69,6 +73,7 @@ if hasattr(doc_module, "__copyright__"):
 version = "0.0.0"
 if hasattr(doc_module, "__version__"):
     version = doc_module.__version__
+
 # The full version, including alpha/beta/rc tags.
 release = version
 
