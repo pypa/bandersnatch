@@ -58,7 +58,7 @@ class DenyListProject(FilterProjectPlugin):
                     package_requirement.name,
                 )
                 continue
-            filtered_packages.add(package_line)
+            filtered_packages.add(Requirement(package_line).name)
         logger.debug("Project denylist is %r", list(filtered_packages))
         return list(filtered_packages)
 

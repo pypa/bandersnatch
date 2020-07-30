@@ -104,6 +104,28 @@ packages =
 
         self.assertIn("foo2", mirror.packages_to_sync.keys())
 
+    def test__filter__name_only(self) -> None:
+        mock_config(
+            """\
+[mirror]
+storage-backend = filesystem
+
+[plugins]
+enabled =
+    denylist_project
+
+[denylist]
+packages =
+    foo==1.2.3
+"""
+        )
+
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo": "4.5.6"}
+        mirror._filter_packages()
+
+        self.assertIn("foo", mirror.packages_to_sync.keys())
+
 
 class TestDenyListRelease(TestCase):
     """

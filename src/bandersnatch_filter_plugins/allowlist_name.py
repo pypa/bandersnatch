@@ -48,7 +48,7 @@ class AllowListProject(FilterProjectPlugin):
             package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
-            unfiltered_packages.add(package_line)
+            unfiltered_packages.add(Requirement(package_line).name)
         return list(unfiltered_packages)
 
     def filter(self, metadata: Dict) -> bool:
