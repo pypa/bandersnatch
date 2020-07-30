@@ -22,7 +22,7 @@ this project.
 
 - If interested contact @cooperlees
 
-`bandersnatch` has it's dependencies kept up to date by **[pyup.io](https://pyup.io/)**!
+`bandersnatch` has its dependencies kept up to date by **[pyup.io](https://pyup.io/)**!
 
 - If you'd like to have your dependencies kept up to date in your `requirements.txt` or `setup.cfg`,
   this is the service for you!

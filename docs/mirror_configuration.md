@@ -83,7 +83,7 @@ Recommendations for the workers setting:
 
 ### hash-index
 
-The hash-index is a boolean (true/false) ot determine if package hashing should be used.
+The hash-index is a boolean (true/false) to determine if package hashing should be used.
 
 The Recommended setting: the default of false for full pip/pypi compatibility.
 
@@ -112,7 +112,7 @@ rewrite ^/simple/([^/])([^/]*)/([^/]+)$/ /simple/$1/$1$2/$3 last;
 ### stop-on-error
 
 The stop-on-error setting is a boolean (true/false) setting that indicates if bandersnatch
-should execute immediately if it encounters an error.
+should stop immediately if it encounters an error.
 
 If this setting is false it will not stop when an error is encountered but it will not
 mark the sync as successful when the sync is complete.
@@ -124,7 +124,7 @@ stop-on-error = false
 
 ### log-config
 
-The log-config setting is as string containing the filename of a python logging configuration
+The log-config setting is a string containing the filename of a python logging configuration
 file.
 
 Example:

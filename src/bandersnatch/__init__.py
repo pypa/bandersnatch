@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+__copyright__ = "2010-2020, PyPA"
+
 from typing import NamedTuple
 
 

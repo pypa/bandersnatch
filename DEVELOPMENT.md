@@ -26,7 +26,7 @@ Lets now cd to where we want the code and clone the repo:
 
 One way to develop and install all the dependencies of bandersnatch is to use a venv.
 
-- Lets create one and upgrade `pip`
+- Lets create one and upgrade `pip` and `setuptools`.
 
 ```
 python3 -m venv /path/to/venv
@@ -42,11 +42,15 @@ python3 -m venv /path/to/venv
 
 - To verify any changes in the documentation:
 
+**NOTICE:** This effectively installs `requirements_swift` *and* `requirements_docs.txt`
+since the dependencies are needed by autodoc which imports all of bandersnatch during
+documention building. So pip will install **a lot** of dependencies.
+
 ```
 /path/to/venv/bin/pip install -r requirements_docs.txt
 ```
 
-- Finally install the bandersnatch in editable mode:
+- Finally install bandersnatch in editable mode:
 
 ```
 /path/to/venv/bin/pip install -e .
