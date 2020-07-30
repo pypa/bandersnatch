@@ -39,7 +39,7 @@ class DenyListProject(FilterProjectPlugin):
         # are not applicable for this plugin.
         filtered_packages: Set[str] = set()
         try:
-            lines = self.configuration["denylist"]["packages"]
+            lines = self.denylist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
@@ -122,7 +122,7 @@ class DenyListRelease(FilterReleasePlugin):
         """
         filtered_requirements: Set[Requirement] = set()
         try:
-            lines = self.configuration["denylist"]["packages"]
+            lines = self.denylist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []

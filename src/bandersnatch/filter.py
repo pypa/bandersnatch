@@ -2,11 +2,15 @@
 Blacklist management
 """
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import pkg_resources
 
 from .configuration import BandersnatchConfig
+
+if TYPE_CHECKING:
+    from configparser import SectionProxy
+
 
 # The API_REVISION is incremented if the plugin class is modified in a
 # backwards incompatible way.  In order to prevent loading older
@@ -76,6 +80,23 @@ class Filter:
             True if the values match a filter rule, False otherwise
         """
         return False
+
+    # NOTE: These two can be removed in 5.0
+    @property
+    def allowlist(self) -> "SectionProxy":
+        return (
+            self.configuration["whitelist"]
+            if self.configuration.has_section("whitelist")
+            else self.configuration["allowlist"]
+        )
+
+    @property
+    def denylist(self) -> "SectionProxy":
+        return (
+            self.configuration["blacklist"]
+            if self.configuration.has_section("blacklist")
+            else self.configuration["denylist"]
+        )
 
 
 class FilterProjectPlugin(Filter):

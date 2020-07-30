@@ -39,7 +39,7 @@ class AllowListProject(FilterProjectPlugin):
         # are not applicable for this plugin.
         unfiltered_packages: Set[str] = set()
         try:
-            lines = self.configuration["allowlist"]["packages"]
+            lines = self.allowlist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
@@ -114,7 +114,7 @@ class AllowListRelease(FilterReleasePlugin):
         """
         filtered_requirements: Set[Requirement] = set()
         try:
-            lines = self.configuration["allowlist"]["packages"]
+            lines = self.allowlist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
