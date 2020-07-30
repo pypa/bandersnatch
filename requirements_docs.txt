@@ -13,5 +13,6 @@ git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
 
 # This is needed since autodoc imports all bandersnatch packages and modules
 # so imports must not fail or its containing module will NOT be documented.
-# Also, it will cause the doc build to fail since it raises a warning.
+# Also, the missing swift dependencies will cause the doc build to fail since
+# autodoc will raise a warning due to the import failure.
 -r requirements_swift.txt
