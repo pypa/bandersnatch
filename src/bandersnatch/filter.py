@@ -190,6 +190,7 @@ class LoadedFilters:
                 if (
                     "all" in self.enabled_plugins
                     or plugin_instance.name in self.enabled_plugins
+                    or plugin_instance.deprecated_name in self.enabled_plugins
                 ):
                     plugins.add(plugin_instance)
 
