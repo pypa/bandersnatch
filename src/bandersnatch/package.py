@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import html
 import logging
+import os
 import sys
 from json import dump
 from pathlib import Path
@@ -103,7 +104,9 @@ class Package:
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
         if self.json_pypi_symlink.exists():
             self.json_pypi_symlink.unlink()
-        self.json_pypi_symlink.symlink_to(self.json_file)
+        self.json_pypi_symlink.symlink_to(
+            os.path.relpath(self.json_file, self.json_pypi_symlink.parent)
+        )
 
         return True
 

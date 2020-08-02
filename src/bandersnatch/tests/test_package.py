@@ -45,6 +45,8 @@ def test_save_json_metadata(mirror: Mirror, package_json: Dict[str, Any]) -> Non
     package.json_pypi_symlink.parent.mkdir(parents=True)
     package.json_pypi_symlink.symlink_to(Path(gettempdir()))
     assert package.save_json_metadata(package_json)
+    assert package.json_pypi_symlink.is_symlink()
+    assert Path("../../json/foo") == Path(os.readlink(package.json_pypi_symlink))
 
 
 @pytest.mark.asyncio
