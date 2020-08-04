@@ -119,6 +119,34 @@ enabled =
             error = True
         self.assertFalse(error)
 
+    def test__filter_project_blacklist_whitelist__pep503_normalize(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    blacklist_project
+    whitelist_project
+
+[blacklist]
+packages =
+    SampleProject
+    trove----classifiers
+
+[whitelist]
+packages =
+    SampleProject
+    trove----classifiers
+"""
+        )
+
+        plugins = LoadedFilters().filter_release_plugins()
+        for plugin in plugins:
+            if plugin.name not in ("blacklist_project", "whitelist_project"):
+                continue
+
+            self.assertTrue(plugin.check_match(name="sampleproject"))
+            self.assertTrue(plugin.check_match(name="trove-classifiers"))
+
 
 if __name__ == "__main__":
     unittest.main()
