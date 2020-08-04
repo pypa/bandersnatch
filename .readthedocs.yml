@@ -1,0 +1,23 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+sphinx:
+  builder: html
+  configuration: docs/conf.py
+  # It's probably better if we have slightly outdated but known good documentation
+  # up than having (possibly very) broken documentation.
+  fail_on_warning: true
+
+formats:
+  - pdf
+  - htmlzip
+  - epub
+
+python:
+  version: 3.7
+  install:
+    - method: pip
+      path: .
+    - requirements: requirements_docs.txt  # By extension, this installs requirements_swift.txt too

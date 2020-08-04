@@ -27,5 +27,4 @@ Contents:
     mirror_configuration
     filtering_configuration
     CONTRIBUTING
-    CODE_OF_CONDUCT
     modules
