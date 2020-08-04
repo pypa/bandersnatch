@@ -11,7 +11,7 @@ from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
-from typing import Awaitable, Dict, List, Optional, Set, Union
+from typing import Any, Awaitable, Dict, List, Optional, Set, Union
 from unittest.mock import Mock
 from urllib.parse import unquote, urlparse
 
@@ -34,12 +34,7 @@ class Mirror:
 
     synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
     target_serial: Optional[int] = None  # What is the serial we are trying to reach?
-    errors = False
     packages_to_sync: Dict[str, Union[int, str]] = {}
-
-    # Stop soon after meeting an error. Continue without updating the
-    # mirror's serial if false.
-    stop_on_error = False
 
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
@@ -47,11 +42,10 @@ class Mirror:
     now = None
 
     def __init__(
-        self, master: Master, stop_on_error: bool = False, workers: int = 3,
+        self, master: Master, workers: int = 3,
     ):
         self.master = master
         self.filters = LoadedFilters(load_all=True)
-        self.stop_on_error = stop_on_error
         self.workers = workers
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed")
@@ -133,16 +127,9 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
             except PackageNotFound:
-                return  # I think this should be a continue
-            except Exception:
-                logger.exception(
-                    f"Error syncing package: {package.name}@{package.serial}"
-                )
-                self.errors = True
-
-            if self.errors and self.stop_on_error:
-                logger.error("Exiting early after error.")
-                sys.exit(1)
+                continue
+            except Exception as e:
+                self.on_error(e, package=package)
 
     async def process_package(self, package: Package) -> None:
         raise NotImplementedError()
@@ -161,39 +148,26 @@ class Mirror:
             ]
             try:
                 await asyncio.gather(*sync_coros)
-            except KeyboardInterrupt:
-                # Setting self.errors to True to ensure we don't save Serial
-                # and thus save to disk that we've had a successful sync
-                self.errors = True
-                logger.info(
-                    "Cancelling, all downloads are forcibly stopped, data may be "
-                    + "corrupted. Serial will not be saved to disk. "
-                    + "Next sync will start from previous serial"
-                )
-        except (ValueError, TypeError):
+            except KeyboardInterrupt as e:
+                self.on_error(e)
+        except (ValueError, TypeError) as e:
             # This is for when self.packages_to_sync isn't of type Dict[str, int]
-            self.errors = True
+            # Which occurs during testing or if BandersnatchMirror's todolist is
+            # corrupted in determine_packages_to_sync()
+            # TODO Remove this check by following packages_to_sync's typing
+            self.on_error(e)
 
     def finalize_sync(self) -> None:
+        raise NotImplementedError()
+
+    def on_error(self, exception: BaseException, **kwargs: Dict) -> None:
         raise NotImplementedError()
 
 
 class BandersnatchMirror(Mirror):
 
     need_index_sync = True
-    json_save = False  # Whether or not to mirror PyPI JSON metadata to disk
-
-    digest_name = "sha256"
-
-    # Allow configuring a root_uri to make generated index pages absolute.
-    # This is generally not necessary, but was added for the official internal
-    # PyPI mirror, which requires serving packages from
-    # https://files.pythonhosted.org
-    root_uri: Optional[str] = ""
-
-    diff_file = None
-    diff_append_epoch = False
-    diff_full_path = None
+    errors = False
 
     need_wrapup = False
 
@@ -217,22 +191,31 @@ class BandersnatchMirror(Mirror):
         *,
         cleanup: bool = False,
     ) -> None:
-        super().__init__(master=master, stop_on_error=stop_on_error, workers=workers)
+        super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
 
         if storage_backend:
             self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
         else:
             self.storage_backend = next(iter(storage_backend_plugins()))
+        self.stop_on_error = stop_on_error
         self.loop = asyncio.get_event_loop()
         self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
         self.filters = LoadedFilters(load_all=True)
+        # Stop soon after meeting an error. Continue without updating the
+        # mirror's serial if false.
         self.stop_on_error = stop_on_error
-        self.json_save = json_save
+        self.json_save = (
+            json_save  # Whether or not to mirror PyPI JSON metadata to disk
+        )
         self.hash_index = hash_index
-        self.root_uri = root_uri or ""
+        # Allow configuring a root_uri to make generated index pages absolute.
+        # This is generally not necessary, but was added for the official internal
+        # PyPI mirror, which requires serving packages from
+        # https://files.pythonhosted.org
+        self.root_uri: Optional[str] = root_uri or ""
         self.diff_file = diff_file
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
@@ -331,6 +314,29 @@ class BandersnatchMirror(Mirror):
         if self.need_wrapup:
             self.wrapup_successful_sync()
         return None
+
+    def on_error(self, exception: BaseException, **kwargs: Dict) -> None:
+        self.errors = True
+        if isinstance(exception, KeyboardInterrupt):
+            # Setting self.errors to True to ensure we don't save Serial
+            # and thus save to disk that we've had a successful sync
+            logger.info(
+                "Cancelling, all downloads are forcibly stopped, data may be "
+                + "corrupted. Serial will not be saved to disk. "
+                + "Next sync will start from previous serial"
+            )
+        elif isinstance(exception, TypeError) or isinstance(exception, ValueError):
+            # This occurs for testing or when todolist is corrupt
+            pass
+        else:
+            package: Any = kwargs.get("package", None)
+            if package:
+                logger.exception(
+                    f"Error syncing package: {package.name}@{package.serial}"
+                )
+            if self.stop_on_error:
+                logger.error("Exiting early after error.")
+                sys.exit(1)
 
     def _validate_todo(self) -> None:
         """Does a couple of cleanup tasks to ensure consistent data for later
@@ -604,7 +610,9 @@ class BandersnatchMirror(Mirror):
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
         if self.json_pypi_symlink(name).exists():
             self.json_pypi_symlink(name).unlink()
-        self.json_pypi_symlink(name).symlink_to(self.json_file(name))
+        self.json_pypi_symlink(name).symlink_to(
+            os.path.relpath(self.json_file(name), self.json_pypi_symlink(name).parent)
+        )
 
         return True
 

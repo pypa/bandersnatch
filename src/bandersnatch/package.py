@@ -1,11 +1,6 @@
 import asyncio
 import logging
-import os
-import sys
-from json import dump
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-from urllib.parse import unquote, urlparse
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from packaging.utils import canonicalize_name
 
@@ -55,48 +50,7 @@ class Package:
 
         return release_files
 
-    @property
-    def json_file(self) -> Path:
-        return Path(self.mirror.webdir / "json" / self.name)
-
-    @property
-    def json_pypi_symlink(self) -> Path:
-        return Path(self.mirror.webdir / "pypi" / self.name / "json")
-
-    @property
-    def simple_directory(self) -> Path:
-        if self.mirror.hash_index:
-            return Path(self.mirror.webdir / "simple" / self.name[0] / self.name)
-        return Path(self.mirror.webdir / "simple" / self.name)
-
-    def save_json_metadata(self, package_info: Dict) -> bool:
-        """
-        Take the JSON metadata we just fetched and save to disk
-        """
-        try:
-            # TODO: Fix this so it works with swift
-            with self.mirror.storage_backend.rewrite(self.json_file) as jf:
-                dump(package_info, jf, indent=4, sort_keys=True)
-            self.mirror.diff_file_list.append(self.json_file)
-        except Exception as e:
-            logger.error(
-                f"Unable to write json to {self.json_file}: {str(e)} ({type(e)})"
-            )
-            return False
-
-        symlink_dir = self.json_pypi_symlink.parent
-        symlink_dir.mkdir(exist_ok=True)
-        # Lets always ensure symlink is pointing to correct self.json_file
-        # In 4.0 we move to normalized name only so want to overwrite older symlinks
-        if self.json_pypi_symlink.exists():
-            self.json_pypi_symlink.unlink()
-        self.json_pypi_symlink.symlink_to(
-            os.path.relpath(self.json_file, self.json_pypi_symlink.parent)
-        )
-
-        return True
-
-    async def update_metadata(self, attempts: int = 3) -> None:
+    async def update_metadata(self, master: "Master", attempts: int = 3) -> None:
         tries = 0
         sleep_on_stale = 1
 

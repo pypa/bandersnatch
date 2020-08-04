@@ -123,7 +123,7 @@ packages =
 """
         )
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
@@ -146,7 +146,7 @@ packages =
     bar~=3.0,<=1.5
 """
         )
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {
             "foo": "",
             "bar": "",
@@ -239,8 +239,8 @@ packages =
 """
         )
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
             "releases": {
@@ -253,7 +253,7 @@ packages =
             },
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.1.0a2": {}, "1.1.1beta1": {}, "1.2.0": {}})
 
@@ -269,13 +269,13 @@ packages =
 """
         )
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
             "releases": {"1.2.0": {}, "1.2.1": {}},
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.2.0": {}})
