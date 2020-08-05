@@ -116,7 +116,7 @@ async def verify(
 
     # apply releases filter plugins like class Package
     for plugin in LoadedFilters().filter_release_plugins() or []:
-        plugin.filter(pkg["info"])
+        plugin.filter(pkg)
 
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
