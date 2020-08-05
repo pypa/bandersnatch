@@ -41,7 +41,7 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
             return
 
         try:
-            tags = self.configuration["blacklist"]["platforms"].split()
+            tags = self.blocklist["platforms"].split()
         except KeyError:
             logger.error(f"Plugin {self.name}: missing platforms= setting")
             return

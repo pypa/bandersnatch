@@ -13,7 +13,7 @@ from bandersnatch.mirror import Mirror
 from bandersnatch.package import Package
 
 
-class TestWhitelistProject(TestCase):
+class TestAllowListProject(TestCase):
     """
     Tests for the bandersnatch filtering classes
     """
@@ -39,13 +39,13 @@ class TestWhitelistProject(TestCase):
             contents="""\
 [plugins]
 enabled =
-    whitelist_project
+    allowlist_project
 """
         )
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ["whitelist_project"])
+        self.assertListEqual(names, ["allowlist_project"])
         self.assertEqual(len(plugins), 1)
 
     def test__plugin__loads__default(self) -> None:
@@ -60,7 +60,7 @@ storage-backend = filesystem
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
         names = [plugin.name for plugin in plugins]
-        self.assertNotIn("whitelist_project", names)
+        self.assertNotIn("allowlist_project", names)
 
     def test__filter__matches__package(self) -> None:
         mock_config(
@@ -70,9 +70,9 @@ storage-backend = filesystem
 
 [plugins]
 enabled =
-    whitelist_project
+    allowlist_project
 
-[whitelist]
+[allowlist]
 packages =
     foo
 """
@@ -92,9 +92,9 @@ storage-backend = filesystem
 
 [plugins]
 enabled =
-    whitelist_project
+    allowlist_project
 
-[whitelist]
+[allowlist]
 packages =
     foo
 """
@@ -106,6 +106,28 @@ packages =
 
         self.assertIn("foo", mirror.packages_to_sync.keys())
         self.assertNotIn("foo2", mirror.packages_to_sync.keys())
+
+    def test__filter__name_only(self) -> None:
+        mock_config(
+            """\
+[mirror]
+storage-backend = filesystem
+
+[plugins]
+enabled =
+    allowlist_project
+
+[allowlist]
+packages =
+    foo==1.2.3
+"""
+        )
+
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {"foo": "4.5.6"}
+        mirror._filter_packages()
+
+        self.assertIn("foo", mirror.packages_to_sync.keys())
 
 
 class TestAllowlistRelease(TestCase):
@@ -161,7 +183,7 @@ enabled =
 [plugins]
 enabled =
     allowlist_release
-[whitelist]
+[allowlist]
 packages =
     foo==1.2.0
 """

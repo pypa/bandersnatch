@@ -6,6 +6,8 @@ from unittest import TestCase
 
 from mock_config import mock_config
 
+from bandersnatch.configuration import BandersnatchConfig
+
 from bandersnatch.filter import (  # isort:skip
     Filter,
     FilterProjectPlugin,
@@ -44,9 +46,9 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "blacklist_project",
+            "blocklist_project",
             "regex_project",
-            "whitelist_project",
+            "allowlist_project",
         ]
 
         plugins = LoadedFilters().filter_project_plugins()
@@ -62,7 +64,7 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "blacklist_release",
+            "blocklist_release",
             "prerelease_release",
             "regex_release",
             "latest_release",
@@ -122,20 +124,30 @@ enabled =
             error = True
         self.assertFalse(error)
 
-    def test__filter_project_blacklist_whitelist__pep503_normalize(self) -> None:
+    def test_deprecated_keys(self) -> None:
+        with open("test.conf", "w") as f:
+            f.write("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
+        instance = BandersnatchConfig()
+        instance.config_file = "test.conf"
+        instance.load_configuration()
+        plugin = Filter()
+        assert plugin.allowlist.name == "allowlist"
+        assert plugin.blocklist.name == "blocklist"
+
+    def test__filter_project_blocklist_allowlist__pep503_normalize(self) -> None:
         mock_config(
             """\
 [plugins]
 enabled =
-    blacklist_project
-    whitelist_project
+    blocklist_project
+    allowlist_project
 
-[blacklist]
+[blocklist]
 packages =
     SampleProject
     trove----classifiers
 
-[whitelist]
+[allowlist]
 packages =
     SampleProject
     trove----classifiers
@@ -146,13 +158,13 @@ packages =
             plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()
         }
 
-        self.assertTrue(plugins["blacklist_project"].check_match(name="sampleproject"))
+        self.assertTrue(plugins["blocklist_project"].check_match(name="sampleproject"))
         self.assertTrue(
-            plugins["blacklist_project"].check_match(name="trove-classifiers")
+            plugins["blocklist_project"].check_match(name="trove-classifiers")
         )
-        self.assertFalse(plugins["whitelist_project"].check_match(name="sampleproject"))
+        self.assertFalse(plugins["allowlist_project"].check_match(name="sampleproject"))
         self.assertFalse(
-            plugins["whitelist_project"].check_match(name="trove-classifiers")
+            plugins["allowlist_project"].check_match(name="trove-classifiers")
         )
 
 

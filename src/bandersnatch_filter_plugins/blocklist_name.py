@@ -10,37 +10,38 @@ from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 logger = logging.getLogger("bandersnatch")
 
 
-class WhitelistProject(FilterProjectPlugin):
-    name = "whitelist_project"
+class BlockListProject(FilterProjectPlugin):
+    name = "blocklist_project"
+    deprecated_name = "blacklist_project"
     # Requires iterable default
-    whitelist_package_names: List[str] = []
+    blocklist_package_names: List[str] = []
 
     def initialize_plugin(self) -> None:
         """
         Initialize the plugin
         """
-        # Generate a list of whitelisted packages from the configuration and
-        # store it into self.whitelist_package_names attribute so this
+        # Generate a list of blocklisted packages from the configuration and
+        # store it into self.blocklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        if not self.whitelist_package_names:
-            self.whitelist_package_names = self._determine_unfiltered_package_names()
+        if not self.blocklist_package_names:
+            self.blocklist_package_names = self._determine_filtered_package_names()
             logger.info(
                 f"Initialized project plugin {self.name}, filtering "
-                + f"{self.whitelist_package_names}"
+                + f"{self.blocklist_package_names}"
             )
 
-    def _determine_unfiltered_package_names(self) -> List[str]:
+    def _determine_filtered_package_names(self) -> List[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
         """
         # This plugin only processes packages, if the line in the packages
         # configuration contains a PEP440 specifier it will be processed by the
-        # whitelist release filter.  So we need to remove any packages that
+        # blocklist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
-        unfiltered_packages: Set[str] = set()
+        filtered_packages: Set[str] = set()
         try:
-            lines = self.configuration["whitelist"]["packages"]
+            lines = self.blocklist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
@@ -48,65 +49,74 @@ class WhitelistProject(FilterProjectPlugin):
             package_line = canonicalize_name(package_line.strip())
             if not package_line or package_line.startswith("#"):
                 continue
-            unfiltered_packages.add(package_line)
-        return list(unfiltered_packages)
+            package_requirement = Requirement(package_line)
+            if package_requirement.specifier:
+                continue
+            if package_requirement.name != package_line:
+                logger.debug(
+                    "Package line %r does not requirement name %r",
+                    package_line,
+                    package_requirement.name,
+                )
+                continue
+            filtered_packages.add(Requirement(package_line).name)
+        logger.debug("Project blocklist is %r", list(filtered_packages))
+        return list(filtered_packages)
 
     def filter(self, metadata: Dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs: Any) -> bool:
         """
-        Check if the package name matches against a project that is whitelisted
+        Check if the package name matches against a project that is blocklisted
         in the configuration.
 
         Parameters
         ==========
         name: str
             The normalized package name of the package/project to check against
-            the whitelist.
+            the blocklist.
 
         Returns
         =======
         bool:
             True if it matches, False otherwise.
         """
-        if not self.whitelist_package_names:
-            return False
-
         name = kwargs.get("name", None)
         if not name:
             return False
 
-        if canonicalize_name(name) in self.whitelist_package_names:
-            logger.info(f"Package {name!r} is whitelisted")
-            return False
-        return True
+        if canonicalize_name(name) in self.blocklist_package_names:
+            logger.info(f"Package {name!r} is blocklisted")
+            return True
+        return False
 
 
-class AllowlistRelease(FilterReleasePlugin):
-    name = "allowlist_release"
+class BlockListRelease(FilterReleasePlugin):
+    name = "blocklist_release"
+    deprecated_name = "blacklist_release"
     # Requires iterable default
-    allowlist_package_names: List[Requirement] = []
+    blocklist_package_names: List[Requirement] = []
 
     def initialize_plugin(self) -> None:
         """
         Initialize the plugin
         """
-        # Generate a list of allowlisted packages from the configuration and
-        # store it into self.allowlist_package_names attribute so this
+        # Generate a list of blocklisted packages from the configuration and
+        # store it into self.blocklist_package_names attribute so this
         # operation doesn't end up in the fastpath.
-        if not self.allowlist_package_names:
-            self.allowlist_release_requirements = (
+        if not self.blocklist_package_names:
+            self.blocklist_release_requirements = (
                 self._determine_filtered_package_requirements()
             )
             logger.info(
                 f"Initialized release plugin {self.name}, filtering "
-                + f"{self.allowlist_release_requirements}"
+                + f"{self.blocklist_release_requirements}"
             )
 
     def _determine_filtered_package_requirements(self) -> List[Requirement]:
         """
-        Parse the configuration file for [whitelist]packages
+        Parse the configuration file for [blocklist]packages
 
         Returns
         -------
@@ -115,7 +125,7 @@ class AllowlistRelease(FilterReleasePlugin):
         """
         filtered_requirements: Set[Requirement] = set()
         try:
-            lines = self.configuration["whitelist"]["packages"]
+            lines = self.blocklist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
@@ -129,15 +139,15 @@ class AllowlistRelease(FilterReleasePlugin):
     def filter(self, metadata: Dict) -> bool:
         """
         Returns False if version fails the filter,
-        i.e. doesn't matches an allowlist version specifier
+        i.e. matches a blocklist version specifier
         """
         name = metadata["info"]["name"]
         version = metadata["version"]
-        return self._check_match(name, version)
+        return not self._check_match(name, version)
 
     def _check_match(self, name: str, version_string: str) -> bool:
         """
-        Check if the package name and version matches against an allowlisted
+        Check if the package name and version matches against a blocklisted
         package version specifier.
 
         Parameters
@@ -161,7 +171,7 @@ class AllowlistRelease(FilterReleasePlugin):
         except InvalidVersion:
             logger.debug(f"Package {name}=={version_string} has an invalid version")
             return False
-        for requirement in self.allowlist_release_requirements:
+        for requirement in self.blocklist_release_requirements:
             if name != requirement.name:
                 continue
             if version in requirement.specifier:

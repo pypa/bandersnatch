@@ -116,14 +116,14 @@ def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
 
 def test_mirror_filter_packages_match(tmpdir: Path) -> None:
     """
-    Packages that exist in the blacklist should be removed from the list of
+    Packages that exist in the blocklist should be removed from the list of
     packages to sync.
     """
     test_configuration = """\
 [plugins]
 enabled =
-    blacklist_project
-[blacklist]
+    blocklist_project
+[blocklist]
 packages =
     example1
 """
@@ -145,8 +145,8 @@ def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
     test_configuration = """\
 [plugins]
 enable =
-    blacklist_project
-[blacklist]
+    blocklist_project
+[blocklist]
 packages =
     example3>2.0.0
 """

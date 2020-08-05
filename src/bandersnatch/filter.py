@@ -2,11 +2,15 @@
 Blacklist management
 """
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import pkg_resources
 
 from .configuration import BandersnatchConfig
+
+if TYPE_CHECKING:
+    from configparser import SectionProxy
+
 
 # The API_REVISION is incremented if the plugin class is modified in a
 # backwards incompatible way.  In order to prevent loading older
@@ -29,6 +33,7 @@ class Filter:
     """
 
     name = "filter"
+    deprecated_name: str = ""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
@@ -39,7 +44,12 @@ class Filter:
             return
 
         split_plugins = self.configuration["plugins"]["enabled"].split("\n")
-        if "all" not in split_plugins and self.name not in split_plugins:
+        if (
+            "all" not in split_plugins
+            and self.name not in split_plugins
+            # NOTE: Remove after 5.0
+            and not (self.deprecated_name and self.deprecated_name in split_plugins)
+        ):
             return
 
         self.initialize_plugin()
@@ -76,6 +86,23 @@ class Filter:
             True if the values match a filter rule, False otherwise
         """
         return False
+
+    # NOTE: These two can be removed in 5.0
+    @property
+    def allowlist(self) -> "SectionProxy":
+        return (
+            self.configuration["whitelist"]
+            if self.configuration.has_section("whitelist")
+            else self.configuration["allowlist"]
+        )
+
+    @property
+    def blocklist(self) -> "SectionProxy":
+        return (
+            self.configuration["blacklist"]
+            if self.configuration.has_section("blacklist")
+            else self.configuration["blocklist"]
+        )
 
 
 class FilterProjectPlugin(Filter):
@@ -163,6 +190,7 @@ class LoadedFilters:
                 if (
                     "all" in self.enabled_plugins
                     or plugin_instance.name in self.enabled_plugins
+                    or plugin_instance.deprecated_name in self.enabled_plugins
                 ):
                     plugins.add(plugin_instance)
 

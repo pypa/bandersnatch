@@ -12,10 +12,10 @@ Package contents
 Submodules
 ----------
 
-bandersnatch_filter_plugins.blacklist_name module
+bandersnatch_filter_plugins.blocklist_name module
 -------------------------------------------------
 
-.. automodule:: bandersnatch_filter_plugins.blacklist_name
+.. automodule:: bandersnatch_filter_plugins.blocklist_name
    :members:
    :undoc-members:
    :show-inheritance:
@@ -60,10 +60,10 @@ bandersnatch_filter_plugins.regex_name module
    :undoc-members:
    :show-inheritance:
 
-bandersnatch_filter_plugins.whitelist_name module
+bandersnatch_filter_plugins.allowlist_name module
 -------------------------------------------------
 
-.. automodule:: bandersnatch_filter_plugins.whitelist_name
+.. automodule:: bandersnatch_filter_plugins.allowlist_name
    :members:
    :undoc-members:
    :show-inheritance:
