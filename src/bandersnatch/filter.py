@@ -97,11 +97,11 @@ class Filter:
         )
 
     @property
-    def denylist(self) -> "SectionProxy":
+    def blocklist(self) -> "SectionProxy":
         return (
             self.configuration["blacklist"]
             if self.configuration.has_section("blacklist")
-            else self.configuration["denylist"]
+            else self.configuration["blocklist"]
         )
 
 

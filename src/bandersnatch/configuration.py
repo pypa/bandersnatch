@@ -70,7 +70,7 @@ class BandersnatchConfig(metaclass=Singleton):
         if self.config.has_section("whitelist") or self.config.has_section("blacklist"):
             err_msg = (
                 "whitelist/blacklist filter plugins will be renamed to "
-                "allowlist_*/denylist_* in version 5.0 "
+                "allowlist_*/blocklist_* in version 5.0 "
                 " - Documentation @ https://bandersnatch.readthedocs.io/"
             )
             warnings.warn(err_msg, DeprecationWarning, stacklevel=2)

@@ -46,7 +46,7 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "denylist_project",
+            "blocklist_project",
             "regex_project",
             "allowlist_project",
         ]
@@ -64,7 +64,7 @@ enabled = all
 """
         )
         builtin_plugin_names = [
-            "denylist_release",
+            "blocklist_release",
             "prerelease_release",
             "regex_release",
             "latest_release",
@@ -126,23 +126,23 @@ enabled =
 
     def test_deprecated_keys(self) -> None:
         with open("test.conf", "w") as f:
-            f.write("[allowlist]\npackages=foo\n[denylist]\npackages=bar\n")
+            f.write("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
         instance = BandersnatchConfig()
         instance.config_file = "test.conf"
         instance.load_configuration()
         plugin = Filter()
         assert plugin.allowlist.name == "allowlist"
-        assert plugin.denylist.name == "denylist"
+        assert plugin.blocklist.name == "blocklist"
 
-    def test__filter_project_denylist_allowlist__pep503_normalize(self) -> None:
+    def test__filter_project_blocklist_allowlist__pep503_normalize(self) -> None:
         mock_config(
             """\
 [plugins]
 enabled =
-    denylist_project
+    blocklist_project
     allowlist_project
 
-[denylist]
+[blocklist]
 packages =
     SampleProject
     trove----classifiers
@@ -158,9 +158,9 @@ packages =
             plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()
         }
 
-        self.assertTrue(plugins["denylist_project"].check_match(name="sampleproject"))
+        self.assertTrue(plugins["blocklist_project"].check_match(name="sampleproject"))
         self.assertTrue(
-            plugins["denylist_project"].check_match(name="trove-classifiers")
+            plugins["blocklist_project"].check_match(name="trove-classifiers")
         )
         self.assertFalse(plugins["allowlist_project"].check_match(name="sampleproject"))
         self.assertFalse(

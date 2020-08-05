@@ -37,7 +37,7 @@ class AllowListProject(FilterProjectPlugin):
         """
         # This plugin only processes packages, if the line in the packages
         # configuration contains a PEP440 specifier it will be processed by the
-        # denylist release filter.  So we need to remove any packages that
+        # blocklist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
         unfiltered_packages: Set[str] = set()
         try:
@@ -57,14 +57,14 @@ class AllowListProject(FilterProjectPlugin):
 
     def check_match(self, **kwargs: Any) -> bool:
         """
-        Check if the package name matches against a project that is denylisted
+        Check if the package name matches against a project that is blocklisted
         in the configuration.
 
         Parameters
         ==========
         name: str
             The normalized package name of the package/project to check against
-            the denylist.
+            the blocklist.
 
         Returns
         =======

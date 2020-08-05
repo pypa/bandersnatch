@@ -12,10 +12,10 @@ Package contents
 Submodules
 ----------
 
-bandersnatch_filter_plugins.denylist_name module
+bandersnatch_filter_plugins.blocklist_name module
 -------------------------------------------------
 
-.. automodule:: bandersnatch_filter_plugins.denylist_name
+.. automodule:: bandersnatch_filter_plugins.blocklist_name
    :members:
    :undoc-members:
    :show-inheritance:

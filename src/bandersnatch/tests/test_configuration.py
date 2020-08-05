@@ -55,7 +55,7 @@ class TestBandersnatchConf(TestCase):
         ) as config_file:
             instance = BandersnatchConfig(str(config_file))
             # All default values should at least be present and be the write types
-            for section in ["mirror", "plugins", "denylist"]:
+            for section in ["mirror", "plugins", "blocklist"]:
                 self.assertIn(section, instance.config.sections())
 
     def test_single_config__default__mirror__setting_attributes(self) -> None:
