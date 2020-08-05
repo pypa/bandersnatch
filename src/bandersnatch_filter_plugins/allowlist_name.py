@@ -37,7 +37,7 @@ class AllowListProject(FilterProjectPlugin):
         """
         # This plugin only processes packages, if the line in the packages
         # configuration contains a PEP440 specifier it will be processed by the
-        # blocklist release filter.  So we need to remove any packages that
+        # allowlist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
         unfiltered_packages: Set[str] = set()
         try:

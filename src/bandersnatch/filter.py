@@ -2,7 +2,7 @@
 Blacklist management
 """
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import pkg_resources
 
@@ -33,7 +33,7 @@ class Filter:
     """
 
     name = "filter"
-    deprecated_name: Optional[str] = None
+    deprecated_name: str = ""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.configuration = BandersnatchConfig().config
