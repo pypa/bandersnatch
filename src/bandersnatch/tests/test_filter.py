@@ -1,4 +1,5 @@
 import os
+import sys
 import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -25,6 +26,8 @@ class TestBandersnatchFilter(TestCase):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
+        sys.stderr.write(self.tempdir.name)
+        sys.stderr.flush()
 
     def tearDown(self) -> None:
         if self.tempdir:
@@ -118,6 +121,39 @@ enabled =
         except Exception:
             error = True
         self.assertFalse(error)
+
+    def test__filter_project_blacklist_whitelist__pep503_normalize(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    blacklist_project
+    whitelist_project
+
+[blacklist]
+packages =
+    SampleProject
+    trove----classifiers
+
+[whitelist]
+packages =
+    SampleProject
+    trove----classifiers
+"""
+        )
+
+        plugins = {
+            plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()
+        }
+
+        self.assertTrue(plugins["blacklist_project"].check_match(name="sampleproject"))
+        self.assertTrue(
+            plugins["blacklist_project"].check_match(name="trove-classifiers")
+        )
+        self.assertFalse(plugins["whitelist_project"].check_match(name="sampleproject"))
+        self.assertFalse(
+            plugins["whitelist_project"].check_match(name="trove-classifiers")
+        )
 
 
 if __name__ == "__main__":
