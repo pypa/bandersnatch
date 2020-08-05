@@ -1,4 +1,5 @@
 import os
+import sys
 import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -27,6 +28,8 @@ class TestBandersnatchFilter(TestCase):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
+        sys.stderr.write(self.tempdir.name)
+        sys.stderr.flush()
 
     def tearDown(self) -> None:
         if self.tempdir:
@@ -123,13 +126,46 @@ enabled =
 
     def test_deprecated_keys(self) -> None:
         with open("test.conf", "w") as f:
-            f.write("[whitelist]\npackages=foo\n[blacklist]\npackages=bar\n")
+            f.write("[allowlist]\npackages=foo\n[denylist]\npackages=bar\n")
         instance = BandersnatchConfig()
         instance.config_file = "test.conf"
         instance.load_configuration()
         plugin = Filter()
-        assert plugin.allowlist.name == "whitelist"
-        assert plugin.denylist.name == "blacklist"
+        assert plugin.allowlist.name == "allowlist"
+        assert plugin.denylist.name == "denylist"
+
+    def test__filter_project_denylist_allowlist__pep503_normalize(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    denylist_project
+    allowlist_project
+
+[denylist]
+packages =
+    SampleProject
+    trove----classifiers
+
+[allowlist]
+packages =
+    SampleProject
+    trove----classifiers
+"""
+        )
+
+        plugins = {
+            plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()
+        }
+
+        self.assertTrue(plugins["denylist_project"].check_match(name="sampleproject"))
+        self.assertTrue(
+            plugins["denylist_project"].check_match(name="trove-classifiers")
+        )
+        self.assertFalse(plugins["allowlist_project"].check_match(name="sampleproject"))
+        self.assertFalse(
+            plugins["allowlist_project"].check_match(name="trove-classifiers")
+        )
 
 
 if __name__ == "__main__":

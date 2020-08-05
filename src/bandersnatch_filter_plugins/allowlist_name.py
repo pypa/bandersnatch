@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Set
 
 from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
@@ -19,7 +20,7 @@ class AllowListProject(FilterProjectPlugin):
         """
         Initialize the plugin
         """
-        # Generate a list of alloylisted packages from the configuration and
+        # Generate a list of allowlisted packages from the configuration and
         # store it into self.allowlist_package_names attribute so this
         # operation doesn't end up in the fastpath.
         if not self.allowlist_package_names:
@@ -45,7 +46,7 @@ class AllowListProject(FilterProjectPlugin):
         except KeyError:
             package_lines = []
         for package_line in package_lines:
-            package_line = package_line.strip()
+            package_line = canonicalize_name(package_line.strip())
             if not package_line or package_line.startswith("#"):
                 continue
             unfiltered_packages.add(Requirement(package_line).name)
@@ -77,7 +78,7 @@ class AllowListProject(FilterProjectPlugin):
         if not name:
             return False
 
-        if name in self.allowlist_package_names:
+        if canonicalize_name(name) in self.allowlist_package_names:
             logger.info(f"Package {name!r} is allowlisted")
             return False
         return True
