@@ -196,3 +196,33 @@ packages =
         pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.2.1": {}})
+
+    def test__dont__filter__prereleases(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    blocklist_release
+[blocklist]
+packages =
+    foo<=1.2.0
+"""
+        )
+
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1, mirror)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {
+                "1.1.0a2": {},
+                "1.1.1beta1": {},
+                "1.2.0": {},
+                "1.2.1": {},
+                "1.2.2alpha3": {},
+                "1.2.3rc1": {},
+            },
+        }
+
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual(pkg.releases, {"1.2.1": {}, "1.2.2alpha3": {}, "1.2.3rc1": {}})
