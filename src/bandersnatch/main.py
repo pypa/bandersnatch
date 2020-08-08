@@ -143,7 +143,9 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
 
 
 def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
-    parser = argparse.ArgumentParser(description="PyPI PEP 381 mirroring client.")
+    parser = argparse.ArgumentParser(
+        description="PyPI PEP 381 mirroring client.", prog="bandersnatch"
+    )
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
     )
