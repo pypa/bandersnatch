@@ -2,6 +2,7 @@
 
 """
 Quick tool to test xmlrpc queries from bandersnatch
+- Note this is >= 3.7 only due to asyncio.run
 """
 
 import asyncio
@@ -17,4 +18,4 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
-    exit(asyncio.run(main()))
+    exit(asyncio.run(main()))  # type: ignore
