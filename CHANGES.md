@@ -1,3 +1,39 @@
+# 4.1.0 (2020-8-9)
+
+*Storage abstraction refactor + Type Annotating!*
+
+## New Features
+
+- bandersnatch is now 100% type annotated - `PRs #546 #561 #592 #593` - Thanks **@ichard26** + **@rkm**
+- Move to storage abstraction - `PR #445` - Thanks **@techalchemy**
+  - Can now support more than just filesystem e.g. swift
+- Add `sync` subcommand to force a sync on a particular PyPI package - `PR #572` - Thanks **@z4yx**
+- Added new allowlist filter - `PR #626` - Thanks **@gerrod3**
+- Make webdir/pypi/json/PKG symlinks relative - `PR #637` - Thanks **@indrat**
+  - Makes mirror files more portable
+- Add __main__ and program name override to ArgumentParser - `PR #643` - Thanks **@rkm**
+  - Allow non pkg_resources install to work
+
+## Internal API Changes
+
+- Refactored the removal of releases for release_plugins to happen inside of Package `PR #608` - Thanks **@gerrod3**
+- Minor refactor of Package class `PR #606` - Thanks **@dralley**
+- Refactored filter loading into seperate class `PR #599` - Thanks **@gerrod3**
+- Move legacy directory cleanup to mirror.py `PR #586`
+- Move verify to use Master for HTTP calls - `PR #555`
+- Move http request code for package metadata to master.py - `PRs #550` - Thanks **@dralley**
+
+## Bug Fixes
+
+- Fixed allow/blocklist release filtering pre-releases - `PR #641` - Thanks **@gerrod3**
+- Casefold *(normalize per PEP503)* package names in blacklist/whitelist plugins config - `PR #629` - Thanks **@lepaperwan**
+- Fix passing package info to filters in verify action. `PR #638` - Thanks **@indrat**
+- Fix todo file removal - `PR #571`
+- Introduce a new `global-timeout` config option for aiohttp coroutines - Default 5 hours - `PR #540` - Thanks **@techalchemy**
+- Many doc fixes - `PRs #542 #551 #557 #605 #628 #630` - Thanks **@pgrimaud** + **@ichard26** + **@hugovk**
+- Move to setting timeout only on session + 10 * total_timeout (over sock timeouts) - `PR #535`
+- Stop using `include_package_data` option in setup.cfg to get config files included in more installs - `PR #519`
+
 ## 4.0.3 (2020-5-7)
 
 - Change aiohttp-xmlrpc to use Master.session to ensure config shared - `PR #506` - Thanks **@alebourdoulous** for reporting
