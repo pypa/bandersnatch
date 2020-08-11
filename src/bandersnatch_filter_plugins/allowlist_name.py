@@ -46,10 +46,10 @@ class AllowListProject(FilterProjectPlugin):
         except KeyError:
             package_lines = []
         for package_line in package_lines:
-            package_line = canonicalize_name(package_line.strip())
+            package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
-            unfiltered_packages.add(Requirement(package_line).name)
+            unfiltered_packages.add(canonicalize_name(Requirement(package_line).name))
         return list(unfiltered_packages)
 
     def filter(self, metadata: Dict) -> bool:
@@ -126,6 +126,7 @@ class AllowListRelease(FilterReleasePlugin):
             if not package_line or package_line.startswith("#"):
                 continue
             requirement = Requirement(package_line)
+            requirement.name = canonicalize_name(requirement.name)
             requirement.specifier.prereleases = True
             filtered_requirements.add(requirement)
         return list(filtered_requirements)
@@ -137,7 +138,7 @@ class AllowListRelease(FilterReleasePlugin):
         """
         name = metadata["info"]["name"]
         version = metadata["version"]
-        return self._check_match(name, version)
+        return self._check_match(canonicalize_name(name), version)
 
     def _check_match(self, name: str, version_string: str) -> bool:
         """

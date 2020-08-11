@@ -124,10 +124,37 @@ packages =
         )
 
         mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo": "4.5.6"}
+        mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
         self.assertIn("foo", mirror.packages_to_sync.keys())
+        self.assertNotIn("foo2", mirror.packages_to_sync.keys())
+
+    def test__filter__varying__specifiers(self) -> None:
+        mock_config(
+            """\
+[mirror]
+storage-backend = filesystem
+
+[plugins]
+enabled =
+    allowlist_project
+
+[allowlist]
+packages =
+    foo==1.2.3
+    bar~=3.0,<=1.5
+"""
+        )
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {
+            "foo": "",
+            "bar": "",
+            "snu": "",
+        }
+        mirror._filter_packages()
+
+        self.assertEqual({"foo": "", "bar": ""}, mirror.packages_to_sync)
 
 
 class TestAllowlistRelease(TestCase):
@@ -229,3 +256,26 @@ packages =
         pkg._filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.1.0a2": {}, "1.1.1beta1": {}, "1.2.0": {}})
+
+    def test__casing__no__affect(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    allowlist_release
+[allowlist]
+packages =
+    Foo<=1.2.0
+"""
+        )
+
+        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1, mirror)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}},
+        }
+
+        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual(pkg.releases, {"1.2.0": {}})
