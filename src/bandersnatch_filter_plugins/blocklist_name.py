@@ -46,7 +46,7 @@ class BlockListProject(FilterProjectPlugin):
         except KeyError:
             package_lines = []
         for package_line in package_lines:
-            package_line = canonicalize_name(package_line.strip())
+            package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
             package_requirement = Requirement(package_line)
@@ -59,7 +59,7 @@ class BlockListProject(FilterProjectPlugin):
                     package_requirement.name,
                 )
                 continue
-            filtered_packages.add(Requirement(package_line).name)
+            filtered_packages.add(canonicalize_name(package_requirement.name))
         logger.debug("Project blocklist is %r", list(filtered_packages))
         return list(filtered_packages)
 
@@ -134,6 +134,7 @@ class BlockListRelease(FilterReleasePlugin):
             if not package_line or package_line.startswith("#"):
                 continue
             requirement = Requirement(package_line)
+            requirement.name = canonicalize_name(requirement.name)
             requirement.specifier.prereleases = True
             filtered_requirements.add(requirement)
         return list(filtered_requirements)
@@ -145,7 +146,7 @@ class BlockListRelease(FilterReleasePlugin):
         """
         name = metadata["info"]["name"]
         version = metadata["version"]
-        return not self._check_match(name, version)
+        return not self._check_match(canonicalize_name(name), version)
 
     def _check_match(self, name: str, version_string: str) -> bool:
         """
