@@ -1,3 +1,9 @@
+## 4.1.1 (2020-8-12)
+
+## Bug Fixes
+
+- Fixed name parsing issue for allow/blocklist project filters - `PR #651` - Thanks **@gerrod3**
+
 # 4.1.0 (2020-8-9)
 
 *Storage abstraction refactor + Type Annotating!*
