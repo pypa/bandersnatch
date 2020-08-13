@@ -11,7 +11,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from asynctest import asynctest
 
 if TYPE_CHECKING:
-    from bandersnatch.mirror import Mirror
+    from bandersnatch.mirror import BandersnatchMirror
     from bandersnatch.master import Master
     from bandersnatch.package import Package
 
@@ -43,10 +43,10 @@ def never_sleep(request: FixtureRequest) -> None:
 
 
 @pytest.fixture
-def package(package_json: dict, mirror: "Mirror") -> "Package":
+def package(package_json: dict) -> "Package":
     from bandersnatch.package import Package
 
-    pkg = Package(package_json["info"]["name"], 0, mirror)
+    pkg = Package(package_json["info"]["name"], serial=11)
     pkg._metadata = package_json
     return pkg
 
@@ -114,26 +114,28 @@ def master(package_json: Dict[str, Any]) -> "Master":
 
 
 @pytest.fixture
-def mirror(tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch) -> "Mirror":
+def mirror(
+    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+) -> "BandersnatchMirror":
     monkeypatch.chdir(tmpdir)
-    from bandersnatch.mirror import Mirror
+    from bandersnatch.mirror import BandersnatchMirror
 
-    return Mirror(tmpdir, master)
+    return BandersnatchMirror(tmpdir, master)
 
 
 @pytest.fixture
 def mirror_hash_index(
     tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
-) -> "Mirror":
+) -> "BandersnatchMirror":
     monkeypatch.chdir(tmpdir)
-    from bandersnatch.mirror import Mirror
+    from bandersnatch.mirror import BandersnatchMirror
 
-    return Mirror(tmpdir, master, hash_index=True)
+    return BandersnatchMirror(tmpdir, master, hash_index=True)
 
 
 @pytest.fixture
 def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
-    patcher = mock.patch("bandersnatch.mirror.Mirror")
+    patcher = mock.patch("bandersnatch.mirror.BandersnatchMirror")
     mirror: mock.MagicMock = patcher.start()
 
     def tearDown() -> None:

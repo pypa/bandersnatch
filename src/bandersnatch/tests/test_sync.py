@@ -4,11 +4,11 @@ import asynctest
 import pytest
 
 from bandersnatch import utils
-from bandersnatch.mirror import Mirror
+from bandersnatch.mirror import BandersnatchMirror
 
 
 @pytest.mark.asyncio
-async def test_sync_specific_packages(mirror: Mirror) -> None:
+async def test_sync_specific_packages(mirror: BandersnatchMirror) -> None:
     FAKE_SERIAL = b"112233"
     with open("status", "wb") as f:
         f.write(FAKE_SERIAL)
@@ -33,6 +33,7 @@ simple{0}index.html""".format(
     ) == utils.find(
         mirror.webdir, dirs=False
     )
+
     assert (
         open("web{0}simple{0}index.html".format(sep)).read()
         == """\

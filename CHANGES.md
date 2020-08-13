@@ -1,3 +1,24 @@
+## New Features
+
+- New generic Mirror class to perform Python metadata syncing (previous Mirror class has been renamed
+ to BandersnatchMirror)
+- Package's filter methods are now part of its public API
+- New errors.py file to house Bandersnatch specific errors
+
+## Internal API Changes
+
+- Old Mirror class has been renamed to BandersnatchMirror.  Performs same functionality with use of new Mirror API.
+- BandersnatchMirror now performs all filesystem operations throughout the sync process including the ones previously
+in Package.
+- Package no longer performs filesystem operations.  Properties `json_file`, `json_pypi_symlink`, `simple_directory`
+and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_python`, `generate_simple_page`,
+`sync_simple_page`, `_save_simple_page_version`, `_prepare_versions_path`, `_file_url_to_local_url`,
+`_file_url_to_local_path`, `download_file` have all been moved into BandersnatchMirror. Package's `sync` has been
+ refactored into Bandersnatch's `process_package`.
+- Package class is no longer created with an instance of Mirror
+- StaleMetadata exception has been moved to new errors.py file
+- PackageNotFound exception has been moved to new errors.py file
+
 ## 4.1.1 (2020-8-12)
 
 ## Bug Fixes

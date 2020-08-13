@@ -7,7 +7,7 @@ from mock_config import mock_config
 
 import bandersnatch.filter
 from bandersnatch.master import Master
-from bandersnatch.mirror import Mirror
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import filename_name
 
@@ -63,8 +63,8 @@ platforms =
         """
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foobar", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foobar", 1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},
             "releases": {
@@ -151,7 +151,7 @@ platforms =
         rv = pkg.releases.values()
         keep_count = sum(f["flag"] == "KEEP" for r in rv for f in r)
 
-        pkg._filter_all_releases_files(mirror.filters.filter_release_file_plugins())
+        pkg.filter_all_releases_files(mirror.filters.filter_release_file_plugins())
 
         # we should have the same keep count and no drop
         rv = pkg.releases.values()

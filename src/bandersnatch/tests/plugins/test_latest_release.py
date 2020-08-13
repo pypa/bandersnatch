@@ -7,7 +7,7 @@ from mock_config import mock_config
 
 import bandersnatch.filter
 from bandersnatch.master import Master
-from bandersnatch.mirror import Mirror
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch_filter_plugins import latest_name
 
@@ -59,8 +59,8 @@ keep = 2
     def test_latest_releases_keep_latest(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
             "releases": {
@@ -73,15 +73,15 @@ keep = 2
             },
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
     def test_latest_releases_keep_stable(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},  # stable version
             "releases": {
@@ -96,7 +96,7 @@ keep = 2
             },
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
@@ -127,8 +127,8 @@ enabled =
     def test_latest_releases_uninitialized(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = Mirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1, mirror)
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
             "releases": {
@@ -141,7 +141,7 @@ enabled =
             },
         }
 
-        pkg._filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         assert pkg.releases == {
             "1.0.0": {},
