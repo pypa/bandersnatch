@@ -52,5 +52,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
         versions_allowed = versions_sorted[:self.keep]
         # Collect string versions back into a list
         version_names = list(map(itemgetter(1), versions_allowed))
+        
+        # Add back latest version if necessary
+        if info.get("version") not in version_names:
+            version_names[-1] = info.get("version")
 
         return version in version_names
