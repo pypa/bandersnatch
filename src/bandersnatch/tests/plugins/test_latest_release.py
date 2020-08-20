@@ -100,6 +100,48 @@ keep = 2
 
         assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
+    def test_latest_releases_ensure_reusable(self) -> None:
+        """
+        Tests the filter multiple times to ensure no state is preserved and
+        thus is reusable between packages
+        """
+        mock_config(self.config_contents)
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg1 = Package("foo", 1)
+        pkg1._metadata = {
+            "info": {"name": "foo", "version": "2.0.0"},
+            "releases": {
+                "0.1.1": {},
+                "0.1.2": {},
+                "0.1.3": {},
+                "1.0.0": {},
+                "1.1.0": {},
+                "1.2.0": {},
+                "2.0.0": {},
+            },
+        }
+        pkg2 = Package("bar", 1)
+        pkg2._metadata = {
+            "info": {"name": "bar", "version": "0.3.0"},
+            "releases": {
+                "0.1.0": {},
+                "0.1.1": {},
+                "0.1.2": {},
+                "0.1.3": {},
+                "0.1.4": {},
+                "0.1.5": {},
+                "0.2.0": {},
+                "0.3.0": {},
+            },
+        }
+
+        pkg1.filter_all_releases(mirror.filters.filter_release_plugins())
+        pkg2.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        assert pkg1.releases == {"1.2.0": {}, "2.0.0": {}}
+        assert pkg2.releases == {"0.2.0": {}, "0.3.0": {}}
+
 
 class TestLatestReleaseFilterUninitialized(BasePluginTestCase):
 
