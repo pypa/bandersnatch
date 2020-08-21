@@ -1,6 +1,6 @@
 import logging
 from operator import itemgetter
-from typing import Dict, Sequence, Tuple, Union
+from typing import Dict, Iterator, Tuple, Union
 
 from packaging.version import LegacyVersion, Version, parse
 
@@ -16,7 +16,6 @@ class LatestReleaseFilter(FilterReleasePlugin):
 
     name = "latest_release"
     keep = 0  # by default, keep 'em all
-    latest: Sequence[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -38,31 +37,26 @@ class LatestReleaseFilter(FilterReleasePlugin):
         """
         Returns False if version fails the filter, i.e. is not a latest/current release
         """
-        if self.keep == 0:
+
+        info: Dict = metadata["info"]
+        releases: Dict = metadata["releases"]
+        version: str = metadata["version"]
+
+        if self.keep == 0 or self.keep > len(releases):
             return True
 
-        if not self.latest:
-            info = metadata["info"]
-            releases = metadata["releases"]
-            versions = list(releases.keys())
-            before = len(versions)
+        versions_pair: Iterator[Tuple[Union[LegacyVersion, Version], str]] = map(
+            lambda v: (parse(v), v), releases.keys()
+        )
+        # Sort all versions
+        versions_sorted = sorted(versions_pair, reverse=True)
+        # Select the first few (larger) items
+        versions_allowed = versions_sorted[: self.keep]
+        # Collect string versions back into a list
+        version_names = list(map(itemgetter(1), versions_allowed))
 
-            if before <= self.keep:
-                # not enough releases: do nothing
-                return True
+        # Add back latest version if necessary
+        if info.get("version") not in version_names:
+            version_names[-1] = info.get("version")
 
-            versions_pair = map(lambda v: (parse(v), v), versions)
-            latest_sorted: Sequence[Tuple[Union[LegacyVersion, Version], str]] = sorted(
-                versions_pair
-            )[
-                -self.keep :  # noqa: E203
-            ]
-            self.latest = list(map(itemgetter(1), latest_sorted))
-
-            current_version = info.get("version")
-            if current_version and (current_version not in self.latest):
-                # never remove the stable/official version
-                self.latest[0] = current_version
-
-        version = metadata["version"]
-        return version in self.latest
+        return version in version_names
