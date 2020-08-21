@@ -195,4 +195,4 @@ keep = 3
 
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
 
-You should be aware that it can break requirements.
+You should be aware that it can break requirements. Prereleases are also kept.
