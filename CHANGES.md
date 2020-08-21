@@ -1,9 +1,13 @@
+# 4.2.0 (2020-8-20)
+
 ## New Features
 
-- New generic Mirror class to perform Python metadata syncing (previous Mirror class has been renamed
- to BandersnatchMirror)
+Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work in PR #591
+
+- New generic Mirror class to perform Python metadata syncing
+  - *(previous Mirror class has been renamed to BandersnatchMirror)*
 - Package's filter methods are now part of its public API
-- New errors.py file to house Bandersnatch specific errors
+- New `errors.py` file to house Bandersnatch specific errors
 
 ## Internal API Changes
 
@@ -19,9 +23,13 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 - StaleMetadata exception has been moved to new errors.py file
 - PackageNotFound exception has been moved to new errors.py file
 
+## Bug Fixes
+
+- Fixed Fix latest_release plugin to ensure latest version is included - `PR #660` - Thanks **@serverwentdown**
+
 ## 4.1.1 (2020-8-12)
 
-## Bug Fixes
+### Bug Fixes
 
 - Fixed name parsing issue for allow/blocklist project filters - `PR #651` - Thanks **@gerrod3**
 
