@@ -1,3 +1,9 @@
+# 4.3.0 (2020-8-XX)
+
+## New Features
+
+- Add SOCKS proxy support to aiohttp via aiohttp-socks - `PR X`
+
 # 4.2.0 (2020-8-20)
 
 ## New Features
