@@ -28,6 +28,7 @@ class SetConfigValues(NamedTuple):
     digest_name: str
     storage_backend_name: str
     cleanup: bool
+    release_files_save: bool
 
 
 class Singleton(type):  # pragma: no cover
@@ -160,6 +161,15 @@ def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues
         )
         cleanup = False
 
+    release_files_save = config.getboolean("mirror", "release-files", fallback=True)
+    if not release_files_save and not root_uri:
+        root_uri = "https://files.pythonhosted.org"
+        logger.error(
+            "Please update your config to include a root_uri in the [mirror] "
+            + "section when disabling release file sync. Setting to "
+            + root_uri
+        )
+
     return SetConfigValues(
         json_save,
         root_uri,
@@ -168,4 +178,5 @@ def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues
         digest_name,
         storage_backend_name,
         cleanup,
+        release_files_save,
     )

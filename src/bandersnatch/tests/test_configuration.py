@@ -71,6 +71,7 @@ class TestBandersnatchConf(TestCase):
                 "hash-index",
                 "json",
                 "master",
+                "release-files",
                 "stop-on-error",
                 "storage-backend",
                 "timeout",
@@ -135,12 +136,29 @@ class TestBandersnatchConf(TestCase):
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(
-            False, "", "", False, "sha256", "filesystem", False
+            False, "", "", False, "sha256", "filesystem", False, True
         )
         no_options_configparser = configparser.ConfigParser()
         no_options_configparser["mirror"] = {}
         self.assertEqual(
             default_values, validate_config_values(no_options_configparser)
+        )
+
+    def test_validate_config_values_release_files_false_sets_root_uri(self) -> None:
+        default_values = SetConfigValues(
+            False,
+            "https://files.pythonhosted.org",
+            "",
+            False,
+            "sha256",
+            "filesystem",
+            False,
+            False,
+        )
+        release_files_false_configparser = configparser.ConfigParser()
+        release_files_false_configparser["mirror"] = {"release-files": "false"}
+        self.assertEqual(
+            default_values, validate_config_values(release_files_false_configparser)
         )
 
     def test_deprecation_warning_raised(self) -> None:
