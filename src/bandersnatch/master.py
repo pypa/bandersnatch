@@ -1,11 +1,14 @@
 import asyncio
 import logging
+import re
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
+from os import environ
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, Optional, Union
 
 import aiohttp
+from aiohttp_socks import ProxyConnector
 from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
@@ -42,6 +45,30 @@ class Master:
             logger.error(err)
             raise ValueError(err)
 
+    def _check_for_socks_proxy(self) -> Optional[ProxyConnector]:
+        """ Check env for a SOCKS proxy URL and return a connector if found """
+        proxy_vars = (
+            "https_proxy",
+            "http_proxy",
+            "all_proxy",
+        )
+        socks_proxy_re = re.compile(r"^socks[45]h?:\/\/.+")
+
+        proxy_url = None
+        for proxy_var in proxy_vars:
+            for pv in (proxy_var, proxy_var.upper()):
+                proxy_url = environ.get(pv)
+                if proxy_url:
+                    break
+            if proxy_url:
+                break
+
+        if not proxy_url or not socks_proxy_re.match(proxy_url):
+            return None
+
+        logger.debug(f"Creating a SOCKS ProxyConnector to use {proxy_url}")
+        return ProxyConnector.from_url(proxy_url)
+
     async def __aenter__(self) -> "Master":
         logger.debug("Initializing Master's aiohttp ClientSession")
         custom_headers = {"User-Agent": USER_AGENT}
@@ -51,11 +78,13 @@ class Master:
             sock_connect=self.timeout,
             sock_read=self.timeout,
         )
+        socks_connector = self._check_for_socks_proxy()
         self.session = aiohttp.ClientSession(
+            connector=socks_connector,
             headers=custom_headers,
             skip_auto_headers=skip_headers,
             timeout=aiohttp_timeout,
-            trust_env=True,
+            trust_env=True if not socks_connector else False,
             raise_for_status=True,
         )
         return self
