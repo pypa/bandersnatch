@@ -35,9 +35,9 @@ json = false
 ### release-files
 
 The mirror release-files setting is a boolean (true/false) setting that indicates that
-the package release files should be mirrored. Defaults to `true`. When specified, you
-must also specify the `root_uri` configuration. If the uri is empty, it will be set
-to https://files.pythonhosted.org.
+the package release files should be mirrored. Defaults to `true`. When this option is disabled (via setting to false), you
+should also specify the `root_uri` configuration. If the uri is empty, it will be set
+to https://files.pythonhosted.org/.
 
 Example:
 ``` ini
