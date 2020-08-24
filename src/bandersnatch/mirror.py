@@ -190,6 +190,7 @@ class BandersnatchMirror(Mirror):
         diff_file_list: Optional[List] = None,
         *,
         cleanup: bool = False,
+        release_files_save: bool = True,
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -209,6 +210,9 @@ class BandersnatchMirror(Mirror):
         self.stop_on_error = stop_on_error
         self.json_save = (
             json_save  # Whether or not to mirror PyPI JSON metadata to disk
+        )
+        self.release_files_save = (
+            release_files_save  # Whether or not to mirror PyPI release files to disk
         )
         self.hash_index = hash_index
         # Allow configuring a root_uri to make generated index pages absolute.
@@ -301,7 +305,9 @@ class BandersnatchMirror(Mirror):
         package.filter_all_releases_files(self.filters.filter_release_file_plugins())
         package.filter_all_releases(self.filters.filter_release_plugins())
 
-        await self.sync_release_files(package)
+        if self.release_files_save:
+            await self.sync_release_files(package)
+
         self.sync_simple_page(package)
         # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
         self.record_finished_package(package.raw_name)
@@ -864,6 +870,7 @@ async def mirror(
             diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=config_values.cleanup,
+            release_files_save=config_values.release_files_save,
         )
 
         # TODO: Remove this terrible hack and async mock the code correctly

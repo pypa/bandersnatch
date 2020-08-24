@@ -820,6 +820,16 @@ async def test_package_sync_downloads_release_file(mirror: BandersnatchMirror) -
 
 
 @pytest.mark.asyncio
+async def test_package_sync_skips_release_file(mirror: BandersnatchMirror) -> None:
+    mirror.release_files_save = False
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+    assert not mirror.errors
+
+    assert not os.path.exists("web/packages/any/f/foo/foo.zip")
+
+
+@pytest.mark.asyncio
 async def test_package_download_rejects_non_package_directory_links(
     mirror: BandersnatchMirror,
 ) -> None:
