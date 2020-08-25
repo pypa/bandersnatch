@@ -1,8 +1,13 @@
-# 4.3.0 (2020-8-XX)
+# 4.3.0 (2020-8-25)
 
 ## New Features
 
-- Add SOCKS proxy support to aiohttp via aiohttp-socks - `PR X`
+- Add SOCKS proxy support to aiohttp via aiohttp-socks - `PR #668`
+- Add support for skipping mirroring release files (metadata only) - `PR #670` - Thanks **@abn**
+
+## Bug Fixes
+
+- Move GitHub actions to v2 tags - `PR #666` - Thanks **@ryuichi1208**
 
 # 4.2.0 (2020-8-20)
 
