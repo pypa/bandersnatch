@@ -42,7 +42,9 @@ class Mirror:
     now = None
 
     def __init__(
-        self, master: Master, workers: int = 3,
+        self,
+        master: Master,
+        workers: int = 3,
     ):
         self.master = master
         self.filters = LoadedFilters(load_all=True)

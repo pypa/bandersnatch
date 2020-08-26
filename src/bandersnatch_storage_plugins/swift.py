@@ -682,7 +682,9 @@ class SwiftStorage(StoragePlugin):
         want to have it updated.
         """
         with tempfile.NamedTemporaryFile(
-            delete=False, prefix=f"{os.path.basename(filename)}.", **kw,
+            delete=False,
+            prefix=f"{os.path.basename(filename)}.",
+            **kw,
         ) as tf:
             tf.has_changed = False  # type: ignore
             yield tf

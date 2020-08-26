@@ -105,7 +105,9 @@ def test_main_reads_custom_config_values(
     assert log_config == (str(customconfig / "bandersnatch-log.conf"),)
 
 
-def test_main_throws_exception_on_unsupported_digest_name(customconfig: Path,) -> None:
+def test_main_throws_exception_on_unsupported_digest_name(
+    customconfig: Path,
+) -> None:
     setup()
     conffile = str(customconfig / "bandersnatch.conf")
     parser = configparser.ConfigParser()

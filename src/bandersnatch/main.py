@@ -95,10 +95,14 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
 
 def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
     m = subparsers.add_parser(
-        "sync", help="Synchronize specific packages with the PyPI master server.",
+        "sync",
+        help="Synchronize specific packages with the PyPI master server.",
     )
     m.add_argument(
-        "packages", metavar="package", nargs="+", help="The name of package to sync",
+        "packages",
+        metavar="package",
+        nargs="+",
+        help="The name of package to sync",
     )
     m.set_defaults(op="sync")
 
