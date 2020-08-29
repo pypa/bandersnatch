@@ -16,6 +16,7 @@ try:
     import importlib.resources
 except ImportError:  # For 3.6 and lesser
     import importlib
+
     import importlib_resources
 
     importlib.resources = importlib_resources

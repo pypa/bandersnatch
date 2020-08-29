@@ -12,6 +12,7 @@ try:
 except ImportError:  # pragma: no cover
     # For <=3.6
     import importlib
+
     import importlib_resources
 
     importlib.resources = importlib_resources

@@ -97,6 +97,7 @@ def test_check_for_socks_proxy(master: Master) -> None:
     assert master._check_for_socks_proxy() is None
 
     from os import environ
+
     from aiohttp_socks import ProxyConnector
 
     try:

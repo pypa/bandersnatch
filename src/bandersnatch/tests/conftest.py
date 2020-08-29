@@ -11,8 +11,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from asynctest import asynctest
 
 if TYPE_CHECKING:
-    from bandersnatch.mirror import BandersnatchMirror
     from bandersnatch.master import Master
+    from bandersnatch.mirror import BandersnatchMirror
     from bandersnatch.package import Package
 
 
