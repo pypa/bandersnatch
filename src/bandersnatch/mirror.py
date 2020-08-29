@@ -879,7 +879,7 @@ async def mirror(
         # This works around "TypeError: object
         # MagicMock can't be used in 'await' expression"
         changed_packages: Dict[str, Set[str]] = {}
-        if not isinstance(mirror, Mock):  # type: ignore
+        if not isinstance(mirror, Mock):
             changed_packages = await mirror.synchronize(specific_packages)
 
     logger.info(f"{len(changed_packages)} packages had changes")
