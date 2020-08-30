@@ -58,7 +58,7 @@ class Filter:
         """
         Code to initialize the plugin
         """
-        # The intialize_plugin method is run once to initialize the plugin.  This should
+        # The initialize_plugin method is run once to initialize the plugin. This should
         # contain all code to set up the plugin.
         # This method is not run in the fast path and should be used to do things like
         # indexing filter databases, etc that will speed the operation of the filter
@@ -131,7 +131,7 @@ class FilterReleasePlugin(Filter):
 
 class FilterReleaseFilePlugin(Filter):
     """
-    Plugin that modify  the download of specific release or dist files
+    Plugin that modify the download of specific release or dist files
     """
 
     name = "release_file_plugin"
@@ -198,7 +198,7 @@ class LoadedFilters:
 
     def filter_project_plugins(self) -> List[Filter]:
         """
-        Load and return the release filtering plugin objects
+        Load and return the project filtering plugin objects
 
         Returns
         -------
@@ -211,7 +211,7 @@ class LoadedFilters:
 
     def filter_metadata_plugins(self) -> List[Filter]:
         """
-        Load and return the release filtering plugin objects
+        Load and return the metadata filtering plugin objects
 
         Returns
         -------

@@ -11,8 +11,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from .filter import Filter
     from .master import Master
 
-# Bool to help us not spam the logs with certain log messages
-display_filter_log = True
 logger = logging.getLogger(__name__)
 
 
@@ -84,33 +82,7 @@ class Package:
         """
         Run the metadata filtering plugins
         """
-        global display_filter_log
-        if not metadata_filters:
-            if display_filter_log:
-                logger.info(
-                    "No metadata filters are enabled. Skipping metadata filtering"
-                )
-                display_filter_log = False
-            return True
-
         return all(plugin.filter(self.metadata) for plugin in metadata_filters)
-
-    def _filter_release(
-        self, release_data: Dict, release_filters: List["Filter"]
-    ) -> bool:
-        """
-        Run the release filtering plugins
-        """
-        global display_filter_log
-        if not release_filters:
-            if display_filter_log:
-                logger.info(
-                    "No release filters are enabled. Skipping release filtering"
-                )
-                display_filter_log = False
-            return True
-
-        return all(plugin.filter(release_data) for plugin in release_filters)
 
     def filter_all_releases(self, release_filters: List["Filter"]) -> bool:
         """
@@ -118,31 +90,16 @@ class Package:
         """
         releases = list(self.releases.keys())
         for version in releases:
-            if not self._filter_release(
-                {"version": version, "releases": self.releases, "info": self.info},
-                release_filters,
-            ):
+            release_data = {
+                "version": version,
+                "releases": self.releases,
+                "info": self.info,
+            }
+            if not all(plugin.filter(release_data) for plugin in release_filters):
                 del self.releases[version]
         if releases:
             return True
         return False
-
-    def _filter_release_file(
-        self, metadata: Dict, release_file_filters: List["Filter"]
-    ) -> bool:
-        """
-        Run the release file filtering plugins
-        """
-        global display_filter_log
-        if not release_file_filters:
-            if display_filter_log:
-                logger.info(
-                    "No release file filters are enabled. Skipping release file filtering"  # noqa: E501
-                )
-                display_filter_log = False
-            return True
-
-        return all(plugin.filter(metadata) for plugin in release_file_filters)
 
     def filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
         """
@@ -152,14 +109,12 @@ class Package:
         for version in releases:
             release_files = list(self.releases[version])
             for rfindex in reversed(range(len(release_files))):
-                if not self._filter_release_file(
-                    {
-                        "info": self.info,
-                        "release": version,
-                        "release_file": self.releases[version][rfindex],
-                    },
-                    release_file_filters,
-                ):
+                metadata = {
+                    "info": self.info,
+                    "release": version,
+                    "release_file": self.releases[version][rfindex],
+                }
+                if not all(plugin.filter(metadata) for plugin in release_file_filters):
                     del self.releases[version][rfindex]
             if not self.releases[version]:
                 del self.releases[version]
