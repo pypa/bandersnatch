@@ -1,6 +1,6 @@
 aiohttp==3.6.2
 aiohttp-socks==0.5.3
-aiohttp-xmlrpc==1.1.1
+aiohttp-xmlrpc==1.2.0
 async-timeout==3.0.1
 attrs==20.1.0
 chardet==3.0.4
