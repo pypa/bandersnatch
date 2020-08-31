@@ -41,11 +41,7 @@ class Mirror:
     # of it when starting to sync.
     now = None
 
-    def __init__(
-        self,
-        master: Master,
-        workers: int = 3,
-    ):
+    def __init__(self, master: Master, workers: int = 3):
         self.master = master
         self.filters = LoadedFilters(load_all=True)
         self.workers = workers
@@ -77,6 +73,15 @@ class Mirror:
                 utils.bandersnatch_safe_name(name): SERIAL_DONT_CARE
                 for name in specific_packages
             }
+
+        if not self.filters.filter_metadata_plugins():
+            logger.info("No metadata filters are enabled. Skipping metadata filtering")
+        if not self.filters.filter_release_plugins():
+            logger.info("No release filters are enabled. Skipping release filtering")
+        if not self.filters.filter_release_file_plugins():
+            logger.info(
+                "No release file filters are enabled. Skipping release file filtering"
+            )
 
         await self.sync_packages()
         self.finalize_sync()
@@ -207,15 +212,14 @@ class BandersnatchMirror(Mirror):
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
         self.filters = LoadedFilters(load_all=True)
+
         # Stop soon after meeting an error. Continue without updating the
         # mirror's serial if false.
         self.stop_on_error = stop_on_error
-        self.json_save = (
-            json_save  # Whether or not to mirror PyPI JSON metadata to disk
-        )
-        self.release_files_save = (
-            release_files_save  # Whether or not to mirror PyPI release files to disk
-        )
+        # Whether or not to mirror PyPI JSON metadata to disk
+        self.json_save = json_save
+        # Whether or not to mirror PyPI release files to disk
+        self.release_files_save = release_files_save
         self.hash_index = hash_index
         # Allow configuring a root_uri to make generated index pages absolute.
         # This is generally not necessary, but was added for the official internal
@@ -297,6 +301,9 @@ class BandersnatchMirror(Mirror):
             return None
 
         # save the metadata before filtering releases
+        # (dalley): why? the original author does not remember, and it doesn't seem
+        # to make a lot of sense.
+        # https://github.com/pypa/bandersnatch/commit/2a8cf8441b97f28eb817042a65a042d680fa527e#r39676370
         if self.json_save:
             loop = asyncio.get_event_loop()
             json_saved = await loop.run_in_executor(
