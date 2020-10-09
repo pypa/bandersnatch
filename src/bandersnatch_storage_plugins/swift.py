@@ -66,22 +66,22 @@ class SwiftFileLock(filelock.BaseFileLock):
     def _acquire(self) -> None:
         try:
             logger.info("Attempting to acquire lock")
-            fd: "SwiftPath" = self.path_backend(self._lock_file)
+            fd: "SwiftPath" = self.path_backend(self.lock_file)
             fd.write_bytes(b"")
         except OSError as exc:
             logger.error("Failed to acquire lock...")
             logger.exception("Exception: ", exc)
             pass
         else:
-            logger.info(f"Acquired lock: {self._lock_file}")
+            logger.info(f"Acquired lock: {self.lock_file}")
             self._lock_file_fd = fd
         return None
 
     def _release(self) -> None:
         self._lock_file_fd = None
         try:
-            logger.info(f"Removing lock: {self._lock_file}")
-            self.path_backend(self._lock_file).unlink()
+            logger.info(f"Removing lock: {self.lock_file}")
+            self.path_backend(self.lock_file).unlink()
         except OSError as exc:
             logger.error("Failed to remove lockfile")
             logger.exception("Exception: ", exc)
@@ -92,7 +92,7 @@ class SwiftFileLock(filelock.BaseFileLock):
 
     @property
     def is_locked(self) -> bool:
-        return self.path_backend(self._lock_file).exists()
+        return self.path_backend(self.lock_file).exists()
 
 
 # TODO: Refactor this out into reusable base class?
