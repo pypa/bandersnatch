@@ -23,7 +23,7 @@ repos:
     -   id: seed-isort-config
         args: [--application-directories, '.:src']
 -   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.4.2
+    rev: v5.6.1
     hooks:
     -   id: isort
 -   repo: https://github.com/pre-commit/mirrors-mypy
