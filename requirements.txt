@@ -7,7 +7,7 @@ chardet==3.0.4
 filelock==3.0.12
 idna==2.10
 importlib_resources==3.0.0; python_version < '3.7'
-lxml==4.5.2
+lxml==4.6.0
 multidict==5.0.0
 packaging==20.4
 pyparsing==2.4.7
