@@ -11,6 +11,6 @@ lxml==4.6.1
 multidict==5.0.0
 packaging==20.4
 pyparsing==2.4.7
-setuptools==50.3.1
+setuptools==50.3.2
 six==1.15.0
 yarl==1.6.2
