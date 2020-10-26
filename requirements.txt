@@ -6,7 +6,7 @@ attrs==20.2.0
 chardet==3.0.4
 filelock==3.0.12
 idna==2.10
-importlib_resources==3.1.0; python_version < '3.7'
+importlib_resources==3.2.0; python_version < '3.7'
 lxml==4.6.1
 multidict==4.7.6  # pyup: ignore
 packaging==20.4
