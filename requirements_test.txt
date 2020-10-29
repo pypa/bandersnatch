@@ -8,7 +8,7 @@ flake8-bugbear==20.1.4
 freezegun==1.0.0
 mypy==0.790
 pre-commit==2.7.1
-pytest==6.1.1
+pytest==6.1.2
 pytest-asyncio==0.14.0
 pytest-timeout==1.4.2
 setuptools==50.3.2
