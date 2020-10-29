@@ -18,7 +18,7 @@ from .utils import USER_AGENT
 
 logger = logging.getLogger(__name__)
 FIVE_HOURS_FLOAT = 5 * 60 * 60.0
-PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
+PYPI_SERIAL_HEADER = "X-PyPI-Last-Serial"
 
 
 class StalePage(Exception):
