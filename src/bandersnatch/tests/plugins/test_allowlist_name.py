@@ -328,3 +328,114 @@ packages =
         pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
         self.assertEqual(pkg.releases, {"1.2.0": {}})
+
+
+class TestAllowlistRequirements(TestCase):
+    """
+    Tests for the bandersnatch filtering by requirements
+    """
+
+    tempdir = None
+    cwd = None
+
+    def setUp(self) -> None:
+        self.cwd = os.getcwd()
+        self.tempdir = TemporaryDirectory()
+        os.chdir(self.tempdir.name)
+
+    def tearDown(self) -> None:
+        if self.tempdir:
+            assert self.cwd
+            os.chdir(self.cwd)
+            self.tempdir.cleanup()
+            self.tempdir = None
+
+    def test__plugin__loads__explicitly_enabled(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    allowlist_requirements
+"""
+        )
+
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        names = [plugin.name for plugin in plugins]
+        self.assertListEqual(names, ["allowlist_requirements"])
+        self.assertEqual(len(plugins), 1)
+
+    def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    allowlist_package
+"""
+        )
+
+        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        names = [plugin.name for plugin in plugins]
+        self.assertNotIn("allowlist_requirements", names)
+
+    def test__filter__matches__release(self) -> None:
+
+        with open(Path(self.tempdir.name) / 'requirements.txt', 'w') as fh:
+            fh.write("""\
+#    This is needed for workshop 1
+#
+foo==1.2.0             # via -r requirements.in            
+""")
+
+        mock_config(
+            f"""\
+[plugins]
+enabled =
+    allowlist_requirements
+[allowlist]
+requirements_path = {self.tempdir.name}
+requirements =
+    requirements.txt
+"""
+        )
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}},
+        }
+
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual(pkg.releases, {"1.2.0": {}})
+
+    def test__filter__find_files(self) -> None:
+        absolute_file_path = Path(self.tempdir.name) / 'requirements.txt'
+        with open(absolute_file_path, 'w') as fh:
+            fh.write("""\
+#    This is needed for workshop 1
+#
+foo==1.2.0             # via -r requirements.in            
+""")
+
+        mock_config(
+            f"""\
+[plugins]
+enabled =
+    allowlist_requirements
+[allowlist]
+requirements =
+    {absolute_file_path}
+"""
+        )
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}},
+        }
+
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual(pkg.releases, {"1.2.0": {}})

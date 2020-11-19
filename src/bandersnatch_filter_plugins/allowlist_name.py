@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Set
 
 from packaging.requirements import Requirement
@@ -109,19 +110,31 @@ class AllowListRelease(FilterReleasePlugin):
 
     def _determine_filtered_package_requirements(self) -> List[Requirement]:
         """
-        Parse the configuration file for [allowlist]packages
+        Parse the configuration file for
+
+        [allowlist]
+        packages
 
         Returns
         -------
         list of packaging.requirements.Requirement
             For all PEP440 package specifiers
         """
-        filtered_requirements: Set[Requirement] = set()
         try:
             lines = self.allowlist["packages"]
             package_lines = lines.split("\n")
         except KeyError:
             package_lines = []
+        return list(self._parse_package_lines(package_lines))
+
+
+    def _parse_package_lines(self, package_lines: List[str]) -> List[Requirement]:
+        """Parse a requirement line
+
+        ignores commented line
+        and inline comments
+        """
+        filtered_requirements: Set[Requirement] = set()
         for package_line in package_lines:
             package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
@@ -131,7 +144,8 @@ class AllowListRelease(FilterReleasePlugin):
             requirement.name = canonicalize_name(requirement.name)
             requirement.specifier.prereleases = True
             filtered_requirements.add(requirement)
-        return list(filtered_requirements)
+        return filtered_requirements
+
 
     def filter(self, metadata: Dict) -> bool:
         """
@@ -178,3 +192,46 @@ class AllowListRelease(FilterReleasePlugin):
                 )
                 return True
         return False
+
+
+class AllowListRequirements(AllowListRelease):
+    name = "allowlist_requirements"
+    allowlist_package_names: List[Requirement] = []
+
+    def _determine_filtered_package_requirements(self) -> List[Requirement]:
+        """
+        Parse the configuration file for
+        [allowlist]
+        requirements_path = /where_they_are
+        requirements =
+            requirements.txt
+
+        Returns
+        -------
+        list of packaging.requirements.Requirement
+            For all PEP440 package specifiers
+        """
+
+        try:
+            requirements_path = Path(self.allowlist["requirements_path"])
+        except KeyError:
+            requirements_path = Path()
+
+        try:
+            lines = self.allowlist["requirements"]
+            requirements_lines = lines.split("\n")
+        except KeyError:
+            requirements_lines = []
+
+        filtered_requirements: Set[Requirement] = set()
+
+        for requirement_line in requirements_lines:
+            requirement_line = requirement_line.strip()
+            if not requirement_line or requirement_line.startswith("#"):
+                continue
+            requirement_line, *_ = requirement_line.split('#')
+            requirement = requirement_line.strip()
+
+            with open(requirements_path / requirement) as req_fh:
+                filtered_requirements |= self._parse_package_lines(req_fh.readlines())
+        return list(filtered_requirements)

@@ -87,6 +87,21 @@ tag:tag:path.to.object =
     matchb
 ```
 
+### requirements files Filtering
+Packages and releases might be given as requirements.txt files
+
+if requirements_path is missing it is assumed to be root folder
+
+```ini
+[plugins]
+enabled =
+    allowlist_requirements
+[allowlist]
+requirements_path = /my_folder
+requirements =
+    requirements.txt
+```
+
 #### Project Regex Matching
 
 Filter projects to be synced based on regex matches against their raw metadata entries straight from parsed downloaded json.
