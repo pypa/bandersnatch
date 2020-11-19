@@ -67,7 +67,7 @@ bandersnatch/bin/bandersnatch --help
 - Run ``bandersnatch mirror`` again. It will populate your mirror with the
   current status of all PyPI packages.
   Current mirror package size can be seen here: https://pypi.org/stats/
-- A ``blacklist`` or ``whitelist`` can be created to cut down your mirror size.
+- A ``blocklist`` or ``allowlist`` can be created to cut down your mirror size.
   You might want to [Analyze PyPI downloads](https://packaging.python.org/guides/analyzing-pypi-package-downloads/)
   to determine which packages to add to your list.
 - Run ``bandersnatch mirror`` regularly to update your mirror with any
@@ -173,7 +173,7 @@ The bandersnatch project strives to:
 - This will allow organizations to have lower latency access to PyPI and
   save bandwidth on their WAN connections and more importantly the PyPI CDN
 - Custom features and requests may be accepted if they can be of a *plugin* form
-  - e.g. refer to the `blacklist` and `whitelist` plugins
+  - e.g. refer to the `blocklist` and `allowlist` plugins
 
 ### Contact
 

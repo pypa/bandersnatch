@@ -5,11 +5,11 @@ _NOTE: All references to whitelist/blacklist are deprecated, and will be replace
 The mirror filter configuration settings are in the same configuration file as the mirror settings.
 There are different configuration sections for the different plugin types.
 
-Filtering Plugin pacakage lists need to use the **Raw PyPI Name**
+Filtering Plugin package lists need to use the **Raw PyPI Name**
 (non [PEP503](https://www.python.org/dev/peps/pep-0503/#normalized-names) normalized)
 in order to get filtered.
 
-E.g. to Blacklist [ACMPlus](https://pypi.org/project/ACMPlus/) you'd need to
+E.g. to Blocklist [ACMPlus](https://pypi.org/project/ACMPlus/) you'd need to
 use that *exact* casing in `bandersnatch.conf`
 
 - A PR would be welcome fixing the normalization but it's an invasive PR
@@ -35,14 +35,14 @@ Example (only enable specific plugins):
 ```ini
 [plugins]
 enabled =
-    blacklist_project
-    whitelist_project
+    blocklist_project
+    allowlist_project
     ...
 ```
 
-### blacklist / whitelist filtering settings
+### blocklist / allowlist filtering settings
 
-The blacklist / whitelist settings are in configuration sections named **\[blacklist\]** and **\[whitelist\]**
+The blocklist / allowlist settings are in configuration sections named **\[blocklist\]** and **\[allowlist\]**
 these section provides settings to indicate packages, projects and releases that should /
 should not be mirrored from PyPI.
 
@@ -50,26 +50,26 @@ This is useful to avoid syncing broken or malicious packages.
 
 ### packages
 
-The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored. Enable version specifier filtering for whitelist and blacklist packages through enabling the 'blacklist_release' and 'allowlist_release' plugins, respectively.
+The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored. Enable version specifier filtering for blocklist and allowlist packages through enabling the 'blocklist_release' and 'allowlist_release' plugins, respectively.
 
-Any packages matching the version specifier for blacklist packages will not be downloaded. Any packages not matching the version specifier for whitelist packages will not be downloaded.
+Any packages matching the version specifier for blocklist packages will not be downloaded. Any packages not matching the version specifier for allowlist packages will not be downloaded.
 
 Example:
 
 ```ini
 [plugins]
 enabled =
-    blacklist_project
-    blacklist_release
-    whitelist_project
+    blocklist_project
+    blocklist_release
+    allowlist_project
     allowlist_release
 
-[blacklist]
+[blocklist]
 packages =
     example1
     example2>=1.4.2,<1.9,!=1.5.*,!=1.6.*
 
-[whitelist]
+[allowlist]
 packages =
     black==18.5
     ptr
@@ -172,7 +172,7 @@ This filter allows advanced users not interesting in Windows/macOS/Linux specifi
 [plugins]
 enabled =
     exclude_platform
-[blacklist]
+[blocklist]
 platforms =
     windows
 ```
