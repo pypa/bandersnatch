@@ -40,7 +40,7 @@ enabled =
     ...
 ```
 
-### blocklist / allowlist filtering settings
+### allowlist / blocklist filtering settings
 
 The blocklist / allowlist settings are in configuration sections named **\[blocklist\]** and **\[allowlist\]**
 these section provides settings to indicate packages, projects and releases that should /
