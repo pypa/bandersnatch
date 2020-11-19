@@ -1,22 +1,28 @@
-FROM python:3
+FROM python:3.9 as base
 
-RUN mkdir /bandersnatch
-RUN mkdir /conf && chmod 777 /conf
-ADD setup.cfg /bandersnatch
-ADD setup.py /bandersnatch
-ADD requirements.txt /bandersnatch
-ADD requirements_swift.txt /bandersnatch
-ADD README.md /bandersnatch
-ADD CHANGES.md /bandersnatch
+FROM base as builder
+RUN mkdir /install
+WORKDIR /install
+ADD requirements_swift.txt /install
+ADD requirements.txt /install
+RUN pip install --target="/install" --upgrade pip setuptools wheel
+RUN pip install --target="/install" \
+    -r requirements.txt \
+    -r requirements_swift.txt
+
+
+FROM python:3.9-slim
+
+COPY --from=builder /install /usr/local/lib/python3.9/site-packages
+
+RUN mkdir /bandersnatch && mkdir /conf && chmod 777 /conf
+WORKDIR /bandersnatch
+COPY setup.cfg /bandersnatch
+COPY setup.py /bandersnatch
+COPY README.md /bandersnatch
+COPY LICENSE /bandersnatch
+
 COPY src /bandersnatch/src
-
-# OPTIONAL: Include a config file
-# Remember to bind mount the "directory" in bandersnatch.conf
-# Reccomended to bind mount /conf - `runner.py` defaults to look for /conf/bandersnatch.conf
-# ADD bandersnatch.conf /etc
-
-RUN pip --no-cache-dir install --upgrade pip setuptools wheel
-RUN pip --no-cache-dir install --upgrade -r /bandersnatch/requirements.txt -r /bandersnatch/requirements_swift.txt
-RUN pip --no-cache-dir -v install /bandersnatch/[swift]
+RUN pip --no-cache-dir install /bandersnatch/[swift]
 
 CMD ["python", "/bandersnatch/src/runner.py", "3600"]
