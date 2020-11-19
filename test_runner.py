@@ -4,7 +4,7 @@
 bandersnatch CI run script - Will either drive `tox` or run an Integration Test
 - Rewritten in Python for easier dev contributions + Windows support
 
-Integration Tests will go off and hit PyPI + pull whiteliested packages
+Integration Tests will go off and hit PyPI + pull allowlisted packages
 then check for expected outputs to exist
 """
 

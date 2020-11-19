@@ -1,5 +1,5 @@
 """
-Blacklist management
+Blocklist management
 """
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List
