@@ -1,4 +1,4 @@
-FROM python:3 as base
+FROM python:3.9 as base
 
 FROM base as builder
 RUN mkdir /install
@@ -11,7 +11,7 @@ RUN pip install --target="/install" \
     -r requirements_swift.txt
 
 
-FROM python:3-slim
+FROM python:3.9-slim
 
 COPY --from=builder /install /usr/local/lib/python3.9/site-packages
 
