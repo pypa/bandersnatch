@@ -90,12 +90,13 @@ tag:tag:path.to.object =
 ### requirements files Filtering
 Packages and releases might be given as requirements.txt files
 
-if requirements_path is missing it is assumed to be root folder
+if requirements_path is missing it is assumed to be system root folder ('/')
 
 ```ini
 [plugins]
 enabled =
-    allowlist_requirements
+    project_requirements
+    project_requirements_pinned
 [allowlist]
 requirements_path = /my_folder
 requirements =

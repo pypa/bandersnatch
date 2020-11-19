@@ -50,8 +50,10 @@ class AllowListProject(FilterProjectPlugin):
             package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
-            package_line, *_ = package_line.split('#')
-            unfiltered_packages.add(canonicalize_name(Requirement(package_line.strip()).name))
+            package_line, *_ = package_line.split("#", maxsplit=1)
+            unfiltered_packages.add(
+                canonicalize_name(Requirement(package_line.strip()).name)
+            )
         return list(unfiltered_packages)
 
     def filter(self, metadata: Dict) -> bool:
@@ -86,7 +88,66 @@ class AllowListProject(FilterProjectPlugin):
         return True
 
 
-class AllowListRelease(FilterReleasePlugin):
+class RequirementsFilter:
+    def get_requirement_files(self):
+        try:
+            requirements_path = Path(self.allowlist["requirements_path"])
+        except KeyError:
+            requirements_path = Path()
+
+        try:
+            lines = self.allowlist["requirements"]
+            requirements_lines = lines.split("\n")
+        except KeyError:
+            requirements_lines = []
+
+        for requirement_line in requirements_lines:
+            requirement_line = requirement_line.strip()
+            if not requirement_line or requirement_line.startswith("#"):
+                continue
+            requirement_line, *_ = requirement_line.split("#", maxsplit=1)
+            requirement = requirement_line.strip()
+            logger.info("considering %s", requirements_path / requirement)
+            yield requirements_path / requirement
+
+
+class RequirementsParser:
+    def _parse_package_lines(self, package_lines: List[str]) -> Set[Requirement]:
+        """Parse a requirement line
+
+        ignores commented line
+        and inline comments
+        """
+        filtered_requirements: Set[Requirement] = set()
+        for package_line in package_lines:
+            package_line = package_line.strip()
+            if not package_line or package_line.startswith("#"):
+                continue
+            package_line, *_ = package_line.split("#", maxsplit=1)
+            requirement = Requirement(package_line.strip())
+            requirement.name = canonicalize_name(requirement.name)
+            requirement.specifier.prereleases = True
+            filtered_requirements.add(requirement)
+        return filtered_requirements
+
+
+class AllowListRequirements(AllowListProject, RequirementsFilter, RequirementsParser):
+    name = "project_requirements"
+
+    def _determine_unfiltered_package_names(self) -> List[str]:
+        """
+        Return a list of package names to be filtered base on the configuration
+        file.
+        """
+        filtered_requirements: Set[Requirement] = set()
+
+        for filepath in self.get_requirement_files():
+            with open(filepath) as req_fh:
+                filtered_requirements |= self._parse_package_lines(req_fh.readlines())
+        return list(req.name for req in filtered_requirements)
+
+
+class AllowListRelease(FilterReleasePlugin, RequirementsParser):
     name = "allowlist_release"
     deprecated_name = "whitelist_release"
     # Requires iterable default
@@ -126,26 +187,6 @@ class AllowListRelease(FilterReleasePlugin):
         except KeyError:
             package_lines = []
         return list(self._parse_package_lines(package_lines))
-
-
-    def _parse_package_lines(self, package_lines: List[str]) -> List[Requirement]:
-        """Parse a requirement line
-
-        ignores commented line
-        and inline comments
-        """
-        filtered_requirements: Set[Requirement] = set()
-        for package_line in package_lines:
-            package_line = package_line.strip()
-            if not package_line or package_line.startswith("#"):
-                continue
-            package_line, *_ = package_line.split('#')
-            requirement = Requirement(package_line.strip())
-            requirement.name = canonicalize_name(requirement.name)
-            requirement.specifier.prereleases = True
-            filtered_requirements.add(requirement)
-        return filtered_requirements
-
 
     def filter(self, metadata: Dict) -> bool:
         """
@@ -194,9 +235,8 @@ class AllowListRelease(FilterReleasePlugin):
         return False
 
 
-class AllowListRequirements(AllowListRelease):
-    name = "allowlist_requirements"
-    allowlist_package_names: List[Requirement] = []
+class AllowListRequirementsPinned(AllowListRelease, RequirementsFilter):
+    name = "project_requirements_pinned"
 
     def _determine_filtered_package_requirements(self) -> List[Requirement]:
         """
@@ -211,27 +251,9 @@ class AllowListRequirements(AllowListRelease):
         list of packaging.requirements.Requirement
             For all PEP440 package specifiers
         """
-
-        try:
-            requirements_path = Path(self.allowlist["requirements_path"])
-        except KeyError:
-            requirements_path = Path()
-
-        try:
-            lines = self.allowlist["requirements"]
-            requirements_lines = lines.split("\n")
-        except KeyError:
-            requirements_lines = []
-
         filtered_requirements: Set[Requirement] = set()
 
-        for requirement_line in requirements_lines:
-            requirement_line = requirement_line.strip()
-            if not requirement_line or requirement_line.startswith("#"):
-                continue
-            requirement_line, *_ = requirement_line.split('#')
-            requirement = requirement_line.strip()
-
-            with open(requirements_path / requirement) as req_fh:
+        for filepath in self.get_requirement_files():
+            with open(filepath) as req_fh:
                 filtered_requirements |= self._parse_package_lines(req_fh.readlines())
         return list(filtered_requirements)

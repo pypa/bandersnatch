@@ -8,7 +8,7 @@ logger = logging.getLogger("bandersnatch")
 
 class ExcludePlatformFilter(FilterReleaseFilePlugin):
     """
-    Filters releases based on regex patters defined by the user.
+    Filters releases based on regex patterns defined by the user.
     """
 
     name = "exclude_platform"
