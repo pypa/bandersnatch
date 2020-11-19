@@ -156,6 +156,32 @@ packages =
 
         self.assertEqual({"foo": "", "bar": ""}, mirror.packages_to_sync)
 
+    def test__filter__commented__out(self) -> None:
+        mock_config(
+            """\
+[mirror]
+storage-backend = filesystem
+
+[plugins]
+enabled =
+    allowlist_project
+
+[allowlist]
+packages =
+    foo==1.2.3   # inline comment
+#    bar
+"""
+        )
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror.packages_to_sync = {
+            "foo": "",
+            "bar": "",
+            "snu": "",
+        }
+        mirror._filter_packages()
+
+        self.assertEqual({"foo": ""}, mirror.packages_to_sync)
+
 
 class TestAllowlistRelease(TestCase):
     """
@@ -213,6 +239,29 @@ enabled =
 [allowlist]
 packages =
     foo==1.2.0
+"""
+        )
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}},
+        }
+
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual(pkg.releases, {"1.2.0": {}})
+
+    def test__filter__matches__release__commented__inline(self) -> None:
+        mock_config(
+            """\
+[plugins]
+enabled =
+    allowlist_release
+[allowlist]
+packages =
+    foo==1.2.0      # some inline comment
 """
         )
 

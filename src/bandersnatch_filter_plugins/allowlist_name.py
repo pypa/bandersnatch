@@ -49,6 +49,7 @@ class AllowListProject(FilterProjectPlugin):
             package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
+            package_line, *_ = package_line.split('#')
             unfiltered_packages.add(canonicalize_name(Requirement(package_line).name))
         return list(unfiltered_packages)
 
@@ -125,7 +126,8 @@ class AllowListRelease(FilterReleasePlugin):
             package_line = package_line.strip()
             if not package_line or package_line.startswith("#"):
                 continue
-            requirement = Requirement(package_line)
+            package_line, *_ = package_line.split('#')
+            requirement = Requirement(package_line.strip())
             requirement.name = canonicalize_name(requirement.name)
             requirement.specifier.prereleases = True
             filtered_requirements.add(requirement)
