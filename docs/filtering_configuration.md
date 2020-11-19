@@ -35,8 +35,8 @@ Example (only enable specific plugins):
 ```ini
 [plugins]
 enabled =
-    blocklist_project
     allowlist_project
+    blocklist_project
     ...
 ```
 
