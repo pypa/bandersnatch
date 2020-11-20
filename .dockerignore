@@ -17,3 +17,4 @@ coverage.xml
 .git
 .github
 .tox
+.mypy_cache
