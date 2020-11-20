@@ -50,3 +50,13 @@ two or more Maintainers that it is a suitable time for a release.
   - Tag with the semantic version number
 - Build a `sdist` + `wheel`
 - Use `twine` to upload to PyPI
+
+
+### Building Docker Image
+
+example build commands
+
+sudo docker build --build-arg WITH_SWIFT=yes --build-arg PY_VERSION=3.9 -t pypa/bandersnatch:3.9-swift .
+sudo docker build --build-arg PY_VERSION=3.8 -t pypa/bandersnatch:3.8 .
+sudo docker build -t pypa/bandersnatch:3.9 .
+
