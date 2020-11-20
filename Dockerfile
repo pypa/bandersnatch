@@ -3,9 +3,9 @@ FROM python:3.9 as base
 FROM base as builder
 RUN mkdir /install
 WORKDIR /install
+RUN pip install --target="/install" --upgrade pip setuptools wheel
 ADD requirements_swift.txt /install
 ADD requirements.txt /install
-RUN pip install --target="/install" --upgrade pip setuptools wheel
 RUN pip install --target="/install" \
     -r requirements.txt \
     -r requirements_swift.txt

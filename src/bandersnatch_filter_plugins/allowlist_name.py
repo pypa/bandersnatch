@@ -141,8 +141,12 @@ class AllowListRequirements(AllowListProject):
         file.
         """
         filtered_requirements: Set[Requirement] = set()
+        try:
+            filepaths = get_requirement_files(self.allowlist)
+        except KeyError:
+            return []
 
-        for filepath in get_requirement_files(self.allowlist):
+        for filepath in filepaths:
             with open(filepath) as req_fh:
                 filtered_requirements |= _parse_package_lines(req_fh.readlines())
         return list(req.name for req in filtered_requirements)
@@ -254,7 +258,11 @@ class AllowListRequirementsPinned(AllowListRelease):
         """
         filtered_requirements: Set[Requirement] = set()
 
-        for filepath in get_requirement_files(self.allowlist):
+        try:
+            filepaths = get_requirement_files(self.allowlist)
+        except KeyError:
+            return []
+        for filepath in filepaths:
             with open(filepath) as req_fh:
                 filtered_requirements |= _parse_package_lines(req_fh.readlines())
         return list(filtered_requirements)
