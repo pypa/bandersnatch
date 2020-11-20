@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Set
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Set
 
 if TYPE_CHECKING:
     from configparser import SectionProxy
@@ -91,7 +91,7 @@ class AllowListProject(FilterProjectPlugin):
         return True
 
 
-def get_requirement_files(allowlist: "SectionProxy") -> Generator[Path, None, None]:
+def get_requirement_files(allowlist: "SectionProxy") -> Iterator[Path]:
     try:
         requirements_path = Path(allowlist["requirements_path"])
     except KeyError:
