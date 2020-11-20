@@ -1,0 +1,3 @@
+.tox
+.mypy_cache
+.git
