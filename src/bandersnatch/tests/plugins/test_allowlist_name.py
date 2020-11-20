@@ -18,9 +18,6 @@ class TestAllowListProject(TestCase):
     Tests for the bandersnatch filtering classes
     """
 
-    tempdir = None
-    cwd = None
-
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
@@ -32,7 +29,6 @@ class TestAllowListProject(TestCase):
             assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
-            self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
@@ -188,9 +184,6 @@ class TestAllowlistRelease(TestCase):
     Tests for the bandersnatch filtering classes
     """
 
-    tempdir = None
-    cwd = None
-
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
@@ -201,7 +194,6 @@ class TestAllowlistRelease(TestCase):
             assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
-            self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
@@ -335,9 +327,6 @@ class TestAllowlistRequirements(TestCase):
     Tests for the bandersnatch filtering by requirements
     """
 
-    tempdir = None
-    cwd = None
-
     def setUp(self) -> None:
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
@@ -348,7 +337,6 @@ class TestAllowlistRequirements(TestCase):
             assert self.cwd
             os.chdir(self.cwd)
             self.tempdir.cleanup()
-            self.tempdir = None
 
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
@@ -384,7 +372,7 @@ enabled =
                 """\
 #    This is needed for workshop 1
 #
-foo==1.2.0             # via -r requirements.in            
+foo==1.2.0             # via -r requirements.in
 """
             )
 
@@ -419,7 +407,7 @@ requirements =
                 """\
 #    This is needed for workshop 1
 #
-foo==1.2.0             # via -r requirements.in            
+foo==1.2.0             # via -r requirements.in
 """
             )
 
