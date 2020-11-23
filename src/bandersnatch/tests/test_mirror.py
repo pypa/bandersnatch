@@ -1056,3 +1056,10 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     with mock.patch("bandersnatch.mirror.rmtree") as mocked_rmtree:
         await mirror.cleanup_non_pep_503_paths(package)
         assert mocked_rmtree.call_count == 1
+
+
+def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
+    mirror.synced_serial = 24
+    mirror.packages_to_sync = {"black": 69, "foobar": 47, "barfoo": 68}
+    target_serial = mirror.find_target_serial()
+    assert target_serial == 69
