@@ -246,6 +246,11 @@ class BandersnatchMirror(Mirror):
     def todolist(self) -> Path:
         return self.homedir / "todo"
 
+    def find_target_serial(self) -> int:
+        return max(
+            [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
+        )
+
     async def determine_packages_to_sync(self) -> None:
         """
         Update the self.packages_to_sync to contain packages that need to be
@@ -276,16 +281,12 @@ class BandersnatchMirror(Mirror):
             # those two calls.
             all_packages = await self.master.all_packages()
             self.packages_to_sync.update(all_packages)
-            self.target_serial = max(
-                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-            )
+            self.target_serial = self.find_target_serial()
         else:
             logger.info("Syncing based on changelog.")
             changed_packages = await self.master.changed_packages(self.synced_serial)
             self.packages_to_sync.update(changed_packages)
-            self.target_serial = max(
-                [self.synced_serial] + [int(v) for v in self.packages_to_sync.values()]
-            )
+            self.target_serial = self.find_target_serial()
             # We can avoid writing the main index page if we don't have
             # anything todo at all during a changelog-based sync.
             self.need_index_sync = bool(self.packages_to_sync)
@@ -583,7 +584,9 @@ class BandersnatchMirror(Mirror):
         if not self.statusfile.exists():
             logger.info(f"Status file {self.statusfile} missing. Starting over.")
             return
-        self.synced_serial = int(self.statusfile.read_text(encoding="ascii").strip())
+        self.synced_serial: int = int(
+            self.statusfile.read_text(encoding="ascii").strip()
+        )
 
     def _save(self) -> None:
         self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
@@ -674,7 +677,8 @@ class BandersnatchMirror(Mirror):
         release_files = package.release_files
         logger.debug(f"There are {len(release_files)} releases for {package.name}")
         # Lets sort based on the filename rather than the whole URL
-        release_files.sort(key=lambda x: x["filename"])
+        # Typing is hard here as we allow Any/Dict[Any, Any] for JSON
+        release_files.sort(key=lambda x: x["filename"])  # type: ignore
 
         digest_name = self.digest_name
 
