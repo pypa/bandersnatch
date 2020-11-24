@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Publish README to Docker Hub Description
-        uses: peter-evans/dockerhub-description@v2.2.0
+        uses: peter-evans/dockerhub-description@v2.4.1
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
