@@ -9,7 +9,7 @@ idna==2.10
 importlib_resources==3.3.0; python_version < '3.7'
 lxml==4.6.2
 multidict==4.7.6  # pyup: ignore
-packaging==20.5
+packaging==20.7
 pyparsing==2.4.7
 setuptools==50.3.2
 six==1.15.0
