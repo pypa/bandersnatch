@@ -12,9 +12,25 @@ jobs:
       - uses: actions/checkout@master
       - name: Publish to Docker Registry
         uses: elgohr/Publish-Docker-Github-Action@master
+        env:
+          PY_VERSION: 3.9
         with:
           name: pypa/bandersnatch
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           snapshot: true
-          tag_names: true
+          buildargs: PY_VERSION
+          tags: "latest, 3.9, 3"
+
+      - name: Publish Swift variation to Docker Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        env:
+          PY_VERSION: 3.9
+          WITH_SWIFT: yes
+        with:
+          name: pypa/bandersnatch
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          snapshot: true
+          buildargs: PY_VERSION, WITH_SWIFT
+          tags: "swift-latest, swift-3.9, swift-3"
