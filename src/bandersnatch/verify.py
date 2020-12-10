@@ -32,7 +32,14 @@ async def get_latest_json(
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
-    await master.url_fetch(url, new_json_path, executor)
+    try:
+        await master.url_fetch(url, new_json_path, executor)
+    except aiohttp.ClientResponseError as e:
+        if e.status == 404:
+            # A 404 means that the package has been removed from PyPI.
+            # Allow function to continue, and remove package files if applicable.
+            pass
+        raise
     if new_json_path.exists():
         shutil.move(str(new_json_path), json_path)
     else:
