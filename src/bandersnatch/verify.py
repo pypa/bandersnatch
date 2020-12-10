@@ -40,7 +40,8 @@ async def get_latest_json(
             # A 404 means that the package has been removed from PyPI.
             # Allow function to continue, and remove package files if applicable.
             pass
-        raise
+        else:
+            raise
     if new_json_path.exists():
         shutil.move(str(new_json_path), json_path)
     else:
