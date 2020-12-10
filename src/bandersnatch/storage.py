@@ -343,7 +343,7 @@ def load_storage_plugins(
             if plugin_instance.name == enabled_plugin:
                 plugins.add(plugin_instance)
         except ModuleNotFoundError as me:
-            logging.error(f"Unable to load entry point {entry_point}: {me}")
+            logger.error(f"Unable to load entry point {entry_point}: {me}")
 
     loaded_storage_plugins[entrypoint_group] = list(plugins)
 
