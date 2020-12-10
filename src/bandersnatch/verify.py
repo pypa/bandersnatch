@@ -12,6 +12,7 @@ from pathlib import Path
 from sys import stderr
 from typing import List, Optional, Set
 from urllib.parse import urlparse
+import aiohttp
 
 from .filter import LoadedFilters
 from .master import Master
