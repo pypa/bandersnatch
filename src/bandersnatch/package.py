@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from packaging.utils import canonicalize_name
 
-from .errors import PackageNotFound, StaleMetadata
+from .errors import ConnectionTimeout, PackageNotFound, StaleMetadata
 from .master import StalePage
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -64,19 +64,25 @@ class Package:
             except PackageNotFound as e:
                 logger.info(str(e))
                 raise
-            except StalePage:
+            except (StalePage, asyncio.TimeoutError) as e:
+                error_name, error_class = (
+                    ("Stale serial", StaleMetadata)
+                    if isinstance(e, StalePage)
+                    else ("Timeout error", ConnectionTimeout)
+                )
+
                 tries += 1
-                logger.error(f"Stale serial for package {self.name} - Attempt {tries}")
+                logger.error(f"{error_name} for package {self.name} - Attempt {tries}")
                 if tries < attempts:
                     logger.debug(f"Sleeping {sleep_on_stale}s to give CDN a chance")
                     await asyncio.sleep(sleep_on_stale)
                     sleep_on_stale *= 2
                     continue
                 logger.error(
-                    f"Stale serial for {self.name} ({self.serial}) "
+                    f"{error_name} for {self.name} ({self.serial}) "
                     + "not updating. Giving up."
                 )
-                raise StaleMetadata(package_name=self.name, attempts=attempts)
+                raise error_class(package_name=self.name, attempts=attempts)
 
     def filter_metadata(self, metadata_filters: List["Filter"]) -> bool:
         """

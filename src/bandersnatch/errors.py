@@ -19,3 +19,17 @@ class StaleMetadata(Exception):
 
     def __str__(self) -> str:
         return f"Stale serial for {self.package_name} after {self.attempts} attempts"
+
+
+class ConnectionTimeout(Exception):
+    """PyPi did not respond in time to our request for package metadata"""
+
+    def __init__(self, package_name: str, attempts: int) -> None:
+        super().__init__()
+        self.package_name = package_name
+        self.attempts = attempts
+
+    def __str__(self) -> str:
+        return (
+            f"Connection timeout for {self.package_name} after {self.attempts} attempts"
+        )
