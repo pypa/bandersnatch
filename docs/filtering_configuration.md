@@ -198,7 +198,7 @@ Available platforms are: `windows` `macos` `freebsd` `linux`.
 
 ### Keep only latest releases
 
-You can also keep only the latest releases based on greatest [Version](https://packaging.pypa.io/en/latest/version/) numbers.
+You can also keep only the latest releases based on greatest [Version](https://packaging.pypa.io/en/latest/version.html) numbers.
 
 ```ini
 [plugins]
