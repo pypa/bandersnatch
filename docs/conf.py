@@ -366,10 +366,14 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
 
-# Example configuration for intersphinx: refer to the Python standard library.
+# Configure intersphinx to generate links to the documentation of external objects.
+# For certain dependencies (e.g. aiohttp), intersphinx fails to generate links so that's
+# why this list doesn't and shouldn't contain all of our dependencies whose docs provide
+# an objects.inv
 intersphinx_mapping = {
-    "python": ("http://docs.python.org/3", None),
-    "urllib3": ("http://urllib3.readthedocs.org/en/latest", None),
+    "python": ("https://docs.python.org/3", None),
+    "filelock": ("https://filelock.readthedocs.io/en/stable", None),
+    "packaging": ("https://packaging.pypa.io/en/stable", None),
 }
 
 # Useful external link shortcuts
