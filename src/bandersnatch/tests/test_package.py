@@ -1,8 +1,10 @@
+from asyncio import TimeoutError
+
 import asynctest
 import pytest
 from _pytest.capture import CaptureFixture
 
-from bandersnatch.errors import PackageNotFound, StaleMetadata
+from bandersnatch.errors import ConnectionTimeout, PackageNotFound, StaleMetadata
 from bandersnatch.master import Master, StalePage
 from bandersnatch.package import Package
 
@@ -43,3 +45,19 @@ async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None
     with pytest.raises(PackageNotFound):
         await package.update_metadata(master)
     assert "foo no longer exists on PyPI" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_package_update_metadata_gives_up_after_3_timeouts(
+    caplog: CaptureFixture, master: Master
+) -> None:
+    master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
+        side_effect=TimeoutError
+    )
+    package = Package("foo", serial=11)
+
+    with pytest.raises(ConnectionTimeout) as timeout:
+        await package.update_metadata(master, attempts=3)
+        assert "Connection timeout for foo after 3 attempts" in str(timeout)
+    assert master.get_package_metadata.await_count == 3  # type: ignore
+    assert "not updating. Giving up" in caplog.text
