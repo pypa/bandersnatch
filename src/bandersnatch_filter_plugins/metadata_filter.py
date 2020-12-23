@@ -23,7 +23,7 @@ class RegexFilter(Filter):
     name = "regex_filter"
     match_patterns = "any"
     nulls_match = True
-    initilized = False
+    initialized = False
     patterns: Dict = {}
 
     def initialize_plugin(self) -> None:
@@ -36,7 +36,7 @@ class RegexFilter(Filter):
             return
         else:
             logger.info(f"Initializing {self.name} plugin")
-            if not self.initilized:
+            if not self.initialized:
                 for k in config:
                     pattern_strings = [
                         pattern for pattern in config[k].split("\n") if pattern
@@ -45,7 +45,7 @@ class RegexFilter(Filter):
                         re.compile(pattern_string) for pattern_string in pattern_strings
                     ]
                 logger.info(f"Initialized {self.name} plugin with {self.patterns}")
-                self.initilized = True
+                self.initialized = True
 
     def filter(self, metadata: Dict) -> bool:
         """
@@ -147,7 +147,7 @@ class RegexProjectMetadataFilter(FilterMetadataPlugin, RegexFilter):
     name = "regex_project_metadata"
     match_patterns = "any"
     nulls_match = True
-    initilized = False
+    initialized = False
     patterns: Dict = {}
 
     def initilize_plugin(self) -> None:
@@ -166,7 +166,7 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
     name = "regex_release_file_metadata"
     match_patterns = "any"
     nulls_match = True
-    initilized = False
+    initialized = False
     patterns: Dict = {}
 
     def initilize_plugin(self) -> None:
@@ -176,6 +176,50 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
         return RegexFilter.filter(self, metadata)
 
 
+class SizeProjectMetadataFilter(FilterMetadataPlugin):
+    """
+    Plugin to download only packages having total file sizes less than
+    a configurable threshold.
+    """
+
+    name = "size_project_metadata"
+    initialized = False
+    max_package_size: int = 0
+
+    def initialize_plugin(self) -> None:
+        """
+        Initialize the plugin reading settings from the config.
+        """
+        if not self.initialized:
+            try:
+                self.max_package_size = int(
+                    self.configuration["size_project_metadata"]["max_package_size"]
+                )
+            except KeyError:
+                return
+            except ValueError:
+                return
+            if self.max_package_size > 0:
+                logger.info(
+                    f"Initialized project size plugin with max_package_size={self.max_package_size}"  # noqa: E501
+                )
+            self.initialized = True
+
+    def filter(self, metadata: Dict) -> bool:
+        """
+        Return False for projects with metadata indicating
+        total file sizes greater than threshold.
+        """
+        if self.max_package_size <= 0:
+            return True
+        total_size = 0
+        for release in metadata["releases"].values():
+            for file in release:
+                total_size += file["size"]
+
+        return total_size <= self.max_package_size
+
+
 class VersionRangeFilter(Filter):
     """
     Plugin to download only items having metadata
@@ -183,7 +227,7 @@ class VersionRangeFilter(Filter):
     """
 
     name = "version_range_filter"
-    initilized = False
+    initialized = False
     specifiers: Dict = {}
     nulls_match = True
 
@@ -198,7 +242,7 @@ class VersionRangeFilter(Filter):
         except KeyError:
             return
         else:
-            if not self.initilized:
+            if not self.initialized:
                 for k in config:
                     # self.specifiers[k] = SpecifierSet(config[k])
                     self.specifiers[k] = [
@@ -207,7 +251,7 @@ class VersionRangeFilter(Filter):
                 logger.info(
                     f"Initialized version_range_release_file_metadata plugin with {self.specifiers}"  # noqa: E501
                 )
-                self.initilized = True
+                self.initialized = True
 
     def filter(self, metadata: Dict) -> bool:
         """
@@ -279,7 +323,7 @@ class VersionRangeProjectMetadataFilter(FilterMetadataPlugin, VersionRangeFilter
     """
 
     name = "version_range_project_metadata"
-    initilized = False
+    initialized = False
     specifiers: Dict = {}
     nulls_match = True
 
@@ -299,7 +343,7 @@ class VersionRangeReleaseFileMetadataFilter(
     """
 
     name = "version_range_release_file_metadata"
-    initilized = False
+    initialized = False
     specifiers: Dict = {}
     nulls_match = True
 
