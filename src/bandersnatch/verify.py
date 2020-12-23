@@ -109,7 +109,15 @@ async def verify(
 
     if args.json_update:
         if not args.dry_run:
-            await get_latest_json(master, json_full_path, config, executor, args.delete)
+            try:
+                await get_latest_json(
+                    master, json_full_path, config, executor, args.delete
+                )
+            except Exception:
+                logger.exception(
+                    "Error downloading following package; metadata not updated: "
+                    f"{json_full_path}"
+                )
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
@@ -137,7 +145,14 @@ async def verify(
                     all_package_files.append(pkg_file)
                     continue
                 else:
-                    await master.url_fetch(jpkg["url"], pkg_file, executor)
+                    try:
+                        await master.url_fetch(jpkg["url"], pkg_file, executor)
+                    except Exception:
+                        logger.exception(
+                            "Continuing to next file after error downloading: "
+                            f"{jpkg['url']}"
+                        )
+                        continue
 
             calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
             if calc_sha256 != jpkg["digests"]["sha256"]:
