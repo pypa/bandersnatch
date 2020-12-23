@@ -54,7 +54,7 @@ class BlockListProject(FilterProjectPlugin):
                 continue
             if package_requirement.name != package_line:
                 logger.debug(
-                    "Package line %r does not requirement name %r",
+                    "Package line %r does not match requirement name %r",
                     package_line,
                     package_requirement.name,
                 )

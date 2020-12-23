@@ -64,7 +64,7 @@ class AllowListProject(FilterProjectPlugin):
 
     def check_match(self, **kwargs: Any) -> bool:
         """
-        Check if the package name matches against a project that is blocklisted
+        Check if the package name matches against a project that is allowlisted
         in the configuration.
 
         Parameters
