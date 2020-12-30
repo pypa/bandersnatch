@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import shutil
+import sys
 from argparse import Namespace
 from asyncio.queues import Queue
 from configparser import ConfigParser
@@ -21,6 +22,25 @@ from .storage import storage_backend_plugins
 from .utils import convert_url_to_path, hash, recursive_find_files, unlink_parent_dir
 
 logger = logging.getLogger(__name__)
+
+
+def on_error(stop_on_error: bool, exception: BaseException, package: str) -> None:
+    if isinstance(exception, KeyboardInterrupt):
+        # Setting self.errors to True to ensure we don't save Serial
+        # and thus save to disk that we've had a successful sync
+        logger.info(
+            "Cancelling, all downloads are forcibly stopped, data may be "
+            + "corrupted."
+        )
+    elif isinstance(exception, TypeError) or isinstance(exception, ValueError):
+        # This occurs for testing or when todolist is corrupt
+        pass
+    else:
+        if package:
+            logger.exception(f"Error syncing package: {package}")
+        if stop_on_error:
+            logger.error("Exiting early after error.")
+            sys.exit(1)
 
 
 async def get_latest_json(
@@ -106,10 +126,16 @@ async def verify(
     json_full_path = json_base / json_file
     loop = asyncio.get_event_loop()
     logger.info(f"Parsing {json_file}")
+    stop_on_error = config.getboolean("mirror", "stop-on-error")
 
     if args.json_update:
         if not args.dry_run:
-            await get_latest_json(master, json_full_path, config, executor, args.delete)
+            try:
+                await get_latest_json(
+                    master, json_full_path, config, executor, args.delete
+                )
+            except Exception as e:
+                on_error(stop_on_error, e, package=json_file)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
@@ -128,6 +154,7 @@ async def verify(
     for plugin in LoadedFilters().filter_release_plugins() or []:
         plugin.filter(pkg)
 
+    deferred_exception = None
     for release_version in pkg[releases_key]:
         for jpkg in pkg[releases_key][release_version]:
             pkg_file = mirror_base_path / "web" / convert_url_to_path(jpkg["url"])
@@ -137,7 +164,16 @@ async def verify(
                     all_package_files.append(pkg_file)
                     continue
                 else:
-                    await master.url_fetch(jpkg["url"], pkg_file, executor)
+                    try:
+                        await master.url_fetch(jpkg["url"], pkg_file, executor)
+                    except Exception as e:
+                        logger.exception(
+                            "Continuing to next file after error downloading: "
+                            f"{jpkg['url']}"
+                        )
+                        if not deferred_exception:  # keep first exception
+                            deferred_exception = e
+                        continue
 
             calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
             if calc_sha256 != jpkg["digests"]["sha256"]:
@@ -150,6 +186,9 @@ async def verify(
                     )
 
             all_package_files.append(pkg_file)
+
+    if deferred_exception:
+        on_error(stop_on_error, deferred_exception, package=json_file)
 
     logger.info(f"Finished validating {json_file}")
 

@@ -8,8 +8,10 @@ from shutil import rmtree
 from tempfile import gettempdir
 from typing import Any, List
 
+import asynctest
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
 
 import bandersnatch
 from bandersnatch.master import Master
@@ -20,6 +22,7 @@ from bandersnatch.verify import (  # isort:skip
     delete_unowned_files,
     metadata_verify,
     verify_producer,
+    verify,
 )
 
 
@@ -31,23 +34,26 @@ def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
 
 
-class FakeArgs:
-    delete = True
-    dry_run = True
-    workers = 2
-
-
 class FakeConfig:
     def get(self, section: str, item: str) -> str:
         if section == "mirror":
             if item == "directory":
                 return "/data/pypi"
             if item == "master":
-                return "https://pypi.org/simple/"
+                return "https://unittest.org"
         return ""
 
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
-        return 0.5
+        return fallback
+
+    def getint(self, section: str, item: str, fallback: int = 5) -> int:
+        return fallback
+
+    def getboolean(self, section: str, item: str, fallback: bool = False) -> bool:
+        if section == "mirror":
+            if item == "stop-on-error":
+                return False
+        return fallback
 
 
 # TODO: Support testing sharded simple dirs
@@ -200,12 +206,104 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = True
+        workers = 2
+
     fa = FakeArgs()
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
     await metadata_verify(fc, fa)  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_get_latest_json_timeout(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = True
+        workers = 2
+
+    fa = FakeArgs()
+    fc = FakeConfig()
+
+    master = Master(fc.get("mirror", "master"))
+    url_fetch_timeout = asynctest.asynctest.CoroutineMock(
+        side_effect=ServerTimeoutError
+    )
+    master.url_fetch = url_fetch_timeout  # type: ignore
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    jsonfile = jsonpath / "bandersnatch"
+    jsonfile.touch()
+    all_package_files: List[str] = []
+
+    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    assert jsonfile.exists()
+    assert not all_package_files
+
+
+@pytest.mark.asyncio
+async def test_get_latest_json_404(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = True
+        workers = 2
+
+    fa = FakeArgs()
+    fc = FakeConfig()
+
+    master = Master(fc.get("mirror", "master"))
+    url_fetch_404 = asynctest.asynctest.CoroutineMock(
+        side_effect=ClientResponseError(code=404, history=(), request_info=None)
+    )
+    master.url_fetch = url_fetch_404  # type: ignore
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    jsonfile = jsonpath / "bandersnatch"
+    jsonfile.touch()
+    all_package_files: List[str] = []
+
+    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    assert not jsonfile.exists()
+    assert not all_package_files
+
+
+@pytest.mark.asyncio
+async def test_verify_url_exception(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = False
+        workers = 2
+
+    fa = FakeArgs()
+    fc = FakeConfig()
+
+    master = Master(fc.get("mirror", "master"))
+    url_fetch_404 = asynctest.CoroutineMock(
+        side_effect=ClientResponseError(code=404, history=(), request_info=None)
+    )
+    master.url_fetch = url_fetch_404  # type: ignore
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True, exist_ok=True)
+    jsonfile = jsonpath / "bandersnatch"
+    with jsonfile.open("w") as f:
+        f.write(
+            '{"releases":{"1.0":["url":"https://unittests.org/packages/a0/a0/a0a0/package-1.0.0.exe"}]}}'  # noqa: E501
+        )
+    all_package_files: List[str] = []
+
+    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    assert jsonfile.exists()
+    assert not all_package_files
 
 
 if __name__ == "__main__":

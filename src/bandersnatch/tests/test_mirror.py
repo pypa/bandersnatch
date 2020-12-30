@@ -1,4 +1,5 @@
 import os.path
+import sys
 import unittest.mock as mock
 from os import sep
 from pathlib import Path
@@ -1063,3 +1064,7 @@ def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
     mirror.packages_to_sync = {"black": 69, "foobar": 47, "barfoo": 68}
     target_serial = mirror.find_target_serial()
     assert target_serial == 69
+
+
+if __name__ == "__main__":
+    pytest.main(sys.argv)
