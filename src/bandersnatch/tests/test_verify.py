@@ -43,10 +43,10 @@ class FakeConfig:
         return ""
 
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
-        return 0.5
+        return fallback
 
     def getint(self, section: str, item: str, fallback: int = 5) -> float:
-        return 5
+        return fallback
 
 
 # TODO: Support testing sharded simple dirs
