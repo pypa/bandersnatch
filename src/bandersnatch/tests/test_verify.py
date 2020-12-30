@@ -33,13 +33,6 @@ def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
 
 
-class FakeArgs:
-    delete = True
-    dry_run = False
-    json_update = True
-    workers = 2
-
-
 class FakeConfig:
     def get(self, section: str, item: str) -> str:
         if section == "mirror":
@@ -206,6 +199,11 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = True
+        workers = 2
+
     fa = FakeArgs()
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
@@ -215,11 +213,15 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_timeout(
-    monkeypatch: MonkeyPatch, tmp_path: Path
-) -> None:
-    fc = FakeConfig()
+async def test_get_latest_json_timeout(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = True
+        workers = 2
+
     fa = FakeArgs()
+    fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_timeout = mock.AsyncMock(side_effect=ServerTimeoutError)  # type: ignore
@@ -237,15 +239,21 @@ async def test_get_latest_json_timeout(
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_404(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
-    fc = FakeConfig()
+async def test_get_latest_json_404(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = True
+        workers = 2
+
     fa = FakeArgs()
+    fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_timeout = mock.AsyncMock(  # type: ignore
+    url_fetch_404 = mock.AsyncMock(  # type: ignore
         side_effect=ClientResponseError(code=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_timeout  # type: ignore
+    master.url_fetch = url_fetch_404  # type: ignore
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
@@ -255,6 +263,37 @@ async def test_get_latest_json_404(monkeypatch: MonkeyPatch, tmp_path: Path) -> 
 
     await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
     assert not jsonfile.exists()
+    assert not all_package_files
+
+
+@pytest.mark.asyncio
+async def test_verify_url_exception(tmp_path: Path) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        json_update = False
+        workers = 2
+
+    fa = FakeArgs()
+    fc = FakeConfig()
+
+    master = Master(fc.get("mirror", "master"))
+    url_fetch_404 = mock.AsyncMock(  # type: ignore
+        side_effect=ClientResponseError(code=404, history=(), request_info=None)
+    )
+    master.url_fetch = url_fetch_404  # type: ignore
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True, exist_ok=True)
+    jsonfile = jsonpath / "bandersnatch"
+    with jsonfile.open("w") as f:
+        f.write(
+            '{"releases":{"1.0":["url":"https://unittests.org/packages/a0/a0/a0a0/package-1.0.0.exe"}]}}'  # noqa: E501
+        )
+    all_package_files: List[str] = []
+
+    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    assert jsonfile.exists()
     assert not all_package_files
 
 
