@@ -8,6 +8,7 @@ from shutil import rmtree
 from tempfile import gettempdir
 from typing import Any, List
 
+import asynctest
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
@@ -45,7 +46,13 @@ class FakeConfig:
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
         return fallback
 
-    def getint(self, section: str, item: str, fallback: int = 5) -> float:
+    def getint(self, section: str, item: str, fallback: int = 5) -> int:
+        return fallback
+
+    def getboolean(self, section: str, item: str, fallback: bool = False) -> bool:
+        if section == "mirror":
+            if item == "stop-on-error":
+                return False
         return fallback
 
 
@@ -224,7 +231,9 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_timeout = mock.AsyncMock(side_effect=ServerTimeoutError)  # type: ignore
+    url_fetch_timeout = asynctest.asynctest.CoroutineMock(
+        side_effect=ServerTimeoutError
+    )
     master.url_fetch = url_fetch_timeout  # type: ignore
 
     jsonpath = tmp_path / "web" / "json"
@@ -250,7 +259,7 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_404 = mock.AsyncMock(  # type: ignore
+    url_fetch_404 = asynctest.asynctest.CoroutineMock(
         side_effect=ClientResponseError(code=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore
@@ -278,7 +287,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_404 = mock.AsyncMock(  # type: ignore
+    url_fetch_404 = asynctest.CoroutineMock(
         side_effect=ClientResponseError(code=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore
