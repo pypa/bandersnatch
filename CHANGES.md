@@ -1,3 +1,26 @@
+# 4.4.0 (2020-12-31)
+
+## New Features
+
+- Build a swift and non swift docker image - `PR #754`
+- Split Docker Build to accept build args to optionally include swift support - `PR #741` - Thanks **nlaurance-pyie**
+- Slimmer docker image - `PR #738` - Thanks **nlaurance-pyie**
+- Renamed black/white to block/allow lists - `PR #737` - Thanks **nlaurance-pyie**
+- packages allowlist can be defined from requirements like files - `PR #739` - Thanks **nlaurance-pyie**
+- Simplify logging around filters - `PR #678` - Thanks **@dalley**
+
+## Bug Fixes
+
+- Handling of timeouts that can occur in verify. - `PR #785` - Thanks **electricworry**
+- Added retry logic on timeouts when fetching metadata - `PR #773` - Thanks **gerrod3**
+- Fix links, improve docs CI, and improve external object linking - `PR #776` - Thanks **ichard26**
+- Handle 404 status for json verify - `PR #763` - Thanks **electricworry**
+- Clean up isort config after upgrade to 5+ - `PR #767` - Thanks **ichard26**
+- Remove duplicate max() target serial finding code + update typing - `PR #745`
+- swift.py: use BaseFileLock's lock_file property - `PR #699` - Thanks **hauntsaninja**
+- Move to latest isort + mypy fixes - `PR #706`
+- Update change log url in project metadata - `PR #673` - Thanks **@abn**
+
 # 4.3.0 (2020-8-25)
 
 ## New Features
