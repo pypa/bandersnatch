@@ -32,7 +32,7 @@ this project.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.6.1`
+- bandersnatch **requires** `>= Python 3.8.0`
 
 ## Docker
 
@@ -54,7 +54,7 @@ docker run pypa/bandersnatch bandersnatch --help
 This installs the latest stable, released version.
 
 ```shell
-python3.6 -m venv bandersnatch
+python3 -m venv bandersnatch
 bandersnatch/bin/pip install bandersnatch
 bandersnatch/bin/bandersnatch --help
 ```
@@ -89,13 +89,12 @@ For nginx it should look something like this:
     }
 ```
 
-* Note that it is a good idea to have your webserver publish the HTML index
+- Note that it is a good idea to have your webserver publish the HTML index
   files correctly with UTF-8 as the charset. The index pages will work without
   it but if humans look at the pages the characters will end up looking funny.
 
-* Make sure that the webserver uses UTF-8 to look up unicode path names. nginx
+- Make sure that the webserver uses UTF-8 to look up unicode path names. nginx
   gets this right by default - not sure about others.
-
 
 ### Cron jobs
 
@@ -103,7 +102,7 @@ You need to set up one cron job to run the mirror itself.
 
 Here's a sample that you could place in `/etc/cron.d/bandersnatch`:
 
-```
+```cron
     LC_ALL=en_US.utf8
     */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
 ```
@@ -111,6 +110,8 @@ Here's a sample that you could place in `/etc/cron.d/bandersnatch`:
 This assumes that you have a ``logger`` utility installed that will convert the
 output of the commands to syslog entries.
 
+[SystemD Timers](https://www.freedesktop.org/software/systemd/man/systemd.timer.html)
+are also another alternative in today's modern world.
 
 ### Maintenance
 
@@ -120,14 +121,14 @@ errors.
 
 If you want to force bandersnatch to check everything against the master PyPI:
 
-* run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
+- run `bandersnatch mirror --force-check` to move status files if they exist in your mirror directory in order get a full sync.
 
 Be aware that full syncs likely take hours depending on PyPI's performance and your network latency and bandwidth.
 
 #### Other Commands
 
-* `bandersnatch delete --help` - Allows you to specify package(s) to be removed from your mirror (*dangerous*)
-* `bandersnatch verify --help` - Crawls your repo and fixes any missed files + deletes any unowned files found (*dangerous*)
+- `bandersnatch delete --help` - Allows you to specify package(s) to be removed from your mirror (*dangerous*)
+- `bandersnatch verify --help` - Crawls your repo and fixes any missed files + deletes any unowned files found (*dangerous*)
 
 ### Operational notes
 
@@ -151,8 +152,10 @@ The PyPI has a quite extensive list of packages that we need to maintain in a
 flat directory. Filesystems with small limits on the number of sub-directories
 per directory can run into a problem like this:
 
+```console
     2013-07-09 16:11:33,331 ERROR: Error syncing package: zweb@802449
     OSError: [Errno 31] Too many links: '../pypi/web/simple/zweb'
+```
 
 Specifically we recommend to avoid using ext3. Ext4 and newer does not have the
 limitation of 32k sub-directories.
@@ -167,7 +170,9 @@ other purposes.
 An example of an unsupported API is [PyPI's XML-RPC interface](https://warehouse.readthedocs.io/api-reference/xml-rpc/), which is used when running `pip search`.
 
 ### Bandersnatch Mission
+
 The bandersnatch project strives to:
+
 - Mirror all static objects of the Python Package Index (https://pypi.org/)
 - bandersnatch's main goal is to support the main global index to local syncing **only**
 - This will allow organizations to have lower latency access to PyPI and
@@ -179,6 +184,7 @@ The bandersnatch project strives to:
 
 If you have questions or comments, please submit a bug report to
 https://github.com/pypa/bandersnatch/issues/new
+
 - IRC: #bandersnatch on *Freenode* (You can use [webchat](https://webchat.freenode.net/?channels=%23bandersnatch) if you don't have an IRC client)
 
 ### Code of Conduct
