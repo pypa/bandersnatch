@@ -5,7 +5,7 @@ async-timeout==3.0.1
 attrs==20.3.0
 chardet==3.0.4  # pyup: ignore
 filelock==3.0.12
-idna==3.0
+idna==3.1
 importlib_resources==4.1.1; python_version < '3.7'
 lxml==4.6.2
 multidict==5.1.0
