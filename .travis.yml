@@ -7,11 +7,11 @@ env:
 matrix:
   fast_finish: true
   include:
-    - python: 3.8
+    - python: 3.9
       env: TOXENV=doc_build
-    - python: 3.8
+    - python: 3.9
       env: TOXENV=lint
-    - python: 3.8
+    - python: 3.9
       env: TOXENV=py3
     - python: nightly
       env: TOXENV=INTEGRATION

@@ -1,3 +1,13 @@
+# 5.0.0 (2021-X-X)
+
+## New Features
+
+- bandersnatch is now a >= 3.8 Python project
+
+## Bug Fixes
+
+- No bugs yet - Software is super perfect! 😂
+
 # 4.4.0 (2020-12-31)
 
 ## New Features
