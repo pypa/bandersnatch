@@ -1,7 +1,9 @@
 # Contributing
+
 So you want to help out? **Awesome**. Go you!
 
 ## Code of Conduct
+
 Everyone interacting in the bandersnatch project's codebases, issue trackers,
 chat rooms, and mailing lists is expected to follow the
 [PSF Code of Conduct](https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md).
@@ -11,23 +13,34 @@ chat rooms, and mailing lists is expected to follow the
 Bandersnatch is developed using the [GitHub Flow](https://guides.github.com/introduction/flow/)
 
 ### Pre Install
+
 Please make sure you system has the following:
 
-- Python 3.6.1 or greater
+- Python 3.8.0 or greater
+- git client
+
+### Checkout `bandersnatch`
+
+Lets now cd to where we want the code and clone the repo:
+
+- `cd somewhere`
+- `git clone git@github.com:pypa/bandersnatch.git`
 
 ### Development venv
+
 One way to develop and install all the dependencies of bandersnatch is to use a venv.
 
 - First create one and upgrade `pip`
 
-```
-python3.6 -m venv /path/to/venv
+```console
+python3 -m venv /path/to/venv
 /path/to/venv/bin/pip install --upgrade pip
 ```
 
 For example:
+
 ```console
-$ python3.6 -m venv bandersnatchvenv
+$ python3 -m venv bandersnatchvenv
 $ bandersnatchvenv/bin/pip install --upgrade pip
 Collecting pip
   Using cached https://files.pythonhosted.org/packages/0f/74/ecd13431bcc456ed390b44c8a6e917c1820365cbebcb6a8974d1cd045ab4/pip-10.0.1-py2.py3-none-any.whl
@@ -45,6 +58,7 @@ Successfully installed pip-10.0.1
 ```
 
 For example:
+
 ```console
 $ bandersnatchvenv/bin/pip install -r requirements.txt -r test-requirements.txt
 Collecting six==1.10.0 (from -r requirements.txt (line 2))
@@ -118,6 +132,12 @@ Installing collected packages: six, pyparsing, python-dateutil, packaging, reque
 Successfully installed apipkg-1.4 attrs-18.1.0 bandersnatch-2.1.3 coverage-4.5.1 execnet-1.5.0 flake8-3.5.0 mccabe-0.6.1 more-itertools-4.1.0 packaging-16.8 pep8-1.7.1 pluggy-0.6.0 py-1.5.3 pycodestyle-2.3.1 pyflakes-1.6.0 pyparsing-2.1.10 pytest-3.5.1 pytest-cache-1.0 pytest-codecheckers-0.2 pytest-cov-2.5.1 pytest-timeout-1.2.1 python-dateutil-2.6.0 requests-2.12.4 six-1.10.0 tox-3.0.0 virtualenv-15.2.0 xmlrpc2-0.3.1
 ```
 
+- Finally install bandersnatch in editable mode:
+
+```console
+/path/to/venv/bin/pip install -e .
+```
+
 ## Running Bandersnatch
 
 You will need to customize `src/bandersnatch/default.conf` and run via the following:
@@ -134,13 +154,14 @@ cd bandersnatch
 
 We use tox to run tests. `tox.ini` has the options needed, so running tests is very easy.
 
-```
+```console
 cd bandersnatch
 /path/to/venv/bin/tox [-vv]
 ```
 
-For example:
-``` console
+Example output:
+
+```console
 $ tox
 GLOB sdist-make: /Users/dhubbard/PycharmProjects/bandersnatch/setup.py
 py36 create: /Users/dhubbard/PycharmProjects/bandersnatch/.tox/py36
@@ -182,13 +203,16 @@ ________________________________________________________________________________
   congratulations :)
 ```
 
-
 You want to see:
-```
-py36: commands succeeded
+
+```console
+py3: commands succeeded
 congratulations :)
 ```
 
-
 ## Making a release
-*To be completed - @cooper has never used zc.buildout*
+
+Please rely on GitHub actions to cut a release.
+
+To do so, make a [GitHub Release](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/managing-releases-in-a-repository)
+and GitHub Actions will package and upload to PyPI.
