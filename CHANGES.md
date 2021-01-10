@@ -6,7 +6,7 @@
 
 ## Bug Fixes
 
-- No bugs yet - Software is super perfect! 😂
+- Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - 'PR #799'
 
 # 4.4.0 (2020-12-31)
 
