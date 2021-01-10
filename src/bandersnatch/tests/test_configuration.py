@@ -1,4 +1,5 @@
 import configparser
+import importlib.resources
 import os
 import unittest
 import warnings
@@ -11,15 +12,6 @@ from bandersnatch.configuration import (
     Singleton,
     validate_config_values,
 )
-
-try:
-    import importlib.resources
-except ImportError:  # For 3.6 and lesser
-    import importlib
-
-    import importlib_resources
-
-    importlib.resources = importlib_resources
 
 
 class TestBandersnatchConf(TestCase):
@@ -51,9 +43,7 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(id(instance1), id(instance2))
 
     def test_single_config__default__all_sections_present(self) -> None:
-        with importlib.resources.path(  # type: ignore
-            "bandersnatch", "unittest.conf"
-        ) as config_file:
+        with importlib.resources.path("bandersnatch", "unittest.conf") as config_file:
             instance = BandersnatchConfig(str(config_file))
             # All default values should at least be present and be the write types
             for section in ["mirror", "plugins", "blocklist"]:
