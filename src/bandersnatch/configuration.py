@@ -2,21 +2,11 @@
 Module containing classes to access the bandersnatch configuration file
 """
 import configparser
+import importlib.resources
 import logging
 import warnings
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
-
-try:
-    import importlib.resources
-except ImportError:  # pragma: no cover
-    # For <=3.6
-    import importlib
-
-    import importlib_resources
-
-    importlib.resources = importlib_resources
-
 
 logger = logging.getLogger("bandersnatch")
 
@@ -58,9 +48,7 @@ class BandersnatchConfig(metaclass=Singleton):
             Path to the configuration file to use
         """
         self.found_deprecations: List[str] = []
-        with importlib.resources.path(  # type: ignore
-            "bandersnatch", "default.conf"
-        ) as config_path:
+        with importlib.resources.path("bandersnatch", "default.conf") as config_path:
             self.default_config_file = str(config_path)
         self.config_file = config_file
         self.load_configuration()
