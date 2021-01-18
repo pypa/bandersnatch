@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import gettempdir
+from unittest.mock import AsyncMock, patch
 
-import asynctest
 import pytest
 
 import bandersnatch
@@ -20,21 +20,21 @@ def test_rpc_url(master: Master) -> None:
 @pytest.mark.asyncio
 async def test_all_packages(master: Master) -> None:
     expected = [["aiohttp", "", "", "", "69"]]
-    master.rpc = asynctest.CoroutineMock(return_value=expected)  # type: ignore
+    master.rpc = AsyncMock(return_value=expected)  # type: ignore
     pacakges = await master.all_packages()
     assert expected == pacakges
 
 
 @pytest.mark.asyncio
 async def test_all_packages_raises(master: Master) -> None:
-    master.rpc = asynctest.CoroutineMock(return_value=[])  # type: ignore
+    master.rpc = AsyncMock(return_value=[])  # type: ignore
     with pytest.raises(XmlRpcError):
         await master.all_packages()
 
 
 @pytest.mark.asyncio
 async def test_changed_packages_no_changes(master: Master) -> None:
-    master.rpc = asynctest.CoroutineMock(return_value=None)  # type: ignore
+    master.rpc = AsyncMock(return_value=None)  # type: ignore
     changes = await master.changed_packages(4)
     assert changes == {}
 
@@ -49,9 +49,7 @@ async def test_changed_packages_with_changes(master: Master) -> None:
         # changelog. This verifies that we don't fail even with garbage input.
         ("foobar", "1", 0, "changed", 19),
     ]
-    master.rpc = asynctest.CoroutineMock(  # type: ignore
-        return_value=list_of_package_changes
-    )
+    master.rpc = AsyncMock(return_value=list_of_package_changes)  # type: ignore
     changes = await master.changed_packages(4)
     assert changes == {"baz": 18, "foobar": 20}
 
@@ -85,8 +83,7 @@ async def test_xmlrpc_user_agent(master: Master) -> None:
 
 @pytest.mark.asyncio
 async def test_session_raise_for_status(master: Master) -> None:
-    patcher = asynctest.patch("aiohttp.ClientSession", autospec=True)
-    with patcher as create_session:
+    with patch("aiohttp.ClientSession", autospec=True) as create_session:
         async with master:
             pass
         assert len(create_session.call_args_list) == 1
