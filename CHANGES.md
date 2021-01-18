@@ -3,10 +3,11 @@
 ## New Features
 
 - bandersnatch is now a >= 3.8 Python project
+- New size_project_metadata filter plugin, which can deny download of projects larger than defined threshold - `PR #806`
 
 ## Bug Fixes
 
-- Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - 'PR #799'
+- Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - `PR #799`
 
 # 4.4.0 (2020-12-31)
 

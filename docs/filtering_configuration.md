@@ -5,14 +5,13 @@ _NOTE: All references to whitelist/blacklist are deprecated, and will be replace
 The mirror filter configuration settings are in the same configuration file as the mirror settings.
 There are different configuration sections for the different plugin types.
 
-Filtering Plugin package lists need to use the **Raw PyPI Name**
-(non [PEP503](https://www.python.org/dev/peps/pep-0503/#normalized-names) normalized)
-in order to get filtered.
+Filtering Plugin package lists can use the
+[PEP503](https://www.python.org/dev/peps/pep-0503/#normalized-names) normalized
+names. Any non-normalized names in `bandersnatch.conf` will be automatically
+converted.
 
-E.g. to Blocklist [ACMPlus](https://pypi.org/project/ACMPlus/) you'd need to
-use that *exact* casing in `bandersnatch.conf`
-
-- A PR would be welcome fixing the normalization but it's an invasive PR
+E.g. to Blocklist [discord.py](https://pypi.org/project/discord.py/) the string 'discord-py'
+is correct, but 'discord.PY' will also work.
 
 ### Plugins Enabling
 
@@ -212,3 +211,68 @@ keep = 3
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
 
 You should be aware that it can break requirements. Prereleases are also kept.
+
+
+### Block projects above a specified size threshold
+
+There is an increasing number of projects that consume a large amount of space.
+At the time of writing (Jan 2021) the [stats](https://pypi.org/stats/) shows some
+of the top projects consume over 100GB each, and the top 100 projects all consume
+more than 8GB each.
+
+If your usecase for a PyPI mirror is to have the diversity of packages but you
+have storage constraints, it may be preferrable to block large packages. This
+can be done with the `size_project_metadata` plugin.
+
+```ini
+[plugins]
+enabled =
+    size_project_metadata
+
+[size_project_metadata]
+max_package_size = 1 000 000 000
+```
+
+This will block the download of any project whose total size exceeds 1GB.
+
+It can be combined with an allowlist to overrule the size limit for large projects
+you are actually interested in and want make exceptions for. The following has the
+logic of including all projects where the size is <1GB *or* the name is
+[numpy](https://pypi.org/project/numpy/).
+
+```ini
+[plugins]
+enabled =
+    size_project_metadata
+
+[allowlist]
+    numpy
+
+[size_project_metadata]
+max_package_size = 1 000 000 000
+```
+
+If the allowlist_project is also enabled, then the filter becomes a logical
+and, e.g. the following will include all projects where the size is <1GB *and* the
+name appears in the allowlist:
+
+```ini
+[plugins]
+enabled =
+    size_project_metadata
+    allowlist_project
+
+[allowlist]
+    numpy
+    scapy
+    flask
+
+[size_project_metadata]
+max_package_size = 1 000 000 000
+```
+
+Note that because projects naturally grow in size, one that was once within the
+size can grow beyond the limit, and will stop being updated. It is then a choice
+for the maintainer to make whether to add the package to the exception list
+(and possibly run a `bandersnatch mirror --force-check`) or to prune the project
+from the mirror (with `bandersnatch delete <package_name>`).
