@@ -1,14 +1,16 @@
-from unittest import TestCase
-from tempfile import TemporaryDirectory
 import os
-import bandersnatch.filter
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import cast
+from unittest import TestCase
 
 from mock_config import mock_config
-from pathlib import Path
 
-from bandersnatch.mirror import BandersnatchMirror
+import bandersnatch.filter
 from bandersnatch.master import Master
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
+from bandersnatch_filter_plugins.metadata_filter import SizeProjectMetadataFilter
 
 
 class TestSizeProjectMetadataFilter(TestCase):
@@ -43,7 +45,9 @@ max_package_size = 1G
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["size_project_metadata"])
         self.assertEqual(len(plugins), 1)
-        self.assertTrue(plugins[0].initialized)
+        self.assertIsInstance(plugins[0], SizeProjectMetadataFilter)
+        plugin: SizeProjectMetadataFilter = cast(SizeProjectMetadataFilter, plugins[0])
+        self.assertTrue(plugin.initialized)
 
     def test__filter__size__only(self) -> None:
         mock_config(
