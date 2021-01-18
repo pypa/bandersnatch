@@ -1,6 +1,6 @@
 from asyncio import TimeoutError
+from unittest.mock import AsyncMock
 
-import asynctest
 import pytest
 from _pytest.capture import CaptureFixture
 
@@ -23,9 +23,7 @@ def test_package_accessors(package: Package) -> None:
 async def test_package_update_metadata_gives_up_after_3_stale_responses(
     caplog: CaptureFixture, master: Master
 ) -> None:
-    master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
-        side_effect=StalePage
-    )
+    master.get_package_metadata = AsyncMock(side_effect=StalePage)  # type: ignore
     package = Package("foo", serial=11)
 
     with pytest.raises(StaleMetadata):
@@ -37,7 +35,7 @@ async def test_package_update_metadata_gives_up_after_3_stale_responses(
 @pytest.mark.asyncio
 async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None:
     pkg_name = "foo"
-    master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
+    master.get_package_metadata = AsyncMock(  # type: ignore
         side_effect=PackageNotFound(pkg_name)
     )
     package = Package(pkg_name, serial=11)
@@ -51,9 +49,7 @@ async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None
 async def test_package_update_metadata_gives_up_after_3_timeouts(
     caplog: CaptureFixture, master: Master
 ) -> None:
-    master.get_package_metadata = asynctest.CoroutineMock(  # type: ignore
-        side_effect=TimeoutError
-    )
+    master.get_package_metadata = AsyncMock(side_effect=TimeoutError)  # type: ignore
     package = Package("foo", serial=11)
 
     with pytest.raises(ConnectionTimeout) as timeout:

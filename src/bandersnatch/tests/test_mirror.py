@@ -6,7 +6,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
 from typing import Any, Dict, Iterator, List, NoReturn
 
-import asynctest
 import pytest
 from freezegun import freeze_time
 
@@ -215,9 +214,7 @@ def test_mirror_with_same_homedir_needs_lock(
 
 @pytest.mark.asyncio
 async def test_mirror_empty_master_gets_index(mirror: BandersnatchMirror) -> None:
-    mirror.master.all_packages = asynctest.asynctest.CoroutineMock(  # type: ignore
-        return_value={}
-    )
+    mirror.master.all_packages = mock.AsyncMock(return_value={})  # type: ignore
     await mirror.synchronize()
 
     assert """\
@@ -298,9 +295,7 @@ web{0}simple{0}index.html""".format(
 
 @pytest.mark.asyncio
 async def test_mirror_sync_package(mirror: BandersnatchMirror) -> None:
-    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
-        return_value={"foo": 1}
-    )
+    mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
@@ -338,9 +333,7 @@ simple{0}index.html""".format(
 async def test_mirror_sync_package_error_no_early_exit(
     mirror: BandersnatchMirror,
 ) -> None:
-    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
-        return_value={"foo": 1}
-    )
+    mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
     mirror.errors = True
     changed_packages = await mirror.synchronize()
 
@@ -386,9 +379,7 @@ web{0}simple{0}index.html""".format(
 # TODO: Fix - Raises SystemExit but pytest does not like asyncio tasks
 @pytest.mark.asyncio
 async def mirror_sync_package_error_early_exit(mirror: BandersnatchMirror) -> None:
-    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
-        return_value={"foo": 1}
-    )
+    mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
 
     with Path("web/simple/index.html").open("wb") as index:
         index.write(b"old index")
@@ -416,7 +407,7 @@ web{0}simple{0}index.html""".format(
 async def test_mirror_sync_package_with_hash(
     mirror_hash_index: BandersnatchMirror,
 ) -> None:
-    mirror_hash_index.master.all_packages = asynctest.CoroutineMock(  # type: ignore
+    mirror_hash_index.master.all_packages = mock.AsyncMock(  # type: ignore
         return_value={"foo": 1}
     )
     await mirror_hash_index.synchronize()
@@ -451,9 +442,7 @@ simple{0}index.html""".format(
 async def test_mirror_serial_current_no_sync_of_packages_and_index_page(
     mirror: BandersnatchMirror,
 ) -> None:
-    mirror.master.changed_packages = asynctest.CoroutineMock(  # type: ignore
-        return_value={}
-    )
+    mirror.master.changed_packages = mock.AsyncMock(return_value={})  # type: ignore
     mirror.synced_serial = 1
     await mirror.synchronize()
 

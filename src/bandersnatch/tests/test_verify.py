@@ -7,8 +7,8 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
 from typing import Any, List
+from unittest.mock import AsyncMock
 
-import asynctest
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
@@ -231,9 +231,7 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_timeout = asynctest.asynctest.CoroutineMock(
-        side_effect=ServerTimeoutError
-    )
+    url_fetch_timeout = AsyncMock(side_effect=ServerTimeoutError)
     master.url_fetch = url_fetch_timeout  # type: ignore
 
     jsonpath = tmp_path / "web" / "json"
@@ -259,7 +257,7 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_404 = asynctest.asynctest.CoroutineMock(
+    url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(code=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore
@@ -287,7 +285,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
     fc = FakeConfig()
 
     master = Master(fc.get("mirror", "master"))
-    url_fetch_404 = asynctest.CoroutineMock(
+    url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(code=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore

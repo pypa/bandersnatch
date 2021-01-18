@@ -1,6 +1,6 @@
 from os import sep
+from unittest.mock import AsyncMock
 
-import asynctest
 import pytest
 
 from bandersnatch import utils
@@ -14,9 +14,7 @@ async def test_sync_specific_packages(mirror: BandersnatchMirror) -> None:
         f.write(FAKE_SERIAL)
     # Package names should be normalized by synchronize()
     specific_packages = ["Foo"]
-    mirror.master.all_packages = asynctest.CoroutineMock(  # type: ignore
-        return_value={"foo": 1}
-    )
+    mirror.master.all_packages = AsyncMock(return_value={"foo": 1})  # type: ignore
     mirror.json_save = True
     # Recall bootstrap so we have the json dirs
     mirror._bootstrap()
