@@ -7,6 +7,8 @@ from humanfriendly import InvalidSize, parse_size
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse
 
+from bandersnatch_filter_plugins.allowlist_name import AllowListProject
+
 from bandersnatch.filter import Filter  # isort:skip
 from bandersnatch.filter import FilterMetadataPlugin  # isort:skip
 from bandersnatch.filter import FilterReleaseFilePlugin  # isort:skip
@@ -177,7 +179,7 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
         return RegexFilter.filter(self, metadata)
 
 
-class SizeProjectMetadataFilter(FilterMetadataPlugin):
+class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
     """
     Plugin to download only packages having total file sizes less than
     a configurable threshold.
@@ -186,6 +188,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin):
     name = "size_project_metadata"
     initialized = False
     max_package_size: int = 0
+    allowlist_package_names: List[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -211,8 +214,16 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin):
                 )
                 return
             if self.max_package_size > 0:
+                if not self.allowlist_package_names:
+                    self.allowlist_package_names = (
+                        self._determine_unfiltered_package_names()
+                    )
+
                 logger.info(
-                    f"Initialized project size plugin with max_package_size={self.max_package_size}"  # noqa: E501
+                    f"Initialized metadata plugin {self.name} to block projects >{self.max_package_size}b"  # noqa: E501
+                    f"; except {self.allowlist_package_names}"
+                    if self.allowlist_package_names
+                    else ""
                 )
             self.initialized = True
 
@@ -223,6 +234,12 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin):
         """
         if self.max_package_size <= 0:
             return True
+
+        if self.allowlist_package_names and not self.check_match(
+            name=metadata["info"]["name"]
+        ):
+            return True
+
         total_size = 0
         for release in metadata["releases"].values():
             for file in release:

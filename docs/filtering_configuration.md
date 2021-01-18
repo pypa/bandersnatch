@@ -248,6 +248,7 @@ enabled =
     size_project_metadata
 
 [allowlist]
+packages =
     numpy
 
 [size_project_metadata]
@@ -265,6 +266,7 @@ enabled =
     allowlist_project
 
 [allowlist]
+packages =
     numpy
     scapy
     flask
