@@ -230,10 +230,12 @@ enabled =
     size_project_metadata
 
 [size_project_metadata]
-max_package_size = 1 000 000 000
+max_package_size = 1G
 ```
 
-This will block the download of any project whose total size exceeds 1GB.
+This will block the download of any project whose total size exceeds 1GB. (The
+value of `max_package_size` can be either an integer number of bytes or a human-
+readable value as shown.)
 
 It can be combined with an allowlist to overrule the size limit for large projects
 you are actually interested in and want make exceptions for. The following has the
@@ -249,7 +251,7 @@ enabled =
     numpy
 
 [size_project_metadata]
-max_package_size = 1 000 000 000
+max_package_size = 1G
 ```
 
 If the allowlist_project is also enabled, then the filter becomes a logical
@@ -268,7 +270,7 @@ enabled =
     flask
 
 [size_project_metadata]
-max_package_size = 1 000 000 000
+max_package_size = 1G
 ```
 
 Note that because projects naturally grow in size, one that was once within the

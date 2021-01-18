@@ -3,6 +3,7 @@ import re
 from configparser import SectionProxy
 from typing import Any, Dict, List
 
+from humanfriendly import InvalidSize, parse_size
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse
 
@@ -192,12 +193,22 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin):
         """
         if not self.initialized:
             try:
-                self.max_package_size = int(
-                    self.configuration["size_project_metadata"]["max_package_size"]
-                )
+                human_package_size = self.configuration["size_project_metadata"][
+                    "max_package_size"
+                ]
             except KeyError:
+                logger.warn(
+                    f"Unable to initialise {self.name} plugin;"
+                    f"must create max_package_size in configuration."
+                )
                 return
-            except ValueError:
+            try:
+                self.max_package_size = parse_size(human_package_size, binary=True)
+            except InvalidSize:
+                logger.warn(
+                    f"Unable to initialise {self.name} plugin;"
+                    f'max_package_size of "{human_package_size}" is not valid.'
+                )
                 return
             if self.max_package_size > 0:
                 logger.info(
