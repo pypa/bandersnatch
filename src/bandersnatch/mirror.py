@@ -211,7 +211,6 @@ class BandersnatchMirror(Mirror):
         self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
-        self.filters = LoadedFilters(load_all=True)
 
         # Stop soon after meeting an error. Continue without updating the
         # mirror's serial if false.

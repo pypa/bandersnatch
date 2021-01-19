@@ -5,6 +5,7 @@ async-timeout==3.0.1
 attrs==20.3.0
 chardet==3.0.4  # pyup: ignore
 filelock==3.0.12
+humanfriendly==9.1
 idna==2.10  # pyup: ignore
             # idna 3 and above causes some extreme backtracking because
             # requests doesn't support the 3.x series. Requests is
