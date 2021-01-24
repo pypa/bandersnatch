@@ -13,9 +13,13 @@ If you want a different nginx config bind mount to:
 
 - `/config/nginx.conf`
 
+The config defualts for the mirror to be bind mounted to:
+
+- `/data/pypi/web`
+
 ## Docker Run
 
-- `docker run --name bandersnatch_nginx --network host banderx`
+- `docker run --name bandersnatch_nginx --mount type=bind,source=/data/pypi/web,target=/data/pypi/web banderx`
 
 ## Docker Build
 
