@@ -26,5 +26,6 @@ Contents:
     installation
     mirror_configuration
     filtering_configuration
+    serving
     CONTRIBUTING
     modules

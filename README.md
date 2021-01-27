@@ -96,6 +96,9 @@ For nginx it should look something like this:
 - Make sure that the webserver uses UTF-8 to look up unicode path names. nginx
   gets this right by default - not sure about others.
 
+For more information visit out [official documentation](https://bandersnatch.readthedocs.io/)
+for instructions on how to use a NGINX example Docker Image.
+
 ### Cron jobs
 
 You need to set up one cron job to run the mirror itself.
