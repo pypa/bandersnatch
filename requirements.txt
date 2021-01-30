@@ -18,7 +18,7 @@ idna==2.10  # pyup: ignore
             # works properly.
 lxml==4.6.2
 multidict==5.1.0
-packaging==20.8
+packaging==20.9
 pyparsing==2.4.7
 setuptools==52.0.0
 six==1.15.0
