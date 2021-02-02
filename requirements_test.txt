@@ -11,5 +11,5 @@ pre-commit==2.9.3
 pytest==6.2.2
 pytest-asyncio==0.14.0
 pytest-timeout==1.4.2
-setuptools==52.0.0
+setuptools==53.0.0
 tox==3.21.3
