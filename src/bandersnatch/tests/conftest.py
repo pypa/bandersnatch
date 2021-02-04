@@ -66,6 +66,8 @@ def package_json() -> Dict[str, Any]:
                         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     },
                     "md5_digest": "b6bcb391b040c4468262706faf9d3cce",
+                    "size": 0,
+                    "upload_time_iso_8601": "2000-02-02T01:23:45.123456Z",
                 },
                 {
                     "url": "https://pypi.example.com/packages/2.7/f/foo/foo.whl",
@@ -75,6 +77,8 @@ def package_json() -> Dict[str, Any]:
                         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     },
                     "md5_digest": "6bd3ddc295176f4dca196b5eb2c4d858",
+                    "size": 12345,
+                    "upload_time_iso_8601": "2000-03-03T01:23:45.123456Z",
                 },
             ]
         },

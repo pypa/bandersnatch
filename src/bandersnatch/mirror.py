@@ -778,7 +778,7 @@ class BandersnatchMirror(Mirror):
 
         # Avoid downloading again if we have the file and it matches the hash.
         if path.exists():
-            if self.compare_method is "stat":
+            if self.compare_method == "stat":
                 existing_size = self.storage_backend.get_size(str(path))
                 if existing_size == size:
                     return None

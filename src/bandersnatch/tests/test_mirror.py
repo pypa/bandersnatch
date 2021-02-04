@@ -53,6 +53,8 @@ FAKE_RELEASE_DATA = JsonDict(
                     },
                     "md5_digest": "ebdad75ed9a852bbfd9be4c18bf76d00",
                     "packagetype": "sdist",
+                    "size": 1234,
+                    "upload_time_iso_8601": "2000-01-01T01:23:45.123456Z",
                 }
             ]
         },
@@ -880,6 +882,10 @@ async def test_package_sync_does_not_touch_existing_local_file(
     touch_files([pkg_file_path])
     with pkg_file_path.open("w") as f:
         f.write("")
+    # Here mtime is used to store upload time
+    # 949454625.123456 => 2000-02-02T01:23:45.123456Z in conftest.py
+    mtime = 949454625.123456
+    os.utime(pkg_file_path, (mtime, mtime))
     old_stat = pkg_file_path.stat()
 
     mirror.packages_to_sync = {"foo": 1}
