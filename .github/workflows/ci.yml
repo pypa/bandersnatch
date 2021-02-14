@@ -5,6 +5,12 @@ on: [push, pull_request]
 jobs:
   build:
     name: bandersnatch CI python ${{ matrix.python-version }} on ${{matrix.os}}
+    # We want to run on external PRs, but not on our own internal PRs (for the
+    # pull_request event) as they'll be run by the push to the branch. Without
+    # this if check, ci workflow checks are duplicated since internal PRs match
+    # both the push and pull_request events.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
