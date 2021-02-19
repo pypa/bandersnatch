@@ -57,6 +57,7 @@ class TestBandersnatchConf(TestCase):
             options,
             [
                 "cleanup",
+                "compare-method",
                 "directory",
                 "global-timeout",
                 "hash-index",
@@ -86,6 +87,7 @@ class TestBandersnatchConf(TestCase):
             ("timeout", int),
             ("global-timeout", int),
             ("workers", int),
+            ("compare-method", str),
         ]:
             self.assertIsInstance(
                 option_type(instance.config["mirror"].get(option)), option_type
@@ -127,7 +129,7 @@ class TestBandersnatchConf(TestCase):
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(
-            False, "", "", False, "sha256", "filesystem", False, True
+            False, "", "", False, "sha256", "filesystem", False, True, "hash"
         )
         no_options_configparser = configparser.ConfigParser()
         no_options_configparser["mirror"] = {}
@@ -145,6 +147,7 @@ class TestBandersnatchConf(TestCase):
             "filesystem",
             False,
             False,
+            "hash",
         )
         release_files_false_configparser = configparser.ConfigParser()
         release_files_false_configparser["mirror"] = {"release-files": "false"}

@@ -91,6 +91,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
+        "compare_method": "hash",
     } == kwargs
 
 

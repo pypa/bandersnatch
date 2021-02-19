@@ -262,3 +262,9 @@ class FilesystemStorage(StoragePlugin):
         digest = h.hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
         return str(h.hexdigest())
+
+    def get_size(self, path: PATH_TYPES) -> str:
+        """Return the file size of provided path."""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        return str(path.stat().st_size)
