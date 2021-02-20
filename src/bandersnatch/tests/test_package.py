@@ -28,7 +28,7 @@ async def test_package_update_metadata_gives_up_after_3_stale_responses(
 
     with pytest.raises(StaleMetadata):
         await package.update_metadata(master, attempts=3)
-    assert master.get_package_metadata.await_count == 3  # type: ignore
+    assert master.get_package_metadata.await_count == 3
     assert "not updating. Giving up" in caplog.text
 
 
@@ -55,5 +55,5 @@ async def test_package_update_metadata_gives_up_after_3_timeouts(
     with pytest.raises(ConnectionTimeout) as timeout:
         await package.update_metadata(master, attempts=3)
         assert "Connection timeout for foo after 3 attempts" in str(timeout)
-    assert master.get_package_metadata.await_count == 3  # type: ignore
+    assert master.get_package_metadata.await_count == 3
     assert "not updating. Giving up" in caplog.text
