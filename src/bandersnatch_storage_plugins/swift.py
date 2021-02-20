@@ -733,7 +733,7 @@ class SwiftStorage(StoragePlugin):
         if encoding is not None:
             if errors is None:
                 try:
-                    errors = sys.getfilesystemencodeerrors()  # type: ignore
+                    errors = sys.getfilesystemencodeerrors()
                 except AttributeError:
                     errors = "surrogateescape"
             if isinstance(contents, str):
@@ -766,7 +766,7 @@ class SwiftStorage(StoragePlugin):
         content: Union[str, bytes]
         if not errors:
             try:
-                errors = sys.getfilesystemencodeerrors()  # type: ignore
+                errors = sys.getfilesystemencodeerrors()
             except AttributeError:
                 errors = "surrogateescape"
         kwargs: Dict[str, Any] = {}
