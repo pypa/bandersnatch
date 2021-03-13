@@ -933,3 +933,29 @@ class SwiftStorage(StoragePlugin):
                 content_type="application/symlink",
                 headers=headers,
             )
+
+    def get_file_size(self, path: PATH_TYPES) -> int:
+        with self.connection() as conn:
+            headers = conn.head_object(
+                self.default_container,
+                str(path),
+            )
+            return int(headers.get("content-length", "0"))
+
+    def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
+        with self.connection() as conn:
+            headers = conn.head_object(
+                self.default_container,
+                str(path),
+            )
+            ts = int(headers.get("x-object-meta-upload", "0"))
+            return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+
+    def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
+        """Set the upload time of a given **path**"""
+        with self.connection() as conn:
+            conn.post_object(
+                self.default_container,
+                str(path),
+                {"x-object-meta-upload": str(time.timestamp())},
+            )
