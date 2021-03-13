@@ -193,3 +193,15 @@ Example:
 [mirror]
 diff-append-epoch = true
 ```
+
+### compare-method
+
+The compare method is used to set how to compare an existing file with upstream file to determine whether a download is required:
+  - hash: this is the default which reads local file content and computes hashes (currently sha256sum), it is reliable but sometimes slower;
+  - stat: use file size and change time to compare, which is named after the stat() syscall, this avoids retrieving the full file content thus reducing some io workloads.
+
+Example:
+```ini
+[mirror]
+compare-method = hash
+```
