@@ -2,8 +2,14 @@ version: 2
 updates:
   # Enable version updates for Actions used in GitHub Actions workflows
   - package-ecosystem: "github-actions"
+
     # Workflow files in .github/workflows will be checked
     directory: "/"
+
     # Check for updates every day
     schedule:
       interval: "daily"
+
+    # Add "skip news" label since Actions upgrades are definitely not news worthy
+    labels:
+      - "skip news"
