@@ -264,11 +264,11 @@ class FilesystemStorage(StoragePlugin):
         logger.debug(f"Calculated digest: {digest!s}")
         return str(h.hexdigest())
 
-    def get_file_size(self, path: PATH_TYPES) -> str:
+    def get_file_size(self, path: PATH_TYPES) -> int:
         """Return the file size of provided path."""
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
-        return str(path.stat().st_size)
+        return path.stat().st_size
 
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, pathlib.Path):

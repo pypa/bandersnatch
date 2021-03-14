@@ -785,24 +785,32 @@ class BandersnatchMirror(Mirror):
 
         # Avoid downloading again if we have the file and it matches the hash.
         if path.exists():
-            if self.compare_method == "stat":
-                existing_file_size = self.storage_backend.get_file_size(path)
+            existing_file_size = self.storage_backend.get_file_size(path)
+            if existing_file_size != int(file_size):
+                logger.info(
+                    f"File size mismatch with local file {path}: expected {file_size} "
+                    + f"got {existing_file_size}, will re-download."
+                )
+                path.unlink()
+            elif self.compare_method == "stat":
                 existing_upload_time = self.storage_backend.get_upload_time(path)
-                if existing_file_size != file_size:
-                    logger.info(
-                        f"File size mismatch with local file {path}: expected {file_size} "
-                        + f"got {existing_file_size}, will re-download."
-                    )
-                    path.unlink()
-                elif existing_upload_time != upload_time:
-                    logger.info(
-                        f"Upload time mismatch with local file {path}: "
-                        + f"expected {upload_time} "
-                        + f"got {existing_upload_time}, will re-download."
-                        )
-                    path.unlink()
-                else:
+                if existing_upload_time == upload_time:
                     return None
+                else:
+                    existing_hash = self.storage_backend.get_hash(str(path))
+                    if existing_hash != sha256sum:
+                        logger.info(
+                            f"File upload time and checksum mismatch with local "
+                            + f"file {path}: expected "
+                            + f"{sha256sum} got {existing_hash}, will re-download."
+                        )
+                        path.unlink()
+                    else:
+                        logger.info(
+                            f"Updating file upload time of local file {path}."
+                        )
+                        self.storage_backend.set_upload_time(path, upload_time)
+                        return None
             else:
                 existing_hash = self.storage_backend.get_hash(str(path))
                 if existing_hash == sha256sum:
