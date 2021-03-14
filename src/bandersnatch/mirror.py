@@ -644,7 +644,9 @@ class BandersnatchMirror(Mirror):
                 downloaded_file = await self.download_file(
                     release_file["url"],
                     release_file["size"],
-                    datetime.datetime.fromisoformat(release_file["upload_time_iso_8601"].replace("Z", "+00:00")),
+                    datetime.datetime.fromisoformat(
+                        release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+                    ),
                     release_file["digests"]["sha256"],
                 )
                 if downloaded_file:
@@ -779,7 +781,7 @@ class BandersnatchMirror(Mirror):
         file_size: str,
         upload_time: datetime.datetime,
         sha256sum: str,
-        chunk_size: int = 64 * 1024
+        chunk_size: int = 64 * 1024,
     ) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
 
@@ -800,15 +802,13 @@ class BandersnatchMirror(Mirror):
                     existing_hash = self.storage_backend.get_hash(str(path))
                     if existing_hash != sha256sum:
                         logger.info(
-                            f"File upload time and checksum mismatch with local "
+                            "File upload time and checksum mismatch with local "
                             + f"file {path}: expected "
                             + f"{sha256sum} got {existing_hash}, will re-download."
                         )
                         path.unlink()
                     else:
-                        logger.info(
-                            f"Updating file upload time of local file {path}."
-                        )
+                        logger.info(f"Updating file upload time of local file {path}.")
                         self.storage_backend.set_upload_time(path, upload_time)
                         return None
             else:

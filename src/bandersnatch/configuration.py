@@ -81,7 +81,9 @@ class BandersnatchConfig(metaclass=Singleton):
 
 
 # 11-15, 84-89, 98-99, 117-118, 124-126, 144-149
-def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues:
+def validate_config_values(  # noqa: C901
+    config: configparser.ConfigParser,
+) -> SetConfigValues:
     try:
         json_save = config.getboolean("mirror", "json")
     except configparser.NoOptionError:
