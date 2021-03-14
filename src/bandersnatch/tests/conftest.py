@@ -8,7 +8,6 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
-from asynctest import asynctest
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -106,10 +105,10 @@ def master(package_json: Dict[str, Any]) -> "Master":
             return package_json
 
     master = Master("https://pypi.example.com")
-    master.rpc = mock.Mock()  # type: ignore
-    master.session = asynctest.MagicMock()
-    master.session.get = asynctest.MagicMock(return_value=FakeAiohttpClient())
-    master.session.request = asynctest.MagicMock(return_value=FakeAiohttpClient())
+    master.rpc = mock.Mock()
+    master.session = mock.MagicMock()
+    master.session.get = mock.MagicMock(return_value=FakeAiohttpClient())
+    master.session.request = mock.MagicMock(return_value=FakeAiohttpClient())
     return master
 
 
