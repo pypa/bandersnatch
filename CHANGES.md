@@ -7,7 +7,8 @@
 
 ## Bug Fixes
 
-- Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - `PR #799`
+- Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - `PR #799` - Thanks **electricworry**
+- Replaced usages of `asynctest` with `unittest.mock` in tests - `PR #807` and `PR #856` - Thanks **ichard26**
 
 # 4.4.0 (2020-12-31)
 
