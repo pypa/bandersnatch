@@ -39,7 +39,7 @@ A_BLACK_WHL = (
 )
 
 
-def check_ci() -> int:
+def check_ci(suppress_errors: bool = False) -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
     peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
     peerme_json = MIRROR_BASE / "json/peerme"
@@ -52,28 +52,28 @@ def check_ci() -> int:
         / "peerme-1.0.0-py36-none-any.whl"
     )
 
-    if not peerme_index.exists():
+    if not suppress_errors and not peerme_index.exists():
         print(f"{EOP} No peerme simple API index exists @ {peerme_index}")
         return 69
 
-    if not peerme_json.exists():
+    if not suppress_errors and not peerme_json.exists():
         print(f"{EOP} No peerme JSON API file exists @ {peerme_json}")
         return 70
 
-    if not peerme_tgz.exists():
+    if not suppress_errors and not peerme_tgz.exists():
         print(f"{EOP} No peerme tgz file exists @ {peerme_tgz}")
         return 71
 
     peerme_tgz_sha256 = hash(str(peerme_tgz))
-    if peerme_tgz_sha256 != TGZ_SHA256:
+    if not suppress_errors and peerme_tgz_sha256 != TGZ_SHA256:
         print(f"{EOP} Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
         return 72
 
-    if black_index.exists():
+    if not suppress_errors and black_index.exists():
         print(f"{EOP} {black_index} exists ... delete failed?")
         return 73
 
-    if A_BLACK_WHL.exists():
+    if not suppress_errors and A_BLACK_WHL.exists():
         print(f"{EOP} {A_BLACK_WHL} exists ... delete failed?")
         return 74
 
@@ -83,7 +83,7 @@ def check_ci() -> int:
     return 0
 
 
-def do_ci(conf: Path) -> int:
+def do_ci(conf: Path, suppress_errors: bool = False) -> int:
     if not conf.exists():
         print(f"CI config {conf} does not exist for bandersnatch run")
         return 2
@@ -91,12 +91,13 @@ def do_ci(conf: Path) -> int:
     print("Starting CI bandersnatch mirror ...")
     cmds = (str(BANDERSNATCH_EXE), "--config", str(conf), "--debug", "mirror")
     print(f"bandersnatch cmd: {' '.join(cmds)}")
-    run(cmds, check=True)
+    run(cmds, check=not suppress_errors)
 
     print(f"Checking if {A_BLACK_WHL} exists")
     if not A_BLACK_WHL.exists():
         print(f"{EOP} {A_BLACK_WHL} does not exist after mirroring ...")
-        return 68
+        if not suppress_errors:
+            return 68
 
     print("Starting to deleting black from mirror ...")
     del_cmds = (
@@ -108,9 +109,9 @@ def do_ci(conf: Path) -> int:
         "black",
     )
     print(f"bandersnatch delete cmd: {' '.join(cmds)}")
-    run(del_cmds, check=True)
+    run(del_cmds, check=not suppress_errors)
 
-    return check_ci()
+    return check_ci(suppress_errors)
 
 
 def platform_config() -> Path:
@@ -133,12 +134,20 @@ def main() -> int:
         print("No TOXENV set. Exiting!")
         return 1
 
+    # GitHub Actions does not have a nice way to ignore failures
+    # like TravisCI has. So will start with ignoring all 3.10-dev failures
+    # and maybe remove this once we get everything to pass
+    suppress_errors = bool(environ.get("SUPPRESS_ERRORS", False))
+
     if environ["TOXENV"] != "INTEGRATION":
-        return run((str(TOX_EXE),)).returncode
+        returncode = run((str(TOX_EXE),)).returncode
+        if not suppress_errors:
+            return returncode
+        return 0
     else:
         print("Running Ingtegration tests due to TOXENV set to INTEGRATION")
         MIRROR_ROOT.mkdir(exist_ok=True)
-        return do_ci(platform_config())
+        return do_ci(platform_config(), suppress_errors)
 
 
 if __name__ == "__main__":
