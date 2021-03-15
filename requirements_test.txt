@@ -1,9 +1,8 @@
-asynctest==0.13.0
 async-timeout==3.0.1
 black==20.8b1
 codecov==2.1.11
 coverage==5.5
-flake8==3.8.4
+flake8==3.9.0
 flake8-bugbear==21.3.2
 freezegun==1.1.0
 mypy==0.812
@@ -11,5 +10,5 @@ pre-commit==2.11.1
 pytest==6.2.2
 pytest-asyncio==0.14.0
 pytest-timeout==1.4.2
-setuptools==54.1.1
+setuptools==54.1.2
 tox==3.23.0
