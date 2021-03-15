@@ -17,5 +17,5 @@ jobs:
       if: contains(github.event.pull_request.labels.*.name, 'skip news') != true
       run: |
         grep -P "PR #${{ github.event.pull_request.number }}[^0-9]" CHANGES.md || \
-        echo "Please add 'PR #${{ github.event.pull_request.number }}' change line to CHANGES.md" && \
-        exit 1
+        (echo "Please add 'PR #${{ github.event.pull_request.number }}' change line to CHANGES.md" && \
+        exit 1)
