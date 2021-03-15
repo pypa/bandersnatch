@@ -105,7 +105,7 @@ def master(package_json: Dict[str, Any]) -> "Master":
             return package_json
 
     master = Master("https://pypi.example.com")
-    master.rpc = mock.Mock()
+    master.rpc = mock.Mock()  # type: ignore
     master.session = mock.MagicMock()
     master.session.get = mock.MagicMock(return_value=FakeAiohttpClient())
     master.session.request = mock.MagicMock(return_value=FakeAiohttpClient())
