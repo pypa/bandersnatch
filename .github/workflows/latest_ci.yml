@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dev dependency packages
         run: |
-          sudo apt install libxslt1-dev libxml2-dev
+          sudo apt install python3.10-dev libxslt1-dev libxml2-dev
 
       - name: Install base bandersnatch requirements
         run: |
