@@ -8,19 +8,6 @@ matrix:
   fast_finish: true
   include:
     - python: 3.9
-      env: TOXENV=doc_build
-    - python: 3.9
-      env: TOXENV=lint
-    - python: 3.9
-      env: TOXENV=py3
-    - python: nightly
-      env: TOXENV=INTEGRATION
-    - python: nightly
-      env: TOXENV=py3
-  allow_failures:
-    - python: nightly
-      env: TOXENV=INTEGRATION
-    - python: nightly
       env: TOXENV=py3
 
 install:
