@@ -20,6 +20,7 @@ class SetConfigValues(NamedTuple):
     storage_backend_name: str
     cleanup: bool
     release_files_save: bool
+    compare_method: str
 
 
 class Singleton(type):  # pragma: no cover
@@ -80,7 +81,9 @@ class BandersnatchConfig(metaclass=Singleton):
 
 
 # 11-15, 84-89, 98-99, 117-118, 124-126, 144-149
-def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues:
+def validate_config_values(  # noqa: C901
+    config: configparser.ConfigParser,
+) -> SetConfigValues:
     try:
         json_save = config.getboolean("mirror", "json")
     except configparser.NoOptionError:
@@ -159,6 +162,23 @@ def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues
             + root_uri
         )
 
+    try:
+        logger.debug("Checking config for compare method...")
+        compare_method = config.get("mirror", "compare-method")
+        logger.debug("Found compare method in config!")
+    except configparser.NoOptionError:
+        compare_method = "hash"
+        logger.debug(
+            "Failed to find compare method in config, falling back to default!"
+        )
+    if compare_method not in ("hash", "stat"):
+        raise ValueError(
+            f"Supplied compare_method {compare_method} is not supported! Please "
+            + "update compare_method to one of ('hash', 'stat') in the [mirror] "
+            + "section."
+        )
+    logger.info(f"Selected compare method: {compare_method}")
+
     return SetConfigValues(
         json_save,
         root_uri,
@@ -168,4 +188,5 @@ def validate_config_values(config: configparser.ConfigParser) -> SetConfigValues
         storage_backend_name,
         cleanup,
         release_files_save,
+        compare_method,
     )

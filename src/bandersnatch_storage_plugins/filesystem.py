@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import filecmp
 import hashlib
 import logging
@@ -262,3 +263,23 @@ class FilesystemStorage(StoragePlugin):
         digest = h.hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
         return str(h.hexdigest())
+
+    def get_file_size(self, path: PATH_TYPES) -> int:
+        """Return the file size of provided path."""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        return path.stat().st_size
+
+    def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        return datetime.datetime.fromtimestamp(
+            path.stat().st_mtime, datetime.timezone.utc
+        )
+
+    def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
+        """Set the upload time of a given **path**"""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        ts = time.timestamp()
+        os.utime(path, (ts, ts))

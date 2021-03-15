@@ -198,6 +198,7 @@ class BandersnatchMirror(Mirror):
         *,
         cleanup: bool = False,
         release_files_save: bool = True,
+        compare_method: Optional[str] = None,
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -230,6 +231,7 @@ class BandersnatchMirror(Mirror):
         self.diff_full_path = diff_full_path
         self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
+        self.compare_method = compare_method if compare_method else "hash"
         self.workers = workers
         self.diff_file_list = diff_file_list or []
         if self.workers > 10:
@@ -640,7 +642,12 @@ class BandersnatchMirror(Mirror):
         for release_file in package.release_files:
             try:
                 downloaded_file = await self.download_file(
-                    release_file["url"], release_file["digests"]["sha256"]
+                    release_file["url"],
+                    release_file["size"],
+                    datetime.datetime.fromisoformat(
+                        release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+                    ),
+                    release_file["digests"]["sha256"],
                 )
                 if downloaded_file:
                     downloaded_files.add(str(downloaded_file.relative_to(self.homedir)))
@@ -769,21 +776,51 @@ class BandersnatchMirror(Mirror):
 
     # TODO: This can also return SwiftPath instances now...
     async def download_file(
-        self, url: str, sha256sum: str, chunk_size: int = 64 * 1024
+        self,
+        url: str,
+        file_size: str,
+        upload_time: datetime.datetime,
+        sha256sum: str,
+        chunk_size: int = 64 * 1024,
     ) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
 
         # Avoid downloading again if we have the file and it matches the hash.
         if path.exists():
-            existing_hash = self.storage_backend.get_hash(str(path))
-            if existing_hash == sha256sum:
-                return None
-            else:
+            existing_file_size = self.storage_backend.get_file_size(path)
+            if existing_file_size != int(file_size):
                 logger.info(
-                    f"Checksum mismatch with local file {path}: expected {sha256sum} "
-                    + f"got {existing_hash}, will re-download."
+                    f"File size mismatch with local file {path}: expected {file_size} "
+                    + f"got {existing_file_size}, will re-download."
                 )
                 path.unlink()
+            elif self.compare_method == "stat":
+                existing_upload_time = self.storage_backend.get_upload_time(path)
+                if existing_upload_time == upload_time:
+                    return None
+                else:
+                    existing_hash = self.storage_backend.get_hash(str(path))
+                    if existing_hash != sha256sum:
+                        logger.info(
+                            "File upload time and checksum mismatch with local "
+                            + f"file {path}: expected "
+                            + f"{sha256sum} got {existing_hash}, will re-download."
+                        )
+                        path.unlink()
+                    else:
+                        logger.info(f"Updating file upload time of local file {path}.")
+                        self.storage_backend.set_upload_time(path, upload_time)
+                        return None
+            else:
+                existing_hash = self.storage_backend.get_hash(str(path))
+                if existing_hash == sha256sum:
+                    return None
+                else:
+                    logger.info(
+                        f"File checksum mismatch with local file {path}: expected "
+                        + f"{sha256sum} got {existing_hash}, will re-download."
+                    )
+                    path.unlink()
 
         logger.info(f"Downloading: {url}")
 
@@ -820,6 +857,8 @@ class BandersnatchMirror(Mirror):
                     + f"instead of {sha256sum}."
                 )
 
+        # set upload time to avoid downloading again in next sync
+        self.storage_backend.set_upload_time(path, upload_time)
         return path
 
 
@@ -875,6 +914,7 @@ async def mirror(
             json_save=config_values.json_save,
             root_uri=config_values.root_uri,
             digest_name=config_values.digest_name,
+            compare_method=config_values.compare_method,
             keep_index_versions=config.getint(
                 "mirror", "keep_index_versions", fallback=0
             ),

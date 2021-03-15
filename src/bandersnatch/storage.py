@@ -3,6 +3,7 @@ Storage management
 """
 import configparser
 import contextlib
+import datetime
 import hashlib
 import logging
 import pathlib
@@ -276,6 +277,18 @@ class Storage:
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
         """Get the sha256sum of a given **path**"""
+        raise NotImplementedError
+
+    def get_file_size(self, path: PATH_TYPES) -> int:
+        """Get the size of a given **path** in bytes"""
+        raise NotImplementedError
+
+    def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
+        """Get the upload time of a given **path**"""
+        raise NotImplementedError
+
+    def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
+        """Set the upload time of a given **path**"""
         raise NotImplementedError
 
 
