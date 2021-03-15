@@ -25,9 +25,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools tox
 
-      - name: Install dev dependency packages
+      - name: Install dev dependency packages for building from source
         run: |
-          sudo apt install python3.10-dev libxslt1-dev libxml2-dev
+          sudo apt install libxslt1-dev libxml2-dev
 
       - name: Install base bandersnatch requirements
         run: |
