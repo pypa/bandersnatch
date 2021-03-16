@@ -255,7 +255,6 @@ class FilesystemStorage(StoragePlugin):
         logger.debug(
             f"Opening {path.as_posix()} in binary mode for hash calculation..."
         )
-        logger.debug(f"Contents: {path.read_bytes()!s}")
         with open(path.absolute().as_posix(), "rb") as f:
             for chunk in iter(lambda: f.read(128 * 1024), b""):
                 logger.debug(f"Read chunk: {chunk!s}")
