@@ -12,7 +12,6 @@ from pathlib import Path
 from shutil import rmtree
 from threading import RLock
 from typing import Any, Awaitable, Dict, List, Optional, Set, Union
-from unittest.mock import Mock
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -924,13 +923,7 @@ async def mirror(
             cleanup=config_values.cleanup,
             release_files_save=config_values.release_files_save,
         )
-
-        # TODO: Remove this terrible hack and async mock the code correctly
-        # This works around "TypeError: object
-        # MagicMock can't be used in 'await' expression"
-        changed_packages: Dict[str, Set[str]] = {}
-        if not isinstance(mirror, Mock):
-            changed_packages = await mirror.synchronize(specific_packages)
+        changed_packages = await mirror.synchronize(specific_packages)
 
     logger.info(f"{len(changed_packages)} packages had changes")
     for package_name, changes in changed_packages.items():

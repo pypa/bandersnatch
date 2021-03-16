@@ -141,6 +141,11 @@ def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
     patcher = mock.patch("bandersnatch.mirror.BandersnatchMirror")
     mirror: mock.MagicMock = patcher.start()
 
+    # Mock the synchronize method too to avoid TypeError exceptions since methods are
+    # by default replaced by MagicMock instances when AsyncMock is necessary.
+    instance = mirror.return_value
+    instance.synchronize = mock.AsyncMock(return_value={})
+
     def tearDown() -> None:
         patcher.stop()
 
