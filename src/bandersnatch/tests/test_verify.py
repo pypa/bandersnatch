@@ -258,7 +258,7 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_404 = AsyncMock(
-        side_effect=ClientResponseError(code=404, history=(), request_info=None)
+        side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore
 
@@ -286,7 +286,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_404 = AsyncMock(
-        side_effect=ClientResponseError(code=404, history=(), request_info=None)
+        side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
     master.url_fetch = url_fetch_404  # type: ignore
 

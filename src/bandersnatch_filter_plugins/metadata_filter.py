@@ -200,7 +200,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
                     "max_package_size"
                 ]
             except KeyError:
-                logger.warn(
+                logger.warning(
                     f"Unable to initialise {self.name} plugin;"
                     f"must create max_package_size in configuration."
                 )
@@ -208,7 +208,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
             try:
                 self.max_package_size = parse_size(human_package_size, binary=True)
             except InvalidSize:
-                logger.warn(
+                logger.warning(
                     f"Unable to initialise {self.name} plugin;"
                     f'max_package_size of "{human_package_size}" is not valid.'
                 )
