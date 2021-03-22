@@ -16,7 +16,7 @@ idna==2.10  # pyup: ignore
             # resolving. Although not installing the swift dependencies
             # or using the unpinned dependencies info in setup.cfg
             # works properly.
-lxml==4.6.2
+lxml==4.6.3
 multidict==5.1.0
 packaging==20.9
 pyparsing==2.4.7
