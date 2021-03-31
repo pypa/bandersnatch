@@ -143,8 +143,9 @@ Successfully installed apipkg-1.4 attrs-18.1.0 bandersnatch-2.1.3 coverage-4.5.1
 ### Changelog entry
 
 PRs must have an entry in CHANGES.md that references the PR number in the format of
-"PR #{number}". Yes, you'll either have to guess your PR number or do another push
-after the fact. **Some trival changes (eg. typo fixes) won't need an entry, but most
+"PR #{number}". You can get the number your PR will be assigned beforehand using
+[Next PR Number](https://ichard26.github.io/next-pr-number/?owner=pypa&name=bandersnatch).
+**Some trival changes (eg. typo fixes) won't need an entry, but most
 of the time, your change will. If unsure, take a look at what's been logged before
 or just add one to be safe.**
 
