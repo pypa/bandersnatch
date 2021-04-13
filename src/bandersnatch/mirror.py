@@ -783,6 +783,7 @@ class BandersnatchMirror(Mirror):
         chunk_size: int = 64 * 1024,
     ) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
+        loop = asyncio.get_event_loop()
 
         # Avoid downloading again if we have the file and it matches the hash.
         if path.exists():
@@ -798,7 +799,9 @@ class BandersnatchMirror(Mirror):
                 if existing_upload_time == upload_time:
                     return None
                 else:
-                    existing_hash = self.storage_backend.get_hash(str(path))
+                    existing_hash = await loop.run_in_executor(
+                        None, self.storage_backend.get_hash, str(path)
+                    )
                     if existing_hash != sha256sum:
                         logger.info(
                             "File upload time and checksum mismatch with local "
@@ -811,7 +814,9 @@ class BandersnatchMirror(Mirror):
                         self.storage_backend.set_upload_time(path, upload_time)
                         return None
             else:
-                existing_hash = self.storage_backend.get_hash(str(path))
+                existing_hash = await loop.run_in_executor(
+                    None, self.storage_backend.get_hash, str(path)
+                )
                 if existing_hash == sha256sum:
                     return None
                 else:
