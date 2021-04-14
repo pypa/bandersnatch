@@ -12,6 +12,7 @@
 - Replaced usages of `asynctest` with `unittest.mock` in tests - `PR #807` and `PR #856` - Thanks **ichard26**
 - Remove debugging line that loads entire files into memory. - `PR #858` - Thanks **asrp**
 - Removed terrible isinstance check of unittest.Mock in mirror.py - `PR #859` - Thanks **ichard26**
+- Put potential time consuming IO operations into executor - `PR #877`
 
 # 4.4.0 (2020-12-31)
 
