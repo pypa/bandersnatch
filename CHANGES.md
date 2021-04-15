@@ -13,6 +13,7 @@
 - Remove debugging line that loads entire files into memory. - `PR #858` - Thanks **asrp**
 - Removed terrible isinstance check of unittest.Mock in mirror.py - `PR #859` - Thanks **ichard26**
 - Put potential time consuming IO operations into executor - `PR #877`
+- Migrated Markdown documentation from recommonmark to MyST-Parser + docs config clean up - `PR #879` - Thanks **ichard26**
 
 # 4.4.0 (2020-12-31)
 
