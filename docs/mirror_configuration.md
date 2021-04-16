@@ -1,11 +1,11 @@
-## Mirror configuration
+# Mirror configuration
 
 The mirror configuration settings are in a configuration section of the configuration file
 named **\[mirror\]**.
 
 This section contains settings to specify how the mirroring software should operate.
 
-### directory
+## directory
 
 The mirror directory setting is a string that specifies the directory to
 store the mirror files.
@@ -21,7 +21,7 @@ Example:
 directory = /srv/pypi
 ```
 
-### json
+## json
 
 The mirror json seting is a boolean (true/false) setting that indicates that
 the json packaging metadata should be mirrored in additon to the packages.
@@ -32,7 +32,7 @@ Example:
 json = false
 ```
 
-### release-files
+## release-files
 
 The mirror release-files setting is a boolean (true/false) setting that indicates that
 the package release files should be mirrored. Defaults to `true`. When this option is disabled (via setting to false), you
@@ -45,7 +45,7 @@ Example:
 release-files = true
 ```
 
-### master
+## master
 
 The master setting is a string containing a url of the server which will be mirrored.
 
@@ -59,7 +59,7 @@ Example:
 master = https://pypi.org
 ```
 
-### timeout
+## timeout
 
 The timeout value is an integer that indicates the maximum number of seconds for web requests.
 
@@ -71,7 +71,7 @@ Example:
 timeout = 10
 ```
 
-### global-timeout
+## global-timeout
 
 The global-timeout value is an integer that indicates the maximum runtime of individual aiohttp coroutines.
 
@@ -83,7 +83,7 @@ Example:
 global-timeout = 18000
 ```
 
-### workers
+## workers
 
 The workers value is an integer from from 1-10 that indicates the number of concurrent downloads.
 
@@ -94,17 +94,17 @@ Recommendations for the workers setting:
 - official servers located in data centers could run 10 workers
 - anything beyond 10 is probably unreasonable and is not allowed.
 
-### hash-index
+## hash-index
 
 The hash-index is a boolean (true/false) to determine if package hashing should be used.
 
 The Recommended setting: the default of false for full pip/pypi compatibility.
 
-```eval_rst
-.. warning:: Package index directory hashing is incompatible with pip, and so this should only be used in an environment where it is behind an application that can translate URIs to filesystem locations.
-```
+:::{warning}
+Package index directory hashing is incompatible with pip, and so this should only be used in an environment where it is behind an application that can translate URIs to filesystem locations.
+:::
 
-#### Apache rewrite rules when using hash-index
+### Apache rewrite rules when using hash-index
 
 When using this setting with an apache server.  The apache server will need the following rewrite rules:
 
@@ -113,7 +113,7 @@ RewriteRule ^([^/])([^/]*)/$ /mirror/pypi/web/simple/$1/$1$2/
 RewriteRule ^([^/])([^/]*)/([^/]+)$/ /mirror/pypi/web/simple/$1/$1$2/$3
 ```
 
-#### NGINX rewrite rules when using hash-index
+### NGINX rewrite rules when using hash-index
 
 When using this setting with an nginx server.  The nginx server will need the following rewrite rules:
 
@@ -122,7 +122,7 @@ rewrite ^/simple/([^/])([^/]*)/$ /simple/$1/$1$2/ last;
 rewrite ^/simple/([^/])([^/]*)/([^/]+)$/ /simple/$1/$1$2/$3 last;
 ```
 
-### stop-on-error
+## stop-on-error
 
 The stop-on-error setting is a boolean (true/false) setting that indicates if bandersnatch
 should stop immediately if it encounters an error.
@@ -135,7 +135,7 @@ mark the sync as successful when the sync is complete.
 stop-on-error = false
 ```
 
-### log-config
+## log-config
 
 The log-config setting is a string containing the filename of a python logging configuration
 file.
@@ -146,13 +146,13 @@ Example:
 log-config = /etc/bandersnatch-log.conf
 ```
 
-### root_uri
+## root_uri
 
 The root_uri is a string containing a uri which is the root added to relative links.
 
-``` eval_rst
-.. note:: This is generally not necessary, but was added for the official internal PyPI mirror, which requires serving packages from https://files.pythonhosted.org
-```
+:::{note}
+This is generally not necessary, but was added for the official internal PyPI mirror, which requires serving packages from https://files.pythonhosted.org
+:::
 
 Example:
 ```ini
@@ -161,7 +161,7 @@ root_uri = https://example.com
 ```
 
 
-### diff-file
+## diff-file
 
 The diff file is a string containing the filename to log the files that were downloaded during the mirror.
 This file can then be used to synchronize external disks or send the files through some other mechanism to offline systems.
@@ -183,7 +183,7 @@ diff-file = /srv/pypi/mirrored-files
 
 
 
-### diff-append-epoch
+## diff-append-epoch
 
 The diff append epoch is a boolean (true/false) setting that indicates if the diff-file should be appended with the current epoch time.
 This can be used to track diffs over time so the diff file doesn't get cobbered each run.  It is only used when diff-file is used.
@@ -194,7 +194,7 @@ Example:
 diff-append-epoch = true
 ```
 
-### compare-method
+## compare-method
 
 The compare method is used to set how to compare an existing file with upstream file to determine whether a download is required:
   - hash: this is the default which reads local file content and computes hashes (currently sha256sum), it is reliable but sometimes slower;
