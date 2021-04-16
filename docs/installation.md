@@ -1,4 +1,4 @@
-## Installation
+# Installation
 
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
@@ -6,7 +6,7 @@ virtualenv under `bandersnatch/bin/bandersnatch`.
 - bandersnatch **requires** `>= Python 3.8.0`
 
 
-### pip
+## pip
 
 This installs the latest stable, released version.
 

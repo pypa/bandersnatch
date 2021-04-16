@@ -1,6 +1,3 @@
-import os
-
-
 class DocStub:
     __version__ = "0.0.0"
     __name__ = "Unknown"
@@ -11,15 +8,6 @@ try:
 except ImportError:
     doc_module = DocStub()
 
-try:
-    from recommonmark.parser import CommonMarkParser  # noqa: F401
-    from recommonmark.transform import AutoStructify
-
-    github_doc_root = "https://partner.git.corp.yahoo.com/pages/yahoo.platform_init"
-    USE_MARKDOWN = True
-except ImportError:
-    USE_MARKDOWN = False
-
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = "3.0"
 
@@ -27,9 +15,9 @@ needs_sphinx = "3.0"
 # so just ignore the warning since we can't do anything a-boat it :D
 suppress_warnings = ["epub.unknown_project_files"]
 
-# Just a protection against an incompatible version of recommonmark.
+# Just a protection against an incompatible version of MyST-Parser
 # The listed version is the minimal version required for that extension.
-needs_extensions = {"recommonmark": "0.5"}
+needs_extensions = {"myst_parser": "0.13.0"}
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -42,16 +30,14 @@ extensions = [
     "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.githubpages",
-    "recommonmark",
+    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = [".rst"]
-if USE_MARKDOWN:
-    source_suffix.append(".md")
+source_suffix = [".rst", ".md"]
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -115,6 +101,9 @@ pygments_style = "sphinx"
 # If true, keep warnings as "system message" paragraphs in the built documents.
 # keep_warnings = False
 
+# Enable certain MyST-Parser extensions
+# see also: https://myst-parser.readthedocs.io/en/latest/using/syntax-optional.html
+myst_enable_extensions = ["colon_fence"]
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -202,83 +191,13 @@ htmlhelp_basename = doc_module.__name__
 html_theme = "default"
 
 # Determine available themes and settings
-available_themes = ["default"]
-available_theme_settings = {}
-try:
-    import cloud_sptheme as csp
-
-    available_themes.insert(0, "cloudsp")
-    available_theme_settings["cloudsp"] = {}
-    available_theme_settings["cloudsp"]["theme"] = "cloud"
-    available_theme_settings["cloudsp"]["path"] = [csp.get_theme_dir()]
-    available_theme_settings["cloudsp"]["options"] = {"roottarget": "index"}
-except ImportError:
-    pass
-
-try:
-    import sphinx_bootstrap_theme
-
-    available_themes.insert(0, "bootstrap")
-    available_theme_settings["bootstrap"] = {}
-    available_theme_settings["bootstrap"]["theme"] = "bootstrap"
-    available_theme_settings["bootstrap"][
-        "path"
-    ] = sphinx_bootstrap_theme.get_html_theme_path()
-    available_theme_settings["bootstrap"]["options"] = {
-        # lumen, journal
-        "bootswatch_theme": os.environ.get("SPHINX_BOOTSWATCH_THEME", "journal")
-    }
-except ImportError:
-    pass
-
-try:
-    import guzzle_sphinx_theme
-
-    available_themes.insert(0, "guzzle")
-    available_theme_settings["guzzle"] = {}
-    available_theme_settings["guzzle"]["theme"] = "guzzle_sphinx_theme"
-    available_theme_settings["guzzle"]["path"] = guzzle_sphinx_theme.html_theme_path()
-    available_theme_settings["guzzle"]["options"] = {}
-except ImportError:
-    pass
-
-try:
-    import sphinx_rtd_theme
-
-    available_themes.insert(0, "read_the_docs")
-    available_theme_settings["read_the_docs"] = {}
-    available_theme_settings["read_the_docs"]["theme"] = "sphinx_rtd_theme"
-    available_theme_settings["read_the_docs"]["path"] = [
-        sphinx_rtd_theme.get_html_theme_path()
-    ]
-    available_theme_settings["read_the_docs"]["options"] = {
-        "collapse_navigation": os.environ.get("SPHINX_COLLAPSE_NAVIGATION", True),
-        "display_version": os.environ.get("SPHINX_DISPLAY_VERSION", version != "0.0.0"),
-        "navigation_depth": os.environ.get("SPHINX_NAVIGATION_DEPTH", 3),
-    }
-except ImportError:
-    pass
-
 try:
     import pypa_theme  # noqa: F401
 
-    available_themes.insert(0, "pypa")
-    available_theme_settings["pypa"] = {}
-    available_theme_settings["pypa"]["theme"] = "pypa_theme"
-    available_theme_settings["pypa"]["path"] = []
-    available_theme_settings["pypa"]["options"] = {}
+    html_theme = "pypa_theme"
 except ImportError:
-    pass
-
-selected_theme = os.environ.get("SPHINX_THEME", available_themes[0])
-if selected_theme not in available_themes:
-    selected_theme = available_themes[0]
-    print(f"SPHINX_THEME is not installed, using {selected_theme!r} theme")
-
-html_theme = available_theme_settings[selected_theme]["theme"]
-html_theme_path = available_theme_settings[selected_theme]["path"]
-if available_theme_settings[selected_theme].get("options", None):
-    html_theme_options = available_theme_settings[selected_theme]["options"]
+    print("WARNING: 'pypa_theme' isn't available, falling back to 'default' HTML theme")
+    html_theme = "default"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -378,18 +297,3 @@ intersphinx_mapping = {
 
 # Useful external link shortcuts
 extlinks = {"issue": ("https://github.com/sphinx-doc/sphinx/issues/%s", "issue ")}
-
-
-def setup(app):
-    if USE_MARKDOWN:
-        print("Adding recommonmark settings")
-        app.add_config_value(
-            "recommonmark_config",
-            {
-                "url_resolver": lambda url: github_doc_root + url,
-                "auto_toc_tree_section": "Contents",
-                "enable_eval_rst": True,
-            },
-            True,
-        )
-        app.add_transform(AutoStructify)

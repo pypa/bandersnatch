@@ -1,4 +1,4 @@
-## Mirror filtering
+# Mirror filtering
 
 _NOTE: All references to whitelist/blacklist are deprecated, and will be replaced with allowlist/blocklist in 5.0_
 
@@ -13,7 +13,7 @@ converted.
 E.g. to Blocklist [discord.py](https://pypi.org/project/discord.py/) the string 'discord-py'
 is correct, but 'discord.PY' will also work.
 
-### Plugins Enabling
+## Plugins Enabling
 
 The plugins setting is a list of plugins to enable.
 
@@ -39,7 +39,7 @@ enabled =
     ...
 ```
 
-### allowlist / blocklist filtering settings
+## allowlist / blocklist filtering settings
 
 The blocklist / allowlist settings are in configuration sections named **\[blocklist\]** and **\[allowlist\]**
 these section provides settings to indicate packages, projects and releases that should /
@@ -47,7 +47,7 @@ should not be mirrored from PyPI.
 
 This is useful to avoid syncing broken or malicious packages.
 
-### packages
+## packages
 
 The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored. Enable version specifier filtering for blocklist and allowlist packages through enabling the 'blocklist_release' and 'allowlist_release' plugins, respectively.
 
@@ -74,7 +74,7 @@ packages =
     ptr
 ```
 
-### Metadata Filtering
+## Metadata Filtering
 Packages and release files may be selected by filtering on specific metadata value.
 
 General form of configuration entries is:
@@ -86,7 +86,7 @@ tag:tag:path.to.object =
     matchb
 ```
 
-### requirements files Filtering
+## requirements files Filtering
 Packages and releases might be given as requirements.txt files
 
 if requirements_path is missing it is assumed to be system root folder ('/')
@@ -102,7 +102,7 @@ requirements =
     requirements.txt
 ```
 
-#### Project Regex Matching
+### Project Regex Matching
 
 Filter projects to be synced based on regex matches against their raw metadata entries straight from parsed downloaded json.
 
@@ -119,7 +119,7 @@ Valid tags are `all`,`any`,`none`,`match-null`,`not-null`, with default of `any:
 All metadata provided by json is available, including `info`, `last_serial`, `releases`, etc. headings.
 
 
-#### Release File Regex Matching
+### Release File Regex Matching
 
 Filter release files to be downloaded for projects based on regex matches against the stored metadata entries for each release file.
 
@@ -139,7 +139,7 @@ containing the package-wide inthe fo, `release` containing the version of the re
 for an individual file for that release.
 
 
-### Prerelease filtering
+## Prerelease filtering
 
 Bandersnatch includes a plugin to filter our pre-releases of packages. To enable this plugin simply add `prerelease_release` to the enabled plugins list.
 
@@ -149,7 +149,7 @@ enabled =
     prerelease_release
 ```
 
-### Regex filtering
+## Regex filtering
 
 Advanced users who would like finer control over which packages and releases to filter can use the regex Bandersnatch plugin.
 
@@ -178,7 +178,7 @@ releases =
 Note the same `filter_regex` section may include a `packages` and a `releases` entry with any number of regular expressions.
 
 
-### Platform-specific binaries filtering
+## Platform-specific binaries filtering
 
 This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.
 
@@ -195,7 +195,7 @@ platforms =
 Available platforms are: `windows` `macos` `freebsd` `linux`.
 
 
-### Keep only latest releases
+## Keep only latest releases
 
 You can also keep only the latest releases based on greatest [Version](https://packaging.pypa.io/en/latest/version.html) numbers.
 
@@ -213,7 +213,7 @@ By default, the plugin does not filter out any release. You have to add the `kee
 You should be aware that it can break requirements. Prereleases are also kept.
 
 
-### Block projects above a specified size threshold
+## Block projects above a specified size threshold
 
 There is an increasing number of projects that consume a large amount of space.
 At the time of writing (Jan 2021) the [stats](https://pypi.org/stats/) shows some
