@@ -93,9 +93,7 @@ class FilesystemStorage(StoragePlugin):
         logger.debug(
             f"Writing temporary file {filepath_tmp} to target destination: {filepath!s}"
         )
-        self.copy_file(filepath_tmp, filepath)
-        logger.debug(f"Deleting temporary file: {filepath_tmp}")
-        self.delete_file(filepath_tmp)
+        self.move_file(filepath_tmp, filepath)
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
@@ -123,9 +121,7 @@ class FilesystemStorage(StoragePlugin):
             os.unlink(filename_tmp)
         else:
             logger.debug(f"Modifying destination: {filename!s} with: {filename_tmp}")
-            self.copy_file(filename_tmp, filename)
-            logger.debug(f"Deleting temporary file: {filename_tmp}")
-            self.delete_file(filename_tmp)
+            self.move_file(filename_tmp, filename)
 
     def compare_files(self, file1: PATH_TYPES, file2: PATH_TYPES) -> bool:
         """Compare two files, returning true if they are the same and False if not."""
@@ -136,6 +132,13 @@ class FilesystemStorage(StoragePlugin):
         if not self.exists(source):
             raise FileNotFoundError(source)
         shutil.copy(source, dest)
+        return
+
+    def move_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
+        """Move a file from **source** to **dest**"""
+        if not self.exists(source):
+            raise FileNotFoundError(source)
+        shutil.move(str(source), dest)
         return
 
     def write_file(self, path: PATH_TYPES, contents: Union[str, bytes]) -> None:
