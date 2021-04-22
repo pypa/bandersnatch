@@ -13,6 +13,7 @@ import unittest
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 from unittest import TestCase, mock
+import pytest
 
 from mock_config import mock_config
 
@@ -21,7 +22,7 @@ from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
-from bandersnatch_storage_plugins import filesystem, swift
+from bandersnatch_storage_plugins import filesystem, swift, s3
 
 if TYPE_CHECKING:
     import swiftclient
@@ -385,13 +386,17 @@ workers = 3
         self.setUp_Structure()
 
     def setUp_dirs(self) -> None:
-        self.web_base_path = os.path.join(self.mirror_base_path, "web")
-        self.json_base_path = os.path.join(self.web_base_path, "json")
-        self.pypi_base_path = os.path.join(self.web_base_path, "pypi")
-        self.simple_base_path = os.path.join(self.web_base_path, "simple")
-        paths = (self.json_base_path, self.pypi_base_path, self.simple_base_path)
-        for path in paths:
-            os.makedirs(path, exist_ok=True)
+        if self.backend in ["s3"]:
+            self.mirror_base_path = self.path_backends[self.backend]("/bucket/")
+        else:
+            self.mirror_base_path = Path(self.tempdir.name) / "srv/pypi"
+        self.web_base_path = self.mirror_base_path / "web"
+        self.json_base_path = self.web_base_path / "json"
+        self.pypi_base_path = self.web_base_path / "pypi"
+        self.simple_base_path = self.web_base_path / "simple"
+        self.json_base_path.mkdir(exist_ok=True, parents=True)
+        self.pypi_base_path.mkdir(exist_ok=True, parents=True)
+        self.simple_base_path.mkdir(exist_ok=True, parents=True)
 
     def setUp_backEnd(self) -> None:
         pypi_dir = mirror_path = "srv/pypi"
@@ -399,8 +404,9 @@ workers = 3
             self.container = "bandersnatch"
             pypi_dir = f"{self.container}/{pypi_dir}"
             self.setUp_swift()
+        if self.backend == "s3":
+            pypi_dir = mirror_path = "/bucket/srv/pypi"
         assert self.tempdir
-        self.mirror_base_path = os.path.join(self.tempdir.name, pypi_dir)
         self.setUp_dirs()
         target_sample_file = "sample"
         if self.container is not None:
@@ -408,7 +414,7 @@ workers = 3
         assert self.tempdir
         self.sample_file = os.path.join(self.tempdir.name, target_sample_file)
         shutil.copy(BASE_SAMPLE_FILE, self.sample_file)
-        if self.backend == "swift":
+        if self.backend in ["swift", "s3"]:
             self.mirror_path = Path(mirror_path)
         else:
             self.mirror_path = Path(self.mirror_base_path)
@@ -431,20 +437,6 @@ workers = 3
                 )
             )
         )
-
-    def setUp_mirrorDirs(self) -> None:
-        pypi_dir = (
-            "srv/pypi" if self.container is None else f"{self.container}/srv/pypi"
-        )
-        assert self.tempdir
-        self.mirror_base_path = os.path.join(self.tempdir.name, pypi_dir)
-        self.web_base_path = os.path.join(self.mirror_base_path, "web")
-        self.json_base_path = os.path.join(self.web_base_path, "json")
-        self.pypi_base_path = os.path.join(self.web_base_path, "pypi")
-        self.simple_base_path = os.path.join(self.web_base_path, "simple")
-        os.makedirs(self.json_base_path, exist_ok=True)
-        os.makedirs(self.pypi_base_path, exist_ok=True)
-        os.makedirs(self.simple_base_path, exist_ok=True)
 
     def setUp_swift(self) -> None:
         self.setUp_swiftVars()
@@ -567,10 +559,12 @@ class BaseStoragePluginTestCase(BasePluginTestCase):
     plugin_map = {
         "filesystem": filesystem.FilesystemStorage,
         "swift": swift.SwiftStorage,
+        "s3": s3.S3Storage,
     }
     path_backends = {
         "filesystem": pathlib.Path,
         "swift": swift.SwiftPath,
+        "s3": s3.S3Path
     }
 
     base_find_contents = r"""
@@ -699,13 +693,13 @@ web{0}simple{0}index.html""".format(
             self.assertEqual(fh.read().strip(), replace_with)
 
     def test_compare_files(self) -> None:
-        target_file1 = os.path.join(self.mirror_base_path, "cmp_example1.txt")
-        target_file2 = os.path.join(self.mirror_base_path, "cmp_example2.txt")
-        target_file3 = os.path.join(self.mirror_base_path, "cmp_example3.txt")
+        target_file1 = self.mirror_base_path / "cmp_example1.txt"
+        target_file2 = self.mirror_base_path / "cmp_example2.txt"
+        target_file3 = self.mirror_base_path / "cmp_example3.txt"
         for fn in (target_file1, target_file2):
-            with open(fn, "w") as fh:
+            with fn.open(mode="w") as fh:
                 fh.write("sample text")
-        with open(target_file3, "w") as fh:
+        with target_file3.open(mode="w") as fh:
             fh.write("some other text")
         files = [target_file1, target_file2, target_file3]
         comparisons = (
@@ -722,7 +716,7 @@ web{0}simple{0}index.html""".format(
                     self.plugin.compare_files(cmp_file1, cmp_file2) is rv, msg
                 )
         for fn in files:
-            os.unlink(fn)
+            fn.unlink(missing_ok=True)
 
     def test_find(self) -> None:
         base_path = self.mirror_base_path
@@ -822,59 +816,59 @@ web{0}simple{0}index.html""".format(
 
     def test_copy_file(self) -> None:
         file_content = "this is some data"
-        dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
+        dest_file = self.mirror_base_path / "temp_file.txt"
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
             atexit.register(os.unlink, tf.name)
             tf.write(file_content)
             tf.flush()
         self.plugin.copy_file(tf.name, dest_file)
-        with open(dest_file) as fh:
+        with dest_file.open(mode="r") as fh:
             copied_content = fh.read()
-        os.unlink(dest_file)
+        dest_file.unlink()
         self.assertEqual(copied_content, file_content)
 
     def test_mkdir(self) -> None:
-        self.plugin.mkdir(os.path.join(self.mirror_base_path, "test_dir"))
+        self.plugin.mkdir(self.mirror_base_path / "test_dir")
         self.assertTrue(
             self.plugin.PATH_BACKEND(
-                os.path.join(self.mirror_base_path, "test_dir")
+                self.mirror_base_path / "test_dir"
             ).exists()
         )
         self.plugin.PATH_BACKEND(
-            os.path.join(self.mirror_base_path, "test_dir")
+            self.mirror_base_path / "test_dir"
         ).rmdir()
 
     def test_rmdir(self) -> None:
         self.plugin.PATH_BACKEND(
-            os.path.join(self.mirror_base_path, "test_dir")
+            self.mirror_base_path / "test_dir"
         ).mkdir()
         self.assertTrue(
             self.plugin.PATH_BACKEND(
-                os.path.join(self.mirror_base_path, "test_dir")
+                self.mirror_base_path / "test_dir"
             ).exists()
         )
         self.plugin.rmdir(
-            self.plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir"))
+            self.plugin.PATH_BACKEND(self.mirror_base_path / "test_dir")
         )
         self.assertFalse(
             self.plugin.PATH_BACKEND(
-                os.path.join(self.mirror_base_path, "test_dir")
+                self.mirror_base_path / "test_dir"
             ).exists()
         )
 
     def test_is_dir(self) -> None:
         self.plugin.PATH_BACKEND(
-            os.path.join(self.mirror_base_path, "test_dir")
+            self.mirror_base_path / "test_dir"
         ).mkdir()
         self.assertTrue(
             self.plugin.is_dir(
                 self.plugin.PATH_BACKEND(
-                    os.path.join(self.mirror_base_path, "test_dir")
+                    self.mirror_base_path / "test_dir"
                 )
             )
         )
         self.plugin.rmdir(
-            self.plugin.PATH_BACKEND(os.path.join(self.mirror_base_path, "test_dir")),
+            self.plugin.PATH_BACKEND(self.mirror_base_path / "test_dir"),
             force=True,
         )
 
@@ -888,11 +882,9 @@ web{0}simple{0}index.html""".format(
 
     def test_symlink(self) -> None:
         file_content = "this is some text"
-        test_path = self.plugin.PATH_BACKEND(self.mirror_base_path).joinpath(
-            "symlink_file.txt"
-        )
+        test_path = self.plugin.PATH_BACKEND(self.mirror_base_path) / "symlink_file.txt"
         test_path.write_text(file_content)
-        symlink_dest = test_path.parent.joinpath("symlink_dest.txt")
+        symlink_dest = self.plugin.PATH_BACKEND(self.mirror_base_path) / "symlink_dest.txt"
         self.plugin.symlink(test_path, symlink_dest)
         self.assertEqual(self.plugin.read_file(symlink_dest), file_content)
 
@@ -985,6 +977,19 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
             copied_content = fh.read()
         os.unlink(dest_file)
         self.assertEqual(copied_content, file_content)
+
+
+@pytest.mark.usefixtures("s3mock")
+class TestS3StoragePlugin(BaseStoragePluginTestCase):
+    backend = "s3"
+    base_find_contents = "\n".join(
+        [
+            line
+            for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
+            if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep)
+               != line.strip()
+        ]
+    )
 
 
 if __name__ == "__main__":

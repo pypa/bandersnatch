@@ -8,7 +8,7 @@ import os
 import sys
 import time
 from json import dump
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from shutil import rmtree
 from threading import RLock
 from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
@@ -210,7 +210,10 @@ class BandersnatchMirror(Mirror):
             self.storage_backend = next(iter(storage_backend_plugins()))
         self.stop_on_error = stop_on_error
         self.loop = asyncio.get_event_loop()
-        self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
+        if isinstance(homedir, WindowsPath):
+            self.homedir = self.storage_backend.PATH_BACKEND(homedir.as_posix())
+        else:
+            self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
 
@@ -625,8 +628,8 @@ class BandersnatchMirror(Mirror):
 
     def simple_directory(self, package: Package) -> Path:
         if self.hash_index:
-            return Path(self.webdir / "simple" / package.name[0] / package.name)
-        return Path(self.webdir / "simple" / package.name)
+            return self.webdir / "simple" / package.name[0] / package.name
+        return self.webdir / "simple" / package.name
 
     def save_json_metadata(self, package_info: Dict, name: str) -> bool:
         """

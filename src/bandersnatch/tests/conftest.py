@@ -1,5 +1,5 @@
 # flake8: noqa
-
+import os
 import unittest.mock as mock
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
@@ -8,6 +8,9 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
+
+from moto import mock_s3
+import boto3
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -169,3 +172,22 @@ def logging_mock(request: FixtureRequest) -> mock.MagicMock:
 
     request.addfinalizer(tearDown)
     return logger
+
+
+@pytest.fixture(scope="class")
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ['AWS_ACCESS_KEY_ID'] = 'testing'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
+    os.environ['AWS_SECURITY_TOKEN'] = 'testing'
+    os.environ['AWS_SESSION_TOKEN'] = 'testing'
+
+
+@pytest.fixture(scope="class")
+def s3mock(aws_credentials):
+    with mock_s3():
+        client = boto3.client('s3', region_name='us-east-1')
+        client.create_bucket(
+            Bucket='bucket'
+        )
+        yield client
