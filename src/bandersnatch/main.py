@@ -200,13 +200,9 @@ def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
     if config.has_option("mirror", "log-config"):
         logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
 
-    # TODO: Go to asyncio.run() when >= 3.7
-    loop = loop or asyncio.get_event_loop()
-    loop.set_debug(args.debug)
-    try:
-        return loop.run_until_complete(async_main(args, config))
-    finally:
-        loop.close()
+    if loop:
+        loop.set_debug(args.debug)
+    return asyncio.run(async_main(args, config))
 
 
 if __name__ == "__main__":
