@@ -219,12 +219,17 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
                         self._determine_unfiltered_package_names()
                     )
 
-                logger.info(
-                    f"Initialized metadata plugin {self.name} to block projects >{self.max_package_size}b"  # noqa: E501
-                    f"; except {self.allowlist_package_names}"
-                    if self.allowlist_package_names
-                    else ""
+                log_msg = (
+                    f"Initialized metadata plugin {self.name} to block projects "
+                    + f"> {self.max_package_size} bytes"
                 )
+                if self.allowlist_package_names:
+                    log_msg += (
+                        "; except packages in the allowlist: "
+                        + f"{self.allowlist_package_names}"
+                    )
+                logger.info(log_msg)
+
             self.initialized = True
 
     def filter(self, metadata: Dict) -> bool:

@@ -47,7 +47,7 @@ class Filter:
         if (
             "all" not in split_plugins
             and self.name not in split_plugins
-            # NOTE: Remove after 5.0
+            # TODO: Remove after 5.0
             and not (self.deprecated_name and self.deprecated_name in split_plugins)
         ):
             return

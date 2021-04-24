@@ -8,12 +8,14 @@ import bandersnatch
 from bandersnatch.master import Master, StalePage, XmlRpcError
 
 
-def test_disallow_http() -> None:
+@pytest.mark.asyncio
+async def test_disallow_http() -> None:
     with pytest.raises(ValueError):
         Master("http://pypi.example.com")
 
 
-def test_rpc_url(master: Master) -> None:
+@pytest.mark.asyncio
+async def test_rpc_url(master: Master) -> None:
     assert master.xmlrpc_url == "https://pypi.example.com/pypi"
 
 
