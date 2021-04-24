@@ -238,6 +238,10 @@ class Storage:
         """Copy a file from **source** to **dest**"""
         raise NotImplementedError
 
+    def move_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
+        """Move a file from **source** to **dest**"""
+        raise NotImplementedError
+
     def mkdir(
         self, path: PATH_TYPES, exist_ok: bool = False, parents: bool = False
     ) -> None:

@@ -9,6 +9,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 import sys
 import tempfile
 from typing import (
@@ -671,8 +672,7 @@ class SwiftStorage(StoragePlugin):
             # put in place actually but also doesn't want to error out.
             return
         os.chmod(filepath_tmp, 0o100644)
-        self.copy_local_file(filepath_tmp, filepath)
-        os.unlink(filepath_tmp)
+        shutil.move(filepath_tmp, filepath)
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
@@ -699,8 +699,7 @@ class SwiftStorage(StoragePlugin):
         ):
             self.delete_file(filename_tmp)
         else:
-            self.copy_file(filename_tmp, filename)
-            self.delete_file(filename_tmp)
+            self.move_file(filename_tmp, filename)
             tf.has_changed = True  # type: ignore
 
     def copy_local_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
@@ -718,6 +717,21 @@ class SwiftStorage(StoragePlugin):
         dest = f"{dest_container}/{dest}"
         with self.connection() as conn:
             conn.copy_object(self.default_container, str(source), dest)
+        return
+
+    def move_file(
+        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: Optional[str] = None
+    ) -> None:
+        """Move a file from **source** to **dest**"""
+        if dest_container is None:
+            dest_container = self.default_container
+        dest = f"{dest_container}/{dest}"
+        with self.connection() as conn:
+            conn.copy_object(self.default_container, str(source), dest)
+            try:
+                conn.delete_object(self.default_container, str(source))
+            except swiftclient.exceptions.ClientException:
+                raise FileNotFoundError(str(source))
         return
 
     def write_file(
