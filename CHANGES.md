@@ -14,6 +14,7 @@
 - Removed terrible isinstance check of unittest.Mock in mirror.py - `PR #859` - Thanks **ichard26**
 - Put potential time consuming IO operations into executor - `PR #877`
 - Migrated Markdown documentation from recommonmark to MyST-Parser + docs config clean up - `PR #879` - Thanks **ichard26**
+- Fixed logging bug in `SizeProjectMetadataFilter` to show it activated - `PR #889` - Thanks **cooperlees**
 
 # 4.4.0 (2020-12-31)
 
