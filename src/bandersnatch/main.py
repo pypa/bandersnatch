@@ -17,6 +17,14 @@ import bandersnatch.mirror
 import bandersnatch.verify
 from bandersnatch.storage import storage_backend_plugins
 
+# See if we have uvloop and use if so
+try:
+    import uvloop
+
+    uvloop.install()
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
