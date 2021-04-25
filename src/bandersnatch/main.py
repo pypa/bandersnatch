@@ -20,6 +20,7 @@ from bandersnatch.storage import storage_backend_plugins
 # See if we have uvloop and use if so
 try:
     import uvloop
+
     uvloop.install()
 except ImportError:
     pass
