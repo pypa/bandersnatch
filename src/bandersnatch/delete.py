@@ -5,6 +5,7 @@ import concurrent.futures
 import logging
 from argparse import Namespace
 from configparser import ConfigParser
+from functools import partial
 from json import JSONDecodeError, load
 from pathlib import Path
 from typing import Awaitable, List
@@ -19,15 +20,21 @@ from .verify import get_latest_json
 logger = logging.getLogger(__name__)
 
 
-def delete_path(blob_path: Path, dry_run: bool = False) -> int:
+async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     storage_backend = next(iter(storage_backend_plugins()))
     if dry_run:
         logger.info(f" rm {blob_path}")
-    if not storage_backend.exists(blob_path):
+    blob_exists = await storage_backend.loop.run_in_executor(
+        storage_backend.executor, storage_backend.exists, blob_path
+    )
+    if not blob_exists:
         logger.debug(f"{blob_path} does not exist. Skipping")
         return 0
     try:
-        storage_backend.delete(blob_path, dry_run=dry_run)
+        del_partial = partial(storage_backend.delete, blob_path, dry_run=dry_run)
+        await storage_backend.loop.run_in_executor(
+            storage_backend.executor, del_partial
+        )
     except FileNotFoundError:
         # Due to using threads in executors we sometimes have a
         # race condition if canonicalize_name == passed in name
@@ -39,7 +46,6 @@ def delete_path(blob_path: Path, dry_run: bool = False) -> int:
 
 
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
-    loop = asyncio.get_event_loop()
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     storage_backend = next(
@@ -83,9 +89,7 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
             for blob in blobs:
                 url_parts = urlparse(blob["url"])
                 blob_path = web_base_path / url_parts.path[1:]
-                delete_coros.append(
-                    loop.run_in_executor(executor, delete_path, blob_path, args.dry_run)
-                )
+                delete_coros.append(delete_path(blob_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
         package_simple_path = simple_path / canon_name
@@ -107,9 +111,7 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
             if not package_path:
                 continue
 
-            delete_coros.append(
-                loop.run_in_executor(executor, delete_path, package_path, args.dry_run)
-            )
+            delete_coros.append(delete_path(package_path, args.dry_run))
 
     if args.dry_run:
         logger.info("-- bandersnatch delete DRY RUN --")

@@ -71,24 +71,25 @@ def _fake_config() -> ConfigParser:
     return cp
 
 
-def test_delete_path() -> None:
+@pytest.mark.asyncio
+async def test_delete_path() -> None:
     with TemporaryDirectory() as td:
         td_path = Path(td)
         fake_path = td_path / "unittest-file.tgz"
         with patch("bandersnatch.delete.logger.info") as mock_log:
-            assert delete_path(fake_path, True) == 0
+            assert await delete_path(fake_path, True) == 0
             assert mock_log.call_count == 1
 
         with patch("bandersnatch.delete.logger.debug") as mock_log:
-            assert delete_path(fake_path, False) == 0
+            assert await delete_path(fake_path, False) == 0
             assert mock_log.call_count == 1
 
         fake_path.touch()
         # Remove file
-        assert delete_path(fake_path, False) == 0
+        assert await delete_path(fake_path, False) == 0
         # File should be gone - We should log that via debug
         with patch("bandersnatch.delete.logger.debug") as mock_log:
-            assert delete_path(fake_path, False) == 0
+            assert await delete_path(fake_path, False) == 0
             assert mock_log.call_count == 1
 
 

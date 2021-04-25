@@ -1,6 +1,7 @@
 """
 Storage management
 """
+import asyncio
 import configparser
 import contextlib
 import datetime
@@ -8,6 +9,7 @@ import hashlib
 import logging
 import pathlib
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from typing import (
     IO,
     Any,
@@ -80,6 +82,10 @@ class Storage:
         self.json_base_path = self.web_base_path / "json"
         self.pypi_base_path = self.web_base_path / "pypi"
         self.simple_base_path = self.web_base_path / "simple"
+        self.executor = ThreadPoolExecutor(
+            max_workers=self.configuration.getint("mirror", "workers")
+        )
+        self.loop = asyncio.get_event_loop()
 
     def __str__(self) -> str:
         return (

@@ -17,6 +17,7 @@
 - Migrated Markdown documentation from recommonmark to MyST-Parser + docs config clean up - `PR #879` - Thanks **ichard26**
 - Use `shutil.move()` for temp file management - `PR #883` - Thanks **happyaron**
 - Fixed logging bug in `SizeProjectMetadataFilter` to show it activated - `PR #889` - Thanks **cooperlees**
+- Attempt to wrap all potentially block calls in a ThreadPoolExecutor - `PR #894` - Thanks **cooperlees**`
 
 # 4.4.0 (2020-12-31)
 
