@@ -635,7 +635,7 @@ class BandersnatchMirror(Mirror):
         return True
 
     async def sync_release_files(self, package: Package) -> None:
-        """ Purge + download files returning files removed + added """
+        """Purge + download files returning files removed + added"""
         downloaded_files = set()
         deferred_exception = None
         for release_file in package.release_files:

@@ -118,7 +118,7 @@ def recursive_find_files(files: Set[Path], base_dir: Path) -> None:
 
 
 def unlink_parent_dir(path: Path) -> None:
-    """ Remove a file and if the dir is empty remove it """
+    """Remove a file and if the dir is empty remove it"""
     logger.info(f"unlink {str(path)}")
     path.unlink()
 
