@@ -46,7 +46,7 @@ class Master:
             raise ValueError(err)
 
     def _check_for_socks_proxy(self) -> Optional[ProxyConnector]:
-        """ Check env for a SOCKS proxy URL and return a connector if found """
+        """Check env for a SOCKS proxy URL and return a connector if found"""
         proxy_vars = (
             "https_proxy",
             "http_proxy",

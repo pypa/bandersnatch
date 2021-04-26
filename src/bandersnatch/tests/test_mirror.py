@@ -25,7 +25,7 @@ EXPECTED_REL_HREFS = (
 
 
 class JsonDict(dict):
-    """ Class to fake the object returned from requests lib in master.get() """
+    """Class to fake the object returned from requests lib in master.get()"""
 
     def json(self) -> "JsonDict":
         return self

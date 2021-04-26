@@ -24,7 +24,7 @@ async def empty_dict(*args: Any, **kwargs: Any) -> Dict:
 
 
 def setup() -> None:
-    """ simple setup function to clear Singleton._instances before each test"""
+    """simple setup function to clear Singleton._instances before each test"""
     Singleton._instances = {}
 
 
