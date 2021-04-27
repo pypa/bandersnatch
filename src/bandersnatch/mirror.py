@@ -297,6 +297,7 @@ class BandersnatchMirror(Mirror):
         logger.info(f"{pkg_count} packages to sync.")
 
     async def process_package(self, package: Package) -> None:
+        loop = asyncio.get_running_loop()
         # Don't save anything if our metadata filters all fail.
         if not package.filter_metadata(self.filters.filter_metadata_plugins()):
             return None
@@ -306,9 +307,11 @@ class BandersnatchMirror(Mirror):
         # to make a lot of sense.
         # https://github.com/pypa/bandersnatch/commit/2a8cf8441b97f28eb817042a65a042d680fa527e#r39676370
         if self.json_save:
-            loop = asyncio.get_event_loop()
             json_saved = await loop.run_in_executor(
-                None, self.save_json_metadata, package.metadata, package.name
+                self.storage_backend.executor,
+                self.save_json_metadata,
+                package.metadata,
+                package.name,
             )
             assert json_saved
 
@@ -318,9 +321,15 @@ class BandersnatchMirror(Mirror):
         if self.release_files_save:
             await self.sync_release_files(package)
 
-        self.sync_simple_page(package)
+        await loop.run_in_executor(
+            self.storage_backend.executor, self.sync_simple_page, package
+        )
         # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
-        self.record_finished_package(package.raw_name)
+        await loop.run_in_executor(
+            self.storage_backend.executor,
+            self.record_finished_package,
+            package.raw_name,
+        )
 
         # Cleanup old legacy non PEP 503 Directories created for the Simple API
         await self.cleanup_non_pep_503_paths(package)
@@ -783,24 +792,32 @@ class BandersnatchMirror(Mirror):
         chunk_size: int = 64 * 1024,
     ) -> Optional[Path]:
         path = self._file_url_to_local_path(url)
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # Avoid downloading again if we have the file and it matches the hash.
-        if path.exists():
-            existing_file_size = self.storage_backend.get_file_size(path)
+        if await loop.run_in_executor(self.storage_backend.executor, path.exists):
+            existing_file_size = await loop.run_in_executor(
+                self.storage_backend.executor, self.storage_backend.get_file_size, path
+            )
             if existing_file_size != int(file_size):
                 logger.info(
                     f"File size mismatch with local file {path}: expected {file_size} "
                     + f"got {existing_file_size}, will re-download."
                 )
-                path.unlink()
+                await loop.run_in_executor(self.storage_backend.executor, path.unlink)
             elif self.compare_method == "stat":
-                existing_upload_time = self.storage_backend.get_upload_time(path)
+                existing_upload_time = await loop.run_in_executor(
+                    self.storage_backend.executor,
+                    self.storage_backend.get_upload_time,
+                    path,
+                )
                 if existing_upload_time == upload_time:
                     return None
                 else:
                     existing_hash = await loop.run_in_executor(
-                        None, self.storage_backend.get_hash, str(path)
+                        self.storage_backend.executor,
+                        self.storage_backend.get_hash,
+                        str(path),
                     )
                     if existing_hash != sha256sum:
                         logger.info(
@@ -808,14 +825,23 @@ class BandersnatchMirror(Mirror):
                             + f"file {path}: expected "
                             + f"{sha256sum} got {existing_hash}, will re-download."
                         )
-                        path.unlink()
+                        await loop.run_in_executor(
+                            self.storage_backend.executor, path.unlink
+                        )
                     else:
                         logger.info(f"Updating file upload time of local file {path}.")
-                        self.storage_backend.set_upload_time(path, upload_time)
+                        await loop.run_in_executor(
+                            self.storage_backend.executor,
+                            self.storage_backend.set_upload_time,
+                            path,
+                            upload_time,
+                        )
                         return None
             else:
                 existing_hash = await loop.run_in_executor(
-                    None, self.storage_backend.get_hash, str(path)
+                    self.storage_backend.executor,
+                    self.storage_backend.get_hash,
+                    str(path),
                 )
                 if existing_hash == sha256sum:
                     return None
@@ -824,7 +850,9 @@ class BandersnatchMirror(Mirror):
                         f"File checksum mismatch with local file {path}: expected "
                         + f"{sha256sum} got {existing_hash}, will re-download."
                     )
-                    path.unlink()
+                    await loop.run_in_executor(
+                        self.storage_backend.executor, path.unlink
+                    )
 
         logger.info(f"Downloading: {url}")
 
@@ -894,9 +922,13 @@ async def mirror(
     if diff_full_path:
         if isinstance(diff_full_path, str):
             diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
-        if diff_full_path.is_file():
+        if await storage_plugin.loop.run_in_executor(
+            storage_plugin.executor, diff_full_path.is_file
+        ):
             diff_full_path.unlink()
-        elif diff_full_path.is_dir():
+        elif await storage_plugin.loop.run_in_executor(
+            storage_plugin.executor, diff_full_path.is_dir
+        ):
             diff_full_path = diff_full_path / "mirrored-files"
 
     mirror_url = config.get("mirror", "master")
@@ -943,6 +975,8 @@ async def mirror(
             [str(chg.absolute()) for chg in mirror.diff_file_list]
         )
         diff_file = mirror.storage_backend.PATH_BACKEND(mirror.diff_full_path)
-        diff_file.write_text(diff_text)
+        await storage_plugin.loop.run_in_executor(
+            storage_plugin.executor, diff_file.write_text, diff_text
+        )
 
     return 0

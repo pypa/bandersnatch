@@ -33,6 +33,10 @@ class TestAllowListProject(TestCase):
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
             contents="""\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_project
@@ -49,6 +53,7 @@ enabled =
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 """
@@ -63,6 +68,7 @@ storage-backend = filesystem
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 enabled =
@@ -85,6 +91,7 @@ packages =
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 enabled =
@@ -108,6 +115,7 @@ packages =
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 enabled =
@@ -131,6 +139,7 @@ packages =
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 enabled =
@@ -157,6 +166,7 @@ packages =
             """\
 [mirror]
 storage-backend = filesystem
+workers = 2
 
 [plugins]
 enabled =
@@ -212,6 +222,10 @@ enabled =
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_package
@@ -225,6 +239,10 @@ enabled =
     def test__filter__matches__release(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_release
@@ -248,6 +266,10 @@ packages =
     def test__filter__matches__release__commented__inline(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_release
@@ -271,6 +293,10 @@ packages =
     def test__dont__filter__prereleases(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_release
@@ -301,6 +327,10 @@ packages =
     def test__casing__no__affect(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_release
@@ -341,6 +371,10 @@ class TestAllowlistRequirements(TestCase):
     def test__plugin__loads__explicitly_enabled(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     project_requirements_pinned
@@ -355,6 +389,10 @@ enabled =
     def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
         mock_config(
             """\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     allowlist_package
@@ -378,6 +416,10 @@ foo==1.2.0             # via -r requirements.in
 
         mock_config(
             f"""\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     project_requirements
@@ -413,6 +455,10 @@ foo==1.2.0             # via -r requirements.in
 
         mock_config(
             f"""\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
 [plugins]
 enabled =
     project_requirements
