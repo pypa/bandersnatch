@@ -198,7 +198,7 @@ class MockConnection:
         return {
             "date": current_timestamp,
             "server": "Apache/2.4.29 (Ubuntu)",
-            "content-length": "{}".format(len(path_contents)),
+            "content-length": f"{len(path_contents)}",
             "accept-ranges": "bytes",
             "last-modified": f"{path.stat().st_mtime}",
             "etag": hashlib.md5(path_contents).hexdigest(),
