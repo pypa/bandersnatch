@@ -57,7 +57,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: pypa/bandersnatch:latest-swift,pypa/bandersnatch:swift-${{ env.GIT_TAG }},pypa/bandersnatch:swift-3,pypa/bandersnatch:swift-3.9
+          tags: pypa/bandersnatch:swift-latest,pypa/bandersnatch:swift-${{ env.GIT_TAG }},pypa/bandersnatch:swift-3,pypa/bandersnatch:swift-3.9
 
       - name: Swift Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
