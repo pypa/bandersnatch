@@ -6,6 +6,7 @@
 - New size_project_metadata filter plugin, which can deny download of projects larger than defined threshold - `PR #806`
 - Add option to compare file size and upload time instead of sha256sum for downloading - `PR #822`
 - Add optional uvloop support - `PR #891` - Thanks **cooperlees**
+- Move to official docker upload action w/arm64 images uploaded - `PR #896` - Thanks **cooperlees**
 
 ## Bug Fixes
 
