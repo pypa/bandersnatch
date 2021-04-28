@@ -2,7 +2,6 @@ import configparser
 import importlib.resources
 import os
 import unittest
-import warnings
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 

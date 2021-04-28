@@ -4,7 +4,6 @@ Module containing classes to access the bandersnatch configuration file
 import configparser
 import importlib.resources
 import logging
-import warnings
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
