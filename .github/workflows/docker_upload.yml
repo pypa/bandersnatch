@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - "master"
-      - "docker_test"
   release:
     types: created
 
@@ -41,7 +40,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: cooperlees/bandersnatch:latest,cooperlees/bandersnatch:${{ env.GIT_TAG }},cooperlees/bandersnatch:3,cooperlees/bandersnatch:3.9
+          tags: pypa/bandersnatch:latest,pypa/bandersnatch:${{ env.GIT_TAG }},pypa/bandersnatch:3,pypa/bandersnatch:3.9
 
       - name: Filesystem Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -58,7 +57,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: cooperlees/bandersnatch:latest-swift,cooperlees/bandersnatch:${{ env.GIT_TAG }}-swift,cooperlees/bandersnatch:3-swift,cooperlees/bandersnatch:3.9-swift
+          tags: pypa/bandersnatch:latest-swift,pypa/bandersnatch:${{ env.GIT_TAG }}-swift,pypa/bandersnatch:3-swift,pypa/bandersnatch:3.9-swift
 
       - name: Swift Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
