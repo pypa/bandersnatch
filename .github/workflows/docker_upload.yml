@@ -37,7 +37,7 @@ jobs:
         env:
           PY_VERSION: 3.9
         with:
-          build-args: [PY_VERSION]
+          build-args: PY_VERSION
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
@@ -48,7 +48,7 @@ jobs:
 
       - name: Build and push swift image
         uses: docker/build-push-action@v2
-        env:
+        env: |
           PY_VERSION: 3.9
           WITH_SWIFT: yes
         with:
