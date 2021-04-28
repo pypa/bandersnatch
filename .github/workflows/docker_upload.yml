@@ -3,35 +3,60 @@ name: bandersnatch_docker_upload
 on:
   push:
     branches:
-      - master
+      - "master"
+      - "docker_test"
+  release:
+    types: created
 
 jobs:
-  build:
+  docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - name: Publish to Docker Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Check + set version tag
+        run:
+          echo "GIT_TAG=$(git describe --candidates=0 --tags 2> /dev/null || echo
+          latest_non_release)" >> $GITHUB_ENV
+
+      - name: Build and push filesystem image
+        uses: docker/build-push-action@v2
         env:
           PY_VERSION: 3.9
         with:
-          name: pypa/bandersnatch
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          snapshot: true
-          tag_names: true
-          buildargs: PY_VERSION
-          tags: "latest, 3.9, 3"
+          build-args: [PY_VERSION]
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: cooperlees/bandersnatch:latest,cooperlees/bandersnatch:${{ env.GIT_TAG }},cooperlees/bandersnatch:3,cooperlees/bandersnatch:3.9
 
-      - name: Publish Swift variation to Docker Registry
-        uses: elgohr/Publish-Docker-Github-Action@master
+      - name: Filesystem Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+      - name: Build and push swift image
+        uses: docker/build-push-action@v2
         env:
           PY_VERSION: 3.9
           WITH_SWIFT: yes
         with:
-          name: pypa/bandersnatch
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          snapshot: true
-          buildargs: PY_VERSION, WITH_SWIFT
-          tags: "swift-latest, swift-3.9, swift-3"
+          build-args: [PY_VERSION, WITH_SWIFT]
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: cooperlees/bandersnatch:latest-swift,cooperlees/bandersnatch:${{ env.GIT_TAG }}-swift,cooperlees/bandersnatch:3-swift,cooperlees/bandersnatch:3.9-swift
+
+      - name: Swift Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
