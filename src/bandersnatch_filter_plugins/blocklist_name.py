@@ -12,7 +12,6 @@ logger = logging.getLogger("bandersnatch")
 
 class BlockListProject(FilterProjectPlugin):
     name = "blocklist_project"
-    deprecated_name = "blacklist_project"
     # Requires iterable default
     blocklist_package_names: List[str] = []
 
@@ -94,7 +93,6 @@ class BlockListProject(FilterProjectPlugin):
 
 class BlockListRelease(FilterReleasePlugin):
     name = "blocklist_release"
-    deprecated_name = "blacklist_release"
     # Requires iterable default
     blocklist_package_names: List[Requirement] = []
 

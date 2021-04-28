@@ -4,7 +4,6 @@ Module containing classes to access the bandersnatch configuration file
 import configparser
 import importlib.resources
 import logging
-import warnings
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
@@ -53,19 +52,12 @@ class BandersnatchConfig(metaclass=Singleton):
             self.default_config_file = str(config_path)
         self.config_file = config_file
         self.load_configuration()
-        self.check_for_deprecations()
+        # Keeping for future deprecations ... Commenting to save function call etc.
+        # self.check_for_deprecations()
 
     def check_for_deprecations(self) -> None:
         if self.SHOWN_DEPRECATIONS:
             return
-        if self.config.has_section("whitelist") or self.config.has_section("blacklist"):
-            err_msg = (
-                "whitelist/blacklist filter plugins will be renamed to "
-                "allowlist_*/blocklist_* in version 5.0 "
-                " - Documentation @ https://bandersnatch.readthedocs.io/"
-            )
-            warnings.warn(err_msg, DeprecationWarning, stacklevel=2)
-            logger.warning(err_msg)
         self.SHOWN_DEPRECATIONS = True
 
     def load_configuration(self) -> None:

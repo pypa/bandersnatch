@@ -87,22 +87,13 @@ class Filter:
         """
         return False
 
-    # NOTE: These two can be removed in 5.0
     @property
     def allowlist(self) -> "SectionProxy":
-        return (
-            self.configuration["whitelist"]
-            if self.configuration.has_section("whitelist")
-            else self.configuration["allowlist"]
-        )
+        return self.configuration["allowlist"]
 
     @property
     def blocklist(self) -> "SectionProxy":
-        return (
-            self.configuration["blacklist"]
-            if self.configuration.has_section("blacklist")
-            else self.configuration["blocklist"]
-        )
+        return self.configuration["blocklist"]
 
 
 class FilterProjectPlugin(Filter):

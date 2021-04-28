@@ -2,7 +2,6 @@ import configparser
 import importlib.resources
 import os
 import unittest
-import warnings
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -154,31 +153,6 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(
             default_values, validate_config_values(release_files_false_configparser)
         )
-
-    def test_deprecation_warning_raised(self) -> None:
-        # Remove in 5.0 once we deprecate whitelist/blacklist
-
-        config_file = "test.conf"
-        instance = BandersnatchConfig()
-        instance.config_file = config_file
-        # Test no warning if new plugins used
-        with open(config_file, "w") as f:
-            f.write("[allowlist]\npackages=foo\n")
-        instance.load_configuration()
-        with warnings.catch_warnings(record=True) as w:
-            instance.check_for_deprecations()
-            self.assertEqual(len(w), 0)
-
-        # Test warning if old plugins used
-        instance.SHOWN_DEPRECATIONS = False
-        with open(config_file, "w") as f:
-            f.write("[whitelist]\npackages=foo\n")
-        instance.load_configuration()
-        with warnings.catch_warnings(record=True) as w:
-            instance.check_for_deprecations()
-            instance.check_for_deprecations()
-            # Assert we only throw 1 warning
-            self.assertEqual(len(w), 1)
 
 
 if __name__ == "__main__":

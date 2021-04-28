@@ -8,6 +8,11 @@
 - Add optional uvloop support - `PR #891` - Thanks **cooperlees**
 - Move to official docker upload action w/arm64 images uploaded - `PR #896` - Thanks **cooperlees**
 
+## Deprecations
+
+- blacklist/whitelist will no longer work in bandersnatch configuration - `PR #897` - Thanks **cooperlees**
+  - Please use allowlist/denylist respectively
+
 ## Bug Fixes
 
 - Unused storage plugins are loaded and cause non-fatal errors if dependencies are missing - `PR #799` - Thanks **electricworry**
