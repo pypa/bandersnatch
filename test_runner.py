@@ -25,7 +25,7 @@ CI_CONFIG = Path("src/bandersnatch/tests/ci.conf")
 EOP = "[CI ERROR]:"
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
-TGZ_SHA256 = "bc9430dae93f8bc53728773545cbb646a6b5327f98de31bdd6e1a2b2c6e805a9"
+TGZ_SHA256 = "b6114554fb312f9b0bdeaf6a7498f7da05fc17b9250c0449ed796fac9ab663e2"
 TOX_EXE = Path(which("tox") or "tox")
 
 # Make Global so we can check exists before delete
@@ -41,32 +41,32 @@ A_BLACK_WHL = (
 
 def check_ci(suppress_errors: bool = False) -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
-    peerme_index = MIRROR_BASE / "simple/p/peerme/index.html"
-    peerme_json = MIRROR_BASE / "json/peerme"
-    peerme_tgz = (
+    pyaib_index = MIRROR_BASE / "simple/p/pyaib/index.html"
+    pyaib_json = MIRROR_BASE / "json/pyaib"
+    pyaib_tgz = (
         MIRROR_BASE
         / "packages"
-        / "8f"
-        / "1a"
-        / "1aa000db9c5a799b676227e845d2b64fe725328e05e3d3b30036f50eb316"
-        / "peerme-1.0.0-py36-none-any.whl"
+        / "0c"
+        / "af"
+        / "0389466685844d95c6f1f857008d4931d14c7937ac8dba689639ccf0cc54"
+        / "pyaib-2.1.0.tar.gz"
     )
 
-    if not suppress_errors and not peerme_index.exists():
-        print(f"{EOP} No peerme simple API index exists @ {peerme_index}")
+    if not suppress_errors and not pyaib_index.exists():
+        print(f"{EOP} No pyaib simple API index exists @ {pyaib_index}")
         return 69
 
-    if not suppress_errors and not peerme_json.exists():
-        print(f"{EOP} No peerme JSON API file exists @ {peerme_json}")
+    if not suppress_errors and not pyaib_json.exists():
+        print(f"{EOP} No pyaib JSON API file exists @ {pyaib_json}")
         return 70
 
-    if not suppress_errors and not peerme_tgz.exists():
-        print(f"{EOP} No peerme tgz file exists @ {peerme_tgz}")
+    if not suppress_errors and not pyaib_tgz.exists():
+        print(f"{EOP} No pyaib tgz file exists @ {pyaib_tgz}")
         return 71
 
-    peerme_tgz_sha256 = hash(str(peerme_tgz))
-    if not suppress_errors and peerme_tgz_sha256 != TGZ_SHA256:
-        print(f"{EOP} Bad peerme 1.0.0 sha256: {peerme_tgz_sha256} != {TGZ_SHA256}")
+    pyaib_tgz_sha256 = hash(str(pyaib_tgz))
+    if not suppress_errors and pyaib_tgz_sha256 != TGZ_SHA256:
+        print(f"{EOP} Bad pyaib 1.0.0 sha256: {pyaib_tgz_sha256} != {TGZ_SHA256}")
         return 72
 
     if not suppress_errors and black_index.exists():
