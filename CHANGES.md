@@ -1,3 +1,9 @@
+# 5.1.0 (2021-XX-XX)
+
+## Bug fixes
+
+- Add bandersnatch command line help to the documentation main page `PR #920` - Thanks **ichard26**
+
 # 5.0.0 (2021-4-28)
 
 ## New Features
