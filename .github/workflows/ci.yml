@@ -39,6 +39,16 @@ jobs:
       run: |
         python test_runner.py
 
+    - name: Upload coverage to Codecov
+      # If pushed / is a pull request against main repo.
+      if: (github.event_name == 'push' && github.repository == 'pypa/bandersnatch') || (github.event.pull_request.base.repo.full_name == 'pypa/bandersnatch')
+      uses: codecov/codecov-action@v1
+      env:
+        OS: ${{ matrix.os }}
+        PYTHON: ${{ matrix.python-version }}
+      with:
+        env_vars: OS,PYTHON
+
     - name: Run Integration Test
       env:
        TOXENV: INTEGRATION
