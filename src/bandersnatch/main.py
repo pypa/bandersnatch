@@ -115,6 +115,36 @@ def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
     m.set_defaults(op="sync")
 
 
+def _make_parser() -> argparse.ArgumentParser:
+    # Seperated so sphinx-argparse-cli can do its auto documentation magic.
+    parser = argparse.ArgumentParser(
+        description="PyPI PEP 381 mirroring client.", prog="bandersnatch"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="/etc/bandersnatch.conf",
+        help="use configuration file (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Turn on extra logging (DEBUG level)",
+    )
+
+    subparsers = parser.add_subparsers()
+    _delete_parser(subparsers)
+    _mirror_parser(subparsers)
+    _verify_parser(subparsers)
+    _sync_parser(subparsers)
+
+    return parser
+
+
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     if args.op.lower() == "delete":
         async with bandersnatch.master.Master(
@@ -155,31 +185,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
 
 
 def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="PyPI PEP 381 mirroring client.", prog="bandersnatch"
-    )
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {bandersnatch.__version__}"
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        default="/etc/bandersnatch.conf",
-        help="use configuration file (default: %(default)s)",
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        default=False,
-        help="Turn on extra logging (DEBUG level)",
-    )
-
-    subparsers = parser.add_subparsers()
-    _delete_parser(subparsers)
-    _mirror_parser(subparsers)
-    _verify_parser(subparsers)
-    _sync_parser(subparsers)
-
+    parser = _make_parser()
     if len(sys.argv) < 2:
         parser.print_help()
         parser.exit()
