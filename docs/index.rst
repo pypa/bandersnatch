@@ -18,7 +18,14 @@ As of 4.0 bandersnatch:
 - Only stores PEP503 nomalized packages names for the /simple API
 - Only stores JSON in normailzed package name path too
 
-Contents:
+
+.. sphinx_argparse_cli::
+  :module: bandersnatch.main
+  :func: _make_parser
+  :title: Command line usage
+
+Contents
+--------
 
 .. toctree::
     :maxdepth: 3
