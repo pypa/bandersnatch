@@ -198,6 +198,8 @@ class BandersnatchMirror(Mirror):
         cleanup: bool = False,
         release_files_save: bool = True,
         compare_method: Optional[str] = None,
+        download_mirror: Optional[str] = None,
+        download_mirror_no_fallback: Optional[bool] = False,
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -231,6 +233,8 @@ class BandersnatchMirror(Mirror):
         self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
         self.compare_method = compare_method if compare_method else "hash"
+        self.download_mirror = download_mirror
+        self.download_mirror_no_fallback = download_mirror_no_fallback
         self.workers = workers
         self.diff_file_list = diff_file_list or []
         if self.workers > 10:
@@ -648,24 +652,43 @@ class BandersnatchMirror(Mirror):
         downloaded_files = set()
         deferred_exception = None
         for release_file in package.release_files:
-            try:
-                downloaded_file = await self.download_file(
-                    release_file["url"],
-                    release_file["size"],
-                    datetime.datetime.fromisoformat(
-                        release_file["upload_time_iso_8601"].replace("Z", "+00:00")
-                    ),
-                    release_file["digests"]["sha256"],
-                )
-                if downloaded_file:
-                    downloaded_files.add(str(downloaded_file.relative_to(self.homedir)))
-            except Exception as e:
-                logger.exception(
-                    "Continuing to next file after error downloading: "
-                    f"{release_file['url']}"
-                )
-                if not deferred_exception:  # keep first exception
-                    deferred_exception = e
+            release_url = release_file["url"]
+            release_path = urlparse(release_url).path
+            if self.download_mirror and not self.download_mirror_no_fallback:
+                download_urls = [
+                    self.download_mirror + release_path,
+                    release_url,
+                ]
+            elif self.download_mirror and self.download_mirror_no_fallback:
+                download_urls = [
+                    self.download_mirror + release_path,
+                ]
+            else:
+                download_urls = [release_url]
+
+            for cnt, url in enumerate(download_urls):
+                try:
+                    downloaded_file = await self.download_file(
+                        url,
+                        release_file["size"],
+                        datetime.datetime.fromisoformat(
+                            release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+                        ),
+                        release_file["digests"]["sha256"],
+                        urlpath=release_path,
+                    )
+                    if downloaded_file:
+                        downloaded_files.add(
+                            str(downloaded_file.relative_to(self.homedir))
+                        )
+                        break
+                except Exception as e:
+                    logger.exception(
+                        "Continuing to next file after error downloading: " f"{url}"
+                    )
+                    # keep previous exception, also ignore non-default urls
+                    if not deferred_exception and len(download_urls) == (cnt + 1):
+                        deferred_exception = e
         if deferred_exception:
             raise deferred_exception  # raise the exception after trying all files
 
@@ -790,8 +813,12 @@ class BandersnatchMirror(Mirror):
         upload_time: datetime.datetime,
         sha256sum: str,
         chunk_size: int = 64 * 1024,
+        urlpath: str = "",
     ) -> Optional[Path]:
-        path = self._file_url_to_local_path(url)
+        if urlparse != "":
+            path = self._file_url_to_local_path(urlpath)
+        else:
+            path = self._file_url_to_local_path(url)
         loop = asyncio.get_running_loop()
 
         # Avoid downloading again if we have the file and it matches the hash.
@@ -959,6 +986,8 @@ async def mirror(
             diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=config_values.cleanup,
             release_files_save=config_values.release_files_save,
+            download_mirror=config_values.download_mirror,
+            download_mirror_no_fallback=config_values.download_mirror_no_fallback,
         )
         changed_packages = await mirror.synchronize(specific_packages)
 
