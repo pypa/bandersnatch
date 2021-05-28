@@ -108,11 +108,17 @@ def master(package_json: Dict[str, Any]) -> "Master":
         async def json(self, *args: Any) -> Dict[str, Any]:
             return package_json
 
+    def session_side_effect(*args: Any, **kwargs: Any) -> Any:
+        if args[0].startswith("https://not-working.example.com"):
+            raise AssertionError("Requested for expected not-working URL")
+        else:
+            return FakeAiohttpClient()
+
     master = Master("https://pypi.example.com")
     master.rpc = mock.Mock()  # type: ignore
     master.session = mock.MagicMock()
-    master.session.get = mock.MagicMock(return_value=FakeAiohttpClient())
-    master.session.request = mock.MagicMock(return_value=FakeAiohttpClient())
+    master.session.get.side_effect = session_side_effect
+    master.session.request.side_effect = session_side_effect
     return master
 
 

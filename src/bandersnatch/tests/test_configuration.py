@@ -128,7 +128,17 @@ class TestBandersnatchConf(TestCase):
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(
-            False, "", "", False, "sha256", "filesystem", False, True, "hash"
+            False,
+            "",
+            "",
+            False,
+            "sha256",
+            "filesystem",
+            False,
+            True,
+            "hash",
+            "",
+            False,
         )
         no_options_configparser = configparser.ConfigParser()
         no_options_configparser["mirror"] = {}
@@ -147,6 +157,8 @@ class TestBandersnatchConf(TestCase):
             False,
             False,
             "hash",
+            "",
+            False,
         )
         release_files_false_configparser = configparser.ConfigParser()
         release_files_false_configparser["mirror"] = {"release-files": "false"}
