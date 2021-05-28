@@ -1,5 +1,9 @@
 # 5.1.0 (2021-XX-XX)
 
+## New Features
+
+- Add support of downloading packages from alternative mirror `PR #928` -- Thanks **happyaron**
+
 ## Bug fixes
 
 - Add bandersnatch command line help to the documentation main page `PR #920` - Thanks **ichard26**
