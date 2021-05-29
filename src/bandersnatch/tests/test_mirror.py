@@ -531,10 +531,10 @@ async def test_mirror_sync_package_download_mirror_fails(
     # This download mirror URL does not work, forcing not to fallback
     mirror.download_mirror = "https://not-working.example.com"
     mirror.download_mirror_no_fallback = True
-    try:
+
+    with mock.patch("bandersnatch.mirror.logger.exception") as mock_log:
         await mirror.synchronize()
-    except AssertionError:
-        pytest.fail()
+        assert mock_log.call_count == 3
 
 
 @pytest.mark.asyncio
