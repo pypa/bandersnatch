@@ -683,9 +683,15 @@ class BandersnatchMirror(Mirror):
                         )
                         break
                 except Exception as e:
-                    logger.exception(
-                        "Continuing to next file after error downloading: " f"{url}"
-                    )
+                    # Avoid flooding normal log messages with exception details
+                    if not len(download_urls) == (cnt + 1):
+                        logger.info(
+                            "Continuing to next file after error downloading: " f"{url}"
+                        )
+                    else:
+                        logger.exception(
+                            "Continuing to next file after error downloading: " f"{url}"
+                        )
                     # keep previous exception, also ignore non-default urls
                     if not deferred_exception and len(download_urls) == (cnt + 1):
                         deferred_exception = e
