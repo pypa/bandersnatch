@@ -671,10 +671,21 @@ class BandersnatchMirror(Mirror):
 
         self.altered_packages[package.name] = downloaded_files
 
-    def gen_data_requires_python(self, release: Dict) -> str:
+    def gen_html_file_tags(self, release: Dict) -> str:
+        file_tags = ""
+
+        # data-requires-python: requires_python
         if "requires_python" in release and release["requires_python"] is not None:
-            return f' data-requires-python="{html.escape(release["requires_python"])}"'
-        return ""
+            file_tags += (
+                f' data-requires-python="{html.escape(release["requires_python"])}"'
+            )
+
+        # data-yanked: yanked_reason
+        if "yanked" in release and release["yanked"]:
+            if "yanked_reason" in release:
+                file_tags += f' data-yanked="{html.escape(release["yanked_reason"])}"'
+
+        return file_tags
 
     def generate_simple_page(self, package: Package) -> str:
         # Generate the header of our simple page.
@@ -702,7 +713,7 @@ class BandersnatchMirror(Mirror):
                     self._file_url_to_local_url(r["url"]),
                     digest_name,
                     r["digests"][digest_name],
-                    self.gen_data_requires_python(r),
+                    self.gen_html_file_tags(r),
                     r["filename"],
                 )
                 for r in release_files
