@@ -534,6 +534,10 @@ async def test_mirror_sync_package_download_mirror_fails(
 
     with mock.patch("bandersnatch.mirror.logger.exception") as mock_log:
         await mirror.synchronize()
+        # 3 calls are:
+        # * Tried and failed to get /packages/any/f/foo/foo.zip
+        # * Tried and failed to get /packages/2.7/f/foo/foo.whl
+        # * Declared error on syncing package foo@1
         assert mock_log.call_count == 3
 
 
