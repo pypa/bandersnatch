@@ -670,7 +670,7 @@ web{0}simple{0}index.html""".format(
 
         self.assertListEqual(
             list(sorted(base_path.iterdir(), key=lambda p: str(p))),
-            list(sorted([elem[0] for elem in lists], key=lambda p: str(p))),
+            list(sorted((elem[0] for elem in lists), key=lambda p: str(p))),
         )
         for expected, is_dir in lists:
             with self.subTest(is_dir=is_dir, produced_path=expected):
