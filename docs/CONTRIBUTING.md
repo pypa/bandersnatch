@@ -132,11 +132,19 @@ Installing collected packages: six, pyparsing, python-dateutil, packaging, reque
 Successfully installed apipkg-1.4 attrs-18.1.0 bandersnatch-2.1.3 coverage-4.5.1 execnet-1.5.0 flake8-3.5.0 mccabe-0.6.1 more-itertools-4.1.0 packaging-16.8 pep8-1.7.1 pluggy-0.6.0 py-1.5.3 pycodestyle-2.3.1 pyflakes-1.6.0 pyparsing-2.1.10 pytest-3.5.1 pytest-cache-1.0 pytest-codecheckers-0.2 pytest-cov-2.5.1 pytest-timeout-1.2.1 python-dateutil-2.6.0 requests-2.12.4 six-1.10.0 tox-3.0.0 virtualenv-15.2.0 xmlrpc2-0.3.1
 ```
 
-- Finally install bandersnatch in editable mode:
+- Then install bandersnatch in editable mode:
 
 ```console
 /path/to/venv/bin/pip install -e .
 ```
+
+- (Optional) finally setup pre-commit to run automatically before committing:
+
+```console
+/path/to/venv/bin/pre-commit install
+```
+
+Congrats, now you have a bandersnatch development environment ready to go! Just a few details to cover left.
 
 ## Creating a Pull Request
 
@@ -150,6 +158,16 @@ of the time, your change will. If unsure, take a look at what's been logged befo
 or just add one to be safe.**
 
 This is enforced by a GitHub Actions workflow.
+
+## Linting
+
+We use pre-commit to run linters and formatters. If you never configured pre-commit to run automatically
+or just want to do a full check of the codebase, please run pre-commit directly.
+
+```console
+cd bandersnatch
+/path/to/venv/bin/pre-commit -a
+```
 
 ## Running Bandersnatch
 
