@@ -11,7 +11,7 @@ from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
-from typing import Any, Awaitable, Dict, List, Optional, Set, Union
+from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -647,25 +647,44 @@ class BandersnatchMirror(Mirror):
 
         return True
 
+    def populate_download_urls(
+        self, release_file: Dict[str, str]
+    ) -> Tuple[str, List[str]]:
+        """
+        Populate download URLs for a certain file:
+        - download_mirror is not set:
+          return "url" attribute from release_file
+        - download_mirror is set, no_fallback is false:
+          prepend "download_mirror + path" before "url"
+        - download_mirror is set, no_fallback is true:
+          return only "download_mirror + path"
+
+        Theoritically we are able to support multiple download mirrors by prepending
+        more urls in the list.
+        """
+        release_url = release_file["url"]
+        release_path = urlparse(release_url).path
+
+        if self.download_mirror and not self.download_mirror_no_fallback:
+            download_urls = [
+                self.download_mirror + release_path,
+                release_url,
+            ]
+        elif self.download_mirror and self.download_mirror_no_fallback:
+            download_urls = [
+                self.download_mirror + release_path,
+            ]
+        else:
+            download_urls = [release_url]
+
+        return (release_path, download_urls)
+
     async def sync_release_files(self, package: Package) -> None:
         """Purge + download files returning files removed + added"""
         downloaded_files = set()
         deferred_exception = None
         for release_file in package.release_files:
-            release_url = release_file["url"]
-            release_path = urlparse(release_url).path
-            if self.download_mirror and not self.download_mirror_no_fallback:
-                download_urls = [
-                    self.download_mirror + release_path,
-                    release_url,
-                ]
-            elif self.download_mirror and self.download_mirror_no_fallback:
-                download_urls = [
-                    self.download_mirror + release_path,
-                ]
-            else:
-                download_urls = [release_url]
-
+            release_path, download_urls = self.populate_download_urls(release_file)
             for cnt, url in enumerate(download_urls):
                 try:
                     downloaded_file = await self.download_file(
@@ -683,11 +702,14 @@ class BandersnatchMirror(Mirror):
                         )
                         break
                 except Exception as e:
-                    # Avoid flooding normal log messages with exception details
+                    # Avoid flooding log messages with exception traceback
                     if not len(download_urls) == (cnt + 1):
                         logger.info(
-                            "Continuing to next file after error downloading: " f"{url}"
+                            "Continuing to next candidate URL after error downloading: "
+                            f"{url}"
                         )
+                    # Log an ERROR entry with traceback for the last URL entry in list,
+                    # suggesting the final attemp of retriving the file has failed
                     else:
                         logger.exception(
                             "Continuing to next file after error downloading: " f"{url}"
