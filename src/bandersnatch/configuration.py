@@ -20,6 +20,8 @@ class SetConfigValues(NamedTuple):
     cleanup: bool
     release_files_save: bool
     compare_method: str
+    download_mirror: str
+    download_mirror_no_fallback: bool
 
 
 class Singleton(type):  # pragma: no cover
@@ -171,6 +173,37 @@ def validate_config_values(  # noqa: C901
         )
     logger.info(f"Selected compare method: {compare_method}")
 
+    try:
+        logger.debug("Checking config for alternative download mirror...")
+        download_mirror = config.get("mirror", "download-mirror")
+        logger.info(f"Selected alternative download mirror {download_mirror}")
+    except configparser.NoOptionError:
+        download_mirror = ""
+        logger.debug("No alternative download mirror found in config.")
+
+    if download_mirror:
+        try:
+            logger.debug(
+                "Checking config for only download from alternative download"
+                + "mirror..."
+            )
+            download_mirror_no_fallback = config.getboolean(
+                "mirror", "download-mirror-no-fallback"
+            )
+            if download_mirror_no_fallback:
+                logger.info("Setting to download from mirror without fallback")
+            else:
+                logger.debug("Setting to fallback to original if download mirror fails")
+        except configparser.NoOptionError:
+            download_mirror_no_fallback = False
+            logger.debug("No download mirror fallback setting found in config.")
+    else:
+        download_mirror_no_fallback = False
+        logger.debug(
+            "Skip checking download-mirror-no-fallback because dependent option"
+            + "is not set in config."
+        )
+
     return SetConfigValues(
         json_save,
         root_uri,
@@ -181,4 +214,6 @@ def validate_config_values(  # noqa: C901
         cleanup,
         release_files_save,
         compare_method,
+        download_mirror,
+        download_mirror_no_fallback,
     )

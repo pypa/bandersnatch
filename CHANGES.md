@@ -1,8 +1,13 @@
 # 5.1.0 (2021-XX-XX)
 
+## New Features
+
+- Add support of downloading packages from alternative mirror `PR #928` -- Thanks **happyaron**
+
 ## Bug fixes
 
 - Add bandersnatch command line help to the documentation main page `PR #920` - Thanks **ichard26**
+- Generate data-yanked tag in simple page `PR #931` - Thanks **happyaron**
 
 # 5.0.0 (2021-4-28)
 

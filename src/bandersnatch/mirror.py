@@ -11,7 +11,7 @@ from json import dump
 from pathlib import Path
 from shutil import rmtree
 from threading import RLock
-from typing import Any, Awaitable, Dict, List, Optional, Set, Union
+from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -198,6 +198,8 @@ class BandersnatchMirror(Mirror):
         cleanup: bool = False,
         release_files_save: bool = True,
         compare_method: Optional[str] = None,
+        download_mirror: Optional[str] = None,
+        download_mirror_no_fallback: Optional[bool] = False,
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -231,6 +233,8 @@ class BandersnatchMirror(Mirror):
         self.keep_index_versions = keep_index_versions
         self.digest_name = digest_name if digest_name else "sha256"
         self.compare_method = compare_method if compare_method else "hash"
+        self.download_mirror = download_mirror
+        self.download_mirror_no_fallback = download_mirror_no_fallback
         self.workers = workers
         self.diff_file_list = diff_file_list or []
         if self.workers > 10:
@@ -643,38 +647,98 @@ class BandersnatchMirror(Mirror):
 
         return True
 
+    def populate_download_urls(
+        self, release_file: Dict[str, str]
+    ) -> Tuple[str, List[str]]:
+        """
+        Populate download URLs for a certain file, possible combinations are:
+
+        - download_mirror is not set:
+          return "url" attribute from release_file
+        - download_mirror is set, no_fallback is false:
+          prepend "download_mirror + path" before "url"
+        - download_mirror is set, no_fallback is true:
+          return only "download_mirror + path"
+
+        Theoritically we are able to support multiple download mirrors by prepending
+        more urls in the list.
+
+        """
+        release_url = release_file["url"]
+        release_path = urlparse(release_url).path
+
+        if self.download_mirror and not self.download_mirror_no_fallback:
+            download_urls = [
+                self.download_mirror + release_path,
+                release_url,
+            ]
+        elif self.download_mirror and self.download_mirror_no_fallback:
+            download_urls = [
+                self.download_mirror + release_path,
+            ]
+        else:
+            download_urls = [release_url]
+
+        return (release_path, download_urls)
+
     async def sync_release_files(self, package: Package) -> None:
         """Purge + download files returning files removed + added"""
         downloaded_files = set()
         deferred_exception = None
         for release_file in package.release_files:
-            try:
-                downloaded_file = await self.download_file(
-                    release_file["url"],
-                    release_file["size"],
-                    datetime.datetime.fromisoformat(
-                        release_file["upload_time_iso_8601"].replace("Z", "+00:00")
-                    ),
-                    release_file["digests"]["sha256"],
-                )
-                if downloaded_file:
-                    downloaded_files.add(str(downloaded_file.relative_to(self.homedir)))
-            except Exception as e:
-                logger.exception(
-                    "Continuing to next file after error downloading: "
-                    f"{release_file['url']}"
-                )
-                if not deferred_exception:  # keep first exception
-                    deferred_exception = e
+            release_path, download_urls = self.populate_download_urls(release_file)
+            for cnt, url in enumerate(download_urls):
+                try:
+                    downloaded_file = await self.download_file(
+                        url,
+                        release_file["size"],
+                        datetime.datetime.fromisoformat(
+                            release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+                        ),
+                        release_file["digests"]["sha256"],
+                        urlpath=release_path,
+                    )
+                    if downloaded_file:
+                        downloaded_files.add(
+                            str(downloaded_file.relative_to(self.homedir))
+                        )
+                        break
+                except Exception as e:
+                    # Avoid flooding log messages with exception traceback
+                    if not len(download_urls) == (cnt + 1):
+                        logger.info(
+                            "Continuing to next candidate URL after error downloading: "
+                            f"{url}"
+                        )
+                    # Log an ERROR entry with traceback for the last URL entry in list,
+                    # suggesting the final attemp of retriving the file has failed
+                    else:
+                        logger.exception(
+                            "Continuing to next file after error downloading: " f"{url}"
+                        )
+                    # keep previous exception, also ignore non-default urls
+                    if not deferred_exception and len(download_urls) == (cnt + 1):
+                        deferred_exception = e
         if deferred_exception:
             raise deferred_exception  # raise the exception after trying all files
 
         self.altered_packages[package.name] = downloaded_files
 
-    def gen_data_requires_python(self, release: Dict) -> str:
+    def gen_html_file_tags(self, release: Dict) -> str:
+        file_tags = ""
+
+        # data-requires-python: requires_python
         if "requires_python" in release and release["requires_python"] is not None:
-            return f' data-requires-python="{html.escape(release["requires_python"])}"'
-        return ""
+            file_tags += (
+                f' data-requires-python="{html.escape(release["requires_python"])}"'
+            )
+
+        # data-yanked: yanked_reason
+        if "yanked" in release and release["yanked"]:
+            if "yanked_reason" in release:
+                file_tags += f' data-yanked="{html.escape(release["yanked_reason"])}"'
+
+        return file_tags
 
     def generate_simple_page(self, package: Package) -> str:
         # Generate the header of our simple page.
@@ -702,7 +766,7 @@ class BandersnatchMirror(Mirror):
                     self._file_url_to_local_url(r["url"]),
                     digest_name,
                     r["digests"][digest_name],
-                    self.gen_data_requires_python(r),
+                    self.gen_html_file_tags(r),
                     r["filename"],
                 )
                 for r in release_files
@@ -790,8 +854,12 @@ class BandersnatchMirror(Mirror):
         upload_time: datetime.datetime,
         sha256sum: str,
         chunk_size: int = 64 * 1024,
+        urlpath: str = "",
     ) -> Optional[Path]:
-        path = self._file_url_to_local_path(url)
+        if urlparse != "":
+            path = self._file_url_to_local_path(urlpath)
+        else:
+            path = self._file_url_to_local_path(url)
         loop = asyncio.get_running_loop()
 
         # Avoid downloading again if we have the file and it matches the hash.
@@ -959,6 +1027,8 @@ async def mirror(
             diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=config_values.cleanup,
             release_files_save=config_values.release_files_save,
+            download_mirror=config_values.download_mirror,
+            download_mirror_no_fallback=config_values.download_mirror_no_fallback,
         )
         changed_packages = await mirror.synchronize(specific_packages)
 
