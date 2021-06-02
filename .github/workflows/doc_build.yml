@@ -3,23 +3,16 @@ name: doc_build
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: bandersnatch CI python ${{ matrix.python-version }} on ${{matrix.os}}
+  lint:
+    name: html + linkcheck build
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
 
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        python-version: [3.8]
-        os: [ubuntu-latest]
-
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2.3.4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up latest Python
       uses: actions/setup-python@v2.2.2
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Install latest pip, setuptools + tox
       run: |

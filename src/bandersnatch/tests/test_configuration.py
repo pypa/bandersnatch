@@ -128,7 +128,17 @@ class TestBandersnatchConf(TestCase):
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(
-            False, "", "", False, "sha256", "filesystem", False, True, "hash"
+            False,
+            "",
+            "",
+            False,
+            "sha256",
+            "filesystem",
+            False,
+            True,
+            "hash",
+            "",
+            False,
         )
         no_options_configparser = configparser.ConfigParser()
         no_options_configparser["mirror"] = {}
@@ -147,9 +157,35 @@ class TestBandersnatchConf(TestCase):
             False,
             False,
             "hash",
+            "",
+            False,
         )
         release_files_false_configparser = configparser.ConfigParser()
         release_files_false_configparser["mirror"] = {"release-files": "false"}
+        self.assertEqual(
+            default_values, validate_config_values(release_files_false_configparser)
+        )
+
+    def test_validate_config_values_download_mirror_false_sets_no_fallback(
+        self,
+    ) -> None:
+        default_values = SetConfigValues(
+            False,
+            "",
+            "",
+            False,
+            "sha256",
+            "filesystem",
+            False,
+            True,
+            "hash",
+            "",
+            False,
+        )
+        release_files_false_configparser = configparser.ConfigParser()
+        release_files_false_configparser["mirror"] = {
+            "download-mirror-no-fallback": "true",
+        }
         self.assertEqual(
             default_values, validate_config_values(release_files_false_configparser)
         )

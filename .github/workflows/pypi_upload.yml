@@ -15,11 +15,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2.2.2
 
-    - name: Install latest pip, setuptools + tox
+    - name: Install latest pip, setuptools, twine, wheel
       run: |
         python -m pip install --upgrade pip setuptools twine wheel
 
-    - name: Build wheels
+    - name: Build sdist & wheel
       run: |
         python setup.py bdist_wheel
         python setup.py sdist
