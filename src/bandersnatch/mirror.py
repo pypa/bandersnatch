@@ -651,7 +651,8 @@ class BandersnatchMirror(Mirror):
         self, release_file: Dict[str, str]
     ) -> Tuple[str, List[str]]:
         """
-        Populate download URLs for a certain file:
+        Populate download URLs for a certain file, possible combinations are:
+
         - download_mirror is not set:
           return "url" attribute from release_file
         - download_mirror is set, no_fallback is false:
@@ -661,6 +662,7 @@ class BandersnatchMirror(Mirror):
 
         Theoritically we are able to support multiple download mirrors by prepending
         more urls in the list.
+
         """
         release_url = release_file["url"]
         release_path = urlparse(release_url).path
