@@ -999,14 +999,30 @@ async def test_package_sync_does_not_touch_existing_local_file(
     assert old_stat.st_ctime == Path(pkg_file_path_str).stat().st_ctime
 
 
-def test_gen_data_requires_python(mirror: BandersnatchMirror) -> None:
+def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
     fake_no_release: Dict[str, str] = {}
-    fake_release = {"requires_python": ">=3.6"}
 
-    assert mirror.gen_data_requires_python(fake_no_release) == ""
+    # only requires_python
+    fake_release_1 = {"requires_python": ">=3.6"}
+
+    # only data_yanked
+    fake_release_2 = {"yanked": True, "yanked_reason": "Broken release"}
+
+    # requires_python and data_yanked
+    fake_release_3 = {
+        "requires_python": ">=3.6",
+        "yanked": True,
+        "yanked_reason": "Broken release",
+    }
+
+    assert mirror.gen_html_file_tags(fake_no_release) == ""
     assert (
-        mirror.gen_data_requires_python(fake_release)
-        == ' data-requires-python="&gt;=3.6"'
+        mirror.gen_html_file_tags(fake_release_1) == ' data-requires-python="&gt;=3.6"'
+    )
+    assert mirror.gen_html_file_tags(fake_release_2) == ' data-yanked="Broken release"'
+    assert (
+        mirror.gen_html_file_tags(fake_release_3)
+        == ' data-requires-python="&gt;=3.6" data-yanked="Broken release"'
     )
 
 
