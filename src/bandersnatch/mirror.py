@@ -735,8 +735,10 @@ class BandersnatchMirror(Mirror):
 
         # data-yanked: yanked_reason
         if "yanked" in release and release["yanked"]:
-            if "yanked_reason" in release:
+            if "yanked_reason" in release and release["yanked_reason"]:
                 file_tags += f' data-yanked="{html.escape(release["yanked_reason"])}"'
+            else:
+                file_tags += ' data-yanked=""'
 
         return file_tags
 
