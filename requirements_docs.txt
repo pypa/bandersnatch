@@ -6,9 +6,9 @@ packaging==20.9
 requests==2.25.1
 six==1.16.0
 sphinx==4.0.2
-MyST-Parser==0.14.0
+MyST-Parser==0.15.0
 xmlrpc2==0.3.1
-sphinx-argparse-cli==1.6.0
+sphinx-argparse-cli==1.7.0
 
 git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
 git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
