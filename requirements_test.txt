@@ -13,4 +13,4 @@ setuptools==57.0.0
 tox==3.23.1
 types-filelock
 types-freezegun
-types-pkg_resources
+types-pkg_resources==0.1.2
