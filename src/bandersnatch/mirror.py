@@ -472,13 +472,9 @@ class BandersnatchMirror(Mirror):
         simple_path = self.storage_backend.PATH_BACKEND(str(simple_dir))
         return sorted(
             {
-                # Filter out all of the "non" normalized names here
-                canonicalize_name(x.name)
-                for x in simple_path.iterdir()
-                # Package indexes must be in directories, so ignore anything else.
-                # This allows us to rely on the storage plugin to check if this is
-                # a directory
-                if x.is_dir()
+                canonicalize_name(str(x.parent.relative_to(simple_path)))
+                for x in simple_path.glob("**/index.html")
+                if str(x.parent.relative_to(simple_path)) != '.'
             }
         )
 

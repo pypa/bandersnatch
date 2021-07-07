@@ -5,7 +5,7 @@ import hashlib
 import logging
 import os
 import pathlib
-from pathlib import PurePath
+from fnmatch import fnmatch
 import tempfile
 from typing import (
     IO,
@@ -33,6 +33,32 @@ class S3Path(_S3Path):
 
     def mkdir(self, mode=0o777, parents=False, exist_ok=False) -> None:
         self.joinpath(self.keep_file).touch()
+
+    def glob(self, pattern):
+        bucket_name = self.bucket
+        resource, _ = self._accessor.configuration_map.get_configuration(self)
+        if not bucket_name:
+            for bucket in resource.buckets.filter(Prefix=str(self)):
+                yield S3Path(bucket)
+            return
+        bucket = resource.Bucket(bucket_name)
+
+        kwargs = {
+            'Bucket': bucket_name,
+            'Prefix': self._accessor.generate_prefix(self),
+            'Delimiter': ''}
+        continuation_token = None
+        while True:
+            if continuation_token:
+                kwargs['ContinuationToken'] = continuation_token
+            response = bucket.meta.client.list_objects_v2(**kwargs)
+            for file in response['Contents']:
+                file_path = S3Path(f"/{bucket_name}/{file['Key']}")
+                if fnmatch(str(file_path.relative_to(self)), pattern):
+                    yield file_path
+            if not response.get('IsTruncated'):
+                break
+            continuation_token = response.get('NextContinuationToken')
 
 
 def get_bucket_name(path: S3Path) -> str:
