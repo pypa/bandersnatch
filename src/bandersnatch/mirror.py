@@ -1011,12 +1011,13 @@ async def mirror(
     mirror_url = config.get("mirror", "master")
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
+    proxy = config.get("mirror", "proxy", fallback=None)
     storage_backend = config_values.storage_backend_name
     homedir = Path(config.get("mirror", "directory"))
 
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
-    async with Master(mirror_url, timeout, global_timeout) as master:
+    async with Master(mirror_url, timeout, global_timeout, proxy) as master:
         mirror = BandersnatchMirror(
             homedir,
             master,

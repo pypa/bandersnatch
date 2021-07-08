@@ -16,6 +16,10 @@ import bandersnatch
 from .errors import PackageNotFound
 from .utils import USER_AGENT
 
+import sys
+if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 logger = logging.getLogger(__name__)
 FIVE_HOURS_FLOAT = 5 * 60 * 60.0
 PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
@@ -35,7 +39,9 @@ class Master:
         url: str,
         timeout: float = 10.0,
         global_timeout: Optional[float] = FIVE_HOURS_FLOAT,
+        proxy: Optional[str] = None
     ) -> None:
+        self.proxy = proxy
         self.loop = asyncio.get_event_loop()
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
@@ -140,7 +146,9 @@ class Master:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
-
+        if not kw.get('proxy') and self.proxy:
+            kw['proxy'] = self.proxy
+            logger.debug(f"Using proxy set in configuration: {self.proxy}")
         async with self.session.get(path, **kw) as r:
             got_serial = (
                 int(r.headers[PYPI_SERIAL_HEADER])
