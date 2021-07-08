@@ -12,6 +12,12 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
 
     runs-on: ${{ matrix.os }}
+
+    services:
+      minio:
+        image: lazybit/minio:latest
+        ports:
+          - 9000:9000
     strategy:
       matrix:
         python-version: [3.8, 3.9]

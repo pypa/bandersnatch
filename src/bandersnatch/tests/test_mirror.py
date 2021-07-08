@@ -601,6 +601,7 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         # Create fake file system objects
         for directory in directories:
             (mirror_base / directory).mkdir(parents=True, exist_ok=True)
+            (mirror_base / directory / "index.html").touch()
         with (mirror_base / "web/simple/index.html").open("w") as index:
             index.write("<html></html>")
 
