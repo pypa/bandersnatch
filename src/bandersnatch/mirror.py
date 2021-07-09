@@ -444,7 +444,9 @@ class BandersnatchMirror(Mirror):
                     f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
                 )
                 try:
-                    rmtree(deprecated_dir)
+                    for file in deprecated_dir.glob("*"):
+                        file.unlink(missing_ok=True)
+                    deprecated_dir.rmdir()
                 except Exception:
                     logger.exception(
                         f"Unable to cleanup non PEP 503 dir {deprecated_dir}"

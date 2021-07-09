@@ -61,10 +61,6 @@ class S3Path(_S3Path):
             continuation_token = response.get('NextContinuationToken')
 
 
-def get_bucket_name(path: S3Path) -> str:
-    return str(path.bucket).lstrip("/")
-
-
 class S3FileLock(filelock.BaseFileLock):
     """
     Simply watches the existence of the lock file.
@@ -78,7 +74,7 @@ class S3FileLock(filelock.BaseFileLock):
     ) -> None:
         # The path to the lock file.
         self.backend: Optional["S3Storage"] = backend
-        self._lock_file_fd: Optional["S3Path"]
+        self._lock_file_fd: Optional["S3Storage"]
         super().__init__(lock_file, timeout=timeout)
 
     @property
@@ -331,7 +327,7 @@ class S3Storage(StoragePlugin):
             force: bool = False,
             ignore_errors: bool = False,
             dry_run: bool = False,
-    ) -> int:
+    ) -> None:
         """
         Remove the directory. If recurse is True, allow removing empty children.
 
@@ -379,19 +375,19 @@ class S3Storage(StoragePlugin):
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        s3object = self.resource.Object(get_bucket_name(path), str(path.key))
+        s3object = self.resource.Object(path.bucket, str(path.key))
         ts = s3object.metadata.get(self.UPLOAD_TIME_METADATA_KEY, "0")
         return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        s3object = self.resource.Object(get_bucket_name(path), str(path.key))
+        s3object = self.resource.Object(path.bucket, str(path.key))
         s3object.metadata.update({
             self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
         # s3 does not support editing metadata after upload, it can be done better.
         # by setting metadata before uploading.
         s3object.copy_from(
-            CopySource={"Bucket": get_bucket_name(path), "Key": str(path.key)},
+            CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata, MetadataDirective="REPLACE"
         )
