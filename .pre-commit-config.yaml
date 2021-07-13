@@ -15,13 +15,13 @@ repos:
         args: [--target-version, py38]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.20.0
+    rev: v2.21.0
     hooks:
       - id: pyupgrade
         args: [--py38-plus]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.9.1
+    rev: 5.9.2
     hooks:
       - id: isort
 
