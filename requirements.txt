@@ -6,16 +6,7 @@ attrs==21.2.0
 chardet==4.0.0
 filelock==3.0.12
 humanfriendly==9.2
-idna==2.10  # pyup: ignore
-            # idna 3 and above causes some extreme backtracking because
-            # requests doesn't support the 3.x series. Requests is
-            # heavily used by dependencies needed for bandersnatch
-            # swift support so when requests must downgrade to a
-            # version that vendors idna, dependency tree turns into a
-            # variant that pip's new dependency resolver doesn't like
-            # resolving. Although not installing the swift dependencies
-            # or using the unpinned dependencies info in setup.cfg
-            # works properly.
+idna==3.2
 lxml==4.6.3
 multidict==5.1.0
 packaging==21.0
