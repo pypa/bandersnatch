@@ -1,7 +1,7 @@
 # sphinx 3.5.4 wants 0.16 here ... Try update once we get a newer sphinx
 docutils==0.16  # pyup: ignore
 pyparsing==2.4.7
-python-dateutil==2.8.1
+python-dateutil==2.8.2
 packaging==21.0
 requests==2.25.1
 six==1.16.0
