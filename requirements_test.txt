@@ -1,5 +1,5 @@
 async-timeout==3.0.1
-black==21.6b0
+black==21.7b0
 coverage==5.5
 flake8==3.9.2
 flake8-bugbear==21.4.3
@@ -9,8 +9,8 @@ pre-commit==2.13.0
 pytest==6.2.4
 pytest-asyncio==0.15.1
 pytest-timeout==1.4.2
-setuptools==57.1.0
-tox==3.23.1
+setuptools==57.3.0
+tox==3.24.0
 types-filelock==0.1.4
 types-freezegun==0.1.4
 types-pkg_resources==0.1.3
