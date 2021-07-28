@@ -726,6 +726,12 @@ web{0}simple{0}index.html""".format(
 
     def test_find(self) -> None:
         base_path = self.mirror_base_path
+
+        # Clean up GitHub Actions environment on macOS tests
+        if sys.platform == "darwin":
+            env_garbage_path = os.path.join(self.mirror_base_path, "var")
+            shutil.rmtree(env_garbage_path, ignore_errors=True)
+
         self.assertEqual(self.base_find_contents, self.plugin.find(base_path))
 
     def test_open_file(self) -> None:
