@@ -726,8 +726,6 @@ web{0}simple{0}index.html""".format(
 
     def test_find(self) -> None:
         base_path = self.mirror_base_path
-        if self.backend == "swift":
-            base_path = base_path.lstrip("/")
         self.assertEqual(self.base_find_contents, self.plugin.find(base_path))
 
     def test_open_file(self) -> None:
