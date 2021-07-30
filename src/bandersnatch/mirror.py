@@ -514,7 +514,9 @@ class BandersnatchMirror(Mirror):
             )
             return
 
-        with self.storage_backend.rewrite(str(last_modified)) as f:
+        with self.storage_backend.update_safe(
+            last_modified, mode="w", encoding="utf-8"
+        ) as f:
             f.write(self.now.strftime("%Y%m%dT%H:%M:%S\n"))
         self._save()
 
@@ -592,7 +594,10 @@ class BandersnatchMirror(Mirror):
             generation = 5
         if generation != CURRENT_GENERATION:
             raise RuntimeError(f"Unknown generation {generation} found")
-        self.generationfile.write_text(str(CURRENT_GENERATION), encoding="ascii")
+        with self.storage_backend.update_safe(
+            self.generationfile, mode="w", encoding="ascii"
+        ) as f:
+            f.write(str(CURRENT_GENERATION))
         # Now, actually proceed towards using the status files.
         if not self.statusfile.exists():
             logger.info(f"Status file {self.statusfile} missing. Starting over.")
@@ -602,7 +607,10 @@ class BandersnatchMirror(Mirror):
         )
 
     def _save(self) -> None:
-        self.statusfile.write_text(str(self.synced_serial), encoding="ascii")
+        with self.storage_backend.update_safe(
+            self.statusfile, mode="w+", encoding="ascii"
+        ) as f:
+            f.write(str(self.synced_serial))
 
     """
     BandersnatchMirror now includes all the original aspects of Mirror
