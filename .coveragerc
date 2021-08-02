@@ -1,9 +1,15 @@
 [run]
 branch = True
+relative_files = True
 source =
     bandersnatch
     bandersnatch_storage_plugins
-relative_files = True
+
+[paths]
+source =
+    src/
+    .tox/*/lib/*/site-packages/
+    .tox/*/Lib/site-packages/
 
 [report]
 precision = 2
