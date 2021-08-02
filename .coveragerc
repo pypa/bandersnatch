@@ -3,6 +3,7 @@ branch = True
 source =
     bandersnatch
     bandersnatch_storage_plugins
+relative_files = True
 
 [report]
 precision = 2
