@@ -296,13 +296,24 @@ class S3Storage(StoragePlugin):
         return contents
 
     def delete_file(self, path: PATH_TYPES, dry_run: bool = False) -> int:
-        """Delete the provided path, recursively if necessary."""
+        """Delete a file"""
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         log_prefix = "[DRY RUN] " if dry_run else ""
         logger.info(f"{log_prefix}Removing file: {path!s}")
         if not dry_run:
             path.unlink()
+        return 0
+
+    def delete(self, path: PATH_TYPES, dry_run: bool = False) -> int:
+        """Delete the provided path, recursively if necessary."""
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.PATH_BACKEND(path)
+        log_prefix = "[DRY RUN] " if dry_run else ""
+        logger.info(f"{log_prefix}Removing file: {path!s}")
+        if not dry_run:
+            for p in path.glob("*"):
+                p.unlink(missing_ok=True)
         return 0
 
     def mkdir(

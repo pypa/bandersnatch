@@ -39,3 +39,46 @@ def test_lock(s3_mock):
         assert s3lock.is_locked is True
     assert s3lock.is_locked is False
 
+
+def test_compare_files(s3_mock):
+    backend = s3.S3Storage()
+    backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+    backend.write_file(f"/{s3_mock.bucket}/file2", "test")
+    assert backend.compare_files(f"/{s3_mock.bucket}/file1", f"/{s3_mock.bucket}/file2") is True
+
+
+def test_read_write_file(s3_mock):
+    backend = s3.S3Storage()
+    backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+
+    assert backend.read_file(f"/{s3_mock.bucket}/file1", text=True) == "test"
+
+
+def test_delete_file(s3_mock):
+    backend = s3.S3Storage()
+    sample_file = backend.PATH_BACKEND(f"/{s3_mock.bucket}/file1")
+    sample_file.touch()
+    assert sample_file.exists() is True
+
+    backend.delete_file(f"/{s3_mock.bucket}/file1")
+    assert sample_file.exists() is False
+
+
+def test_delete_path(s3_mock):
+    backend = s3.S3Storage()
+    backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").touch()
+    backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file2").touch()
+    backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").touch()
+    backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").touch()
+
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").exists() is True
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").exists() is True
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").exists() is True
+
+    backend.delete(f"/{s3_mock.bucket}/folder2")
+
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").exists() is True
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file2").exists() is False
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").exists() is False
+    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").exists() is False
+
