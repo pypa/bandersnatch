@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import configparser
 import contextlib
 import datetime
@@ -7,7 +9,7 @@ import os
 import pathlib
 import tempfile
 from fnmatch import fnmatch
-from typing import IO, Any, Dict, Generator, List, Optional, TextIO, Type, Union
+from typing import IO, Any, Dict, Iterator, List, Optional, TextIO, Type, Union
 
 import boto3
 import filelock
@@ -24,10 +26,10 @@ logger = logging.getLogger("bandersnatch")
 class S3Path(_S3Path):
     keep_file = ".s3keep"
 
-    def mkdir(self, mode=0o777, parents=False, exist_ok=False) -> None:
+    def mkdir(self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False) -> None:
         self.joinpath(self.keep_file).touch()
 
-    def glob(self, pattern):
+    def glob(self, pattern: str) -> Iterator[S3Path]:
         bucket_name = self.bucket
         resource, _ = self._accessor.configuration_map.get_configuration(self)
         if not bucket_name:
@@ -44,7 +46,7 @@ class S3Path(_S3Path):
         continuation_token = None
         while True:
             if continuation_token:
-                kwargs["ContinuationToken"] = continuation_token
+                kwargs["ContinuationToken"] = continuation_token # type: ignore
             response = bucket.meta.client.list_objects_v2(**kwargs)
             for file in response["Contents"]:
                 file_path = S3Path(f"/{bucket_name}/{file['Key']}")
@@ -61,10 +63,10 @@ class S3FileLock(filelock.BaseFileLock):
     """
 
     def __init__(
-        self,
-        lock_file: str,
-        timeout: int = -1,
-        backend: Optional["S3Storage"] = None,
+            self,
+            lock_file: str,
+            timeout: int = -1,
+            backend: Optional["S3Storage"] = None,
     ) -> None:
         # The path to the lock file.
         self.backend: Optional["S3Storage"] = backend
@@ -116,7 +118,7 @@ class S3Storage(StoragePlugin):
     UPLOAD_TIME_METADATA_KEY = "uploaded-at"
 
     def get_config_value(
-        self, config_key: str, *env_keys: Any, default: Optional[str] = None
+            self, config_key: str, *env_keys: Any, default: Optional[str] = None
     ) -> Optional[str]:
         value = None
         try:
@@ -208,9 +210,9 @@ class S3Storage(StoragePlugin):
         want to have it updated.
         """
         with tempfile.NamedTemporaryFile(
-            delete=False,
-            prefix=f"{os.path.basename(filename)}.",
-            **kw,
+                delete=False,
+                prefix=f"{os.path.basename(filename)}.",
+                **kw,
         ) as tf:
             tf.has_changed = False  # type: ignore
             yield tf
@@ -249,10 +251,10 @@ class S3Storage(StoragePlugin):
         return
 
     def write_file(
-        self,
-        path: PATH_TYPES,
-        contents: Union[str, bytes],
-        encoding: Optional[str] = None,
+            self,
+            path: PATH_TYPES,
+            contents: Union[str, bytes],
+            encoding: Optional[str] = None,
     ) -> None:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
@@ -265,7 +267,7 @@ class S3Storage(StoragePlugin):
         return
 
     def open_file(
-        self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
+            self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
     ) -> TextIO:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
@@ -276,11 +278,11 @@ class S3Storage(StoragePlugin):
         return path.open(mode=mode, **kwargs)
 
     def read_file(
-        self,
-        path: PATH_TYPES,
-        text: bool = True,
-        encoding: str = "utf-8",
-        errors: Optional[str] = None,
+            self,
+            path: PATH_TYPES,
+            text: bool = True,
+            encoding: str = "utf-8",
+            errors: Optional[str] = None,
     ) -> Union[str, bytes]:
         """Return the contents of the requested file, either a a bytestring or a unicode
         string depending on whether **text** is True"""
@@ -311,7 +313,7 @@ class S3Storage(StoragePlugin):
         return 0
 
     def mkdir(
-        self, path: PATH_TYPES, exist_ok: bool = False, parents: bool = False
+            self, path: PATH_TYPES, exist_ok: bool = False, parents: bool = False
     ) -> None:
         """
         Create the provided directory
@@ -319,19 +321,20 @@ class S3Storage(StoragePlugin):
         This operation is a no-op on swift.
         """
         logger.warning(
-            f"Creating directory in object storage: {path} with {self.PATH_BACKEND.keep_file} file"
+            f"Creating directory in object storage: "
+            f"{path} with {self.PATH_BACKEND.keep_file} file"
         )
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         path.joinpath(self.PATH_BACKEND.keep_file).touch()
 
     def rmdir(
-        self,
-        path: PATH_TYPES,
-        recurse: bool = False,
-        force: bool = False,
-        ignore_errors: bool = False,
-        dry_run: bool = False,
+            self,
+            path: PATH_TYPES,
+            recurse: bool = False,
+            force: bool = False,
+            ignore_errors: bool = False,
+            dry_run: bool = False,
     ) -> None:
         """
         Remove the directory. If recurse is True, allow removing empty children.
@@ -371,9 +374,9 @@ class S3Storage(StoragePlugin):
         return str(h.hexdigest())
 
     def symlink(
-        self,
-        src: PATH_TYPES,
-        dest: PATH_TYPES,
+            self,
+            src: PATH_TYPES,
+            dest: PATH_TYPES,
     ) -> None:
         self.copy_file(src, dest)
 

@@ -9,7 +9,6 @@ import sys
 import time
 from json import dump
 from pathlib import Path, WindowsPath
-from shutil import rmtree
 from threading import RLock
 from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
