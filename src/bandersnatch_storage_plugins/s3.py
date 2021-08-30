@@ -344,7 +344,12 @@ class S3Storage(StoragePlugin):
 
         If force is true, remove contents destructively.
         """
-        path.rmdir()
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.PATH_BACKEND(path)
+        log_prefix = "[DRY RUN] " if dry_run else ""
+        logger.info(f"{log_prefix}Removing file: {path!s}")
+        if not dry_run:
+            path.rmdir()
         return
 
     def exists(self, path: PATH_TYPES) -> bool:

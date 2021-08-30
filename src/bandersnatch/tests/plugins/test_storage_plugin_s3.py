@@ -82,3 +82,24 @@ def test_delete_path(s3_mock):
     assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").exists() is False
     assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").exists() is False
 
+
+def test_mkdir_rmdir(s3_mock):
+    backend = s3.S3Storage()
+    backend.mkdir(f"/{s3_mock.bucket}/test_folder")
+
+    test_folder = backend.PATH_BACKEND(f"/{s3_mock.bucket}/test_folder")
+
+    assert test_folder.is_dir()
+
+    backend.rmdir(f"/{s3_mock.bucket}/test_folder")
+
+    test_folder = backend.PATH_BACKEND(f"/{s3_mock.bucket}/test_folder")
+
+    assert test_folder.is_dir() is False
+
+
+def test_plugin_init(s3_mock):
+    backend = s3.S3Storage()
+    backend.initialize_plugin()
+
+    assert backend.resource is not None
