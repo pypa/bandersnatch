@@ -184,7 +184,7 @@ def reset_configuration_cache() -> None:
 
 
 @pytest.fixture()
-def s3_mock(reset_configuration_cache) -> str:
+def s3_mock(reset_configuration_cache) -> S3Path:
     register_configuration_parameter(
         PureS3Path("/"),
         resource=boto3.resource(

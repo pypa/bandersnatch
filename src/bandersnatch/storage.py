@@ -261,7 +261,7 @@ class Storage:
         force: bool = False,
         ignore_errors: bool = False,
         dry_run: bool = False,
-    ) -> None:
+    ) -> int:
         """Remove the directory. If recurse is True, allow removing empty children.
         If force is true, remove contents destructively."""
         raise NotImplementedError
