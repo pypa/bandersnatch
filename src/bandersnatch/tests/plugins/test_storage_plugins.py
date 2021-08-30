@@ -68,7 +68,7 @@ def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[st
 
 
 def strip_dir_prefix(
-        base_dir: Path, subdir: Path, container: Optional[str] = None
+    base_dir: Path, subdir: Path, container: Optional[str] = None
 ) -> Path:
     if container is not None:
         base_dir = base_dir.joinpath(container)
@@ -80,7 +80,7 @@ def strip_dir_prefix(
 
 
 def iter_dir(
-        path: Path, base: Optional[Path] = None, recurse: bool = False, container: str = ""
+    path: Path, base: Optional[Path] = None, recurse: bool = False, container: str = ""
 ) -> Iterator[Dict[str, Any]]:
     if base is None:
         base = path
@@ -102,8 +102,8 @@ def iter_dir(
 def get_swift_object_date(date: datetime.datetime) -> str:
     return (
         date.astimezone(datetime.timezone.utc)
-            .strftime("%a, %d %b %Y %H:%M:%S %Z")
-            .replace("UTC", "GMT")
+        .strftime("%a, %d %b %Y %H:%M:%S %Z")
+        .replace("UTC", "GMT")
     )
 
 
@@ -143,7 +143,7 @@ class MockConnection:
         if isinstance(obj, str):
             obj = Path(obj)
         if not any(
-                str(obj).startswith(prefix) for prefix in (base_prefix, base_prefix[1:])
+            str(obj).startswith(prefix) for prefix in (base_prefix, base_prefix[1:])
         ):
             obj = Path(f"{base_prefix}/{obj!s}")
         if not obj.anchor:
@@ -170,11 +170,11 @@ class MockConnection:
         return {}, path.read_bytes()
 
     def head_object(
-            self,
-            container: str,
-            obj: str,
-            headers: Optional[Dict[str, str]] = None,
-            query_string: Optional[str] = None,
+        self,
+        container: str,
+        obj: str,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
     ) -> Dict[str, str]:
         path = self.clean_path(container, obj)
         if not path.exists():
@@ -209,27 +209,27 @@ class MockConnection:
         }
 
     def post_object(
-            self,
-            container: str,
-            obj: str,
-            headers: Dict[str, str],
-            response_dict: Optional[Dict[str, Any]] = None,
+        self,
+        container: str,
+        obj: str,
+        headers: Dict[str, str],
+        response_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
         path = self.clean_path(container, obj)
         path.touch()
 
     def _get_container(
-            self,
-            container: str,
-            marker: Optional[str] = None,
-            limit: Optional[int] = None,
-            prefix: Optional[str] = None,
-            delimiter: Optional[str] = None,
-            end_marker: Optional[str] = None,
-            path: Optional[Path] = None,
-            full_listing: bool = False,
-            headers: Optional[Dict[str, str]] = None,
-            query_string: Optional[str] = None,
+        self,
+        container: str,
+        marker: Optional[str] = None,
+        limit: Optional[int] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        end_marker: Optional[str] = None,
+        path: Optional[Path] = None,
+        full_listing: bool = False,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         base = self.base
         if container:
@@ -245,17 +245,17 @@ class MockConnection:
         return list(files)
 
     def get_container(
-            self,
-            container: str,
-            marker: Optional[str] = None,
-            limit: Optional[int] = None,
-            prefix: Optional[str] = None,
-            delimiter: Optional[str] = None,
-            end_marker: Optional[str] = None,
-            path: Optional[Path] = None,
-            full_listing: bool = False,
-            headers: Optional[Dict[str, str]] = None,
-            query_string: Optional[str] = None,
+        self,
+        container: str,
+        marker: Optional[str] = None,
+        limit: Optional[int] = None,
+        prefix: Optional[str] = None,
+        delimiter: Optional[str] = None,
+        end_marker: Optional[str] = None,
+        path: Optional[Path] = None,
+        full_listing: bool = False,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         with open(SWIFT_CONTAINER_FILE) as fh:
             contents = json.load(fh)
@@ -283,13 +283,13 @@ class MockConnection:
         return results
 
     def copy_object(
-            self,
-            container: str,
-            obj: str,
-            destination: str,
-            headers: Optional[Dict[str, str]] = None,
-            fresh_metadata: Any = None,
-            response_dict: Optional[Dict[str, Any]] = None,
+        self,
+        container: str,
+        obj: str,
+        destination: str,
+        headers: Optional[Dict[str, str]] = None,
+        fresh_metadata: Any = None,
+        response_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
         # destination path always starts with container/
         dest_container, _, dest_path = destination.partition("/")
@@ -300,17 +300,17 @@ class MockConnection:
         dest.write_bytes(base.read_bytes())
 
     def put_object(
-            self,
-            container: str,
-            obj: str,
-            contents: Union[str, bytes],
-            content_length: Optional[int] = None,
-            etag: Any = None,
-            chunk_size: Optional[int] = None,
-            content_type: Optional[str] = None,
-            headers: Optional[Dict[str, str]] = None,
-            query_string: Optional[str] = None,
-            response_dict: Optional[Dict[str, Any]] = None,
+        self,
+        container: str,
+        obj: str,
+        contents: Union[str, bytes],
+        content_length: Optional[int] = None,
+        etag: Any = None,
+        chunk_size: Optional[int] = None,
+        content_type: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        query_string: Optional[str] = None,
+        response_dict: Optional[Dict[str, Any]] = None,
     ) -> None:
         dest = self.clean_path(container, obj)
         if not dest.parent.exists():
@@ -329,12 +329,12 @@ class MockConnection:
             dest.write_text(contents)
 
     def delete_object(
-            self,
-            container: str,
-            obj: str,
-            query_string: Optional[str] = None,
-            response_dict: Optional[Dict[str, Any]] = None,
-            headers: Optional[Dict[str, str]] = None,
+        self,
+        container: str,
+        obj: str,
+        query_string: Optional[str] = None,
+        response_dict: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
     ) -> None:
         target = self.clean_path(container, obj)
         if not target.exists():
@@ -619,7 +619,7 @@ web{0}simple{0}index.html""".format(
             "bandersnatch": [
                 mirror_dir / "web/json/bandersnatch",
                 mirror_dir / "web/pypi/bandersnatch",
-                ],
+            ],
             "black": [mirror_dir / "web/json/black", mirror_dir / "web/pypi/black"],
         }
         for name, json_paths in packages.items():
@@ -924,7 +924,7 @@ class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
             line
             for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
             if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep)
-               != line.strip()
+            != line.strip()
         ]
     )
 
@@ -976,7 +976,7 @@ class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
         dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
         assert self.tempdir
         with tempfile.NamedTemporaryFile(
-                dir=os.path.join(self.tempdir.name, "bandersnatch"), mode="w"
+            dir=os.path.join(self.tempdir.name, "bandersnatch"), mode="w"
         ) as tf:
             tf.write(file_content)
             tf.flush()

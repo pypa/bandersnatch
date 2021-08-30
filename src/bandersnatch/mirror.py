@@ -476,7 +476,7 @@ class BandersnatchMirror(Mirror):
             {
                 canonicalize_name(str(x.parent.relative_to(simple_path)))
                 for x in simple_path.glob("**/index.html")
-                if str(x.parent.relative_to(simple_path)) != '.'
+                if str(x.parent.relative_to(simple_path)) != "."
             }
         )
 

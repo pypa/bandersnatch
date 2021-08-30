@@ -17,7 +17,12 @@ from .errors import PackageNotFound
 from .utils import USER_AGENT
 
 import sys
-if sys.version_info[0] == 3 and sys.version_info[1] >= 8 and sys.platform.startswith('win'):
+
+if (
+    sys.version_info[0] == 3
+    and sys.version_info[1] >= 8
+    and sys.platform.startswith("win")
+):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 logger = logging.getLogger(__name__)
@@ -39,7 +44,7 @@ class Master:
         url: str,
         timeout: float = 10.0,
         global_timeout: Optional[float] = FIVE_HOURS_FLOAT,
-        proxy: Optional[str] = None
+        proxy: Optional[str] = None,
     ) -> None:
         self.proxy = proxy
         self.loop = asyncio.get_event_loop()
@@ -146,8 +151,8 @@ class Master:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
-        if not kw.get('proxy') and self.proxy:
-            kw['proxy'] = self.proxy
+        if not kw.get("proxy") and self.proxy:
+            kw["proxy"] = self.proxy
             logger.debug(f"Using proxy set in configuration: {self.proxy}")
         async with self.session.get(path, **kw) as r:
             got_serial = (
