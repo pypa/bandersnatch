@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import sys
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 from os import environ
@@ -15,8 +16,6 @@ import bandersnatch
 
 from .errors import PackageNotFound
 from .utils import USER_AGENT
-
-import sys
 
 if (
     sys.version_info[0] == 3

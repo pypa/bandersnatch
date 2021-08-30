@@ -1,5 +1,6 @@
-from bandersnatch_storage_plugins import s3
 from s3path import S3Path
+
+from bandersnatch_storage_plugins import s3
 
 
 def test_rewrite(s3_mock: S3Path) -> None:

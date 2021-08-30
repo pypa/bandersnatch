@@ -3,14 +3,12 @@ import unittest.mock as mock
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
+import boto3
 import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
-
-import boto3
-
-from s3path import register_configuration_parameter, PureS3Path, _s3_accessor, S3Path
+from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -184,7 +182,7 @@ def reset_configuration_cache() -> None:
 
 
 @pytest.fixture()
-def s3_mock(reset_configuration_cache) -> S3Path:
+def s3_mock(reset_configuration_cache: None) -> S3Path:
     register_configuration_parameter(
         PureS3Path("/"),
         resource=boto3.resource(
