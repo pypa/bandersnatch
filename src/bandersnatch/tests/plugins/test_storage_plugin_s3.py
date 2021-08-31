@@ -1,6 +1,8 @@
 from s3path import S3Path
 
 from bandersnatch_storage_plugins import s3
+from bandersnatch.configuration import BandersnatchConfig
+from mock_config import mock_config
 
 
 def test_rewrite(s3_mock: S3Path) -> None:
@@ -118,7 +120,22 @@ def test_mkdir_rmdir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    config = mock_config("""
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = swift
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+""")
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     assert backend.resource is not None
