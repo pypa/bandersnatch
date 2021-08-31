@@ -625,8 +625,10 @@ class BandersnatchMirror(Mirror):
 
     def simple_directory(self, package: Package) -> Path:
         if self.hash_index:
-            return self.webdir / "simple" / package.name[0] / package.name
-        return self.webdir / "simple" / package.name
+            return (
+                self.webdir / "simple" / package.name[0] / package.name
+            )  # type: ignore
+        return self.webdir / "simple" / package.name  # type: ignore
 
     def save_json_metadata(self, package_info: Dict, name: str) -> bool:
         """
