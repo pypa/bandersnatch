@@ -1,7 +1,8 @@
 # flake8: noqa
 import unittest.mock as mock
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Iterator
+import os
 
 import boto3
 import pytest
@@ -173,7 +174,7 @@ def logging_mock(request: FixtureRequest) -> mock.MagicMock:
 
 
 @pytest.fixture()
-def reset_configuration_cache() -> None:
+def reset_configuration_cache() -> Iterator[None]:
     try:
         _s3_accessor.configuration_map.get_configuration.cache_clear()
         yield
@@ -183,6 +184,8 @@ def reset_configuration_cache() -> None:
 
 @pytest.fixture()
 def s3_mock(reset_configuration_cache: None) -> S3Path:
+    if os.name != "posix" and os.environ.get("CI"):
+        pytest.skip("Skip s3 test on non-posix server in github action")
     register_configuration_parameter(
         PureS3Path("/"),
         resource=boto3.resource(
