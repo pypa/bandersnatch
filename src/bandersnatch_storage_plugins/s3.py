@@ -10,7 +10,7 @@ import os
 import pathlib
 import tempfile
 from fnmatch import fnmatch
-from typing import IO, Any, Dict, Iterator, List, Optional, TextIO, Type, Union
+from typing import IO, Any, Iterator, TextIO
 
 import boto3
 import filelock
@@ -69,15 +69,15 @@ class S3FileLock(filelock.BaseFileLock):
         self,
         lock_file: str,
         timeout: int = -1,
-        backend: Optional["S3Storage"] = None,
+        backend: S3Storage | None = None,
     ) -> None:
         # The path to the lock file.
-        self.backend: Optional["S3Storage"] = backend
-        self._lock_file_fd: Optional["S3Storage"]
+        self.backend: S3Storage | None = backend
+        self._lock_file_fd: S3Storage | None
         super().__init__(lock_file, timeout=timeout)
 
     @property
-    def path_backend(self) -> Type["S3Path"]:
+    def path_backend(self) -> type[S3Path]:
         if self.backend is not None:
             return self.backend.PATH_BACKEND
         raise RuntimeError("Failed to retrieve s3 backend")
@@ -85,7 +85,7 @@ class S3FileLock(filelock.BaseFileLock):
     def _acquire(self) -> None:
         try:
             logger.info("Attempting to acquire lock")
-            fd: "S3Path" = self.path_backend(self.lock_file)
+            fd: S3Path = self.path_backend(self.lock_file)
             fd.touch()
         except OSError as exc:
             logger.error("Failed to acquire lock...")
@@ -121,8 +121,8 @@ class S3Storage(StoragePlugin):
     UPLOAD_TIME_METADATA_KEY = "uploaded-at"
 
     def get_config_value(
-        self, config_key: str, *env_keys: Any, default: Optional[str] = None
-    ) -> Optional[str]:
+        self, config_key: str, *env_keys: Any, default: str | None = None
+    ) -> str | None:
         value = None
         try:
             value = self.configuration["s3"][config_key]
@@ -170,16 +170,16 @@ class S3Storage(StoragePlugin):
         """
         pass
 
-    def get_lock(self, path: Optional[str] = None) -> S3FileLock:
+    def get_lock(self, path: str | None = None) -> S3FileLock:
         if path is None:
             path = str(self.mirror_base_path / ".lock")
         return S3FileLock(path, backend=self)
 
-    def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[S3Path]:
+    def walk(self, root: PATH_TYPES, dirs: bool = True) -> list[S3Path]:
         if not isinstance(root, self.PATH_BACKEND):
             root = self.PATH_BACKEND(root)
 
-        results: List[S3Path] = []
+        results: list[S3Path] = []
         for pth in root.iterdir():
             if pth.is_dir():
                 if dirs:
@@ -256,8 +256,8 @@ class S3Storage(StoragePlugin):
     def write_file(
         self,
         path: PATH_TYPES,
-        contents: Union[str, bytes],
-        encoding: Optional[str] = None,
+        contents: str | bytes,
+        encoding: str | None = None,
     ) -> None:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
@@ -275,7 +275,7 @@ class S3Storage(StoragePlugin):
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         mode = "r" if text else "rb"
-        kwargs: Dict[str, str] = {}
+        kwargs: dict[str, str] = {}
         if text:
             kwargs["encoding"] = encoding
         return path.open(mode=mode, **kwargs)
@@ -285,13 +285,13 @@ class S3Storage(StoragePlugin):
         path: PATH_TYPES,
         text: bool = True,
         encoding: str = "utf-8",
-        errors: Optional[str] = None,
-    ) -> Union[str, bytes]:
+        errors: str | None = None,
+    ) -> str | bytes:
         """Return the contents of the requested file, either a a bytestring or a unicode
         string depending on whether **text** is True"""
 
         fh = self.open_file(path, text=text, encoding=encoding)
-        contents: Union[str, bytes] = fh.read()
+        contents: str | bytes = fh.read()
         return contents
 
     def delete_file(self, path: PATH_TYPES, dry_run: bool = False) -> int:
