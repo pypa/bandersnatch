@@ -161,8 +161,8 @@ class S3Storage(StoragePlugin):
             s3_args["aws_secret_access_key"] = aws_secret_access_key
         if signature_version:
             s3_args["config"] = Config(signature_version=signature_version)
-        self.resource = boto3.resource("s3", **s3_args)
-        register_configuration_parameter(mirror_base_path, resource=self.resource)
+        resource = boto3.resource("s3", **s3_args)
+        register_configuration_parameter(mirror_base_path, resource=resource)
 
     def get_flock_path(self) -> PATH_TYPES:
         """Not sure what it does
@@ -245,7 +245,8 @@ class S3Storage(StoragePlugin):
         if not self.exists(source):
             raise FileNotFoundError(source)
         if isinstance(source, self.PATH_BACKEND):
-            client = self.resource.meta.client
+            resource, _ = source._accessor.configuration_map.get_configuration(source)
+            client = resource.meta.client
             client.copy_object(Key=dest.key, CopySource=source.key, Bucket=dest.bucket)
         else:
             with source.open(mode="rb") as fh:
@@ -391,14 +392,18 @@ class S3Storage(StoragePlugin):
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        s3object = self.resource.Object(path.bucket, str(path.key))
-        ts = s3object.metadata.get(self.UPLOAD_TIME_METADATA_KEY, "0")
+        resource, _ = path._accessor.configuration_map.get_configuration(path)
+        s3object = resource.Object(path.bucket, str(path.key))
+        ts = s3object.metadata.get(self.UPLOAD_TIME_METADATA_KEY, 0)
+        if not isinstance(ts, int):
+            ts = int(float(ts))
         return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        s3object = self.resource.Object(path.bucket, str(path.key))
+        resource, _ = path._accessor.configuration_map.get_configuration(path)
+        s3object = resource.Object(path.bucket, str(path.key))
         s3object.metadata.update({self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
         # s3 does not support editing metadata after upload, it can be done better.
         # by setting metadata before uploading.

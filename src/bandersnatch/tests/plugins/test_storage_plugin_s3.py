@@ -1,4 +1,6 @@
 # type: ignore [attr-defined]
+from datetime import datetime
+
 from mock_config import mock_config
 from s3path import S3Path
 
@@ -93,30 +95,27 @@ def test_delete_path(s3_mock: S3Path) -> None:
         is True
     )
 
+    assert backend.is_file(f"/{s3_mock.bucket}/folder1/file1")
+    assert backend.is_file(f"/{s3_mock.bucket}/folder2/file3")
+    assert not backend.is_file(f"/{s3_mock.bucket}/folder2")
+
     backend.delete(f"/{s3_mock.bucket}/folder2")
 
-    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").exists() is True
-    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file2").exists() is False
-    assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").exists() is False
-    assert (
-        backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").exists()
-        is False
-    )
+    assert backend.exists(f"/{s3_mock.bucket}/folder1/file1") is True
+    assert backend.exists(f"/{s3_mock.bucket}/folder2/file2") is False
+    assert backend.exists(f"/{s3_mock.bucket}/folder2/file3") is False
+    assert backend.exists(f"/{s3_mock.bucket}/folder2/subdir1/file4") is False
 
 
 def test_mkdir_rmdir(s3_mock: S3Path) -> None:
     backend = s3.S3Storage()
     backend.mkdir(f"/{s3_mock.bucket}/test_folder")
 
-    test_folder = backend.PATH_BACKEND(f"/{s3_mock.bucket}/test_folder")
-
-    assert test_folder.is_dir()
+    assert backend.is_dir(f"/{s3_mock.bucket}/test_folder")
 
     backend.rmdir(f"/{s3_mock.bucket}/test_folder")
 
-    test_folder = backend.PATH_BACKEND(f"/{s3_mock.bucket}/test_folder")
-
-    assert test_folder.is_dir() is False
+    assert not backend.is_dir(f"/{s3_mock.bucket}/test_folder")
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
@@ -135,9 +134,38 @@ storage-backend = swift
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+signature_version = s3v4
 """
     )
     backend = s3.S3Storage(config=config_loader.config)
     backend.initialize_plugin()
 
-    assert backend.resource is not None
+    path = s3.S3Path("/tmp/pypi")
+    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
+
+
+def test_upload_time(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").touch()
+
+    assert backend.get_upload_time(f"/{s3_mock.bucket}/folder1/file1").second == 0
+    assert backend.get_upload_time(f"/{s3_mock.bucket}/folder1/file1").year == 1970
+
+    dt = datetime(2008, 8, 8, 10, 10, 0)
+    backend.set_upload_time(f"/{s3_mock.bucket}/folder1/file1", dt)
+
+    assert datetime.timestamp(
+        backend.get_upload_time(f"/{s3_mock.bucket}/folder1/file1")
+    ) == datetime.timestamp(dt)
+
+
+def test_file_size(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    backend.write_file(f"/{s3_mock.bucket}/file1", b"1234")
+    assert backend.get_file_size(f"/{s3_mock.bucket}/file1") == 4

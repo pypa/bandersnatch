@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class Mirror:
-
     synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
     target_serial: Optional[int] = None  # What is the serial we are trying to reach?
     packages_to_sync: Dict[str, Union[int, str]] = {}
@@ -170,7 +169,6 @@ class Mirror:
 
 
 class BandersnatchMirror(Mirror):
-
     need_index_sync = True
     errors = False
 
@@ -975,7 +973,6 @@ class BandersnatchMirror(Mirror):
 async def mirror(
     config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
 ) -> int:
-
     config_values = validate_config_values(config)
 
     storage_plugin = next(
