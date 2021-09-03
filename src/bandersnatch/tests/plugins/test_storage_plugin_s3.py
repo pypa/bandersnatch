@@ -1,7 +1,8 @@
+# type: ignore [attr-defined]
+from mock_config import mock_config
 from s3path import S3Path
 
 from bandersnatch_storage_plugins import s3
-from mock_config import mock_config
 
 
 def test_rewrite(s3_mock: S3Path) -> None:

@@ -49,7 +49,7 @@ class S3Path(_S3Path):
         continuation_token = None
         while True:
             if continuation_token:
-                kwargs["ContinuationToken"] = continuation_token # type: ignore
+                kwargs["ContinuationToken"] = continuation_token
             response = bucket.meta.client.list_objects_v2(**kwargs)
             for file in response["Contents"]:
                 file_path = S3Path(f"/{bucket_name}/{file['Key']}")
@@ -217,7 +217,7 @@ class S3Storage(StoragePlugin):
             prefix=f"{os.path.basename(filename)}.",
             **kw,
         ) as tf:
-            tf.has_changed = False  # type: ignore
+            tf.has_changed = False
             yield tf
             if not os.path.exists(tf.name):
                 return

@@ -1,8 +1,8 @@
 # flake8: noqa
+import os
 import unittest.mock as mock
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator
-import os
 
 import boto3
 import pytest
