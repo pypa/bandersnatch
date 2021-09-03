@@ -35,10 +35,6 @@ class S3Path(_S3Path):
     def glob(self, pattern: str) -> Iterator[S3Path]:
         bucket_name = self.bucket
         resource, _ = self._accessor.configuration_map.get_configuration(self)
-        if not bucket_name:
-            for bucket in resource.buckets.filter(Prefix=str(self)):
-                yield S3Path(bucket)
-            return
         bucket = resource.Bucket(bucket_name)
 
         kwargs = {
@@ -242,16 +238,19 @@ class S3Storage(StoragePlugin):
         return file1_hash == file2_hash
 
     def copy_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
+        if not isinstance(source, self.PATH_BACKEND):
+            source = self.PATH_BACKEND(source)
+        if not isinstance(dest, self.PATH_BACKEND):
+            dest = self.PATH_BACKEND(dest)
         if not self.exists(source):
             raise FileNotFoundError(source)
-        if isinstance(source, self.PATH_BACKEND):
-            resource, _ = source._accessor.configuration_map.get_configuration(source)
-            client = resource.meta.client
-            client.copy_object(Key=dest.key, CopySource=source.key, Bucket=dest.bucket)
-        else:
-            with source.open(mode="rb") as fh:
-                with dest.open(mode="wb") as fh2:
-                    fh2.write(fh.read())
+        resource, _ = source._accessor.configuration_map.get_configuration(source)
+        client = resource.meta.client
+        client.copy_object(
+            Key=dest.key,
+            CopySource={"Bucket": source.bucket, "Key": source.key},
+            Bucket=dest.bucket,
+        )
         return
 
     def write_file(

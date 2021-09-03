@@ -88,6 +88,13 @@ def test_delete_path(s3_mock: S3Path) -> None:
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").touch()
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/subdir1/file4").touch()
 
+    assert str(backend.walk(f"/{s3_mock.bucket}/")[0]) == f"/{s3_mock.bucket}/folder1"
+    assert (
+        str(backend.walk(f"/{s3_mock.bucket}/")[1])
+        == f"/{s3_mock.bucket}/folder1/file1"
+    )
+
+    assert backend.find(f"/{s3_mock.bucket}/folder1") == "file1"
     assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").exists() is True
     assert backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").exists() is True
     assert (
@@ -149,6 +156,32 @@ signature_version = s3v4
     resource, _ = path._accessor.configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
+    config_loader = mock_config(
+        """
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = swift
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+[s3]
+endpoint_url = http://localhost:9090
+"""
+    )
+    backend = s3.S3Storage(config=config_loader.config)
+    backend.initialize_plugin()
+
+    path = s3.S3Path("/tmp/pypi")
+    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
+
 
 def test_upload_time(s3_mock: S3Path) -> None:
     backend = s3.S3Storage()
@@ -169,3 +202,11 @@ def test_file_size(s3_mock: S3Path) -> None:
     backend = s3.S3Storage()
     backend.write_file(f"/{s3_mock.bucket}/file1", b"1234")
     assert backend.get_file_size(f"/{s3_mock.bucket}/file1") == 4
+
+
+def test_copy_file(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    backend.write_file(f"/{s3_mock.bucket}/file1", b"1234")
+
+    backend.copy_file(f"/{s3_mock.bucket}/file1", f"/{s3_mock.bucket}/file2")
+    assert backend.read_file(f"/{s3_mock.bucket}/file2") == "1234"
