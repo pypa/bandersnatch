@@ -42,6 +42,7 @@ jobs:
     - name: Run Unittests
       env:
         TOXENV: py3
+        os: ${{ matrix.os }}
       run: |
         python test_runner.py
 
