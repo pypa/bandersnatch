@@ -64,7 +64,6 @@ jobs:
         python test_runner.py
 
     - name: Run Integration Test (uvloop)
-      if: matrix.os != 'windows-latest'
       env:
        TOXENV: INTEGRATION
       run: |

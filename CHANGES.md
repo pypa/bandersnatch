@@ -3,7 +3,7 @@
 ## New Features
 
 - Add support of downloading packages from alternative mirror `PR #928` -- Thanks **happyaron**
-- Add support of s3 storage `PR #886` -- Thanks LeoQuote
+- Add support of s3 storage `PR #886` -- Thanks **LeoQuote**
 
 ## Bug fixes
 

@@ -18,8 +18,7 @@ from .errors import PackageNotFound
 from .utils import USER_AGENT
 
 if (
-    sys.version_info[0] == 3
-    and sys.version_info[1] >= 8
+    sys.version_info >= (3, 8)
     and sys.platform.startswith("win")
 ):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
