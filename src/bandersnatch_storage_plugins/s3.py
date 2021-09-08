@@ -86,7 +86,6 @@ class S3FileLock(filelock.BaseFileLock):
         except OSError as exc:
             logger.error("Failed to acquire lock...")
             logger.exception("Exception: ", exc)
-            pass
         else:
             logger.info(f"Acquired lock: {self.lock_file}")
             self._lock_file_fd = fd
@@ -100,7 +99,6 @@ class S3FileLock(filelock.BaseFileLock):
         except OSError as exc:
             logger.error("Failed to remove lockfile")
             logger.exception("Exception: ", exc)
-            pass
         else:
             logger.info("Successfully cleaned up lock")
         return None
@@ -187,8 +185,8 @@ class S3Storage(StoragePlugin):
         return results
 
     def find(self, root: PATH_TYPES, dirs: bool = True) -> str:
-        """Really discourage using this method, this will take a lot of time
-        S3Path.glob or S3Path.rglob will be better
+        """It's strongly discouraged to use this method as it takes a lot of time,
+        S3Path.glob or S3Path.rglob will be better.
         """
         results = self.walk(root, dirs=dirs)
         results.sort()
