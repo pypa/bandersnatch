@@ -8,8 +8,7 @@ import os
 import sys
 import time
 from json import dump
-from pathlib import Path
-from shutil import rmtree
+from pathlib import Path, WindowsPath
 from threading import RLock
 from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
@@ -30,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 class Mirror:
-
     synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
     target_serial: Optional[int] = None  # What is the serial we are trying to reach?
     packages_to_sync: Dict[str, Union[int, str]] = {}
@@ -171,7 +169,6 @@ class Mirror:
 
 
 class BandersnatchMirror(Mirror):
-
     need_index_sync = True
     errors = False
 
@@ -210,7 +207,10 @@ class BandersnatchMirror(Mirror):
             self.storage_backend = next(iter(storage_backend_plugins()))
         self.stop_on_error = stop_on_error
         self.loop = asyncio.get_event_loop()
-        self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
+        if isinstance(homedir, WindowsPath):
+            self.homedir = self.storage_backend.PATH_BACKEND(homedir.as_posix())
+        else:
+            self.homedir = self.storage_backend.PATH_BACKEND(str(homedir))
         self.lockfile_path = self.homedir / ".lock"
         self.master = master
 
@@ -441,7 +441,9 @@ class BandersnatchMirror(Mirror):
                     f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
                 )
                 try:
-                    rmtree(deprecated_dir)
+                    for file in deprecated_dir.glob("*"):
+                        file.unlink(missing_ok=True)
+                    deprecated_dir.rmdir()
                 except Exception:
                     logger.exception(
                         f"Unable to cleanup non PEP 503 dir {deprecated_dir}"
@@ -469,13 +471,9 @@ class BandersnatchMirror(Mirror):
         simple_path = self.storage_backend.PATH_BACKEND(str(simple_dir))
         return sorted(
             {
-                # Filter out all of the "non" normalized names here
-                canonicalize_name(x.name)
-                for x in simple_path.iterdir()
-                # Package indexes must be in directories, so ignore anything else.
-                # This allows us to rely on the storage plugin to check if this is
-                # a directory
-                if x.is_dir()
+                canonicalize_name(str(x.parent.relative_to(simple_path)))
+                for x in simple_path.glob("**/index.html")
+                if str(x.parent.relative_to(simple_path)) != "."
             }
         )
 
@@ -625,8 +623,8 @@ class BandersnatchMirror(Mirror):
 
     def simple_directory(self, package: Package) -> Path:
         if self.hash_index:
-            return Path(self.webdir / "simple" / package.name[0] / package.name)
-        return Path(self.webdir / "simple" / package.name)
+            return self.webdir / "simple" / package.name[0] / package.name  # type: ignore # noqa: E501
+        return self.webdir / "simple" / package.name  # type: ignore
 
     def save_json_metadata(self, package_info: Dict, name: str) -> bool:
         """
@@ -975,7 +973,6 @@ class BandersnatchMirror(Mirror):
 async def mirror(
     config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
 ) -> int:
-
     config_values = validate_config_values(config)
 
     storage_plugin = next(
@@ -1012,12 +1009,13 @@ async def mirror(
     mirror_url = config.get("mirror", "master")
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
+    proxy = config.get("mirror", "proxy", fallback=None)
     storage_backend = config_values.storage_backend_name
     homedir = Path(config.get("mirror", "directory"))
 
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
-    async with Master(mirror_url, timeout, global_timeout) as master:
+    async with Master(mirror_url, timeout, global_timeout, proxy) as master:
         mirror = BandersnatchMirror(
             homedir,
             master,

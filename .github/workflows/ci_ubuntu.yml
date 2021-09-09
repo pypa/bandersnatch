@@ -1,4 +1,4 @@
-name: bandersnatch_ci
+name: bandersnatch_ci_ubuntu
 
 on: [push, pull_request]
 
@@ -13,10 +13,15 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    services:
+      minio:
+        image: lazybit/minio:latest
+        ports:
+          - 9000:9000
     strategy:
       matrix:
         python-version: [3.8, 3.9]
-        os: [macOS-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2.3.4
@@ -59,7 +64,6 @@ jobs:
         python test_runner.py
 
     - name: Run Integration Test (uvloop)
-      if: matrix.os != 'windows-latest'
       env:
        TOXENV: INTEGRATION
       run: |

@@ -1,13 +1,15 @@
 # flake8: noqa
-
+import os
 import unittest.mock as mock
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, Iterator
 
+import boto3
 import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
+from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -169,3 +171,35 @@ def logging_mock(request: FixtureRequest) -> mock.MagicMock:
 
     request.addfinalizer(tearDown)
     return logger
+
+
+@pytest.fixture()
+def reset_configuration_cache() -> Iterator[None]:
+    try:
+        _s3_accessor.configuration_map.get_configuration.cache_clear()
+        yield
+    finally:
+        _s3_accessor.configuration_map.get_configuration.cache_clear()
+
+
+@pytest.fixture()
+def s3_mock(reset_configuration_cache: None) -> S3Path:
+    if os.environ.get("os") != "ubuntu-latest" and os.environ.get("CI"):
+        pytest.skip("Skip s3 test on non-posix server in github action")
+    register_configuration_parameter(
+        PureS3Path("/"),
+        resource=boto3.resource(
+            "s3",
+            aws_access_key_id="minioadmin",
+            aws_secret_access_key="minioadmin",
+            endpoint_url="http://localhost:9000",
+        ),
+    )
+    new_bucket = S3Path("/test-bucket")
+    new_bucket.mkdir(exist_ok=True)
+    yield new_bucket
+    resource, _ = new_bucket._accessor.configuration_map.get_configuration(new_bucket)
+    bucket = resource.Bucket(new_bucket.bucket)
+    for key in bucket.objects.all():
+        key.delete()
+    bucket.delete()

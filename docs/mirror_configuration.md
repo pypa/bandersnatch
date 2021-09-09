@@ -205,3 +205,15 @@ Example:
 [mirror]
 compare-method = hash
 ```
+
+## proxy
+
+The proxy is used only when requesting master server, eg. downloading index or package file from pypi.org.
+The proxy value will be passed to aiohttp as proxy parameter, like `aiohttp.get(link, proxy=yourproxy)`,
+check the aioproxy manual for more details: https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support
+
+Example:
+```ini
+[mirror]
+proxy=http://myproxy.com
+```
