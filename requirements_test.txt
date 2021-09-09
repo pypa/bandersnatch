@@ -9,7 +9,7 @@ pre-commit==2.15.0
 pytest==6.2.5
 pytest-asyncio==0.15.1
 pytest-timeout==1.4.2
-setuptools==58.0.3
+setuptools==58.0.4
 tox==3.24.3
 types-filelock==0.1.5
 types-freezegun==0.1.4
