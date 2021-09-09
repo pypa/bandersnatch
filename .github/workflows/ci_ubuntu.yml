@@ -15,9 +15,10 @@ jobs:
 
     services:
       minio:
-        image: lazybit/minio:latest
+        image: minio/minio:latest
         ports:
           - 9000:9000
+
     strategy:
       matrix:
         python-version: [3.8, 3.9]
