@@ -18,6 +18,7 @@ jobs:
         image: minio/minio:latest
         ports:
           - 9000:9000
+        options: --entrypoint /usr/bin/docker-entrypoint.sh server /data
 
     strategy:
       matrix:
