@@ -52,12 +52,13 @@ aws_secret_access_key = your s3 secret access key
 # Use endpoint_url to indicate custom s3 endpoint e.g. like minio etc.
 endpoint_url = endpoint url
 # Optional manual signature version for compatibility
-signature_version = s3v4 
+signature_version = s3v4
 ```
 
 ### Serving your Mirror
 
-Unknown. To be added.
+S3 Bandersnatch mirrors are designed to be served with s3 static sites and
+can also be used with the Amazon CDN service or another CDN service.
 
 ## SwiftStack Storage
 
