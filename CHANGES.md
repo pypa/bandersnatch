@@ -11,6 +11,10 @@
 - Generate data-yanked tag in simple page `PR #931` - Thanks **happyaron**
 - Protect repository metadata from being trashed when disk is full `PR #962` - Thanks **happyaron**
 
+## Documentation
+
+- Add Storage Options documentation `PR #1006` - Thanks **cooperlees**
+
 # 5.0.0 (2021-4-28)
 
 ## New Features
