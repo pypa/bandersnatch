@@ -15,10 +15,9 @@ jobs:
 
     services:
       minio:
-        image: minio/minio:latest
+        image: lazybit/minio:latest
         ports:
           - 9000:9000
-        options: --entrypoint '/usr/bin/docker-entrypoint.sh server /data'
 
     strategy:
       matrix:
