@@ -146,6 +146,26 @@ Successfully installed apipkg-1.4 attrs-18.1.0 bandersnatch-2.1.3 coverage-4.5.1
 
 Congrats, now you have a bandersnatch development environment ready to go! Just a few details to cover left.
 
+### S3 Unit Tests
+
+S3 unittests are more integration tests. They depend on [minio](https://docs.min.io/) to work.
+
+- You will either need to skip them or install mino
+- Install options: https://docs.min.io/docs/
+
+#### Docker Install
+
+Docker is an easy way to get minio to run for tests to pass.
+
+```console
+docker run \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  --name minio1 \
+  -v /Users/cooper/tmp/minio:/data \
+  minio/minio server /data --console-address ":9001"
+```
+
 ## Creating a Pull Request
 
 ### Changelog entry
