@@ -31,6 +31,7 @@ Contents
     :maxdepth: 3
 
     installation
+    storage_options
     mirror_configuration
     filtering_configuration
     serving
