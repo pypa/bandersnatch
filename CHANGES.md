@@ -10,6 +10,7 @@
 - Add bandersnatch command line help to the documentation main page `PR #920` - Thanks **ichard26**
 - Generate data-yanked tag in simple page `PR #931` - Thanks **happyaron**
 - Protect repository metadata from being trashed when disk is full `PR #962` - Thanks **happyaron**
+- Fix tox to used pinned requirements*.txt files for deps - `PR #1011` - Thanks **cooperlees**
 
 ## Documentation
 
