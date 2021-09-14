@@ -601,6 +601,7 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         # Create fake file system objects
         for directory in directories:
             (mirror_base / directory).mkdir(parents=True, exist_ok=True)
+            (mirror_base / directory / "index.html").touch()
         with (mirror_base / "web/simple/index.html").open("w") as index:
             index.write("<html></html>")
 
@@ -1166,9 +1167,12 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
     mirror.cleanup = True
-    with mock.patch("bandersnatch.mirror.rmtree") as mocked_rmtree:
+    with mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink, mock.patch(
+        "bandersnatch.mirror.Path.rmdir"
+    ) as mocked_rmdir:
         await mirror.cleanup_non_pep_503_paths(package)
-        assert mocked_rmtree.call_count == 1
+        assert mocked_unlink.call_count == 1  # number you expect
+        assert mocked_rmdir.call_count == 1  # Or number you expect here
 
 
 def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:

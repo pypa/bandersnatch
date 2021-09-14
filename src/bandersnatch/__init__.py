@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-__copyright__ = "2010-2020, PyPA"
+__copyright__ = "2010-Present, PyPA"
 
 from typing import NamedTuple
 
@@ -20,9 +20,9 @@ class _VersionInfo(NamedTuple):
 
 __version_info__ = _VersionInfo(
     major=5,
-    minor=0,
+    minor=1,
     micro=0,
-    releaselevel="",
+    releaselevel="dev0",
     serial=0,  # Not currently in use with Bandersnatch versioning
 )
 __version__ = __version_info__.version_str
