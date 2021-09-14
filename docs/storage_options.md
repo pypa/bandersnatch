@@ -73,12 +73,14 @@ Please read Amazon documents to get [detailed instructions](https://docs.aws.ama
 Most cloud provider who provide a s3-compatible service will provide this service as well. Please consult to your service assistant to get detailed instructions.
 
 ### Use CloudFront or other cdn service to speed up the static mirror(optional)
+
 If your mirror is targeted to global clients, you can use CloudFront or other CDN service to speed up the mirror.
 
 Please read Amazon documents to get [detailed instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/website-hosting-cloudfront-walkthrough.html)
 
 
 ### Set redirect or url rewrite in CloudFront or other cdn(optional)
+
 In most cases, packages and index pages are all inside ``/my-s3-bucket/prefix/web``, if you set up a steps above, you should be able to use the mirror like this:
 
 ```shell
