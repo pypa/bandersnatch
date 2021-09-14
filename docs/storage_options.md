@@ -62,19 +62,20 @@ signature_version = s3v4
 S3 Bandersnatch mirrors are designed to be served with s3 static sites and
 can also be used with the Amazon CDN service or another CDN service.
 
-I assume you have already set up an AWS account and S3 bucket, and the Bandersnatch sync job has been proceeded.
+I assume you have already set up an AWS account and S3 bucket, and the Bandersnatch sync job has successfully ran.
 
 ### Enabling website hosting for the bucket
+
 When you enable the website hosting for a bucket, this bucket can be viewed as static website. Using the s3 domain or your customized domain.
 
-Please read Amazon documents to get detailed instructions: https://docs.aws.amazon.com/AmazonS3/latest/userguide/EnableWebsiteHosting.html
+Please read Amazon documents to get [detailed instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EnableWebsiteHosting.html)
 
-Most cloud provider who provide s3-compatible service will provide this service as well. Please consult to your service assistant to get detailed instructions.
+Most cloud provider who provide a s3-compatible service will provide this service as well. Please consult to your service assistant to get detailed instructions.
 
 ### Use CloudFront or other cdn service to speed up the static mirror(optional)
 If your mirror is targeted to global clients, you can use CloudFront or other CDN service to speed up the mirror.
 
-Please read Amazon documents to get detailed instructions: https://docs.aws.amazon.com/AmazonS3/latest/userguide/website-hosting-cloudfront-walkthrough.html
+Please read Amazon documents to get [detailed instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/website-hosting-cloudfront-walkthrough.html)
 
 
 ### Set redirect or url rewrite in CloudFront or other cdn(optional)
