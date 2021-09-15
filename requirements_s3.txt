@@ -1,4 +1,4 @@
-boto3==1.18.41
+boto3==1.18.42
 botocore==1.21.41
 jmespath==0.10.0
 python-dateutil==2.8.2
