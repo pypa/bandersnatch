@@ -5,7 +5,7 @@ async-timeout==3.0.1
 attrs==21.2.0
 chardet==4.0.0
 filelock==3.0.12
-humanfriendly==9.2
+humanfriendly==10.0
 idna==3.2
 lxml==4.6.3
 multidict==5.1.0
