@@ -16,6 +16,10 @@
 
 - Add Storage Options documentation `PR #1006` - Thanks **cooperlees**
 
+## Dependencies
+
+- Change pyup to run monthly + auto add skip_news `PR #1043` - Thanks **cooperlees**
+
 # 5.0.0 (2021-4-28)
 
 ## New Features

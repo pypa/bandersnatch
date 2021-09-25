@@ -1,8 +1,21 @@
+assignees:
+  - cooperlees
+
+label_prs: "skip news"
+
+schedule: "every month"
+
 requirements:
   - requirements.txt:
       update: all
       pin: True
   - requirements_docs.txt:
+      update: all
+      pin: True
+  - requirements_s3.txt:
+      update: all
+      pin: True
+  - requirements_swift.txt:
       update: all
       pin: True
   - requirements_test.txt:
