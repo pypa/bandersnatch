@@ -16,6 +16,10 @@
 
 - Add Storage Options documentation `PR #1006` - Thanks **cooperlees**
 
+## Dependencies
+
+- Remove boto* from pyup as they release a lot `PR #1043` - Thanks **cooperlees**
+
 # 5.0.0 (2021-4-28)
 
 ## New Features
