@@ -1,5 +1,5 @@
 aiohttp==3.7.4.post0
-aiohttp-socks==0.5.5
+aiohttp-socks==0.6.0
 aiohttp-xmlrpc==1.3.2
 async-timeout==3.0.1
 attrs==21.2.0
