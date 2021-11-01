@@ -2,7 +2,7 @@
 docutils==0.16  # pyup: ignore
 pyparsing==2.4.7
 python-dateutil==2.8.2
-packaging==21.0
+packaging==21.2
 requests==2.26.0
 six==1.16.0
 sphinx==4.2.0
