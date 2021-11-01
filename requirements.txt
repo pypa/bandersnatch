@@ -13,4 +13,4 @@ packaging==21.2
 pyparsing==3.0.4
 setuptools==58.4.0
 six==1.16.0
-yarl==1.6.3
+yarl==1.7.0
