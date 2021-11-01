@@ -10,7 +10,7 @@ idna==3.3
 lxml==4.6.3
 multidict==5.2.0
 packaging==21.2
-pyparsing==2.4.7
+pyparsing==3.0.4
 setuptools==58.1.0
 six==1.16.0
 yarl==1.6.3
