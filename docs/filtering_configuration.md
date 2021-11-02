@@ -49,7 +49,7 @@ This is useful to avoid syncing broken or malicious packages.
 
 ## packages
 
-The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#id51) of packages to not be mirrored. Enable version specifier filtering for blocklist and allowlist packages through enabling the 'blocklist_release' and 'allowlist_release' plugins, respectively.
+The packages setting is a list of python [pep440 version specifier](https://www.python.org/dev/peps/pep-0440/#version-specifiers) of packages to not be mirrored. Enable version specifier filtering for blocklist and allowlist packages through enabling the 'blocklist_release' and 'allowlist_release' plugins, respectively.
 
 Any packages matching the version specifier for blocklist packages will not be downloaded. Any packages not matching the version specifier for allowlist packages will not be downloaded.
 
