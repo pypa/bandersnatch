@@ -1,4 +1,4 @@
-async-timeout==3.0.1
+async-timeout>=4.0.0a3
 black==21.10b0
 coverage==6.1.1
 flake8==4.0.1
