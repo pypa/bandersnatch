@@ -22,7 +22,7 @@ __version_info__ = _VersionInfo(
     major=5,
     minor=1,
     micro=0,
-    releaselevel="dev0",
+    releaselevel="",
     serial=0,  # Not currently in use with Bandersnatch versioning
 )
 __version__ = __version_info__.version_str

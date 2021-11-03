@@ -1,4 +1,4 @@
-# 5.1.0 (2021-XX-XX)
+# 5.1.0 (2021-11-02)
 
 ## New Features
 
@@ -15,6 +15,7 @@
 ## Documentation
 
 - Add Storage Options documentation `PR #1006` - Thanks **cooperlees**
+- Update all dependencies to latest except pyparsing + docutils
 
 ## Dependencies
 

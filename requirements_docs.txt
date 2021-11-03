@@ -1,4 +1,5 @@
 # sphinx 3.5.4 wants 0.16 here ... Try update once we get a newer sphinx
+# This is being worked on - https://github.com/sphinx-doc/sphinx/issues/9777
 docutils==0.16  # pyup: ignore
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
