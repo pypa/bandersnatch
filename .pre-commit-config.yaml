@@ -21,7 +21,7 @@ repos:
         args: [--py38-plus]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.10.0
+    rev: 5.10.1
     hooks:
       - id: isort
 
