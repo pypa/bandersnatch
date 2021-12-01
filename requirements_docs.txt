@@ -4,7 +4,7 @@ docutils==0.16  # pyup: ignore
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
 python-dateutil==2.8.2
-packaging==21.2
+packaging==21.3
 requests==2.26.0
 six==1.16.0
 sphinx==4.2.0
