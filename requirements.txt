@@ -14,4 +14,4 @@ packaging==21.3
 pyparsing==2.4.7  # pyup: ignore
 setuptools==59.4.0
 six==1.16.0
-yarl==1.7.0
+yarl==1.7.2
