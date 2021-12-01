@@ -4,7 +4,7 @@ aiohttp-xmlrpc==1.4.0
 async-timeout>=4.0.0a3
 attrs==21.2.0
 chardet==4.0.0
-filelock==3.3.2
+filelock==3.4.0
 humanfriendly==10.0
 idna==3.3
 lxml==4.6.3
