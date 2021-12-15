@@ -1,8 +1,13 @@
-# 5.X.X (XXXX-XX-XX)
+# 5.1.1 (2021-12-14)
 
 ## Bug fixes
 
 - Fix debug output for package changes at end of mirror operation `PR #1066` -- Thanks **forky2**
+
+## Other
+
+- Update lots of dependency version pins
+- Fix documentation build CI
 
 # 5.1.0 (2021-11-02)
 
