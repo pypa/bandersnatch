@@ -292,7 +292,6 @@ texinfo_documents = [
 # an objects.inv
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "filelock": ("https://filelock.readthedocs.io/en/stable", None),
     "packaging": ("https://packaging.pypa.io/en/stable", None),
 }
 
