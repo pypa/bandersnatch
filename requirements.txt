@@ -12,6 +12,7 @@ multidict==5.2.0
 packaging==21.2
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
+python-socks[asyncio]<=1.9.9
 setuptools==58.4.0
 six==1.16.0
 yarl==1.7.0
