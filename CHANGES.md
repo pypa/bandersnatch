@@ -1,3 +1,9 @@
+# 5.X.X (XXXX-XX-XX)
+
+## Bug fixes
+
+- Fix debug output for package changes at end of mirror operation `PR #1066` -- Thanks **forky2**
+
 # 5.1.0 (2021-11-02)
 
 ## New Features
