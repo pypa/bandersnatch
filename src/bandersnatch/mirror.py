@@ -1042,9 +1042,11 @@ async def mirror(
 
     logger.info(f"{len(changed_packages)} packages had changes")
     for package_name, changes in changed_packages.items():
+        package_changes = []
         for change in changes:
-            mirror.diff_file_list.append(mirror.homedir / change)
-        loggable_changes = [str(chg) for chg in mirror.diff_file_list]
+            package_changes.append(mirror.homedir / change)
+        mirror.diff_file_list.extend(package_changes)
+        loggable_changes = [str(chg) for chg in package_changes]
         logger.debug(f"{package_name} added: {loggable_changes}")
 
     if mirror.diff_full_path:
