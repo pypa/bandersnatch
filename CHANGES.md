@@ -1,3 +1,9 @@
+# Unreleased
+
+## Other
+
+- 3.10 is now supported `PR #1073` -- Thanks **isidentical**
+
 # 5.1.1 (2021-12-14)
 
 ## Bug fixes
