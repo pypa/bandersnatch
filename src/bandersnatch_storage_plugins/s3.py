@@ -1,4 +1,3 @@
-#  type: ignore
 from __future__ import annotations
 
 import configparser
@@ -10,7 +9,7 @@ import os
 import pathlib
 import tempfile
 from fnmatch import fnmatch
-from typing import IO, Any, Iterator, TextIO
+from typing import IO, Any, Generator, Iterator
 
 import boto3
 import filelock
@@ -45,7 +44,7 @@ class S3Path(_S3Path):
         continuation_token = None
         while True:
             if continuation_token:
-                kwargs["ContinuationToken"] = continuation_token
+                kwargs["ContinuationToken"] = continuation_token  # type: ignore
             response = bucket.meta.client.list_objects_v2(**kwargs)
             for file in response["Contents"]:
                 file_path = S3Path(f"/{bucket_name}/{file['Key']}")
@@ -105,7 +104,7 @@ class S3FileLock(filelock.BaseFileLock):
 
     @property
     def is_locked(self) -> bool:
-        return self.path_backend(self.lock_file).exists()
+        return bool(self.path_backend(self.lock_file).exists())
 
 
 class S3Storage(StoragePlugin):
@@ -192,15 +191,23 @@ class S3Storage(StoragePlugin):
         results.sort()
         return "\n".join(str(result.relative_to(root)) for result in results)
 
-    def rewrite(self, filepath: PATH_TYPES, mode: str = "w", **kw: Any) -> IO:
+    # @contextlib.contextmanager
+    # TODO: Make a Generator
+    def rewrite(  # type: ignore
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        **kw: Any
+        # ) -> Generator[IO, None, None]:
+    ) -> IO:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
             filepath = self.PATH_BACKEND(filepath)
-        return filepath.open(mode=mode, **kw)
+        return filepath.open(mode=mode, **kw)  # type: ignore
 
     @contextlib.contextmanager
-    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> IO:
+    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
         """Rewrite a file atomically.
 
         Clients are allowed to delete the tmpfile to signal that they don't
@@ -211,7 +218,8 @@ class S3Storage(StoragePlugin):
             prefix=f"{os.path.basename(filename)}.",
             **kw,
         ) as tf:
-            tf.has_changed = False
+            # TODO: Workout if this is actually used / needed
+            tf.has_changed = False  # type: ignore
             yield tf
             if not os.path.exists(tf.name):
                 return
@@ -267,16 +275,22 @@ class S3Storage(StoragePlugin):
                 fp.write(contents)
         return
 
-    def open_file(
-        self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
-    ) -> TextIO:
+    # @contextlib.contextmanager
+    # TODO: Make a Generator
+    def open_file(  # type: ignore
+        self,
+        path: PATH_TYPES,
+        text: bool = True,
+        encoding: str = "utf-8"
+        # ) -> Generator[IO, None, None]:
+    ) -> IO:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         mode = "r" if text else "rb"
         kwargs: dict[str, str] = {}
         if text:
             kwargs["encoding"] = encoding
-        return path.open(mode=mode, **kwargs)
+        return path.open(mode=mode, **kwargs)  # type: ignore
 
     def read_file(
         self,
@@ -336,7 +350,7 @@ class S3Storage(StoragePlugin):
         force: bool = False,
         ignore_errors: bool = False,
         dry_run: bool = False,
-    ) -> None:
+    ) -> int:
         """
         Remove the directory. If recurse is True, allow removing empty children.
 
@@ -348,27 +362,27 @@ class S3Storage(StoragePlugin):
         logger.info(f"{log_prefix}Removing file: {path!s}")
         if not dry_run:
             path.rmdir()
-        return
+        return 0
 
     def exists(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.exists()
+        return bool(path.exists())
 
     def is_dir(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.is_dir()
+        return bool(path.is_dir())
 
     def is_file(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.is_file()
+        return bool(path.is_file())
 
     def is_symlink(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.is_symlink()
+        return bool(path.is_symlink())
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)(self.read_file(path, text=False))
@@ -384,7 +398,7 @@ class S3Storage(StoragePlugin):
     def get_file_size(self, path: PATH_TYPES) -> int:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        return path.stat().st_size
+        return int(path.stat().st_size)
 
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, self.PATH_BACKEND):

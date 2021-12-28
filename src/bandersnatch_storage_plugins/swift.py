@@ -294,24 +294,24 @@ class SwiftPath(pathlib.Path):
         # right flavour.
         self = object.__new__(cls)
         drv, root, parts = self._parse_args(args)
-        self._drv = drv
-        self._root = root
-        self._parts = parts
+        self._drv = drv  # type: ignore
+        self._root = root  # type: ignore
+        self._parts = parts  # type: ignore
         if init:
             self._init()
-        return self  # type: ignore
+        return self
 
     @classmethod
     def _from_parsed_parts(
         cls, drv: Optional[str], root: str, parts: List[str], init: bool = True
     ) -> "SwiftPath":
         self = object.__new__(cls)
-        self._drv = drv
-        self._root = root
-        self._parts = parts
+        self._drv = drv  # type: ignore
+        self._root = root  # type: ignore
+        self._parts = parts  # type: ignore
         if init:
             self._init()
-        return self  # type: ignore
+        return self
 
     @classmethod
     def register_backend(cls, backend: "SwiftStorage") -> None:
