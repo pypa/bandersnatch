@@ -191,10 +191,15 @@ class S3Storage(StoragePlugin):
         results.sort()
         return "\n".join(str(result.relative_to(root)) for result in results)
 
-    @contextlib.contextmanager
-    def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
-    ) -> Generator[IO, None, None]:
+    # @contextlib.contextmanager
+    # TODO: Make a Generator
+    def rewrite(  # type: ignore
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        **kw: Any
+        # ) -> Generator[IO, None, None]:
+    ) -> IO:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
@@ -270,10 +275,15 @@ class S3Storage(StoragePlugin):
                 fp.write(contents)
         return
 
-    @contextlib.contextmanager
-    def open_file(
-        self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
-    ) -> Generator[IO, None, None]:
+    # @contextlib.contextmanager
+    # TODO: Make a Generator
+    def open_file(  # type: ignore
+        self,
+        path: PATH_TYPES,
+        text: bool = True,
+        encoding: str = "utf-8"
+        # ) -> Generator[IO, None, None]:
+    ) -> IO:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         mode = "r" if text else "rb"
@@ -293,7 +303,7 @@ class S3Storage(StoragePlugin):
         string depending on whether **text** is True"""
 
         fh = self.open_file(path, text=text, encoding=encoding)
-        contents: str | bytes = fh.read()  # type: ignore
+        contents: str | bytes = fh.read()
         return contents
 
     def delete_file(self, path: PATH_TYPES, dry_run: bool = False) -> int:
