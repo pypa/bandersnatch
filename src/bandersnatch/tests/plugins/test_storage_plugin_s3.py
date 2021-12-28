@@ -1,4 +1,3 @@
-# type: ignore [attr-defined]
 from datetime import datetime
 
 from mock_config import mock_config
