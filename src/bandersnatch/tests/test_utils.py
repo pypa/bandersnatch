@@ -111,7 +111,7 @@ def test_unlink_parent_dir() -> None:
 def test_user_agent() -> None:
     assert re.match(
         r"bandersnatch/[0-9]\.[0-9]\.[0-9]\.?d?e?v?[0-9]? \(.*\) "
-        + fr"\(aiohttp {aiohttp.__version__}\)",
+        + rf"\(aiohttp {aiohttp.__version__}\)",
         user_agent(),
     )
 
