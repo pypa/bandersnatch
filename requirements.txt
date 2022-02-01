@@ -8,7 +8,7 @@ filelock==3.4.2
 humanfriendly==10.0
 idna==3.3
 lxml==4.7.1
-multidict==5.2.0
+multidict==6.0.2
 packaging==21.3
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
