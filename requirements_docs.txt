@@ -5,9 +5,9 @@ docutils==0.16  # pyup: ignore
 pyparsing==2.4.7  # pyup: ignore
 python-dateutil==2.8.2
 packaging==21.3
-requests==2.26.0
+requests==2.27.1
 six==1.16.0
-sphinx==4.3.2
+sphinx==4.4.0
 MyST-Parser==0.16.1
 xmlrpc2==0.3.1
 sphinx-argparse-cli==1.8.3
