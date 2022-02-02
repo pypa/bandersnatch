@@ -293,6 +293,7 @@ texinfo_documents = [
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "packaging": ("https://packaging.pypa.io/en/stable", None),
+    "filelock": ("https://py-filelock.readthedocs.io/en/latest", None),
 }
 
 # Useful external link shortcuts
