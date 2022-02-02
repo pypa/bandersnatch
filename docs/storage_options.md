@@ -4,7 +4,7 @@ Bandersnatch was originally developed for POSIX file system. Bandersnatch now su
 
 - POSIX / Windows filesystem (transparently via pathlib)
 - [Amazon S3](https://aws.amazon.com/s3/)
-- [Cannoical SwiftStack Storage](https://www.swiftstack.com/product/storage)
+- [Cannoical (Nvidia?) SwiftStack Storage](https://www.nvidia.com/en-us/data-center/swiftstack/)
 
 ## Filesystem Support
 
