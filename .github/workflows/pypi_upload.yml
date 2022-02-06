@@ -17,12 +17,11 @@ jobs:
 
     - name: Install latest pip, setuptools, twine, wheel
       run: |
-        python -m pip install --upgrade pip setuptools twine wheel
+        python -m pip install --upgrade build pip setuptools twine wheel
 
     - name: Build sdist & wheel
       run: |
-        python setup.py bdist_wheel
-        python setup.py sdist
+        python -m build
 
     - name: Upload to PyPI via Twine
       env:
