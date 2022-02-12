@@ -16,12 +16,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    services:
-      minio:
-        image: lazybit/minio:latest
-        ports:
-          - 9000:9000
-
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
@@ -34,6 +28,19 @@ jobs:
       uses: actions/setup-python@v2.3.2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Setup minio
+        run: |
+          docker run -d -p 9000:9000 --name minio \
+                     -e "MINIO_ACCESS_KEY=minioadmin" \
+                     -e "MINIO_SECRET_KEY=minioadmin" \
+                     -v /tmp/data:/data \
+                     -v /tmp/config:/root/.minio \
+                     minio/minio server /data
+
+          export AWS_ACCESS_KEY_ID=minioadmin
+          export AWS_SECRET_ACCESS_KEY=minioadmin
+          export AWS_EC2_METADATA_DISABLED=true
 
     - name: Install latest pip, setuptools + tox
       run: |
