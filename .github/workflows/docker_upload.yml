@@ -3,7 +3,7 @@ name: bandersnatch_docker_upload
 on:
   push:
     branches:
-      - "master"
+      - main
   release:
     types: created
 
