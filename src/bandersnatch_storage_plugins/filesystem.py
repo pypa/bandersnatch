@@ -7,7 +7,7 @@ import os
 import pathlib
 import shutil
 import tempfile
-from typing import IO, Any, Dict, Generator, List, Optional, Type, Union
+from typing import IO, Any, Generator, List, Optional, Type, Union
 
 import filelock
 
@@ -111,7 +111,6 @@ class FilesystemStorage(StoragePlugin):
         ) as tf:
             if self.exists(filename):
                 os.chmod(tf.name, os.stat(filename).st_mode & 0o7777)
-            tf.has_changed = False  # type: ignore
             yield tf
             if not self.exists(tf.name):
                 return
@@ -159,10 +158,12 @@ class FilesystemStorage(StoragePlugin):
         """Yield a file context to iterate over. If text is true, open the file with
         'rb' mode specified."""
         mode = "r" if text else "rb"
-        kwargs: Dict[str, str] = {}
+        file_encoding = None
         if text:
-            kwargs["encoding"] = encoding
-        with open(path, mode=mode, **kwargs) as fh:  # type: ignore
+            file_encoding = encoding
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        with path.open(mode=mode, encoding=file_encoding) as fh:
             yield fh
 
     def read_file(
