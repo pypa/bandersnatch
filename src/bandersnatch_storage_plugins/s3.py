@@ -44,7 +44,7 @@ class S3Path(_S3Path):
         continuation_token = None
         while True:
             if continuation_token:
-                # mypy thinks we never get here die to response.get()
+                # mypy thinks we never get here due to response.get()
                 # not being typed I think
                 kwargs["ContinuationToken"] = continuation_token  # type: ignore
             response = bucket.meta.client.list_objects_v2(**kwargs)
