@@ -150,7 +150,7 @@ class Storage:
     def hash_file(self, path: PATH_TYPES, function: str = "sha256") -> str:
         h = getattr(hashlib, function)()
         with self.open_file(path, text=False) as f:
-            for chunk in iter(lambda: f.read(8192), b""):  # type: ignore
+            while chunk := f.read(8192):
                 h.update(chunk)
         return str(h.hexdigest())
 

@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Pattern
+from typing import Any, Dict, List, Pattern
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
@@ -71,7 +71,7 @@ class RegexProjectFilter(FilterProjectPlugin):
     def filter(self, metadata: Dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
-    def check_match(self, name: str) -> bool:  # type: ignore[override]
+    def check_match(self, **kwargs: Any) -> bool:
         """
         Check if a release version matches any of the specified patterns.
 
@@ -85,4 +85,8 @@ class RegexProjectFilter(FilterProjectPlugin):
         bool:
             True if it matches, False otherwise.
         """
-        return any(pattern.match(name) for pattern in self.patterns)
+        if "name" not in kwargs:
+            raise ValueError(
+                "No name argument supplied to RegexProjectFilter.check_match"
+            )
+        return any(pattern.match(kwargs["name"]) for pattern in self.patterns)
