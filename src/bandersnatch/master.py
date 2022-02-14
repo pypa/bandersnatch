@@ -217,11 +217,11 @@ class Master:
         except asyncio.TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
 
-    async def all_packages(self) -> Dict[str, int]:
+    async def all_packages(self) -> Any:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
         if not all_packages_with_serial:
             raise XmlRpcError("Unable to get full list of packages")
-        return all_packages_with_serial  # type: ignore
+        return all_packages_with_serial
 
     async def changed_packages(self, last_serial: int) -> Dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)

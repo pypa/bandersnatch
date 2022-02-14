@@ -98,6 +98,7 @@ class RegexFilter(Filter):
         else:
             return self._match_any_patterns(key, node, nulls_match=nulls_match)
 
+    # TODO: Add unittest and cleanup code + fix typing
     def _find_element_by_dotted_path(self, path: str, metadata: Dict) -> List:
         # Walk our metadata structure following dotted path.
         split_path = path.split(".")

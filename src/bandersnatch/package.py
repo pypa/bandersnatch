@@ -11,12 +11,13 @@ if TYPE_CHECKING:  # pragma: no cover
     from .filter import Filter
     from .master import Master
 
+
 logger = logging.getLogger(__name__)
 
 
 class Package:
     def __init__(self, name: str, serial: int = 0) -> None:
-        self.name = canonicalize_name(name)
+        self.name: str = canonicalize_name(name)
         self.raw_name = name
         self.serial = serial
 
@@ -28,16 +29,16 @@ class Package:
         return self._metadata
 
     @property
-    def info(self) -> Dict[str, Any]:
-        return self.metadata["info"]  # type: ignore
+    def info(self) -> Any:
+        return self.metadata["info"]
 
     @property
     def last_serial(self) -> int:
-        return self.metadata["last_serial"]  # type: ignore
+        return int(self.metadata["last_serial"])
 
     @property
-    def releases(self) -> Dict[str, List]:
-        return self.metadata["releases"]  # type: ignore
+    def releases(self) -> Any:
+        return self.metadata["releases"]
 
     @property
     def release_files(self) -> List:
