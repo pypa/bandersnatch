@@ -34,21 +34,38 @@ jobs:
       - name: Build and push filesystem image
         uses: docker/build-push-action@v2
         env:
-          PY_VERSION: 3.9
+          PY_VERSION: '3.10'
         with:
           build-args: PY_VERSION
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: pypa/bandersnatch:latest,pypa/bandersnatch:${{ env.GIT_TAG }},pypa/bandersnatch:3,pypa/bandersnatch:3.9
+          tags: pypa/bandersnatch:latest,pypa/bandersnatch:${{ env.GIT_TAG }},pypa/bandersnatch:3,pypa/bandersnatch:3.10
 
       - name: Filesystem Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+      - name: Build and push s3 image
+        uses: docker/build-push-action@v2
+        env:
+          PY_VERSION: '3.10'
+          WITH_S3: yes
+        with:
+          build-args: |
+            PY_VERSION
+            WITH_S3
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: pypa/bandersnatch:s3-latest,pypa/bandersnatch:s3-${{ env.GIT_TAG }},pypa/bandersnatch:s3-3,pypa/bandersnatch:s3-3.10
+
+      - name: S3 Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Build and push swift image
         uses: docker/build-push-action@v2
         env:
-          PY_VERSION: 3.9
+          PY_VERSION: '3.10'
           WITH_SWIFT: yes
         with:
           build-args: |
@@ -57,7 +74,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: pypa/bandersnatch:swift-latest,pypa/bandersnatch:swift-${{ env.GIT_TAG }},pypa/bandersnatch:swift-3,pypa/bandersnatch:swift-3.9
+          tags: pypa/bandersnatch:swift-latest,pypa/bandersnatch:swift-${{ env.GIT_TAG }},pypa/bandersnatch:swift-3,pypa/bandersnatch:swift-3.10
 
       - name: Swift Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
