@@ -2,6 +2,8 @@
 
 ## Other
 
+- Add S3 Docker Image building `PR #1092`
+- Move Docker containers to Python 3.10 `PR #1092`
 - Python 3.10 is now supported `PR #1073` -- Thanks **isidentical**
 
 # 5.1.1 (2021-12-14)
