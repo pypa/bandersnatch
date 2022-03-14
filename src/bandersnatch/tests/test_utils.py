@@ -71,7 +71,7 @@ def test_rewrite(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
-    with rewrite("sample") as f:  # type: ignore
+    with rewrite("sample") as f:
         f.write("csdf")
     assert open("sample").read() == "csdf"
     mode = os.stat("sample").st_mode
@@ -85,7 +85,7 @@ def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
     with open("sample", "w") as f:
         f.write("bsdf")
     with pytest.raises(Exception):
-        with rewrite("sample") as f:  # type: ignore
+        with rewrite("sample") as f:
             f.write("csdf")
             raise Exception()
     assert open("sample").read() == "bsdf"  # type: ignore
