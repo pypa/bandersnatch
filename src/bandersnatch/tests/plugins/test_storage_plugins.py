@@ -683,7 +683,7 @@ web{0}simple{0}index.html""".format(
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with self.plugin.rewrite(target_file) as fh:  # type: ignore
+        with self.plugin.rewrite(target_file) as fh:
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
@@ -693,7 +693,7 @@ web{0}simple{0}index.html""".format(
         replace_with = "new text"
         with open(target_file, "w") as fh:
             fh.write("sample text")
-        with self.plugin.update_safe(target_file, mode="w") as fh:  # type: ignore
+        with self.plugin.update_safe(target_file, mode="w") as fh:
             fh.write(replace_with)
         with open(target_file) as fh:
             self.assertEqual(fh.read().strip(), replace_with)
