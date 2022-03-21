@@ -1,6 +1,6 @@
 # Serving your Mirror
 
-So if you've had a successful `bandersnatch mirror` run, you're now ready to server
+So if you've had a successful `bandersnatch mirror` run, you're now ready to serve
 your mirror. Any webserver can do this, as long as it can serve the simple HTML and
 packages directory that the HTML links to.
 
