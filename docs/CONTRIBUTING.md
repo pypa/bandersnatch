@@ -173,7 +173,7 @@ docker run \
 PRs must have an entry in CHANGES.md that references the PR number in the format of
 "PR #{number}". You can get the number your PR will be assigned beforehand using
 [Next PR Number](https://ichard26.github.io/next-pr-number/?owner=pypa&name=bandersnatch).
-**Some trival changes (eg. typo fixes) won't need an entry, but most
+**Some trivial changes (eg. typo fixes) won't need an entry, but most
 of the time, your change will. If unsure, take a look at what's been logged before
 or just add one to be safe.**
 
