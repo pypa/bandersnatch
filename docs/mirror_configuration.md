@@ -23,8 +23,8 @@ directory = /srv/pypi
 
 ## json
 
-The mirror json seting is a boolean (true/false) setting that indicates that
-the json packaging metadata should be mirrored in additon to the packages.
+The mirror json setting is a boolean (true/false) setting that indicates that
+the json packaging metadata should be mirrored in addition to the packages.
 
 Example:
 ``` ini

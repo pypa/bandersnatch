@@ -135,7 +135,7 @@ any:release_file.packagetype =
 Valid tags are the same as for projects.
 
 Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info`
-containing the package-wide inthe fo, `release` containing the version of the release and `release_file` the metadata
+containing the package-wide info, `release` containing the version of the release and `release_file` the metadata
 for an individual file for that release.
 
 
@@ -221,7 +221,7 @@ of the top projects consume over 100GB each, and the top 100 projects all consum
 more than 8GB each.
 
 If your usecase for a PyPI mirror is to have the diversity of packages but you
-have storage constraints, it may be preferrable to block large packages. This
+have storage constraints, it may be preferable to block large packages. This
 can be done with the `size_project_metadata` plugin.
 
 ```ini
