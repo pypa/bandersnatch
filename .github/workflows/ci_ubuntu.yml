@@ -60,7 +60,7 @@ jobs:
     - name: Upload coverage to Codecov
       # If pushed / is a pull request against main repo.
       if: (github.event_name == 'push' && github.repository == 'pypa/bandersnatch') || (github.event.pull_request.base.repo.full_name == 'pypa/bandersnatch')
-      uses: codecov/codecov-action@v2.1.0
+      uses: codecov/codecov-action@v3
       env:
         OS: ${{ matrix.os }}
         PYTHON: ${{ matrix.python-version }}
