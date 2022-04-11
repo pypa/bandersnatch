@@ -43,6 +43,9 @@ platforms =
     freebsd
     macos
     linux_armv7l
+    py3.5
+    py3.7
+    py3.9
 """
 
     def test_plugin_compiles_patterns(self) -> None:
@@ -144,6 +147,33 @@ platforms =
                         "flag": "DROP",
                     }
                 ],
+                "0.3": [
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.3-cp35-cp35m-manylinux1_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.3-cp36-cp36m-manylinux1_x86_64.whl",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.3-cp37-manylinux1_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.3-pp38-pypy38-manylinux1_x86_64.whl",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.3-cp39-cp39m-manylinux1_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                ],
             },
         }
 
@@ -159,4 +189,4 @@ platforms =
         assert sum(f["flag"] == "DROP" for r in rv for f in r) == 0
 
         # the release "0.2" should have been deleted since there is no more file in it
-        assert len(pkg.releases.keys()) == 2
+        assert len(pkg.releases.keys()) == 3
