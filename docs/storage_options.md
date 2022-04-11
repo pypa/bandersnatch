@@ -33,7 +33,7 @@ To enable S3 support the optional `s3` install must be done:
 - `pip install bandersnatch[s3]`
 - Add a `[s3]` section in the bandersnatch config file
 
-You will need an [AWS account](https://aws.amazon.com/console/) and an [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html)
+You will need an [AWS account](https://aws.amazon.com/console/) and an [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html)
 
 ### Config Example
 
