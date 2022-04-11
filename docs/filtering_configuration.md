@@ -180,7 +180,8 @@ Note the same `filter_regex` section may include a `packages` and a `releases` e
 
 ## Platform/Python-specific binaries filtering
 
-This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.  
+This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.
+
 You can also exclude Python versions by their minor version (ex. Python 2.6, 2.7) if you're sure your mirror does not need to serve these binaries.
 
 
@@ -195,7 +196,7 @@ platforms =
     py2.7
 ```
 
-Available platforms are: 
+Available platforms are:
 - `windows`
 - `macos`
 - `freebsd`
