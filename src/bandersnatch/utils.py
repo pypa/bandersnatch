@@ -139,3 +139,37 @@ def bandersnatch_safe_name(name: str) -> str:
     bandersnatch also lower cases the returned name
     """
     return SAFE_NAME_REGEX.sub("-", name).lower()
+
+
+# From https://peps.python.org/pep-0616/
+def removeprefix(original: str, prefix: str) -> str:
+    if original.startswith(prefix):
+        prefix_len = len(prefix)
+        mod_str = original[prefix_len:]
+        return mod_str
+    else:
+        return original
+
+
+# Python tags https://peps.python.org/pep-0425/#python-tag
+def parse_version(version: str) -> List[str]:
+    _versions: List[str] = []
+
+    _version_with_dot = removeprefix(version.lower(), "py")
+    _version_without_dot = _version_with_dot.replace(".", "")
+
+    pep425_pyver_str_cp = f"-cp{_version_without_dot}-"
+    pep425_pyver_str_ip = f"-ip{_version_without_dot}-"
+    pep425_pyver_str_jy = f"-jy{_version_without_dot}-"
+    pep425_pyver_str_pp = f"-pp{_version_without_dot}-"
+    pep425_pyver_str_py1 = f"-py{_version_with_dot}-"
+    pep425_pyver_str_py2 = f"-py{_version_with_dot}."
+
+    _versions.extend([pep425_pyver_str_cp])
+    _versions.extend([pep425_pyver_str_ip])
+    _versions.extend([pep425_pyver_str_jy])
+    _versions.extend([pep425_pyver_str_pp])
+    _versions.extend([pep425_pyver_str_py1])
+    _versions.extend([pep425_pyver_str_py2])
+
+    return _versions

@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List
 
 from bandersnatch.filter import FilterReleaseFilePlugin
+from bandersnatch.utils import parse_version
 
 logger = logging.getLogger("bandersnatch")
 
@@ -16,21 +17,23 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
     _patterns: List[str] = []
     _packagetypes: List[str] = []
 
-    # Python tags https://peps.python.org/pep-0425/#python-tag
-    _python24versions  = ['-cp24-' , '-ip24-' , '-jy24-' , '-pp24-' , '-py2.4.' , '-py2.4-' ]
-    _python25versions  = ['-cp25-' , '-ip25-' , '-jy25-' , '-pp25-' , '-py2.5.' , '-py2.5-' ]
-    _python26versions  = ['-cp26-' , '-ip26-' , '-jy26-' , '-pp26-' , '-py2.6.' , '-py2.6-' ]
-    _python27versions  = ['-cp27-' , '-ip27-' , '-jy27-' , '-pp27-' , '-py2.7.' , '-py2.7-' ]
-    _python31versions  = ['-cp31-' , '-ip31-' , '-jy31-' , '-pp31-' , '-py3.1.' , '-py3.1-' ]
-    _python32versions  = ['-cp32-' , '-ip32-' , '-jy32-' , '-pp32-' , '-py3.2.' , '-py3.2-' ]
-    _python33versions  = ['-cp33-' , '-ip33-' , '-jy33-' , '-pp33-' , '-py3.3.' , '-py3.3-' ]
-    _python34versions  = ['-cp34-' , '-ip34-' , '-jy34-' , '-pp34-' , '-py3.4.' , '-py3.4-' ]
-    _python35versions  = ['-cp35-' , '-ip35-' , '-jy35-' , '-pp35-' , '-py3.5.' , '-py3.5-' ]
-    _python36versions  = ['-cp36-' , '-ip36-' , '-jy36-' , '-pp36-' , '-py3.6.' , '-py3.6-' ]
-    _python37versions  = ['-cp37-' , '-ip37-' , '-jy37-' , '-pp37-' , '-py3.7.' , '-py3.7-' ]
-    _python38versions  = ['-cp38-' , '-ip38-' , '-jy38-' , '-pp38-' , '-py3.8.' , '-py3.8-' ]
-    _python39versions  = ['-cp39-' , '-ip39-' , '-jy39-' , '-pp39-' , '-py3.9.' , '-py3.9-' ]
-    _python310versions = ['-cp310-', '-ip310-', '-jy310-', '-pp310-', '-py3.10.', '-py3.10-']
+    _pythonversions = [
+        "py2.4",
+        "py2.5",
+        "py2.6",
+        "py2.7",
+        "py3.0",
+        "py3.1",
+        "py3.2",
+        "py3.3",
+        "py3.4",
+        "py3.5",
+        "py3.6",
+        "py3.7",
+        "py3.8",
+        "py3.9",
+        "py3.10",
+    ]
 
     _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
 
@@ -91,47 +94,9 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
                 self._patterns.extend(self._linuxPlatformTypes)
                 self._packagetypes.extend(["bdist_rpm"])
 
-            elif lplatform in ("py2.4"):
-                self._patterns.extend(self._python24versions)
-
-            elif lplatform in ("py2.5"):
-                self._patterns.extend(self._python25versions)
-
-            elif lplatform in ("py2.6"):
-                self._patterns.extend(self._python26versions)
-
-            elif lplatform in ("py2.7"):
-                self._patterns.extend(self._python27versions)
-
-            elif lplatform in ("py3.1"):
-                self._patterns.extend(self._python31versions)
-
-            elif lplatform in ("py3.2"):
-                self._patterns.extend(self._python32versions)
-
-            elif lplatform in ("py3.3"):
-                self._patterns.extend(self._python33versions)
-
-            elif lplatform in ("py3.4"):
-                self._patterns.extend(self._python34versions)
-
-            elif lplatform in ("py3.5"):
-                self._patterns.extend(self._python35versions)
-
-            elif lplatform in ("py3.6"):
-                self._patterns.extend(self._python36versions)
-
-            elif lplatform in ("py3.7"):
-                self._patterns.extend(self._python37versions)
-
-            elif lplatform in ("py3.8"):
-                self._patterns.extend(self._python38versions)
-
-            elif lplatform in ("py3.9"):
-                self._patterns.extend(self._python39versions)
-
-            elif lplatform in ("py3.10"):
-                self._patterns.extend(self._python310versions)
+            elif lplatform in self._pythonversions:
+                lversion = lplatform
+                self._patterns.extend(parse_version(lversion))
 
             # check for platform specific architectures
             elif lplatform in self._windowsPlatformTypes:
