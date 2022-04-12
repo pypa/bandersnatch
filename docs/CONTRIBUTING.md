@@ -10,7 +10,7 @@ chat rooms, and mailing lists is expected to follow the
 
 ## Getting Started
 
-Bandersnatch is developed using the [GitHub Flow](https://guides.github.com/introduction/flow/)
+Bandersnatch is developed using the [GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow)
 
 ### Pre Install
 
