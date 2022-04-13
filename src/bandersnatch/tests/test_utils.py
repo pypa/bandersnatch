@@ -131,5 +131,7 @@ def test_removeprefix() -> None:
 
 def test_parse_version() -> None:
     version_str = "3.6"
-    versions_list = ["-cp36-", "-ip36-", "-jy36-", "-pp36-", "-py3.6-", "-py3.6."]
+    versions_list = ["-cp36-", "-pp36-", "-ip36-", "-jy36-", "-py3.6-", "-py3.6."]
     assert versions_list == parse_version(version_str)
+    assert "-cp36-" in parse_version(version_str)
+    assert "-py3.6." in parse_version(version_str)
