@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List
 
 from bandersnatch.filter import FilterReleaseFilePlugin
+from bandersnatch.utils import parse_version
 
 logger = logging.getLogger("bandersnatch")
 
@@ -15,6 +16,24 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
 
     _patterns: List[str] = []
     _packagetypes: List[str] = []
+
+    _pythonversions = [
+        "py2.4",
+        "py2.5",
+        "py2.6",
+        "py2.7",
+        "py3.0",
+        "py3.1",
+        "py3.2",
+        "py3.3",
+        "py3.4",
+        "py3.5",
+        "py3.6",
+        "py3.7",
+        "py3.8",
+        "py3.9",
+        "py3.10",
+    ]
 
     _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
 
@@ -74,6 +93,10 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
             elif lplatform in ("linux"):
                 self._patterns.extend(self._linuxPlatformTypes)
                 self._packagetypes.extend(["bdist_rpm"])
+
+            elif lplatform in self._pythonversions:
+                lversion = lplatform
+                self._patterns.extend(parse_version(lversion))
 
             # check for platform specific architectures
             elif lplatform in self._windowsPlatformTypes:
