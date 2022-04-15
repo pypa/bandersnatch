@@ -4,7 +4,7 @@ Bandersnatch was originally developed for POSIX file system. Bandersnatch now su
 
 - POSIX / Windows filesystem (transparently via pathlib)
 - [Amazon S3](https://aws.amazon.com/s3/)
-- [Cannoical (Nvidia?) SwiftStack Storage](https://www.nvidia.com/en-us/data-center/swiftstack/)
+- [OpenStack Swift](https://docs.openstack.org/swift/latest/)
 
 ## Filesystem Support
 
@@ -93,9 +93,9 @@ But there are two main disadvantages:
 
 It is strongly recommended to set redirect or url rewrite for CDN. Please contact your service assistant for detailed instructions.
 
-## SwiftStack Storage
+## OpenStack Swift
 
-To enable SwiftStack support the optional `swift` install must be done:
+To enable Swift support the optional `swift` install must be done:
 
 - `pip install bandersnatch[swift]`
 - Add a `[swift]` section in the bandersnatch config file
