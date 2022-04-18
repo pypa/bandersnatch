@@ -104,8 +104,7 @@ To enable Swift support the optional `swift` install must be done:
 
 ```ini
 [mirror]
-# Place a local directory for temporary storage for downloads etc.
-directory = /tmp/pypi-mirror
+directory = /prefix
 storage-backend = swift
 
 [swift]
@@ -114,4 +113,11 @@ default_container = bandersnatch
 
 ### Serving your Mirror
 
-Unknown. To be added.
+Requires that the cluster has [staticweb](https://docs.openstack.org/swift/latest/middleware.html#staticweb) enabled.
+
+```shell
+# Check that staticweb is enabled
+swift capabilities | grep staticweb
+# Make the container world-readable and enable pseudo-directory translation
+swift post bandersnatch -r '.r:*' -m 'web-index: index.html'
+```
