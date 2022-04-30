@@ -59,7 +59,7 @@ jobs:
       env:
        TOXENV: INTEGRATION
       run: |
-        python -m pip install . --use-feature=in-tree-build
+        python -m pip install .
         python test_runner.py
 
     - name: Run Integration Test (uvloop)
@@ -67,5 +67,5 @@ jobs:
       env:
        TOXENV: INTEGRATION
       run: |
-        python -m pip install .[uvloop] --use-feature=in-tree-build
+        python -m pip install .[uvloop]
         python test_runner.py
