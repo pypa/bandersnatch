@@ -14,6 +14,7 @@ from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
 
 import aiohttp
+from packaging.tags import INTERPRETER_SHORT_NAMES
 
 from . import __version__
 
@@ -139,3 +140,75 @@ def bandersnatch_safe_name(name: str) -> str:
     bandersnatch also lower cases the returned name
     """
     return SAFE_NAME_REGEX.sub("-", name).lower()
+
+
+# From https://peps.python.org/pep-0616/
+def removeprefix(original: str, prefix: str) -> str:
+    """Return a string with the given prefix string removed if present.
+       If the string starts with the prefix string, return string[len(prefix):].
+       Otherwise, return the original string.
+
+    Args:
+        original (str): string to remove the prefix (e.g. 'py3.6')
+        prefix (str): the prefix to remove (e.g. 'py')
+
+    Returns:
+        str: either the modified or the original string (e.g. '3.6')
+    """
+    if original.startswith(prefix):
+        prefix_len = len(prefix)
+        mod_str = original[prefix_len:]
+        return mod_str
+    else:
+        return original
+
+
+# Python tags https://peps.python.org/pep-0425/#python-tag
+def parse_version(version: str) -> List[str]:
+    """Converts a version string to a list of strings to check the 1st part of build tags.
+    See PEP 425 (https://peps.python.org/pep-0425/#python-tag) for details.
+
+    Args:
+        version (str): string in the form of '{major}.{minor}'
+            e.g. '3.6'
+
+    Returns:
+        List[str]: list of 1st element strings from build tag tuples
+            See https://peps.python.org/pep-0425/#python-tag for details.
+            Some Windows binaries have only the 1st part before the file extension.
+            e.g. ['-cp36-', '-pp36-', '-ip36-', '-jy36-', '-py3.6-', '-py3.6.']
+    """
+    _versions: List[str] = []
+
+    _version_with_dot = removeprefix(version.lower(), "py")
+    _version_without_dot = _version_with_dot.replace(".", "")
+
+    interpreters = list(INTERPRETER_SHORT_NAMES.values())
+    interpreters.remove("py")
+    tag_separator1 = "-"
+    tag_separator2 = "."
+
+    _versions.extend(
+        [
+            tag_separator1 + i + _version_without_dot + tag_separator1
+            for i in interpreters
+        ]
+    )
+    _versions.extend(
+        [
+            tag_separator1
+            + INTERPRETER_SHORT_NAMES.get("python")
+            + _version_with_dot
+            + tag_separator1
+        ]
+    )
+    _versions.extend(
+        [
+            tag_separator1
+            + INTERPRETER_SHORT_NAMES.get("python")
+            + _version_with_dot
+            + tag_separator2
+        ]
+    )
+
+    return _versions

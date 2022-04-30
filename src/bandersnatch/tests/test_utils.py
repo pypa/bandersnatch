@@ -13,7 +13,9 @@ from bandersnatch.utils import (  # isort:skip
     bandersnatch_safe_name,
     convert_url_to_path,
     hash,
+    parse_version,
     recursive_find_files,
+    removeprefix,
     rewrite,
     unlink_parent_dir,
     user_agent,
@@ -119,3 +121,17 @@ def test_user_agent() -> None:
 def test_bandersnatch_safe_name() -> None:
     bad_name = "Flake_8_Fake"
     assert "flake-8-fake" == bandersnatch_safe_name(bad_name)
+
+
+def test_removeprefix() -> None:
+    version_str = "py3.6"
+    prefix_str = "py"
+    assert "3.6" == removeprefix(version_str, prefix_str)
+
+
+def test_parse_version() -> None:
+    version_str = "3.6"
+    versions_list = ["-cp36-", "-pp36-", "-ip36-", "-jy36-", "-py3.6-", "-py3.6."]
+    assert versions_list == parse_version(version_str)
+    assert "-cp36-" in parse_version(version_str)
+    assert "-py3.6." in parse_version(version_str)

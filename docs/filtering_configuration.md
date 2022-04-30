@@ -178,9 +178,11 @@ releases =
 Note the same `filter_regex` section may include a `packages` and a `releases` entry with any number of regular expressions.
 
 
-## Platform-specific binaries filtering
+## Platform/Python-specific binaries filtering
 
 This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.
+
+You can also exclude Python versions by their minor version (ex. Python 2.6, 2.7) if you're sure your mirror does not need to serve these binaries.
 
 
 ```ini
@@ -190,9 +192,19 @@ enabled =
 [blocklist]
 platforms =
     windows
+    py2.6
+    py2.7
 ```
 
-Available platforms are: `windows` `macos` `freebsd` `linux`.
+Available platforms are:
+- `windows`
+- `macos`
+- `freebsd`
+- `linux`
+
+Available python versions are:
+- `py2.4` ~ `py2.7`
+- `py3.1` ~ `py3.10`
 
 
 ## Keep only latest releases
