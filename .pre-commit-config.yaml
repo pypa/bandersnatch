@@ -38,5 +38,11 @@ repos:
       - id: flake8
         additional_dependencies: [flake8-bugbear]
 
+  - repo: https://github.com/trailofbits/pip-audit
+    rev: bafa0f8
+    hooks:
+      -   id: pip-audit
+          args: ["-r", "requirements.txt"]
+
 ci:
   autofix_prs: false
