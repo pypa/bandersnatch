@@ -265,5 +265,5 @@ congratulations :)
 
 Please rely on GitHub actions to cut a release.
 
-To do so, make a [GitHub Release](https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/managing-releases-in-a-repository)
+To do so, make a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
 and GitHub Actions will package and upload to PyPI.
