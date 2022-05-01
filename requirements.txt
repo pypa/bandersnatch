@@ -4,14 +4,14 @@ aiohttp-xmlrpc==1.5.0
 async-timeout>=4.0.0a3
 attrs==21.4.0
 chardet==4.0.0
-filelock==3.4.2
+filelock==3.6.0
 humanfriendly==10.0
 idna==3.3
-lxml==4.7.1
+lxml==4.8.0
 multidict==6.0.2
 packaging==21.3
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
-setuptools==60.6.0
+setuptools==62.1.0
 six==1.16.0
 yarl==1.7.2
