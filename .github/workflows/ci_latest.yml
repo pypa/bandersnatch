@@ -1,0 +1,64 @@
+name: bandersnatch_ci_latest
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: bandersnatch CI python ${{ matrix.python-version }} on ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.11-dev]
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: deadsnakes/action@v2.1.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          debug: true
+
+      - name: Setup minio
+        run: |
+            docker run -d -p 9000:9000 --name minio \
+                      -e "MINIO_ACCESS_KEY=minioadmin" \
+                      -e "MINIO_SECRET_KEY=minioadmin" \
+                      -v '/tmp/data:/data' \
+                      -v '/tmp/config:/root/.minio' \
+                      minio/minio server /data
+
+            export AWS_ACCESS_KEY_ID=minioadmin
+            export AWS_SECRET_ACCESS_KEY=minioadmin
+            export AWS_EC2_METADATA_DISABLED=true
+
+      - name: Print Python Version
+        run: python --version --version && which python
+
+      - name: Install latest pip, setuptools + wheel
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install base bandersnatch requirements
+        run: |
+          python -m pip install -r requirements.txt
+
+      - name: Run Unittests
+        env:
+          TOXENV: py3
+          os: ${{ matrix.os }}
+        run: |
+          python test_runner.py
+
+      - name: Run Integration Test
+        env:
+        TOXENV: INTEGRATION
+        run: |
+          python -m pip install .
+          python test_runner.py
+
+      - name: Run Integration Test (uvloop)
+        env:
+        TOXENV: INTEGRATION
+        run: |
+          python -m pip install .[uvloop]
+          python test_runner.py
