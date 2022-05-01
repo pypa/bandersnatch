@@ -51,14 +51,14 @@ jobs:
 
       - name: Run Integration Test
         env:
-        TOXENV: INTEGRATION
+          TOXENV: INTEGRATION
         run: |
           python -m pip install .
           python test_runner.py
 
       - name: Run Integration Test (uvloop)
         env:
-        TOXENV: INTEGRATION
+          TOXENV: INTEGRATION
         run: |
           python -m pip install .[uvloop]
           python test_runner.py
