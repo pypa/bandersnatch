@@ -7,7 +7,7 @@ chardet==4.0.0
 filelock==3.6.0
 humanfriendly==10.0
 idna==3.3
-lxml==4.7.1
+lxml==4.8.0
 multidict==6.0.2
 packaging==21.3
 # Have to ignore pyparsing as packaging <= 3.0.0
