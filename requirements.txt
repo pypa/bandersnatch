@@ -12,6 +12,6 @@ multidict==6.0.2
 packaging==21.3
 # Have to ignore pyparsing as packaging <= 3.0.0
 pyparsing==2.4.7  # pyup: ignore
-setuptools==60.6.0
+setuptools==62.1.0
 six==1.16.0
 yarl==1.7.2
