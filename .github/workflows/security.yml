@@ -1,0 +1,32 @@
+name: bandersnatch_security_audit
+
+on:
+  schedule:
+  - cron: "0 6 * * *"
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: bandersnatch Security Audit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+
+    - name: Install latest pip, setuptools + tox
+      run: |
+        python -m pip install --upgrade pip setuptools pip-audit
+
+    - name: Run pip-audit on bandersnatch deps
+      run: |
+        pip-audit -r requirements.txt
