@@ -46,3 +46,5 @@ repos:
 
 ci:
   autofix_prs: false
+  # Leave pip-audit to only run locally and not in CI
+  skip: [pip-audit]
