@@ -1,18 +1,23 @@
-# Unreleased
+# 5.2.0 (2022-05-02)
+
+## New Features
+
+- Add PEP 629 header to Simple API HTML `PR #1122`
+- Added support to exclude specific Python minor versions `PR #1110` - Thanks **davidkim83**
+- Add S3 Docker Image building `PR #1092`
 
 ## Other
 
-- Add PEP 629 header to Simple API HTML `PR #1122`
-- Add S3 Docker Image building `PR #1092`
+- Got Swift usage documentation
 - Move Docker containers to Python 3.10 `PR #1092`
-- Python 3.10 is now supported `PR #1073` -- Thanks **isidentical**
-- Added support to exclude specific Python minor versions `PR #1110`
+- Python 3.10 is now supported `PR #1073` - Thanks **isidentical**
+- Move minio docker image running to official image
 
 # 5.1.1 (2021-12-14)
 
 ## Bug fixes
 
-- Fix debug output for package changes at end of mirror operation `PR #1066` -- Thanks **forky2**
+- Fix debug output for package changes at end of mirror operation `PR #1066` - Thanks **forky2**
 
 ## Other
 
