@@ -38,6 +38,9 @@ class Mirror:
     # of it when starting to sync.
     now = None
 
+    # PEP620 Simple API Version
+    pypi_repository_version = "1.0"
+
     def __init__(self, master: Master, workers: int = 3):
         self.master = master
         self.filters = LoadedFilters(load_all=True)
@@ -486,6 +489,10 @@ class BandersnatchMirror(Mirror):
             f.write("<!DOCTYPE html>\n")
             f.write("<html>\n")
             f.write("  <head>\n")
+            f.write(
+                '    <meta name="pypi:repository-version" content='
+                f'"{self.pypi_repository_version}">\n'
+            )
             f.write("    <title>Simple Index</title>\n")
             f.write("  </head>\n")
             f.write("  <body>\n")
@@ -754,11 +761,12 @@ class BandersnatchMirror(Mirror):
             "<!DOCTYPE html>\n"
             "<html>\n"
             "  <head>\n"
-            "    <title>Links for {0}</title>\n"
+            '    <meta name="pypi:repository-version" content="{0}">\n'
+            "    <title>Links for {1}</title>\n"
             "  </head>\n"
             "  <body>\n"
-            "    <h1>Links for {0}</h1>\n"
-        ).format(package.raw_name)
+            "    <h1>Links for {1}</h1>\n"
+        ).format(self.pypi_repository_version, package.raw_name)
 
         release_files = package.release_files
         logger.debug(f"There are {len(release_files)} releases for {package.name}")

@@ -38,6 +38,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
