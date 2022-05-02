@@ -236,6 +236,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -285,6 +286,7 @@ web{0}simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -321,6 +323,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -358,6 +361,7 @@ web{0}simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -430,6 +434,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -471,6 +476,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -511,6 +517,7 @@ simple{0}index.html""".format(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Simple Index</title>
   </head>
   <body>
@@ -643,6 +650,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -671,6 +679,7 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -700,6 +709,7 @@ async def test_package_sync_with_canonical_simple_page(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for Foo</title>
   </head>
   <body>
@@ -728,6 +738,7 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for Foo</title>
   </head>
   <body>
@@ -756,6 +767,7 @@ async def test_package_sync_with_normalized_simple_page(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for Foo.bar-thing_other</title>
   </head>
   <body>
@@ -791,6 +803,7 @@ async def test_package_sync_simple_page_root_uri(mirror: BandersnatchMirror) -> 
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -817,6 +830,7 @@ async def test_package_sync_simple_page_with_files(mirror: BandersnatchMirror) -
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -849,6 +863,7 @@ async def test_package_sync_simple_page_with_existing_dir(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -879,6 +894,7 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for foo</title>
   </head>
   <body>
@@ -1070,6 +1086,7 @@ async def test_survives_exceptions_from_record_finished_package(
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="pypi:repository-version" content="1.0">
     <title>Links for Foo</title>
   </head>
   <body>
