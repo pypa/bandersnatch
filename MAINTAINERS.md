@@ -28,7 +28,7 @@ maintainers hold and can conduct.
 
 Please always think of the mission of bandersnatch. We should just mirror in a
 compatible way like a PEP381 mirror. Simple is always better than complex and all *bug*
-issues need to be reproducable for our developers.
+issues need to be reproducible for our developers.
 
 #### pyup.io
 - Remember it's not perfect

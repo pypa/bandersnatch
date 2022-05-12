@@ -10,7 +10,7 @@ class PackageNotFound(Exception):
 
 
 class StaleMetadata(Exception):
-    """We attempted to retreive metadata from PyPI, but it was stale."""
+    """We attempted to retrieve metadata from PyPI, but it was stale."""
 
     def __init__(self, package_name: str, attempts: int) -> None:
         super().__init__()

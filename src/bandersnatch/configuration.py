@@ -70,7 +70,7 @@ class BandersnatchConfig(metaclass=Singleton):
         if self.config_file:
             config_file = self.config_file
         self.config = configparser.ConfigParser(delimiters="=")
-        # mypy is unahppy with us assigning to a method - (monkeypatching?)
+        # mypy is unhappy with us assigning to a method - (monkeypatching?)
         self.config.optionxform = lambda option: option  # type: ignore
         self.config.read(config_file)
 

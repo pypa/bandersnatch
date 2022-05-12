@@ -34,7 +34,7 @@ def _delete_parser(subparsers: argparse._SubParsersAction) -> None:
         "delete",
         help=(
             "Consulte metadata (locally or remotely) and delete "
-            + "entire pacakge artifacts."
+            + "entire package artifacts."
         ),
     )
     d.add_argument(
@@ -116,7 +116,7 @@ def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _make_parser() -> argparse.ArgumentParser:
-    # Seperated so sphinx-argparse-cli can do its auto documentation magic.
+    # Separated so sphinx-argparse-cli can do its auto documentation magic.
     parser = argparse.ArgumentParser(
         description="PyPI PEP 381 mirroring client.", prog="bandersnatch"
     )
