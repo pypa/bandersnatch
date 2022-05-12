@@ -272,8 +272,8 @@ class BandersnatchMirror(Mirror):
 
         if self.storage_backend.exists(self.todolist):
             # We started a sync previously and left a todo list as well as the
-            # targetted serial. We'll try to keep going through the todo list
-            # and then mark the targetted serial as done
+            # targeted serial. We'll try to keep going through the todo list
+            # and then mark the targeted serial as done
             logger.info("Resuming interrupted sync from local todo list.")
             with self.storage_backend.open_file(self.todolist, text=True) as fh:
                 saved_todo = iter(fh)
@@ -619,7 +619,7 @@ class BandersnatchMirror(Mirror):
 
     """
     BandersnatchMirror now includes all the original aspects of Mirror
-    The next functions and properities are moved from Package
+    The next functions and properties are moved from Package
     """
 
     def json_file(self, package_name: str) -> Path:
@@ -724,7 +724,7 @@ class BandersnatchMirror(Mirror):
                             f"{url}"
                         )
                     # Log an ERROR entry with traceback for the last URL entry in list,
-                    # suggesting the final attemp of retriving the file has failed
+                    # suggesting the final attempt of retrieving the file has failed
                     else:
                         logger.exception(
                             "Continuing to next file after error downloading: " f"{url}"

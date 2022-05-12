@@ -61,7 +61,7 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         """
         if self._patterns or self._packagetypes:
             logger.debug(
-                "Skipping initalization of Exclude Platform plugin. "
+                "Skipping initialization of Exclude Platform plugin. "
                 + "Already initialized"
             )
             return

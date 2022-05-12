@@ -163,7 +163,7 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 
 - Refactored the removal of releases for release_plugins to happen inside of Package `PR #608` - Thanks **@gerrod3**
 - Minor refactor of Package class `PR #606` - Thanks **@dralley**
-- Refactored filter loading into seperate class `PR #599` - Thanks **@gerrod3**
+- Refactored filter loading into separate class `PR #599` - Thanks **@gerrod3**
 - Move legacy directory cleanup to mirror.py `PR #586`
 - Move verify to use Master for HTTP calls - `PR #555`
 - Move http request code for package metadata to master.py - `PRs #550` - Thanks **@dralley**
@@ -189,8 +189,8 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 - Raise for error HTML response on all aiohttp session requests - `PR #494 / #496` - Thanks **@windtail**
 - Pass str to shutil.move due to Python bug - `PR #497` - Thanks **@SanketDG**
 - Some more type hints added to `verify.py` - `PR #488` - Thanks **@SanketDG**
-- Ignore `atime` on stat in test `test_package_sync_does_not_touch_existing_local_file` comparision
-  as it casues stat compare fail on a slower run - `PR #487` - Thanks **@SanketDG**
+- Ignore `atime` on stat in test `test_package_sync_does_not_touch_existing_local_file` comparison
+  as it causes stat compare fail on a slower run - `PR #487` - Thanks **@SanketDG**
 
 ## 4.0.1 (2020-4-5)
 
@@ -236,7 +236,7 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 
 ## 3.3.1 (2019-04-14)
 
-- Make plugins logs less noisy and more stateful (don't initalize multiple times) - `Fixes #134 #147 #193 #195`
+- Make plugins logs less noisy and more stateful (don't initialize multiple times) - `Fixes #134 #147 #193 #195`
 - Latest releases plugin always keeps current version - `Fixes #196` - Thanks **@rene-d**
 
 # 3.3.0 (2019-04-11)

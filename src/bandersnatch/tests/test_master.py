@@ -23,8 +23,8 @@ async def test_rpc_url(master: Master) -> None:
 async def test_all_packages(master: Master) -> None:
     expected = [["aiohttp", "", "", "", "69"]]
     master.rpc = AsyncMock(return_value=expected)  # type: ignore
-    pacakges = await master.all_packages()
-    assert expected == pacakges
+    packages = await master.all_packages()
+    assert expected == packages
 
 
 @pytest.mark.asyncio
