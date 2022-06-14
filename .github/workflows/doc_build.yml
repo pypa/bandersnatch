@@ -9,14 +9,14 @@ on:
 jobs:
   lint:
     name: html + linkcheck build
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
-
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: Set up latest Python
       uses: actions/setup-python@v4
+      with:
+        python-version: "*"
 
     - name: Install latest pip, setuptools + tox
       run: |
