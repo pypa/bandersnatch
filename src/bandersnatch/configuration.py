@@ -128,6 +128,12 @@ def validate_config_values(  # noqa: C901
         )
     logger.info(f"Selected storage backend: {storage_backend_name}")
 
+    if storage_backend_name == "s3" and json_save:
+        logger.error(
+            "Json save is not supported with s3 storage backend, falling back to false"
+        )
+        json_save = False
+
     try:
         digest_name = config.get("mirror", "digest_name")
     except configparser.NoOptionError:
