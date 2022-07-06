@@ -45,11 +45,30 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     return 0
 
 
+async def delete_simple_page(
+    simple_base_path: Path, package: str, dry_run: bool = True
+) -> None:
+    if dry_run:
+        logger.info(f"[dry run]rm simple page of {package}")
+        return
+    simple_dir = simple_base_path / package
+    simple_index = simple_dir / "index.html"
+    simple_index.unlink(missing_ok=True)
+    if simple_dir.exists():
+        simple_dir.rmdir()
+
+
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     storage_backend = next(
-        iter(storage_backend_plugins(config=config, clear_cache=True))
+        iter(
+            storage_backend_plugins(
+                backend=config.get("mirror", "storage-backend"),
+                config=config,
+                clear_cache=True,
+            )
+        )
     )
     web_base_path = storage_backend.web_base_path
     json_base_path = storage_backend.json_base_path
@@ -75,7 +94,12 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
             logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
             await get_latest_json(master, json_full_path, config, executor, False)
             if not json_full_path.exists():
-                logger.error(f"Unable to HTTP get JSON for {json_full_path}")
+                logger.error(
+                    f"Unable to HTTP get JSON for {json_full_path}, "
+                    f"blob files will not be cleaned."
+                )
+                await delete_simple_page(simple_path, canon_name, dry_run=args.dry_run)
+                await delete_simple_page(simple_path, package, dry_run=args.dry_run)
                 continue
 
         with storage_backend.open_file(json_full_path, text=True) as jfp:

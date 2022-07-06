@@ -641,7 +641,6 @@ class BandersnatchMirror(Mirror):
         Take the JSON metadata we just fetched and save to disk
         """
         try:
-            # TODO: Fix this so it works with swift
             with self.storage_backend.rewrite(self.json_file(name)) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
             self.diff_file_list.append(self.json_file(name))
@@ -657,9 +656,7 @@ class BandersnatchMirror(Mirror):
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
         if self.json_pypi_symlink(name).exists():
             self.json_pypi_symlink(name).unlink()
-        self.json_pypi_symlink(name).symlink_to(
-            os.path.relpath(self.json_file(name), self.json_pypi_symlink(name).parent)
-        )
+        self.json_pypi_symlink(name).write_bytes(self.json_file(name).read_bytes())
 
         return True
 
