@@ -54,7 +54,9 @@ class Mirror:
         self.altered_packages: Dict[str, Set[str]] = {}
 
     async def synchronize(
-        self, specific_packages: Optional[List[str]] = None
+        self,
+        specific_packages: Optional[List[str]] = None,
+        sync_simple_index: bool = True,
     ) -> Dict[str, Set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
@@ -84,7 +86,8 @@ class Mirror:
             )
 
         await self.sync_packages()
-        self.finalize_sync()
+        if sync_simple_index:
+            self.finalize_sync()
         return self.altered_packages
 
     def _filter_packages(self) -> None:
@@ -979,7 +982,9 @@ class BandersnatchMirror(Mirror):
 
 
 async def mirror(
-    config: configparser.ConfigParser, specific_packages: Optional[List[str]] = None
+    config: configparser.ConfigParser,
+    specific_packages: Optional[List[str]] = None,
+    sync_simple_index: bool = True,
 ) -> int:
     config_values = validate_config_values(config)
 
@@ -1046,7 +1051,9 @@ async def mirror(
             download_mirror=config_values.download_mirror,
             download_mirror_no_fallback=config_values.download_mirror_no_fallback,
         )
-        changed_packages = await mirror.synchronize(specific_packages)
+        changed_packages = await mirror.synchronize(
+            specific_packages, sync_simple_index=sync_simple_index
+        )
 
     logger.info(f"{len(changed_packages)} packages had changes")
     for package_name, changes in changed_packages.items():
