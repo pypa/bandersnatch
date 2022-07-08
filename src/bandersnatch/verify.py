@@ -3,7 +3,6 @@ import asyncio
 import concurrent.futures
 import json
 import logging
-import os
 import sys
 from argparse import Namespace
 from asyncio.queues import Queue
@@ -18,7 +17,7 @@ import aiohttp
 from .filter import LoadedFilters
 from .master import Master
 from .storage import storage_backend_plugins
-from .utils import convert_url_to_path, hash, recursive_find_files, unlink_parent_dir
+from .utils import convert_url_to_path, find_all_files, hash, unlink_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +82,7 @@ async def delete_unowned_files(
     loop = asyncio.get_event_loop()
     packages_path = mirror_base / "web" / "packages"
     all_fs_files: Set[Path] = set()
-    await loop.run_in_executor(
-        executor, recursive_find_files, all_fs_files, packages_path
-    )
+    await loop.run_in_executor(executor, find_all_files, all_fs_files, packages_path)
 
     all_package_files_set = set(all_package_files)
     unowned_files = all_fs_files - all_package_files_set
@@ -139,6 +136,13 @@ async def verify(
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
 
+    if (
+        hasattr(json_full_path, "keep_file")
+        and json_full_path.name == json_full_path.keep_file  # type: ignore
+    ):
+        logger.debug(f"Skipping keep file {str(json_full_path)}")
+        return
+
     if not json_full_path.exists():
         logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
         return
@@ -175,7 +179,7 @@ async def verify(
                             deferred_exception = e
                         continue
 
-            calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
+            calc_sha256 = await loop.run_in_executor(executor, hash, pkg_file)
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
@@ -228,10 +232,15 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     """Crawl all saved JSON metadata or online to check we have all packages
     if delete - generate a diff of unowned files"""
     all_package_files: List[Path] = []
-    loop = asyncio.get_event_loop()
 
     storage_backend = next(
-        iter(storage_backend_plugins(config=config, clear_cache=True))
+        iter(
+            storage_backend_plugins(
+                config=config,
+                clear_cache=True,
+                backend=config.get("mirror", "storage-backend"),
+            )
+        )
     )
 
     mirror_base_path = storage_backend.PATH_BACKEND(config.get("mirror", "directory"))
@@ -241,7 +250,7 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
 
     logger.info(f"Starting verify for {mirror_base_path} with {workers} workers")
     try:
-        json_files = await loop.run_in_executor(executor, os.listdir, json_base)
+        json_files = list(x.name for x in json_base.iterdir())
     except FileExistsError as fee:
         logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2

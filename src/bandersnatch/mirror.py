@@ -626,10 +626,10 @@ class BandersnatchMirror(Mirror):
     """
 
     def json_file(self, package_name: str) -> Path:
-        return Path(self.webdir / "json" / package_name)
+        return self.webdir / "json" / package_name
 
     def json_pypi_symlink(self, package_name: str) -> Path:
-        return Path(self.webdir / "pypi" / package_name / "json")
+        return self.webdir / "pypi" / package_name / "json"
 
     def simple_directory(self, package: Package) -> Path:
         if self.hash_index:
@@ -656,7 +656,9 @@ class BandersnatchMirror(Mirror):
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
         if self.json_pypi_symlink(name).exists():
             self.json_pypi_symlink(name).unlink()
-        self.json_pypi_symlink(name).write_bytes(self.json_file(name).read_bytes())
+        self.storage_backend.copy_file(
+            self.json_file(name), self.json_pypi_symlink(name)
+        )
 
         return True
 
