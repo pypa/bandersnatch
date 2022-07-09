@@ -14,6 +14,7 @@ of PyPI to get shasums and release file paths to download and workout where
 to layout the package files on a POSIX file system.
 
 As of 4.0 bandersnatch:
+
 - Is fully asyncio based (mainly via aiohttp)
 - Only stores PEP503 nomalized packages names for the /simple API
 - Only stores JSON in normailzed package name path too
