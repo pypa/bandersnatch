@@ -41,6 +41,8 @@ class FakeConfig:
                 return "/data/pypi"
             if item == "master":
                 return "https://unittest.org"
+            if item == "storage-backend":
+                return "filesystem"
         return ""
 
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
@@ -215,7 +217,6 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
-    monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
     await metadata_verify(fc, fa)  # type: ignore
 
 
