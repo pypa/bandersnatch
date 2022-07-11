@@ -16,6 +16,7 @@ from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
 import bandersnatch
 from bandersnatch.master import Master
 from bandersnatch.utils import convert_url_to_path, find
+from bandersnatch_storage_plugins.filesystem import pathlib
 
 from bandersnatch.verify import (  # isort:skip
     get_latest_json,
@@ -32,6 +33,10 @@ async def do_nothing(*args: Any, **kwargs: Any) -> None:
 
 def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
+
+
+def some_paths(*_: Any, **__: Any) -> List[Path]:
+    return [Path("/data/pypi/web/json/bandersnatch"), Path("/data/pypi/web/json/black")]
 
 
 class FakeConfig:
@@ -202,8 +207,8 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
-    master.url_fetch = do_nothing  # type: ignore
-    await get_latest_json(master, json_path, config, executor)  # type: ignore
+    master.url_fetch = do_nothing
+    await get_latest_json(master, json_path, config, executor)
 
 
 @pytest.mark.asyncio
@@ -217,7 +222,8 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
-    await metadata_verify(fc, fa)  # type: ignore
+    monkeypatch.setattr(pathlib.Path, "iterdir", some_paths)
+    await metadata_verify(fc, fa)
 
 
 @pytest.mark.asyncio
@@ -233,15 +239,17 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_timeout = AsyncMock(side_effect=ServerTimeoutError)
-    master.url_fetch = url_fetch_timeout  # type: ignore
+    master.url_fetch = url_fetch_timeout
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[str] = []
+    all_package_files: List[Path] = []
 
-    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    await verify(
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa
+    )  # noqa: E501
     assert jsonfile.exists()
     assert not all_package_files
 
@@ -261,15 +269,16 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
-
+    master.url_fetch = url_fetch_404
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
     all_package_files: List[str] = []
 
-    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    await verify(
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa
+    )  # noqa: E501
     assert not jsonfile.exists()
     assert not all_package_files
 
@@ -289,7 +298,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    master.url_fetch = url_fetch_404
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True, exist_ok=True)
@@ -300,7 +309,9 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
         )
     all_package_files: List[str] = []
 
-    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    await verify(
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa
+    )  # noqa: E501
     assert jsonfile.exists()
     assert not all_package_files
 
