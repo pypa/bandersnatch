@@ -239,7 +239,7 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_timeout = AsyncMock(side_effect=ServerTimeoutError)
-    master.url_fetch = url_fetch_timeout
+    master.url_fetch = url_fetch_timeout  # type: ignore
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
@@ -249,7 +249,7 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
     await verify(
         master, fc, "bandersnatch", tmp_path, all_package_files, fa
-    )  # noqa: E501
+    )  # type: ignore # noqa: E501
     assert jsonfile.exists()
     assert not all_package_files
 
@@ -278,8 +278,8 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     all_package_files: List[str] = []
 
     await verify(
-        master, fc, "bandersnatch", tmp_path, all_package_files, fa
-    )  # type: ignore # noqa: E501
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore # noqa: E501
+    )
     assert not jsonfile.exists()
     assert not all_package_files
 
