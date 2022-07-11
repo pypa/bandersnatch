@@ -86,8 +86,7 @@ class Mirror:
             )
 
         await self.sync_packages()
-        if sync_simple_index:
-            self.finalize_sync()
+        self.finalize_sync(sync_index_page=sync_simple_index)
         return self.altered_packages
 
     def _filter_packages(self) -> None:
@@ -167,7 +166,7 @@ class Mirror:
             # TODO Remove this check by following packages_to_sync's typing
             self.on_error(e)
 
-    def finalize_sync(self) -> None:
+    def finalize_sync(self, sync_index_page: bool = True) -> None:
         raise NotImplementedError()
 
     def on_error(self, exception: BaseException, **kwargs: Dict) -> None:
@@ -344,8 +343,9 @@ class BandersnatchMirror(Mirror):
         # Cleanup old legacy non PEP 503 Directories created for the Simple API
         await self.cleanup_non_pep_503_paths(package)
 
-    def finalize_sync(self) -> None:
-        self.sync_index_page()
+    def finalize_sync(self, sync_index_page: bool = True) -> None:
+        if sync_index_page:
+            self.sync_index_page()
         if self.need_wrapup:
             self.wrapup_successful_sync()
         return None

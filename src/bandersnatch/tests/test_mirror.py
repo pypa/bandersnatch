@@ -298,6 +298,28 @@ web{0}simple{0}index.html""".format(
 
 
 @pytest.mark.asyncio
+async def test_mirror_sync_package_skip_index(mirror: BandersnatchMirror) -> None:
+    mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
+    mirror.json_save = True
+    # Recall bootstrap so we have the json dirs
+    mirror._bootstrap()
+    await mirror.synchronize(sync_simple_index=False)
+
+    assert """\
+json{0}foo
+last-modified
+packages{0}2.7{0}f{0}foo{0}foo.whl
+packages{0}any{0}f{0}foo{0}foo.zip
+pypi{0}foo{0}json
+simple{0}foo{0}index.html""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir, dirs=False
+    )
+    assert open("status", "rb").read() == b"1"
+
+
+@pytest.mark.asyncio
 async def test_mirror_sync_package(mirror: BandersnatchMirror) -> None:
     mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
     mirror.json_save = True
