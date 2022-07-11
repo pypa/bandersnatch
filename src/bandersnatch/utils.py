@@ -109,13 +109,6 @@ def rewrite(
     shutil.move(filepath_tmp, filepath)
 
 
-def recursive_find_files(files: Set[Path], base_dir: Path) -> None:
-    dirs = [d for d in base_dir.iterdir() if d.is_dir()]
-    files.update([x for x in base_dir.iterdir() if x.is_file()])
-    for directory in dirs:
-        recursive_find_files(files, directory)
-
-
 def find_all_files(files: Set[Path], base_dir: Path) -> None:
     for f in base_dir.rglob("*"):
         if not f.is_file():
