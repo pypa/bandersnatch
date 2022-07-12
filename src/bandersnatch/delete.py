@@ -46,7 +46,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
 
 
 async def delete_simple_page(
-    simple_base_path: Path, package: str, dry_run: bool = True
+    simple_base_path: Path, package: str, hash_index=False, dry_run: bool = True
 ) -> None:
     if dry_run:
         logger.info(f"[dry run]rm simple page of {package}")
@@ -56,6 +56,13 @@ async def delete_simple_page(
     simple_index.unlink(missing_ok=True)
     if simple_dir.exists():
         simple_dir.rmdir()
+    if not hash_index:
+        return
+    hashed_simple_dir = simple_base_path / package[0] / package
+    hashed_index = hashed_simple_dir / "index.html"
+    hashed_index.unlink(missing_ok=True)
+    if hashed_simple_dir.exists():
+        hashed_simple_dir.rmdir()
 
 
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
@@ -116,20 +123,12 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 delete_coros.append(delete_path(blob_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
-        package_simple_path = simple_path / canon_name
-        package_simple_path_nc = simple_path / package if need_nc_paths else None
-        package_hash_path = simple_path / canon_name[0] / canon_name
-        package_hash_path_nc = (
-            simple_path / canon_name[0] / package if need_nc_paths else None
-        )
-        # Try cleanup non canon name if they differ
+        hash_index_enabled = config.getboolean("mirror", "hash-index")
+        await delete_simple_page(simple_path, canon_name, hash_index=hash_index_enabled, dry_run=args.dry_run)
+        await delete_simple_page(simple_path, package, hash_index=hash_index_enabled, dry_run=args.dry_run)
         for package_path in (
             json_full_path,
             legacy_json_path,
-            package_simple_path,
-            package_simple_path_nc,
-            package_hash_path,
-            package_hash_path_nc,
             json_full_path_nc,
         ):
             if not package_path:

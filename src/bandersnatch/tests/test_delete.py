@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 import pytest
 
-from bandersnatch.delete import delete_packages, delete_path
+from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
 from bandersnatch.utils import find
 
@@ -154,3 +154,28 @@ async def test_delete_packages_no_exist() -> None:
     with patch("bandersnatch.delete.logger.error") as mock_log:
         assert await delete_packages(_fake_config(), args, master) == 0
         assert mock_log.call_count == len(args.pypi_packages)
+
+
+@pytest.mark.asyncio
+async def test_delete_simple_page() -> None:
+    with TemporaryDirectory() as td:
+        td_path = Path(td)
+        packages = ["foo", "bar"]
+        # creating simple pages
+        for p in packages:
+            index = td_path / p
+            index_hashed = td_path / p[0] / p
+            index.mkdir(parents=True)
+            index_hashed.mkdir(parents=True)
+            (index / "index.html").touch()
+            (index_hashed / "index.html").touch()
+        await delete_simple_page(td_path, "foo", dry_run=False)
+        assert not (td_path / "foo").exists()
+        assert not (td_path / "foo" / "index.html").exists()
+        assert (td_path / "f" / "foo").exists()
+        assert (td_path / "f" / "foo" / "index.html").exists()
+        assert (td_path / "bar").exists()
+        assert (td_path / "bar" / "index.html").exists()
+        await delete_simple_page(td_path, "foo", hash_index=True, dry_run=False)
+        assert not (td_path / "f" / "foo").exists()
+        assert not (td_path / "f" / "foo" / "index.html").exists()
