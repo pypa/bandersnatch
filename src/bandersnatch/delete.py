@@ -46,7 +46,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
 
 
 async def delete_simple_page(
-    simple_base_path: Path, package: str, hash_index=False, dry_run: bool = True
+    simple_base_path: Path, package: str, hash_index: bool = False, dry_run: bool = True
 ) -> None:
     if dry_run:
         logger.info(f"[dry run]rm simple page of {package}")
@@ -124,8 +124,12 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
-        await delete_simple_page(simple_path, canon_name, hash_index=hash_index_enabled, dry_run=args.dry_run)
-        await delete_simple_page(simple_path, package, hash_index=hash_index_enabled, dry_run=args.dry_run)
+        await delete_simple_page(
+            simple_path, canon_name, hash_index=hash_index_enabled, dry_run=args.dry_run
+        )
+        await delete_simple_page(
+            simple_path, package, hash_index=hash_index_enabled, dry_run=args.dry_run
+        )
         for package_path in (
             json_full_path,
             legacy_json_path,
