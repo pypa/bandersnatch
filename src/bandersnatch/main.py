@@ -114,10 +114,10 @@ def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     m.set_defaults(op="sync")
     m.add_argument(
-        "--skip-root",
+        "--skip-simple-root",
         action="store_true",
         default=False,
-        help="Skip updating simple page root",
+        help="Skip updating simple index root page",
     )
 
 
