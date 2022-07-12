@@ -68,6 +68,7 @@ def _fake_config() -> ConfigParser:
     cp["mirror"]["directory"] = "/tmp/unittest"
     cp["mirror"]["workers"] = "1"
     cp["mirror"]["storage-backend"] = "filesystem"
+    cp["mirror"]["hash-index"] = "true"
     return cp
 
 
@@ -122,7 +123,7 @@ async def test_delete_packages() -> None:
                 pjfp.write(package_json_str)
             legacy_json_path = pypi_path / package_name / "json"
             legacy_json_path.parent.mkdir()
-            legacy_json_path.symlink_to(package_json_path)
+            legacy_json_path.write_bytes(package_json_path.read_bytes())
 
             package_json = loads(package_json_str)
             for _version, blobs in package_json["releases"].items():
