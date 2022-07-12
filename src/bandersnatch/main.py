@@ -163,7 +163,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         return await bandersnatch.verify.metadata_verify(config, args)
     elif args.op.lower() == "sync":
         return await bandersnatch.mirror.mirror(
-            config, args.packages, not args.skip_root
+            config, args.packages, not args.skip_simple_root
         )
 
     if args.force_check:
