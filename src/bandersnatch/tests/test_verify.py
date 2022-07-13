@@ -248,8 +248,8 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
     all_package_files: List[Path] = []
 
     await verify(
-        master, fc, "bandersnatch", tmp_path, all_package_files, fa
-    )  # type: ignore # noqa: E501
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore
+    )  # noqa: E501
     assert jsonfile.exists()
     assert not all_package_files
 
