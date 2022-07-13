@@ -27,7 +27,7 @@ jobs:
 
     - name: Run a twine check
       run: |
-        twine check dist/*
+        twine check --strict dist/*
 
     - name: Upload to PyPI via Twine
       env:
