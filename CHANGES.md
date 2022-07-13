@@ -5,6 +5,7 @@
 - Add PEP 629 header to Simple API HTML `PR #1122`
 - Added support to exclude specific Python minor versions `PR #1110` - Thanks **davidkim83**
 - Add S3 Docker Image building `PR #1092`
+- Add `--skip-simple-root` option for `bandersnatch sync` command `PR #1145`
 
 ## Other
 

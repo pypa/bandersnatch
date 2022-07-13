@@ -113,6 +113,12 @@ def _sync_parser(subparsers: argparse._SubParsersAction) -> None:
         help="The name of package to sync",
     )
     m.set_defaults(op="sync")
+    m.add_argument(
+        "--skip-simple-root",
+        action="store_true",
+        default=False,
+        help="Skip updating simple index root page",
+    )
 
 
 def _make_parser() -> argparse.ArgumentParser:
@@ -156,7 +162,9 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     elif args.op.lower() == "verify":
         return await bandersnatch.verify.metadata_verify(config, args)
     elif args.op.lower() == "sync":
-        return await bandersnatch.mirror.mirror(config, args.packages)
+        return await bandersnatch.mirror.mirror(
+            config, args.packages, not args.skip_simple_root
+        )
 
     if args.force_check:
         storage_plugin = next(iter(storage_backend_plugins()))
