@@ -10,6 +10,7 @@
 - Added support to exclude specific Python minor versions `PR #1110` - Thanks **davidkim83**
 - Add S3 Docker Image building `PR #1092`
 - Add `--skip-simple-root` option for `bandersnatch sync` command `PR #1145`
+- Add delete and verify support in s3 storage backend `PR #1142`
 
 ## Other
 
