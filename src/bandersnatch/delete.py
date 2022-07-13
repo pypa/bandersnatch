@@ -45,7 +45,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     return 0
 
 
-async def delete_simple_page(
+def delete_simple_page(
     simple_base_path: Path, package: str, hash_index: bool = False, dry_run: bool = True
 ) -> None:
     if dry_run:
@@ -105,8 +105,8 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                     f"Unable to HTTP get JSON for {json_full_path}, "
                     f"blob files will not be cleaned."
                 )
-                await delete_simple_page(simple_path, canon_name, dry_run=args.dry_run)
-                await delete_simple_page(simple_path, package, dry_run=args.dry_run)
+                delete_simple_page(simple_path, canon_name, dry_run=args.dry_run)
+                delete_simple_page(simple_path, package, dry_run=args.dry_run)
                 continue
 
         with storage_backend.open_file(json_full_path, text=True) as jfp:
@@ -124,10 +124,10 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
-        await delete_simple_page(
+        delete_simple_page(
             simple_path, canon_name, hash_index=hash_index_enabled, dry_run=args.dry_run
         )
-        await delete_simple_page(
+        delete_simple_page(
             simple_path, package, hash_index=hash_index_enabled, dry_run=args.dry_run
         )
         for package_path in (
