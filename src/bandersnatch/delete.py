@@ -54,19 +54,11 @@ def delete_simple_page(
     simple_dir = simple_base_path / package
     simple_index = simple_dir / "index.html"
     simple_index.unlink(missing_ok=True)
-    if simple_dir.exists():
-        for p in simple_dir.iterdir():
-            p.unlink(missing_ok=True)
-        simple_dir.rmdir()
     if not hash_index:
         return
     hashed_simple_dir = simple_base_path / package[0] / package
     hashed_index = hashed_simple_dir / "index.html"
     hashed_index.unlink(missing_ok=True)
-    if hashed_simple_dir.exists():
-        for p in hashed_simple_dir.iterdir():
-            p.unlink(missing_ok=True)
-        hashed_simple_dir.rmdir()
 
 
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
