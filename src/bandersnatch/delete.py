@@ -53,12 +53,22 @@ def delete_simple_page(
         return
     simple_dir = simple_base_path / package
     simple_index = simple_dir / "index.html"
-    simple_index.unlink(missing_ok=True)
-    if not hash_index:
-        return
     hashed_simple_dir = simple_base_path / package[0] / package
     hashed_index = hashed_simple_dir / "index.html"
-    hashed_index.unlink(missing_ok=True)
+    folders_to_clean = [simple_dir]
+    if hash_index:
+        hashed_index.unlink(missing_ok=True)
+        folders_to_clean.append(hashed_simple_dir)
+    else:
+        simple_index.unlink(missing_ok=True)
+    for f in folders_to_clean:
+        if f.exists():
+            for p in reversed(list(f.rglob("*"))):
+                if p.is_file() or p.is_symlink():
+                    p.unlink()
+                elif p.is_dir():
+                    p.rmdir()
+            f.rmdir()
 
 
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
