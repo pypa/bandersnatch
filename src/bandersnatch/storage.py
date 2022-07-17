@@ -140,7 +140,7 @@ class Storage:
         """
         Code to initialize the plugin
         """
-        # The intialize_plugin method is run once to initialize the plugin.  This should
+        # The initialize_plugin method is run once to initialize the plugin.  This should
         # contain all code to set up the plugin.
         # This method is not run in the fast path and should be used to do things like
         # indexing filter databases, etc that will speed the operation of the filter

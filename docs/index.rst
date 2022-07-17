@@ -17,7 +17,7 @@ As of 4.0 bandersnatch:
 
 - Is fully asyncio based (mainly via aiohttp)
 - Only stores PEP503 nomalized packages names for the /simple API
-- Only stores JSON in normailzed package name path too
+- Only stores JSON in normalized package name path too
 
 
 .. sphinx_argparse_cli::
