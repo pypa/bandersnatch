@@ -194,7 +194,7 @@ async def test_delete_package_json_not_exists(mirror: BandersnatchMirror) -> Non
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404
+    master.url_fetch = url_fetch_404  # type: ignore
     package_simple_dir = mirror.webdir / "simple" / "cooper"
     package_simple_dir.mkdir()
     index_page = package_simple_dir / "index.html"
