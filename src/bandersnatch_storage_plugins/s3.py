@@ -314,8 +314,11 @@ class S3Storage(StoragePlugin):
         log_prefix = "[DRY RUN] " if dry_run else ""
         logger.info(f"{log_prefix}Removing file: {path!s}")
         if not dry_run:
-            for p in path.glob("*"):
-                p.unlink(missing_ok=True)
+            if path.is_file():
+                path.unlink(missing_ok=True)
+            elif path.is_dir():
+                for p in path.glob("*"):
+                    p.unlink(missing_ok=True)
         return 0
 
     def mkdir(

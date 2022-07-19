@@ -62,12 +62,17 @@ def delete_simple_page(
     else:
         simple_index.unlink(missing_ok=True)
     for f in folders_to_clean:
+        # separate to 3 stages to avoid case like s3
+        # (folder will be removed automatically if empty)
         if f.exists():
             for p in reversed(list(f.rglob("*"))):
                 if p.is_file() or p.is_symlink():
                     p.unlink()
-                elif p.is_dir():
+        if f.exists():
+            for p in reversed(list(f.rglob("*"))):
+                if p.is_dir():
                     p.rmdir()
+        if f.exists() and f.is_dir():
             f.rmdir()
 
 
