@@ -14,6 +14,7 @@ from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
+from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
 from bandersnatch.utils import WINDOWS, make_time_stamp
 
 EXPECTED_REL_HREFS = (
@@ -225,7 +226,9 @@ local-stats
 local-stats{0}days
 packages
 simple
-simple{0}index.html""".format(
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir
@@ -273,7 +276,11 @@ web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple
 web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
-web{0}simple{0}index.html""".format(
+web{0}simple{0}foobar{0}index.v1_html
+web{0}simple{0}foobar{0}index.v1_json
+web{0}simple{0}index.html
+web{0}simple{0}index.v1_html
+web{0}simple{0}index.v1_json""".format(
         sep
     )
     if WINDOWS:
@@ -311,7 +318,9 @@ last-modified
 packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
-simple{0}foo{0}index.html""".format(
+simple{0}foo{0}index.html
+simple{0}foo{0}index.v1_html
+simple{0}foo{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir, dirs=False
@@ -334,7 +343,11 @@ packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
-simple{0}index.html""".format(
+simple{0}foo{0}index.v1_html
+simple{0}foo{0}index.v1_json
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir, dirs=False
@@ -371,7 +384,11 @@ todo
 web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
-web{0}simple{0}index.html""".format(
+web{0}simple{0}foo{0}index.v1_html
+web{0}simple{0}foo{0}index.v1_json
+web{0}simple{0}index.html
+web{0}simple{0}index.v1_html
+web{0}simple{0}index.v1_json""".format(
         sep
     )
     if WINDOWS:
@@ -445,7 +462,11 @@ last-modified
 packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 simple{0}f{0}foo{0}index.html
-simple{0}index.html""".format(
+simple{0}f{0}foo{0}index.v1_html
+simple{0}f{0}foo{0}index.v1_json
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror_hash_index.webdir, dirs=False
@@ -487,7 +508,11 @@ packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
-simple{0}index.html""".format(
+simple{0}foo{0}index.v1_html
+simple{0}foo{0}index.v1_json
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir, dirs=False
@@ -528,7 +553,11 @@ packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
-simple{0}index.html""".format(
+simple{0}foo{0}index.v1_html
+simple{0}foo{0}index.v1_json
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir, dirs=False
@@ -634,7 +663,9 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         with (mirror_base / "web/simple/index.html").open("w") as index:
             index.write("<html></html>")
 
-        packages = local_mirror.find_package_indexes_in_dir(mirror_base / "web/simple")
+        packages = local_mirror.simple_api.find_package_indexes_in_dir(
+            mirror_base / "web/simple"
+        )
         assert "index.html" not in packages  # This should never be in the list
         assert len(packages) == 6  # We expect 6 packages with 6 dirs created
         assert packages[0] == "click"  # Check sorted - click should be first
@@ -807,9 +838,9 @@ async def test_package_sync_with_normalized_simple_page(
 @pytest.mark.asyncio
 async def test_package_sync_simple_page_root_uri(mirror: BandersnatchMirror) -> None:
     mirror.packages_to_sync = {"foo": 1}
-    mirror.root_uri = "https://files.pythonhosted.org"
+    mirror.simple_api.root_uri = "https://files.pythonhosted.org"
     await mirror.sync_packages()
-    mirror.root_uri = None
+    mirror.simple_api.root_uri = None
 
     expected_root_uri_hrefs = (
         '<a href="https://files.pythonhosted.org/packages/2.7/f/foo/foo.whl#sha256=e3b'
@@ -1054,13 +1085,17 @@ def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
         "yanked_reason": "Broken release",
     }
 
-    assert mirror.gen_html_file_tags(fake_no_release) == ""
+    assert mirror.simple_api.gen_html_file_tags(fake_no_release) == ""
     assert (
-        mirror.gen_html_file_tags(fake_release_1) == ' data-requires-python="&gt;=3.6"'
+        mirror.simple_api.gen_html_file_tags(fake_release_1)
+        == ' data-requires-python="&gt;=3.6"'
     )
-    assert mirror.gen_html_file_tags(fake_release_2) == ' data-yanked="Broken release"'
     assert (
-        mirror.gen_html_file_tags(fake_release_3)
+        mirror.simple_api.gen_html_file_tags(fake_release_2)
+        == ' data-yanked="Broken release"'
+    )
+    assert (
+        mirror.simple_api.gen_html_file_tags(fake_release_3)
         == ' data-requires-python="&gt;=3.6" data-yanked="Broken release"'
     )
 
@@ -1131,18 +1166,18 @@ async def test_keep_index_versions_stores_one_prior_version(
 ) -> None:
     mirror.packages_to_sync = {"foo": 1}
     mirror.keep_index_versions = 1
-    package = Package("foo", serial=1)
     await mirror.sync_packages()
     assert not mirror.errors
 
     simple_path = Path("web/simple/foo")
     versions_path = simple_path / "versions"
-    version_files = os.listdir(versions_path)
-    assert len(version_files) == 1
-    assert version_files[0] == f"index_{package.serial}_{make_time_stamp()}.html"
+    version_files = sorted(list(versions_path.iterdir()))
+    assert len(version_files) == 3  # html, v1_html, v1_json
+    assert version_files[0].name == f"index_1_{make_time_stamp()}.html"
+    assert version_files[2].name == f"index_1_{make_time_stamp()}.v1_json"
     link_path = simple_path / "index.html"
     assert link_path.is_symlink()
-    assert os.path.basename(os.readlink(str(link_path))) == version_files[0]
+    assert link_path.resolve().name == version_files[0].name
 
 
 @pytest.mark.asyncio
@@ -1164,12 +1199,14 @@ async def test_keep_index_versions_stores_different_prior_versions(
         assert not mirror.errors
 
     version_files = sorted(os.listdir(versions_path))
-    assert len(version_files) == 2
+    assert len(version_files) == 6
     assert version_files[0].startswith("index_1_2018-10-27")
-    assert version_files[1].startswith("index_1_2018-10-28")
-    link_path = simple_path / "index.html"
-    assert os.path.islink(link_path)
-    assert os.path.basename(os.readlink(str(link_path))) == version_files[1]
+    assert version_files[3].startswith("index_1_2018-10-28")
+    html_link_path = simple_path / "index.html"
+    json_link_path = simple_path / "index.html"
+    assert html_link_path.is_symlink()
+    assert json_link_path.is_symlink()
+    assert html_link_path.resolve().name == version_files[3]
 
 
 @pytest.mark.asyncio
@@ -1188,7 +1225,7 @@ async def test_keep_index_versions_removes_old_versions(
         await mirror.sync_packages()
 
     version_files = sorted(f for f in versions_path.iterdir())
-    assert len(version_files) == 2
+    assert len(version_files) == 4  # Old + new html + v1_html/json
     assert version_files[0].name.startswith("index_1_2018-10-27")
     assert version_files[1].name.startswith("index_1_2018-10-28")
     link_path = simple_path / "index.html"
@@ -1219,6 +1256,16 @@ def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
     mirror.packages_to_sync = {"black": 69, "foobar": 47, "barfoo": 68}
     target_serial = mirror.find_target_serial()
     assert target_serial == 69
+
+
+def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
+    package = Package("69")
+    package._metadata = SIXTYNINE_METADATA
+    with TemporaryDirectory() as td:
+        td_path = Path(td)
+        package_simple_dir = td_path / "simple" / package.name
+        package_simple_dir.mkdir(parents=True)
+    mirror.homedir = mirror.storage_backend.PATH_BACKEND(str(td_path))
 
 
 if __name__ == "__main__":

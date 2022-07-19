@@ -4,13 +4,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from mock_config import mock_config
-
 import bandersnatch.filter
 import bandersnatch.storage
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
+from bandersnatch.tests.mock_config import mock_config
 
 
 class TestAllowListProject(TestCase):

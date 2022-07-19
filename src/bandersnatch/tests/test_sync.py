@@ -26,7 +26,11 @@ packages{0}2.7{0}f{0}foo{0}foo.whl
 packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
-simple{0}index.html""".format(
+simple{0}foo{0}index.v1_html
+simple{0}foo{0}index.v1_json
+simple{0}index.html
+simple{0}index.v1_html
+simple{0}index.v1_json""".format(
         sep
     ) == utils.find(
         mirror.webdir, dirs=False

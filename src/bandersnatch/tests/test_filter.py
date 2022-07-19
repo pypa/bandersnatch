@@ -4,9 +4,8 @@ import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from mock_config import mock_config
-
 from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.tests.mock_config import mock_config
 
 from bandersnatch.filter import (  # isort:skip
     Filter,
