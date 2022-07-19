@@ -31,6 +31,10 @@ async def do_nothing(*args: Any, **kwargs: Any) -> None:
     pass
 
 
+async def fake_fetch(_: str, save_path: Path, *__: Any) -> None:
+    save_path.write_text("fake text")
+
+
 def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
 
@@ -206,7 +210,7 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
-    master.url_fetch = do_nothing  # type: ignore
+    master.url_fetch = fake_fetch  # type: ignore
     await get_latest_json(master, json_path, executor)
 
 

@@ -68,8 +68,8 @@ async def get_latest_json(
         else:
             raise
     if new_json_path.exists():
-        new_json_path.write_bytes(json_path.read_bytes())
-        json_path.unlink()
+        json_path.write_bytes(new_json_path.read_bytes())
+        new_json_path.unlink()
     else:
         logger.error(
             f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
