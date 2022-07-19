@@ -86,7 +86,7 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
     web_base_path = storage_backend.web_base_path
     json_base_path = storage_backend.json_base_path
     pypi_base_path = storage_backend.pypi_base_path
-    simple_path = storage_backend.simple_base_path
+    simple_base_path = storage_backend.simple_base_path
 
     delete_coros: List[Awaitable] = []
     for package in args.pypi_packages:
@@ -105,15 +105,7 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 continue
 
             logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
-            await get_latest_json(master, json_full_path, config, executor, False)
-            if not json_full_path.exists():
-                logger.error(
-                    f"Unable to HTTP get JSON for {json_full_path}, "
-                    f"blob files will not be cleaned."
-                )
-                delete_simple_page(simple_path, canon_name, dry_run=args.dry_run)
-                delete_simple_page(simple_path, package, dry_run=args.dry_run)
-                continue
+            await get_latest_json(master, json_full_path, executor, False)
 
         with storage_backend.open_file(json_full_path, text=True) as jfp:
             try:
@@ -131,10 +123,16 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
         delete_simple_page(
-            simple_path, canon_name, hash_index=hash_index_enabled, dry_run=args.dry_run
+            simple_base_path,
+            canon_name,
+            hash_index=hash_index_enabled,
+            dry_run=args.dry_run,
         )
         delete_simple_page(
-            simple_path, package, hash_index=hash_index_enabled, dry_run=args.dry_run
+            simple_base_path,
+            package,
+            hash_index=hash_index_enabled,
+            dry_run=args.dry_run,
         )
         for package_path in (
             json_full_path,

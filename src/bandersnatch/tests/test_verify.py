@@ -203,12 +203,11 @@ async def test_delete_unowned_files() -> None:
 
 @pytest.mark.asyncio
 async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
-    config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
     master.url_fetch = do_nothing  # type: ignore
-    await get_latest_json(master, json_path, config, executor)  # type: ignore
+    await get_latest_json(master, json_path, executor)
 
 
 @pytest.mark.asyncio

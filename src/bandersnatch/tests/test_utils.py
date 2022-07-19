@@ -1,3 +1,4 @@
+import json
 import os
 import os.path
 import re
@@ -20,6 +21,7 @@ from bandersnatch.utils import (  # isort:skip
     unlink_parent_dir,
     user_agent,
     WINDOWS,
+    write_fake_json,
 )
 
 
@@ -135,3 +137,12 @@ def test_parse_version() -> None:
     assert versions_list == parse_version(version_str)
     assert "-cp36-" in parse_version(version_str)
     assert "-py3.6." in parse_version(version_str)
+
+
+def test_fake_json() -> None:
+    with TemporaryDirectory() as td:
+        json_path = Path(td) / "test.txt"
+        write_fake_json(json_path)
+        with json_path.open("rb") as fp:
+            json_decoded = json.load(fp)
+            assert isinstance(json_decoded["releases"], dict)

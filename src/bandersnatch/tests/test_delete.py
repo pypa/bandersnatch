@@ -4,13 +4,15 @@ from configparser import ConfigParser
 from json import loads
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from urllib.parse import urlparse
 
 import pytest
+from aiohttp import ClientResponseError
 
 from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
@@ -178,3 +180,24 @@ async def test_delete_simple_page() -> None:
         assert (td_path / "bar" / "index.html").exists()
         delete_simple_page(td_path, "foo", hash_index=True, dry_run=False)
         assert not (td_path / "f" / "foo" / "index.html").exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_package_json_not_exists(mirror: BandersnatchMirror) -> None:
+    master = mirror.master
+    url_fetch_404 = AsyncMock(
+        side_effect=ClientResponseError(status=404, history=(), request_info=None)
+    )
+    master.url_fetch = url_fetch_404  # type: ignore
+    package_simple_dir = mirror.webdir / "simple" / "cooper"
+    package_simple_dir.mkdir()
+    index_page = package_simple_dir / "index.html"
+    index_page.touch()
+    assert index_page.exists()
+    args = _fake_args()
+    args.dry_run = False
+    config = _fake_config()
+    config["mirror"]["directory"] = str(mirror.homedir)
+    assert await delete_packages(config, args, master) == 0
+    assert not index_page.exists()
+    assert not package_simple_dir.exists()

@@ -17,7 +17,13 @@ import aiohttp
 from .filter import LoadedFilters
 from .master import Master
 from .storage import storage_backend_plugins
-from .utils import convert_url_to_path, find_all_files, hash, unlink_parent_dir
+from .utils import (
+    convert_url_to_path,
+    find_all_files,
+    hash,
+    unlink_parent_dir,
+    write_fake_json,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +50,10 @@ def on_error(stop_on_error: bool, exception: BaseException, package: str) -> Non
 async def get_latest_json(
     master: Master,
     json_path: Path,
-    config: ConfigParser,
     executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
     delete_removed_packages: bool = False,
 ) -> None:
-    url_parts = urlparse(config.get("mirror", "master"))
+    url_parts = urlparse(master.url)
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
@@ -58,7 +63,8 @@ async def get_latest_json(
         if e.status == 404:
             # A 404 means that the package has been removed from PyPI.
             # Allow function to continue, and remove package files if applicable.
-            pass
+            # write a blank json file to make the deletion process go through
+            write_fake_json(json_path)
         else:
             raise
     if new_json_path.exists():
@@ -128,9 +134,7 @@ async def verify(
     if args.json_update:
         if not args.dry_run:
             try:
-                await get_latest_json(
-                    master, json_full_path, config, executor, args.delete
-                )
+                await get_latest_json(master, json_full_path, executor, args.delete)
             except Exception as e:
                 on_error(stop_on_error, e, package=json_file)
         else:
