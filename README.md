@@ -2,7 +2,6 @@
 [![Actions Status](https://github.com/pypa/bandersnatch/workflows/bandersnatch_ci/badge.svg)](https://github.com/pypa/bandersnatch/actions)
 [![codecov.io](https://codecov.io/github/pypa/bandersnatch/coverage.svg?branch=master)](https://codecov.io/github/pypa/bandersnatch)
 [![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
-[![Updates](https://pyup.io/repos/github/pypa/bandersnatch/shield.svg)](https://pyup.io/repos/github/pypa/bandersnatch/)
 [![Downloads](https://pepy.tech/badge/bandersnatch)](https://pepy.tech/project/bandersnatch)
 
 ----
@@ -20,11 +19,6 @@ ask you read our **Mission Statement** to ensure it aligns with your thoughts fo
 this project.
 
 - If interested contact @cooperlees
-
-`bandersnatch` has its dependencies kept up to date by **[pyup.io](https://pyup.io/)**!
-
-- If you'd like to have your dependencies kept up to date in your `requirements.txt` or `setup.cfg`,
-  this is the service for you!
 
 ## Installation
 
