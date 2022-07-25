@@ -218,4 +218,4 @@ def parse_version(version: str) -> List[str]:
 def write_fake_json(json_path: Path) -> None:
     if not json_path.parent.exists():
         json_path.parent.mkdir(parents=True)
-    json_path.write_text(json.dumps({"releases": {}}))
+    json_path.write_text(json.dumps({}))

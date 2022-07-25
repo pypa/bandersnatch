@@ -144,7 +144,7 @@ async def verify(
         hasattr(json_full_path, "keep_file")
         and json_full_path.name == json_full_path.keep_file  # type: ignore
     ):
-        logger.debug(f"Skipping keep file {str(json_full_path)}")
+        logger.debug(f"Skipping deleting JSON file due to keep_file attribute being set {str(json_full_path)}")
         return
 
     if not json_full_path.exists():
