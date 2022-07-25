@@ -24,6 +24,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     storage_backend = next(iter(storage_backend_plugins()))
     if dry_run:
         logger.info(f" rm {blob_path}")
+        return 0
     blob_exists = await storage_backend.loop.run_in_executor(
         storage_backend.executor, storage_backend.exists, blob_path
     )
@@ -47,20 +48,22 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
 
 async def delete_simple_page(
     simple_base_path: Path, package: str, hash_index: bool = False, dry_run: bool = True
-) -> None:
+) -> int:
     if dry_run:
         logger.info(f"[dry run]rm simple page of {package}")
-        return
+        return 0
     simple_dir = simple_base_path / package
     simple_index = simple_dir / "index.html"
     hashed_simple_dir = simple_base_path / package[0] / package
     hashed_index = hashed_simple_dir / "index.html"
     folders_to_clean = [simple_dir]
     if hash_index:
-        hashed_index.unlink(missing_ok=True)
+        if hashed_index.exists():
+            hashed_index.unlink()
         folders_to_clean.append(hashed_simple_dir)
     else:
-        simple_index.unlink(missing_ok=True)
+        if simple_index.exists():
+            simple_index.unlink()
     for f in folders_to_clean:
         # separate to 3 stages to avoid case like s3
         # (folder will be removed automatically if empty)
@@ -74,6 +77,7 @@ async def delete_simple_page(
                     p.rmdir()
         if f.exists() and f.is_dir():
             f.rmdir()
+    return 0
 
 
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
