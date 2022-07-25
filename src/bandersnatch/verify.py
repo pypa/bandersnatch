@@ -17,13 +17,7 @@ import aiohttp
 from .filter import LoadedFilters
 from .master import Master
 from .storage import storage_backend_plugins
-from .utils import (
-    convert_url_to_path,
-    find_all_files,
-    hash,
-    unlink_parent_dir,
-    write_fake_json,
-)
+from .utils import convert_url_to_path, find_all_files, hash, unlink_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +58,7 @@ async def get_latest_json(
             # A 404 means that the package has been removed from PyPI.
             # Allow function to continue, and remove package files if applicable.
             # write a blank json file to make the deletion process go through
-            write_fake_json(json_path)
+            pass
         else:
             raise
     if new_json_path.exists():

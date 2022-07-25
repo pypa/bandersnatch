@@ -45,7 +45,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     return 0
 
 
-def delete_simple_page(
+async def delete_simple_page(
     simple_base_path: Path, package: str, hash_index: bool = False, dry_run: bool = True
 ) -> None:
     if dry_run:
@@ -111,33 +111,42 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
 
             logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
             await get_latest_json(master, json_full_path, executor, False)
+        if not json_full_path.exists():
+            logger.info(
+                f"No json file for {package} found, skipping blob file cleaning"
+            )
+        else:
+            with storage_backend.open_file(json_full_path, text=True) as jfp:
+                try:
+                    package_data = load(jfp)
+                except JSONDecodeError:
+                    logger.exception(f"Skipping {canon_name} @ {json_full_path}")
+                    continue
 
-        with storage_backend.open_file(json_full_path, text=True) as jfp:
-            try:
-                package_data = load(jfp)
-            except JSONDecodeError:
-                logger.exception(f"Skipping {canon_name} @ {json_full_path}")
-                continue
-
-        for _release, blobs in package_data["releases"].items():
-            for blob in blobs:
-                url_parts = urlparse(blob["url"])
-                blob_path = web_base_path / url_parts.path[1:]
-                delete_coros.append(delete_path(blob_path, args.dry_run))
+            for _release, blobs in package_data["releases"].items():
+                for blob in blobs:
+                    url_parts = urlparse(blob["url"])
+                    blob_path = web_base_path / url_parts.path[1:]
+                    delete_coros.append(delete_path(blob_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
-        delete_simple_page(
-            simple_base_path,
-            canon_name,
-            hash_index=hash_index_enabled,
-            dry_run=args.dry_run,
-        )
-        delete_simple_page(
-            simple_base_path,
-            package,
-            hash_index=hash_index_enabled,
-            dry_run=args.dry_run,
+        if need_nc_paths:
+            delete_coros.append(
+                delete_simple_page(
+                    simple_base_path,
+                    canon_name,
+                    hash_index=hash_index_enabled,
+                    dry_run=args.dry_run,
+                )
+            )
+        delete_coros.append(
+            delete_simple_page(
+                simple_base_path,
+                package,
+                hash_index=hash_index_enabled,
+                dry_run=args.dry_run,
+            )
         )
         for package_path in (
             json_full_path,

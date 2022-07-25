@@ -1,6 +1,5 @@
 import contextlib
 import hashlib
-import json
 import logging
 import os
 import os.path
@@ -213,9 +212,3 @@ def parse_version(version: str) -> List[str]:
     )
 
     return _versions
-
-
-def write_fake_json(json_path: Path) -> None:
-    if not json_path.parent.exists():
-        json_path.parent.mkdir(parents=True)
-    json_path.write_text(json.dumps({}))

@@ -210,8 +210,9 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
-    master.url_fetch = fake_fetch  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", fake_fetch)
     await get_latest_json(master, json_path, executor)
+    assert json_path.read_text() == "fake text"
 
 
 @pytest.mark.asyncio
@@ -230,7 +231,9 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_timeout(tmp_path: Path) -> None:
+async def test_get_latest_json_timeout(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -242,7 +245,7 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_timeout = AsyncMock(side_effect=ServerTimeoutError)
-    master.url_fetch = url_fetch_timeout  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_timeout)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
@@ -258,7 +261,7 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_404(tmp_path: Path) -> None:
+async def test_get_latest_json_404(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -272,13 +275,13 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[str] = []
+    all_package_files: List[Path] = []
 
     await verify(
         master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore # noqa: E501
@@ -288,7 +291,7 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_verify_url_exception(tmp_path: Path) -> None:
+async def test_verify_url_exception(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -302,7 +305,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True, exist_ok=True)
