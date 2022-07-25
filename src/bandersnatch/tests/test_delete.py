@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import pytest
 from aiohttp import ClientResponseError
+from pytest import MonkeyPatch
 
 from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
@@ -176,25 +177,27 @@ async def test_delete_simple_page() -> None:
             hashed_json_dir.mkdir(parents=True)
             (index / "index.html").touch()
             (index_hashed / "index.html").touch()
-        delete_simple_page(td_path, "foo", dry_run=False)
+        await delete_simple_page(td_path, "foo", dry_run=False)
         assert not (td_path / "foo" / "index.html").exists()
         assert not (td_path / "foo" / "json").exists()
         assert (td_path / "f" / "foo").exists()
         assert (td_path / "f" / "foo" / "index.html").exists()
         assert (td_path / "bar").exists()
         assert (td_path / "bar" / "index.html").exists()
-        delete_simple_page(td_path, "foo", hash_index=True, dry_run=False)
+        await delete_simple_page(td_path, "foo", hash_index=True, dry_run=False)
         assert not (td_path / "f" / "foo" / "index.html").exists()
         assert not (td_path / "f" / "foo" / "json").exists()
 
 
 @pytest.mark.asyncio
-async def test_delete_package_json_not_exists(mirror: BandersnatchMirror) -> None:
+async def test_delete_package_json_not_exists(
+    mirror: BandersnatchMirror, monkeypatch: MonkeyPatch
+) -> None:
     master = mirror.master
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
     package_simple_dir = mirror.webdir / "simple" / "cooper"
     package_simple_dir.mkdir()
     index_page = package_simple_dir / "index.html"
