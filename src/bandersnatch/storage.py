@@ -340,7 +340,7 @@ def load_storage_plugins(
         config = BandersnatchConfig().config
     if not enabled_plugin:
         try:
-            enabled_plugin = config.get("mirror", "storage-backend")
+            enabled_plugin = config["mirror"]["storage-backend"]
             logger.info(f"Loading storage plugin: {enabled_plugin}")
         except KeyError:
             enabled_plugin = "filesystem"
