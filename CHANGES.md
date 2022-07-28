@@ -1,4 +1,6 @@
-# 5.3.0 (2022-MM-DD)
+# x.x.x (2022-MM-DD)
+
+- Replace pyup with dependabot
 
 ## New Features
 
