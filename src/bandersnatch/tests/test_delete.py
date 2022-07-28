@@ -4,13 +4,16 @@ from configparser import ConfigParser
 from json import loads
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from urllib.parse import urlparse
 
 import pytest
+from aiohttp import ClientResponseError
+from pytest import MonkeyPatch
 
-from bandersnatch.delete import delete_packages, delete_path
+from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
+from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
@@ -68,6 +71,7 @@ def _fake_config() -> ConfigParser:
     cp["mirror"]["directory"] = "/tmp/unittest"
     cp["mirror"]["workers"] = "1"
     cp["mirror"]["storage-backend"] = "filesystem"
+    cp["mirror"]["hash-index"] = "true"
     return cp
 
 
@@ -122,7 +126,7 @@ async def test_delete_packages() -> None:
                 pjfp.write(package_json_str)
             legacy_json_path = pypi_path / package_name / "json"
             legacy_json_path.parent.mkdir()
-            legacy_json_path.symlink_to(package_json_path)
+            legacy_json_path.write_bytes(package_json_path.read_bytes())
 
             package_json = loads(package_json_str)
             for _version, blobs in package_json["releases"].items():
@@ -154,3 +158,55 @@ async def test_delete_packages_no_exist() -> None:
     with patch("bandersnatch.delete.logger.error") as mock_log:
         assert await delete_packages(_fake_config(), args, master) == 0
         assert mock_log.call_count == len(args.pypi_packages)
+
+
+@pytest.mark.asyncio
+async def test_delete_simple_page() -> None:
+    with TemporaryDirectory() as td:
+        td_path = Path(td)
+        packages = ["foo", "bar"]
+        # creating simple pages
+        for p in packages:
+            index = td_path / p
+            index_hashed = td_path / p[0] / p
+            json_dir = index / "json"
+            hashed_json_dir = index_hashed / "json"
+            index.mkdir(parents=True)
+            index_hashed.mkdir(parents=True)
+            json_dir.mkdir(parents=True)
+            hashed_json_dir.mkdir(parents=True)
+            (index / "index.html").touch()
+            (index_hashed / "index.html").touch()
+        await delete_simple_page(td_path, "foo", dry_run=False)
+        assert not (td_path / "foo" / "index.html").exists()
+        assert not (td_path / "foo" / "json").exists()
+        assert (td_path / "f" / "foo").exists()
+        assert (td_path / "f" / "foo" / "index.html").exists()
+        assert (td_path / "bar").exists()
+        assert (td_path / "bar" / "index.html").exists()
+        await delete_simple_page(td_path, "foo", hash_index=True, dry_run=False)
+        assert not (td_path / "f" / "foo" / "index.html").exists()
+        assert not (td_path / "f" / "foo" / "json").exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_package_json_not_exists(
+    mirror: BandersnatchMirror, monkeypatch: MonkeyPatch
+) -> None:
+    master = mirror.master
+    url_fetch_404 = AsyncMock(
+        side_effect=ClientResponseError(status=404, history=(), request_info=None)
+    )
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
+    package_simple_dir = mirror.webdir / "simple" / "cooper"
+    package_simple_dir.mkdir()
+    index_page = package_simple_dir / "index.html"
+    index_page.touch()
+    assert index_page.exists()
+    args = _fake_args()
+    args.dry_run = False
+    config = _fake_config()
+    config["mirror"]["directory"] = str(mirror.homedir)
+    assert await delete_packages(config, args, master) == 0
+    assert not index_page.exists()
+    assert not package_simple_dir.exists()

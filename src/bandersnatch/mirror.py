@@ -626,10 +626,10 @@ class BandersnatchMirror(Mirror):
     """
 
     def json_file(self, package_name: str) -> Path:
-        return Path(self.webdir / "json" / package_name)
+        return self.webdir / "json" / package_name
 
     def json_pypi_symlink(self, package_name: str) -> Path:
-        return Path(self.webdir / "pypi" / package_name / "json")
+        return self.webdir / "pypi" / package_name / "json"
 
     def simple_directory(self, package: Package) -> Path:
         if self.hash_index:
@@ -641,7 +641,6 @@ class BandersnatchMirror(Mirror):
         Take the JSON metadata we just fetched and save to disk
         """
         try:
-            # TODO: Fix this so it works with swift
             with self.storage_backend.rewrite(self.json_file(name)) as jf:
                 dump(package_info, jf, indent=4, sort_keys=True)
             self.diff_file_list.append(self.json_file(name))
@@ -657,8 +656,8 @@ class BandersnatchMirror(Mirror):
         # In 4.0 we move to normalized name only so want to overwrite older symlinks
         if self.json_pypi_symlink(name).exists():
             self.json_pypi_symlink(name).unlink()
-        self.json_pypi_symlink(name).symlink_to(
-            os.path.relpath(self.json_file(name), self.json_pypi_symlink(name).parent)
+        self.storage_backend.copy_file(
+            self.json_file(name), self.json_pypi_symlink(name)
         )
 
         return True

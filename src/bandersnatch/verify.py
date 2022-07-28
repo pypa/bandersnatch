@@ -3,8 +3,6 @@ import asyncio
 import concurrent.futures
 import json
 import logging
-import os
-import shutil
 import sys
 from argparse import Namespace
 from asyncio.queues import Queue
@@ -19,7 +17,7 @@ import aiohttp
 from .filter import LoadedFilters
 from .master import Master
 from .storage import storage_backend_plugins
-from .utils import convert_url_to_path, hash, recursive_find_files, unlink_parent_dir
+from .utils import convert_url_to_path, find_all_files, hash, unlink_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +44,10 @@ def on_error(stop_on_error: bool, exception: BaseException, package: str) -> Non
 async def get_latest_json(
     master: Master,
     json_path: Path,
-    config: ConfigParser,
     executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
     delete_removed_packages: bool = False,
 ) -> None:
-    url_parts = urlparse(config.get("mirror", "master"))
+    url_parts = urlparse(master.url)
     url = f"{url_parts.scheme}://{url_parts.netloc}/pypi/{json_path.name}/json"
     logger.debug(f"Updating {json_path.name} json from {url}")
     new_json_path = json_path.parent / f"{json_path.name}.new"
@@ -60,11 +57,13 @@ async def get_latest_json(
         if e.status == 404:
             # A 404 means that the package has been removed from PyPI.
             # Allow function to continue, and remove package files if applicable.
+            # write a blank json file to make the deletion process go through
             pass
         else:
             raise
     if new_json_path.exists():
-        shutil.move(str(new_json_path), json_path)
+        json_path.write_bytes(new_json_path.read_bytes())
+        new_json_path.unlink()
     else:
         logger.error(
             f"{str(new_json_path)} does not exist - Did not get new JSON metadata"
@@ -83,9 +82,7 @@ async def delete_unowned_files(
     loop = asyncio.get_event_loop()
     packages_path = mirror_base / "web" / "packages"
     all_fs_files: Set[Path] = set()
-    await loop.run_in_executor(
-        executor, recursive_find_files, all_fs_files, packages_path
-    )
+    await loop.run_in_executor(executor, find_all_files, all_fs_files, packages_path)
 
     all_package_files_set = set(all_package_files)
     unowned_files = all_fs_files - all_package_files_set
@@ -131,13 +128,21 @@ async def verify(
     if args.json_update:
         if not args.dry_run:
             try:
-                await get_latest_json(
-                    master, json_full_path, config, executor, args.delete
-                )
+                await get_latest_json(master, json_full_path, executor, args.delete)
             except Exception as e:
                 on_error(stop_on_error, e, package=json_file)
         else:
             logger.info(f"[DRY RUN] Would of grabbed latest json for {json_file}")
+
+    if (
+        hasattr(json_full_path, "keep_file")
+        and json_full_path.name == json_full_path.keep_file  # type: ignore
+    ):
+        logger.debug(
+            f"Skipping deleting JSON file due to keep_file attribute "
+            f"being set {str(json_full_path)}"
+        )
+        return
 
     if not json_full_path.exists():
         logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
@@ -175,7 +180,7 @@ async def verify(
                             deferred_exception = e
                         continue
 
-            calc_sha256 = await loop.run_in_executor(executor, hash, str(pkg_file))
+            calc_sha256 = await loop.run_in_executor(executor, hash, pkg_file)
             if calc_sha256 != jpkg["digests"]["sha256"]:
                 if not args.dry_run:
                     await loop.run_in_executor(None, pkg_file.unlink)
@@ -228,10 +233,15 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     """Crawl all saved JSON metadata or online to check we have all packages
     if delete - generate a diff of unowned files"""
     all_package_files: List[Path] = []
-    loop = asyncio.get_event_loop()
 
     storage_backend = next(
-        iter(storage_backend_plugins(config=config, clear_cache=True))
+        iter(
+            storage_backend_plugins(
+                config=config,
+                clear_cache=True,
+                backend=config.get("mirror", "storage-backend"),
+            )
+        )
     )
 
     mirror_base_path = storage_backend.PATH_BACKEND(config.get("mirror", "directory"))
@@ -241,7 +251,7 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
 
     logger.info(f"Starting verify for {mirror_base_path} with {workers} workers")
     try:
-        json_files = await loop.run_in_executor(executor, os.listdir, json_base)
+        json_files = list(x.name for x in json_base.iterdir())
     except FileExistsError as fee:
         logger.error(f"Metadata base dir {json_base} does not exist: {fee}")
         return 2

@@ -24,6 +24,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     storage_backend = next(iter(storage_backend_plugins()))
     if dry_run:
         logger.info(f" rm {blob_path}")
+        return 0
     blob_exists = await storage_backend.loop.run_in_executor(
         storage_backend.executor, storage_backend.exists, blob_path
     )
@@ -45,16 +46,56 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     return 0
 
 
+async def delete_simple_page(
+    simple_base_path: Path, package: str, hash_index: bool = False, dry_run: bool = True
+) -> int:
+    if dry_run:
+        logger.info(f"[dry run]rm simple page of {package}")
+        return 0
+    simple_dir = simple_base_path / package
+    simple_index = simple_dir / "index.html"
+    hashed_simple_dir = simple_base_path / package[0] / package
+    hashed_index = hashed_simple_dir / "index.html"
+    folders_to_clean = [simple_dir]
+    if hash_index:
+        if hashed_index.exists():
+            hashed_index.unlink()
+        folders_to_clean.append(hashed_simple_dir)
+    else:
+        if simple_index.exists():
+            simple_index.unlink()
+    for f in folders_to_clean:
+        # separate to 3 stages to avoid case like s3
+        # (folder will be removed automatically if empty)
+        if f.exists():
+            for p in reversed(list(f.rglob("*"))):
+                if p.is_file() or p.is_symlink():
+                    p.unlink()
+        if f.exists():
+            for p in reversed(list(f.rglob("*"))):
+                if p.is_dir():
+                    p.rmdir()
+        if f.exists() and f.is_dir():
+            f.rmdir()
+    return 0
+
+
 async def delete_packages(config: ConfigParser, args: Namespace, master: Master) -> int:
     workers = args.workers or config.getint("mirror", "workers")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
     storage_backend = next(
-        iter(storage_backend_plugins(config=config, clear_cache=True))
+        iter(
+            storage_backend_plugins(
+                backend=config.get("mirror", "storage-backend"),
+                config=config,
+                clear_cache=True,
+            )
+        )
     )
     web_base_path = storage_backend.web_base_path
     json_base_path = storage_backend.json_base_path
     pypi_base_path = storage_backend.pypi_base_path
-    simple_path = storage_backend.simple_base_path
+    simple_base_path = storage_backend.simple_base_path
 
     delete_coros: List[Awaitable] = []
     for package in args.pypi_packages:
@@ -73,39 +114,47 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 continue
 
             logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
-            await get_latest_json(master, json_full_path, config, executor, False)
-            if not json_full_path.exists():
-                logger.error(f"Unable to HTTP get JSON for {json_full_path}")
-                continue
+            await get_latest_json(master, json_full_path, executor, False)
+        if not json_full_path.exists():
+            logger.info(
+                f"No json file for {package} found, skipping blob file cleaning"
+            )
+        else:
+            with storage_backend.open_file(json_full_path, text=True) as jfp:
+                try:
+                    package_data = load(jfp)
+                except JSONDecodeError:
+                    logger.exception(f"Skipping {canon_name} @ {json_full_path}")
+                    continue
 
-        with storage_backend.open_file(json_full_path, text=True) as jfp:
-            try:
-                package_data = load(jfp)
-            except JSONDecodeError:
-                logger.exception(f"Skipping {canon_name} @ {json_full_path}")
-                continue
-
-        for _release, blobs in package_data["releases"].items():
-            for blob in blobs:
-                url_parts = urlparse(blob["url"])
-                blob_path = web_base_path / url_parts.path[1:]
-                delete_coros.append(delete_path(blob_path, args.dry_run))
+            for _release, blobs in package_data["releases"].items():
+                for blob in blobs:
+                    url_parts = urlparse(blob["url"])
+                    blob_path = web_base_path / url_parts.path[1:]
+                    delete_coros.append(delete_path(blob_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
-        package_simple_path = simple_path / canon_name
-        package_simple_path_nc = simple_path / package if need_nc_paths else None
-        package_hash_path = simple_path / canon_name[0] / canon_name
-        package_hash_path_nc = (
-            simple_path / canon_name[0] / package if need_nc_paths else None
+        hash_index_enabled = config.getboolean("mirror", "hash-index")
+        if need_nc_paths:
+            delete_coros.append(
+                delete_simple_page(
+                    simple_base_path,
+                    canon_name,
+                    hash_index=hash_index_enabled,
+                    dry_run=args.dry_run,
+                )
+            )
+        delete_coros.append(
+            delete_simple_page(
+                simple_base_path,
+                package,
+                hash_index=hash_index_enabled,
+                dry_run=args.dry_run,
+            )
         )
-        # Try cleanup non canon name if they differ
         for package_path in (
             json_full_path,
             legacy_json_path,
-            package_simple_path,
-            package_simple_path_nc,
-            package_hash_path,
-            package_hash_path_nc,
             json_full_path_nc,
         ):
             if not package_path:

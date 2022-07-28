@@ -48,14 +48,12 @@ def convert_url_to_path(url: str) -> str:
 
 
 def hash(path: Path, function: str = "sha256") -> str:
-    h = getattr(hashlib, function)()
-    with open(path, "rb") as f:
-        while True:
-            chunk = f.read(128 * 1024)
-            if not chunk:
-                break
-            h.update(chunk)
-    return str(h.hexdigest())
+    h = getattr(hashlib, function)
+    content = path.read_bytes()
+    result = h(content).hexdigest()
+    if isinstance(result, str):
+        return result
+    raise TypeError("hashlib did not return str")
 
 
 def find(root: Union[Path, str], dirs: bool = True) -> str:
@@ -111,11 +109,13 @@ def rewrite(
     shutil.move(filepath_tmp, filepath)
 
 
-def recursive_find_files(files: Set[Path], base_dir: Path) -> None:
-    dirs = [d for d in base_dir.iterdir() if d.is_dir()]
-    files.update([x for x in base_dir.iterdir() if x.is_file()])
-    for directory in dirs:
-        recursive_find_files(files, directory)
+def find_all_files(files: Set[Path], base_dir: Path) -> None:
+    for f in base_dir.rglob("*"):
+        if not f.is_file():
+            continue
+        if hasattr(f, "keep_file") and f.name == f.keep_file:  # type: ignore
+            continue
+        files.add(f)
 
 
 def unlink_parent_dir(path: Path) -> None:

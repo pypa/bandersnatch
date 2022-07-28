@@ -64,7 +64,7 @@ def check_ci(suppress_errors: bool = False) -> int:
         print(f"{EOP} No pyaib tgz file exists @ {pyaib_tgz}")
         return 71
 
-    pyaib_tgz_sha256 = hash(str(pyaib_tgz))
+    pyaib_tgz_sha256 = hash(pyaib_tgz)
     if not suppress_errors and pyaib_tgz_sha256 != TGZ_SHA256:
         print(f"{EOP} Bad pyaib 1.0.0 sha256: {pyaib_tgz_sha256} != {TGZ_SHA256}")
         return 72

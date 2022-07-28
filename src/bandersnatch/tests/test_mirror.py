@@ -3,7 +3,7 @@ import sys
 import unittest.mock as mock
 from os import sep
 from pathlib import Path
-from tempfile import TemporaryDirectory, gettempdir
+from tempfile import TemporaryDirectory
 from typing import Any, Dict, Iterator, List, NoReturn
 
 import pytest
@@ -590,11 +590,11 @@ def test_mirror_json_metadata(
     package = Package("foo", serial=11)
     mirror.json_file(package.name).parent.mkdir(parents=True)
     mirror.json_pypi_symlink(package.name).parent.mkdir(parents=True)
-    mirror.json_pypi_symlink(package.name).symlink_to(Path(gettempdir()))
     assert mirror.save_json_metadata(package_json, package.name)
-    assert mirror.json_pypi_symlink(package.name).is_symlink()
-    assert Path("../../json/foo") == Path(
-        os.readlink(str(mirror.json_pypi_symlink(package.name)))
+    assert mirror.json_pypi_symlink(package.name).is_file()
+    assert (
+        mirror.json_pypi_symlink(package.name).read_text()
+        == mirror.json_file(package.name).read_text()
     )
 
 

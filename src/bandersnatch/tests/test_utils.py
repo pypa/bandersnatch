@@ -14,7 +14,7 @@ from bandersnatch.utils import (  # isort:skip
     convert_url_to_path,
     hash,
     parse_version,
-    recursive_find_files,
+    find_all_files,
     removeprefix,
     rewrite,
     unlink_parent_dir,
@@ -65,7 +65,7 @@ def test_find_files() -> None:
                 afp.write("PyPA ftw!")
 
         found_files: Set[Path] = set()
-        recursive_find_files(found_files, td_path)
+        find_all_files(found_files, td_path)
         assert found_files == expected_found_files
 
 
