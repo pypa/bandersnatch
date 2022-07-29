@@ -1,11 +1,15 @@
-# x.x.x (2022-MM-DD)
-
-- Replace pyup with dependabot
+# 5.3.0 (2022-07-29)
 
 ## New Features
 
+- Add delete and verify support in s3 (and maybe swift) storage backend `PR #1142`
 - Add `--skip-simple-root` option for `bandersnatch sync` command `PR #1145`
-- Add delete and verify support in s3 storage backend `PR #1142`
+
+## Other
+
+- Replace pyup with dependabot
+  - Resulted in lots of depdendencies updating
+- Docs typo fixes
 
 # 5.2.0 (2022-05-02)
 
