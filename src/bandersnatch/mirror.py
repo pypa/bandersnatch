@@ -2,7 +2,6 @@ import asyncio
 import configparser
 import datetime
 import hashlib
-import html
 import logging
 import os
 import sys
@@ -14,7 +13,6 @@ from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
-from packaging.utils import canonicalize_name
 
 from . import utils
 from .configuration import validate_config_values
@@ -22,6 +20,7 @@ from .errors import PackageNotFound
 from .filter import LoadedFilters
 from .master import Master
 from .package import Package
+from .simple import SimpleAPI, SimpleFormat, SimpleFormats
 from .storage import storage_backend_plugins
 
 LOG_PLUGINS = True
@@ -37,9 +36,6 @@ class Mirror:
     # on the side of giving a timestamp that is too old so we keep track
     # of it when starting to sync.
     now = None
-
-    # PEP620 Simple API Version
-    pypi_repository_version = "1.0"
 
     def __init__(self, master: Master, workers: int = 3):
         self.master = master
@@ -195,13 +191,14 @@ class BandersnatchMirror(Mirror):
         diff_append_epoch: bool = False,
         diff_full_path: Optional[Union[Path, str]] = None,
         flock_timeout: int = 1,
-        diff_file_list: Optional[List] = None,
+        diff_file_list: Optional[List[Path]] = None,
         *,
         cleanup: bool = False,
         release_files_save: bool = True,
         compare_method: Optional[str] = None,
         download_mirror: Optional[str] = None,
         download_mirror_no_fallback: Optional[bool] = False,
+        simple_format: Union[SimpleFormat, str] = "ALL",
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -231,7 +228,7 @@ class BandersnatchMirror(Mirror):
         # This is generally not necessary, but was added for the official internal
         # PyPI mirror, which requires serving packages from
         # https://files.pythonhosted.org
-        self.root_uri: Optional[str] = root_uri or ""
+        self.root_uri = root_uri or ""
         self.diff_file = diff_file
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
@@ -244,6 +241,15 @@ class BandersnatchMirror(Mirror):
         self.diff_file_list = diff_file_list or []
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed.")
+        # Use self. variables to pass as some defaults are defined ...
+        self.simple_api = SimpleAPI(
+            self.storage_backend,
+            simple_format,
+            self.diff_file_list,
+            self.digest_name,
+            hash_index,
+            self.root_uri,
+        )
         self._bootstrap(flock_timeout)
         self._finish_lock = RLock()
 
@@ -331,7 +337,7 @@ class BandersnatchMirror(Mirror):
             await self.sync_release_files(package)
 
         await loop.run_in_executor(
-            self.storage_backend.executor, self.sync_simple_page, package
+            self.storage_backend.executor, self.sync_simple_pages, package
         )
         # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
         await loop.run_in_executor(
@@ -345,7 +351,9 @@ class BandersnatchMirror(Mirror):
 
     def finalize_sync(self, sync_index_page: bool = True) -> None:
         if sync_index_page:
-            self.sync_index_page()
+            self.simple_api.sync_index_page(
+                self.need_index_sync, self.webdir, self.synced_serial
+            )
         if self.need_wrapup:
             self.wrapup_successful_sync()
         return None
@@ -454,59 +462,6 @@ class BandersnatchMirror(Mirror):
                     logger.exception(
                         f"Unable to cleanup non PEP 503 dir {deprecated_dir}"
                     )
-
-    # TODO: This can return SwiftPath types now
-    def get_simple_dirs(self, simple_dir: Path) -> List[Path]:
-        """Return a list of simple index directories that should be searched
-        for package indexes when compiling the main index page."""
-        if self.hash_index:
-            # We are using index page directory hashing, so the directory
-            # format is /simple/f/foo/.  We want to return a list of dirs
-            # like "simple/f".
-            subdirs = [simple_dir / x for x in simple_dir.iterdir() if x.is_dir()]
-        else:
-            # This is the traditional layout of /simple/foo/.  We should
-            # return a single directory, "simple".
-            subdirs = [simple_dir]
-        return subdirs
-
-    def find_package_indexes_in_dir(self, simple_dir: Path) -> List[str]:
-        """Given a directory that contains simple packages indexes, return
-        a sorted list of normalized package names.  This presumes every
-        directory within is a simple package index directory."""
-        simple_path = self.storage_backend.PATH_BACKEND(str(simple_dir))
-        return sorted(
-            {
-                canonicalize_name(str(x.parent.relative_to(simple_path)))
-                for x in simple_path.glob("**/index.html")
-                if str(x.parent.relative_to(simple_path)) != "."
-            }
-        )
-
-    def sync_index_page(self) -> None:
-        if not self.need_index_sync:
-            return
-        logger.info("Generating global index page.")
-        simple_dir = self.webdir / "simple"
-        with self.storage_backend.rewrite(str(simple_dir / "index.html")) as f:
-            f.write("<!DOCTYPE html>\n")
-            f.write("<html>\n")
-            f.write("  <head>\n")
-            f.write(
-                '    <meta name="pypi:repository-version" content='
-                f'"{self.pypi_repository_version}">\n'
-            )
-            f.write("    <title>Simple Index</title>\n")
-            f.write("  </head>\n")
-            f.write("  <body>\n")
-            # This will either be the simple dir, or if we are using index
-            # directory hashing, a list of subdirs to process.
-            for subdir in self.get_simple_dirs(simple_dir):
-                for pkg in self.find_package_indexes_in_dir(subdir):
-                    # We're really trusty that this is all encoded in UTF-8. :/
-                    f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
-            f.write("  </body>\n</html>")
-        self.diff_file_list.append(simple_dir / "index.html")
 
     def wrapup_successful_sync(self) -> None:
         if self.errors:
@@ -739,99 +694,78 @@ class BandersnatchMirror(Mirror):
 
         self.altered_packages[package.name] = downloaded_files
 
-    def gen_html_file_tags(self, release: Dict) -> str:
-        file_tags = ""
-
-        # data-requires-python: requires_python
-        if "requires_python" in release and release["requires_python"] is not None:
-            file_tags += (
-                f' data-requires-python="{html.escape(release["requires_python"])}"'
-            )
-
-        # data-yanked: yanked_reason
-        if "yanked" in release and release["yanked"]:
-            if "yanked_reason" in release and release["yanked_reason"]:
-                file_tags += f' data-yanked="{html.escape(release["yanked_reason"])}"'
-            else:
-                file_tags += ' data-yanked=""'
-
-        return file_tags
-
-    def generate_simple_page(self, package: Package) -> str:
-        # Generate the header of our simple page.
-        simple_page_content = (
-            "<!DOCTYPE html>\n"
-            "<html>\n"
-            "  <head>\n"
-            '    <meta name="pypi:repository-version" content="{0}">\n'
-            "    <title>Links for {1}</title>\n"
-            "  </head>\n"
-            "  <body>\n"
-            "    <h1>Links for {1}</h1>\n"
-        ).format(self.pypi_repository_version, package.raw_name)
-
-        release_files = package.release_files
-        logger.debug(f"There are {len(release_files)} releases for {package.name}")
-        # Lets sort based on the filename rather than the whole URL
-        # Typing is hard here as we allow Any/Dict[Any, Any] for JSON
-        release_files.sort(key=lambda x: x["filename"])  # type: ignore
-
-        digest_name = self.digest_name
-
-        simple_page_content += "\n".join(
-            [
-                '    <a href="{}#{}={}"{}>{}</a><br/>'.format(
-                    self._file_url_to_local_url(r["url"]),
-                    digest_name,
-                    r["digests"][digest_name],
-                    self.gen_html_file_tags(r),
-                    r["filename"],
-                )
-                for r in release_files
-            ]
-        )
-
-        simple_page_content += (
-            f"\n  </body>\n</html>\n<!--SERIAL {package.last_serial}-->"
-        )
-
-        return simple_page_content
-
-    def sync_simple_page(self, package: Package) -> None:
+    def sync_simple_pages(self, package: Package) -> None:
         logger.info(
-            f"Storing index page: {package.name} - in {self.simple_directory(package)}"
+            f"Storing index page(s): {package.name} - in "
+            + str(self.simple_directory(package))
         )
-        simple_page_content = self.generate_simple_page(package)
+        simple_pages_content = self.simple_api.generate_simple_pages(package)
+
         if not self.simple_directory(package).exists():
             self.simple_directory(package).mkdir(parents=True)
 
         if self.keep_index_versions > 0:
-            self._save_simple_page_version(simple_page_content, package)
+            self._save_simple_page_version(package, simple_pages_content)
         else:
-            simple_page = self.simple_directory(package) / "index.html"
-            with self.storage_backend.rewrite(simple_page, "w", encoding="utf-8") as f:
-                f.write(simple_page_content)
+            self.write_simple_pages(package, simple_pages_content)
+
+    def write_simple_pages(self, package: Package, content: SimpleFormats) -> None:
+        logger.debug(f"Attempting to write PEP691 simple pages for {package.name}")
+        if content.html:
+            for html_page in ("index.html", "index.v1_html"):
+                simple_page = self.simple_directory(package) / html_page
+                with self.storage_backend.rewrite(
+                    simple_page, "w", encoding="utf-8"
+                ) as f:
+                    f.write(content.html)
+                self.diff_file_list.append(simple_page)
+        if content.json:
+            simple_json_page = self.simple_directory(package) / "index.v1_json"
+            with self.storage_backend.rewrite(
+                simple_json_page, "w", encoding="utf-8"
+            ) as f:
+                f.write(content.json)
             self.diff_file_list.append(simple_page)
 
     def _save_simple_page_version(
-        self, simple_page_content: str, package: Package
+        self, package: Package, content: SimpleFormats
     ) -> None:
+        logger.debug(
+            "Attempting to write PEP691 versioned simple pages for " + package.name
+        )
         versions_path = self._prepare_versions_path(package)
         timestamp = utils.make_time_stamp()
-        version_file_name = f"index_{package.serial}_{timestamp}.html"
-        full_version_path = versions_path / version_file_name
-        # TODO: Change based on storage backend
-        with self.storage_backend.rewrite(
-            full_version_path, "w", encoding="utf-8"
-        ) as f:
-            f.write(simple_page_content)
-        self.diff_file_list.append(full_version_path)
+        version_file_names = (
+            ("index.html", f"index_{package.serial}_{timestamp}.html", content.html),
+            (
+                "index.v1_html",
+                f"index_{package.serial}_{timestamp}.v1_html",
+                content.html,
+            ),
+            (
+                "index.v1_json",
+                f"index_{package.serial}_{timestamp}.v1_json",
+                content.json,
+            ),
+        )
+        for link_name, version_file, page_content in version_file_names:
+            if not page_content:
+                logger.debug(f"No {link_name} content for {package.name}. Skipping.")
+                continue
+            full_version_path = versions_path / version_file
+            with self.storage_backend.rewrite(
+                full_version_path, "w", encoding="utf-8"
+            ) as f:
+                f.write(page_content)
 
-        symlink_path = self.simple_directory(package) / "index.html"
-        if symlink_path.exists() or symlink_path.is_symlink():
-            symlink_path.unlink()
+            self.diff_file_list.append(full_version_path)
 
-        symlink_path.symlink_to(full_version_path)
+            symlink_path = self.simple_directory(package) / link_name
+            # TODO: Should this be and rather than or?
+            if symlink_path.exists() or symlink_path.is_symlink():
+                symlink_path.unlink()
+
+            symlink_path.symlink_to(full_version_path)
 
     def _prepare_versions_path(self, package: Package) -> Path:
         versions_path = (
@@ -841,19 +775,17 @@ class BandersnatchMirror(Mirror):
         if not versions_path.exists():
             versions_path.mkdir()
         else:
-            version_files = list(sorted(versions_path.iterdir()))
-            version_files_to_remove = len(version_files) - self.keep_index_versions + 1
-            for i in range(version_files_to_remove):
-                version_files[i].unlink()
+            for ext in (".html", ".v1_html", ".v1_json"):
+                version_files = sorted(
+                    p for p in versions_path.iterdir() if p.name.endswith(ext)
+                )
+                version_files_to_remove = (
+                    len(version_files) - self.keep_index_versions + 1
+                )
+                for i in range(version_files_to_remove):
+                    version_files[i].unlink()
 
         return versions_path
-
-    def _file_url_to_local_url(self, url: str) -> str:
-        parsed = urlparse(url)
-        if not parsed.path.startswith("/packages"):
-            raise RuntimeError(f"Got invalid download URL: {url}")
-        prefix = self.root_uri if self.root_uri else "../.."
-        return prefix + parsed.path
 
     # TODO: This can also return SwiftPath instances now...
     def _file_url_to_local_path(self, url: str) -> Path:
@@ -874,7 +806,7 @@ class BandersnatchMirror(Mirror):
         chunk_size: int = 64 * 1024,
         urlpath: str = "",
     ) -> Optional[Path]:
-        if urlparse != "":
+        if urlpath != "":
             path = self._file_url_to_local_path(urlpath)
         else:
             path = self._file_url_to_local_path(url)
@@ -1049,6 +981,7 @@ async def mirror(
             release_files_save=config_values.release_files_save,
             download_mirror=config_values.download_mirror,
             download_mirror_no_fallback=config_values.download_mirror_no_fallback,
+            simple_format=config_values.simple_format,
         )
         changed_packages = await mirror.synchronize(
             specific_packages, sync_simple_index=sync_simple_index

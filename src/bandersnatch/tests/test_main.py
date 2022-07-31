@@ -14,6 +14,7 @@ import bandersnatch.mirror
 import bandersnatch.storage
 from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
+from bandersnatch.simple import SimpleFormat
 
 if TYPE_CHECKING:
     from bandersnatch.mirror import BandersnatchMirror
@@ -94,6 +95,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "compare_method": "hash",
         "download_mirror": "",
         "download_mirror_no_fallback": False,
+        "simple_format": SimpleFormat.ALL,
     } == kwargs
 
 

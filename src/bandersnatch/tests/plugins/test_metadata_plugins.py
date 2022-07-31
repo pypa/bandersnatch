@@ -4,12 +4,11 @@ from tempfile import TemporaryDirectory
 from typing import cast
 from unittest import TestCase
 
-from mock_config import mock_config
-
 import bandersnatch.filter
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
+from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_filter_plugins.metadata_filter import SizeProjectMetadataFilter
 
 

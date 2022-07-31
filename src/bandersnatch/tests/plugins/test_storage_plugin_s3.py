@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from mock_config import mock_config
 from s3path import S3Path
 
+from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import s3
 
 
