@@ -16,6 +16,7 @@ from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
 import bandersnatch
 from bandersnatch.master import Master
 from bandersnatch.utils import convert_url_to_path, find
+from bandersnatch_storage_plugins.filesystem import pathlib
 
 from bandersnatch.verify import (  # isort:skip
     get_latest_json,
@@ -30,8 +31,16 @@ async def do_nothing(*args: Any, **kwargs: Any) -> None:
     pass
 
 
+async def fake_fetch(_: str, save_path: Path, *__: Any) -> None:
+    save_path.write_text("fake text")
+
+
 def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
+
+
+def some_paths(*_: Any, **__: Any) -> List[Path]:
+    return [Path("/data/pypi/web/json/bandersnatch"), Path("/data/pypi/web/json/black")]
 
 
 class FakeConfig:
@@ -41,6 +50,8 @@ class FakeConfig:
                 return "/data/pypi"
             if item == "master":
                 return "https://unittest.org"
+            if item == "storage-backend":
+                return "filesystem"
         return ""
 
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
@@ -196,12 +207,12 @@ async def test_delete_unowned_files() -> None:
 
 @pytest.mark.asyncio
 async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
-    config = FakeConfig()
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
-    master.url_fetch = do_nothing  # type: ignore
-    await get_latest_json(master, json_path, config, executor)  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", fake_fetch)
+    await get_latest_json(master, json_path, executor)
+    assert json_path.read_text() == "fake text"
 
 
 @pytest.mark.asyncio
@@ -215,12 +226,14 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
     fc = FakeConfig()
     monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
-    monkeypatch.setattr(bandersnatch.verify.os, "listdir", some_dirs)
+    monkeypatch.setattr(pathlib.Path, "iterdir", some_paths)
     await metadata_verify(fc, fa)  # type: ignore
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_timeout(tmp_path: Path) -> None:
+async def test_get_latest_json_timeout(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -232,21 +245,23 @@ async def test_get_latest_json_timeout(tmp_path: Path) -> None:
 
     master = Master(fc.get("mirror", "master"))
     url_fetch_timeout = AsyncMock(side_effect=ServerTimeoutError)
-    master.url_fetch = url_fetch_timeout  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_timeout)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[str] = []
+    all_package_files: List[Path] = []
 
-    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    await verify(
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore
+    )  # noqa: E501
     assert jsonfile.exists()
     assert not all_package_files
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_404(tmp_path: Path) -> None:
+async def test_get_latest_json_404(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -260,21 +275,23 @@ async def test_get_latest_json_404(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[str] = []
+    all_package_files: List[Path] = []
 
-    await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
+    await verify(
+        master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore # noqa: E501
+    )
     assert not jsonfile.exists()
     assert not all_package_files
 
 
 @pytest.mark.asyncio
-async def test_verify_url_exception(tmp_path: Path) -> None:
+async def test_verify_url_exception(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -288,7 +305,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
     url_fetch_404 = AsyncMock(
         side_effect=ClientResponseError(status=404, history=(), request_info=None)
     )
-    master.url_fetch = url_fetch_404  # type: ignore
+    monkeypatch.setattr(master, "url_fetch", url_fetch_404)
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True, exist_ok=True)
@@ -297,7 +314,7 @@ async def test_verify_url_exception(tmp_path: Path) -> None:
         f.write(
             '{"releases":{"1.0":["url":"https://unittests.org/packages/a0/a0/a0a0/package-1.0.0.exe"}]}}'  # noqa: E501
         )
-    all_package_files: List[str] = []
+    all_package_files: List[Path] = []
 
     await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
     assert jsonfile.exists()

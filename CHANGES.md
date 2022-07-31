@@ -1,6 +1,15 @@
-# x.x.x (2022-MM-DD)
+# 5.3.0 (2022-07-29)
+
+## New Features
+
+- Add delete and verify support in s3 (and maybe swift) storage backend `PR #1142`
+- Add `--skip-simple-root` option for `bandersnatch sync` command `PR #1145`
+
+## Other
 
 - Replace pyup with dependabot
+  - Resulted in lots of depdendencies updating
+- Docs typo fixes
 
 # 5.2.0 (2022-05-02)
 
@@ -9,7 +18,6 @@
 - Add PEP 629 header to Simple API HTML `PR #1122`
 - Added support to exclude specific Python minor versions `PR #1110` - Thanks **davidkim83**
 - Add S3 Docker Image building `PR #1092`
-- Add `--skip-simple-root` option for `bandersnatch sync` command `PR #1145`
 
 ## Other
 
