@@ -25,7 +25,6 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "sphinx.ext.extlinks",
     "sphinx.ext.todo",
     "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
@@ -295,6 +294,3 @@ intersphinx_mapping = {
     "packaging": ("https://packaging.pypa.io/en/stable", None),
     "filelock": ("https://py-filelock.readthedocs.io/en/latest", None),
 }
-
-# Useful external link shortcuts
-extlinks = {"issue": ("https://github.com/sphinx-doc/sphinx/issues/%s", "issue ")}
