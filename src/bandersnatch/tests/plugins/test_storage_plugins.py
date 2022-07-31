@@ -14,13 +14,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 from unittest import TestCase, mock
 
-from mock_config import mock_config
-
 import bandersnatch.storage
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
+from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import filesystem, swift
 
 if TYPE_CHECKING:

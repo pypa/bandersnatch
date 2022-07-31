@@ -8,6 +8,7 @@ Integration Tests will go off and hit PyPI + pull allowlisted packages
 then check for expected outputs to exist
 """
 
+import json
 from configparser import ConfigParser
 from os import environ
 from pathlib import Path
@@ -42,6 +43,7 @@ A_BLACK_WHL = (
 def check_ci(suppress_errors: bool = False) -> int:
     black_index = MIRROR_BASE / "simple/b/black/index.html"
     pyaib_index = MIRROR_BASE / "simple/p/pyaib/index.html"
+    pyaib_json_index = MIRROR_BASE / "simple/p/pyaib/index.v1_json"
     pyaib_json = MIRROR_BASE / "json/pyaib"
     pyaib_tgz = (
         MIRROR_BASE
@@ -76,6 +78,13 @@ def check_ci(suppress_errors: bool = False) -> int:
     if not suppress_errors and A_BLACK_WHL.exists():
         print(f"{EOP} {A_BLACK_WHL} exists ... delete failed?")
         return 74
+
+    if not suppress_errors and not pyaib_json_index.exists():
+        print(f"{EOP} {pyaib_json_index} does not exist ...")
+        return 75
+    else:
+        with pyaib_json_index.open("r") as fp:
+            json.load(fp)  # Check it's valid JSON
 
     rmtree(MIRROR_ROOT)
 

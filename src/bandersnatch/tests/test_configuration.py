@@ -11,6 +11,7 @@ from bandersnatch.configuration import (
     Singleton,
     validate_config_values,
 )
+from bandersnatch.simple import SimpleFormat
 
 
 class TestBandersnatchConf(TestCase):
@@ -63,6 +64,7 @@ class TestBandersnatchConf(TestCase):
                 "json",
                 "master",
                 "release-files",
+                "simple-format",
                 "stop-on-error",
                 "storage-backend",
                 "timeout",
@@ -139,6 +141,7 @@ class TestBandersnatchConf(TestCase):
             "hash",
             "",
             False,
+            SimpleFormat.ALL,
         )
         no_options_configparser = configparser.ConfigParser()
         no_options_configparser["mirror"] = {}
@@ -159,6 +162,7 @@ class TestBandersnatchConf(TestCase):
             "hash",
             "",
             False,
+            SimpleFormat.ALL,
         )
         release_files_false_configparser = configparser.ConfigParser()
         release_files_false_configparser["mirror"] = {"release-files": "false"}
@@ -181,6 +185,7 @@ class TestBandersnatchConf(TestCase):
             "hash",
             "",
             False,
+            SimpleFormat.ALL,
         )
         release_files_false_configparser = configparser.ConfigParser()
         release_files_false_configparser["mirror"] = {

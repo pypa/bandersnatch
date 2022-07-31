@@ -1,3 +1,9 @@
+# 6.0.0
+
+## New Features
+
+- Add PEP691 simple index support `PR #1154`
+
 # 5.3.0 (2022-07-29)
 
 ## New Features

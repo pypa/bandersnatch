@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
+from .simple import SimpleFormat, get_format_value
+
 logger = logging.getLogger("bandersnatch")
 
 
@@ -22,6 +24,7 @@ class SetConfigValues(NamedTuple):
     compare_method: str
     download_mirror: str
     download_mirror_no_fallback: bool
+    simple_format: SimpleFormat
 
 
 class Singleton(type):  # pragma: no cover
@@ -75,7 +78,6 @@ class BandersnatchConfig(metaclass=Singleton):
         self.config.read(config_file)
 
 
-# 11-15, 84-89, 98-99, 117-118, 124-126, 144-149
 def validate_config_values(  # noqa: C901
     config: configparser.ConfigParser,
 ) -> SetConfigValues:
@@ -205,6 +207,12 @@ def validate_config_values(  # noqa: C901
             + "is not set in config."
         )
 
+    try:
+        simple_format = get_format_value(config.get("mirror", "simple-format"))
+    except configparser.NoOptionError:
+        logger.debug("Storing all Simple Formats by default ...")
+        simple_format = SimpleFormat.ALL
+
     return SetConfigValues(
         json_save,
         root_uri,
@@ -217,4 +225,5 @@ def validate_config_values(  # noqa: C901
         compare_method,
         download_mirror,
         download_mirror_no_fallback,
+        simple_format,
     )
