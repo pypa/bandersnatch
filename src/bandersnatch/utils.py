@@ -165,8 +165,8 @@ def removeprefix(original: str, prefix: str) -> str:
 
 # Python tags https://peps.python.org/pep-0425/#python-tag
 def parse_version(version: str) -> List[str]:
-    """Converts a version string to a list of strings to check the 1st part of build tags.
-    See PEP 425 (https://peps.python.org/pep-0425/#python-tag) for details.
+    """Converts a version string to a list of strings to check the 1st part of build
+    tags. See PEP 425 (https://peps.python.org/pep-0425/#python-tag) for details.
 
     Args:
         version (str): string in the form of '{major}.{minor}'
