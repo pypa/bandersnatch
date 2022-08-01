@@ -6,9 +6,10 @@
 
 ----
 
-This is a PyPI mirror client according to `PEP 381` + `PEP 503`
+This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
 http://www.python.org/dev/peps/pep-0381/.
 
+- bandersnatch >=6.0 implements PEP691
 - bandersnatch >=4.0 supports *Linux*, *MacOSX* + *Windows*
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
 
@@ -69,18 +70,12 @@ bandersnatch/bin/bandersnatch --help
 ### Webserver
 
 Configure your webserver to serve the ``web/`` sub-directory of the mirror.
-For nginx it should look something like this:
+For PEP691 support we need to respect the format the client requests.
 
-```conf
-    server {
-        listen 127.0.0.1:80;
-        listen [::1]:80;
-        server_name <mymirrorname>;
-        root <path-to-mirror>/web;
-        autoindex on;
-        charset utf-8;
-    }
-```
+For an [nginx](https://www.nginx.com/) example, please look at our
+[banderx](https://github.com/pypa/bandersnatch/tree/main/src/banderx)
+docker container and [nginx.conf](https://github.com/pypa/bandersnatch/blob/main/src/banderx/nginx.conf)
+example configuration.
 
 - Note that it is a good idea to have your webserver publish the HTML index
   files correctly with UTF-8 as the charset. The index pages will work without
