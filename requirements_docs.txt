@@ -7,7 +7,7 @@ six==1.16.0
 sphinx==5.1.1
 MyST-Parser==0.18.0
 xmlrpc2==0.3.1
-sphinx-argparse-cli==1.8.3
+sphinx-argparse-cli==1.9.0
 
 git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
 git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
