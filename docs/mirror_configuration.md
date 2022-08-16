@@ -53,7 +53,8 @@ The master url string must use https: protocol.
 
 The default value is: https://pypi.org
 
-If you would like to configure an alternative download mirror of package wheels, please also take a look at the `download-mirror` option.
+If you would like to configure an alternative download mirror of package distribution artifacts
+please also take a look at the `download-mirror` option.
 
 Example:
 ``` ini
