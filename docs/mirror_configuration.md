@@ -53,6 +53,9 @@ The master url string must use https: protocol.
 
 The default value is: https://pypi.org
 
+If you would like to configure an alternative download mirror of package distribution artifacts
+please also take a look at the `download-mirror` option.
+
 Example:
 ``` ini
 [mirror]
@@ -216,4 +219,17 @@ Example:
 ```ini
 [mirror]
 proxy=http://myproxy.com
+```
+
+## download-mirror
+
+By default bandersnatch downloads packages from the URL supplied in the master server server's json response.
+This option asks bandersnatch to try to download from the configured PyPI mirror first, and fallback to the
+URL supplied by the master server if it was not successful (unable to get content or checksum mismatch).
+This is useful to sync most of the files from an existing, nearby mirror, for example when setting up a new server sitting next to an existing one for the purpose of load sharing.
+
+Example:
+```ini
+[mirror]
+download-mirror = https://pypi-mirror.example.com/
 ```
