@@ -5,5 +5,5 @@ python-dateutil==2.8.2
 s3path==0.3.4
 s3transfer==0.6.0
 six==1.16.0
-smart-open==6.0.0
+smart-open==6.1.0
 urllib3==1.26.11
