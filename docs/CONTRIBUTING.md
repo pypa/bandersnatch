@@ -103,7 +103,7 @@ Docker is an easy way to get minio to run for tests to pass.
 docker run \
   -p 9000:9000 \
   -p 9001:9001 \
-  --name minio1 \
+  --name minio \
   -v /Users/cooper/tmp/minio:/data \
   minio/minio server /data --console-address ":9001"
 ```

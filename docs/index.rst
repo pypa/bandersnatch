@@ -13,7 +13,12 @@ or packages since the last run's serial. bandersnatch then uses the JSON API
 of PyPI to get shasums and release file paths to download and workout where
 to layout the package files on a POSIX file system.
 
-As of 4.0 bandersnatch:
+As of 6.0:
+
+- Supports PEP691
+  - HTML + JSON Simple Index
+
+As of 4.0:
 
 - Is fully asyncio based (mainly via aiohttp)
 - Only stores PEP503 nomalized packages names for the /simple API
@@ -29,7 +34,7 @@ Contents
 --------
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 4
 
     installation
     storage_options
