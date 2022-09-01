@@ -2,8 +2,8 @@
 
 ## New Features
 
-- Add PEP691 simple index support `PR #1154`
-- Add example nginx serving for *PEP 691* `PR #1161`
+- Add [PEP691](https://peps.python.org/pep-0691/) simple index support `PR #1154`
+- Add example nginx serving for PEP 691 `PR #1161`
 
 # 5.3.0 (2022-07-29)
 
