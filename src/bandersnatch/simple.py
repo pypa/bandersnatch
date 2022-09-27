@@ -248,7 +248,7 @@ class SimpleAPI:
                 for pkg in self.find_package_indexes_in_dir(subdir):
                     # We're really trusty that this is all encoded in UTF-8. :/
                     f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
-                    if self.json_enabled:
+                    if self.json_enabled():
                         simple_json["projects"].append({"name": pkg})
             f.write("  </body>\n</html>")
 
