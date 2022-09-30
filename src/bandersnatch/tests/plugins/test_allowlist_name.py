@@ -530,9 +530,11 @@ requirements =
 
         mirror._filter_packages()
 
-        # Check that the packages in the two allowed files starting for requirements- are being considered
+        # Check that the packages in the two allowed files starting
+        # for requirements- are being considered
         self.assertIn("foo", mirror.packages_to_sync)
         self.assertIn("bar", mirror.packages_to_sync)
 
-        # Check that the package in the last file, excluded from the glob is not considered
+        # Check that the package in the last file, excluded
+        # from the glob is not considered
         self.assertNotIn("baz", mirror.packages_to_sync)

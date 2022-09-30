@@ -107,13 +107,13 @@ def get_requirement_files(allowlist: "SectionProxy") -> Iterator[Path]:
         if not requirement_line or requirement_line.startswith("#"):
             continue
         requirement_line, *_ = requirement_line.split("#", maxsplit=1)
-        if requirement_line.strip().find('*') >= 0:
+        if requirement_line.strip().find("*") >= 0:
             files = sorted(requirements_path.glob(requirement_line.strip()))
             for file in files:
                 requirement = file.name
                 logger.info("considering %s", requirements_path / requirement)
                 yield requirements_path / requirement
-        else: 
+        else:
             requirement = requirement_line.strip()
             logger.info("considering %s", requirements_path / requirement)
             yield requirements_path / requirement
