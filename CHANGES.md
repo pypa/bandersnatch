@@ -1,3 +1,9 @@
+# PR #1229
+
+## New Features
+
+- Add support for globbing in the allowed requirements list. User can specify `requirements*.txt` or `*.txt` to merge multiple requirements files.
+
 # 6.0.0
 
 ## New Features
