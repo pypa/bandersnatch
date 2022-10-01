@@ -1,3 +1,9 @@
+# PR #1231
+
+## Bug Fixes
+
+- Fixed requirements file parsing when it contains pip options
+
 # 6.0.0
 
 ## New Features
