@@ -29,7 +29,7 @@ class TestRunner(TestCase):
         hours_list = parseHourList(input_time_range)
         self.assertEqual(hours_list, expected_hours_list)
 
-        # Case where start time is less than end time
+        # Case where time range crosses the day
         input_time_range = "23-5"
         expected_hours_list = [23, 0, 1, 2, 3, 4, 5]
         hours_list = parseHourList(input_time_range)
@@ -45,7 +45,5 @@ class TestRunner(TestCase):
         input_time_range = "foo"
         with self.assertRaises(argparse.ArgumentTypeError) as context:
             parseHourList(input_time_range)
-        self.assertEqual(
-            str(context.exception),
-            "'foo' is not a range. Expected '0-5', '20-6' or '1'.",
-        )
+        # Assert that the error message contains the user input string
+        self.assertIn(input_time_range, str(context.exception))
