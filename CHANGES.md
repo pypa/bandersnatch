@@ -1,8 +1,8 @@
-# PR #1231
+# Unreleased
 
 ## Bug Fixes
 
-- Fixed requirements file parsing when it contains pip options
+- Fixed requirements file parsing when it contains pip options `PR #1231`
 
 # 6.0.0
 
