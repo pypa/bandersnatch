@@ -482,7 +482,8 @@ requirements =
         with open(absolute_file_path, "w") as fh:
             fh.write(
                 """\
---extra-index-url https://self-hosted-foo.netname/simple --trusted-host self-hosted-foo.netname
+--extra-index-url https://self-hosted-foo.netname/simple
+--trusted-host self-hosted-foo.netname
 foo==1.2.0             # via -r requirements.in
 """
             )
