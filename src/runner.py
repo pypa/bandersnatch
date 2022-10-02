@@ -8,13 +8,14 @@ import sys
 from datetime import datetime
 from subprocess import CalledProcessError, run
 from time import sleep, time
+from typing import List
 
 
-def parseNumList(string):
-    m = re.match(r"(\d+)(?:-(\d+))?$", string)
+def parseHourList(time_str: str) -> List[int]:
+    m = re.match(r"(\d+)(?:-(\d+))?$", time_str)
     if not m:
         raise argparse.ArgumentTypeError(
-            f"'{string}' is not a range. Expected '0-5', '20-6' or '1'."
+            f"'{time_str}' is not a range. Expected '0-5', '20-6' or '1'."
         )
     start = int(m.group(1))
     end = int(m.group(2) or start)
@@ -36,7 +37,7 @@ def main() -> int:
         "--hours-range",
         default="0-23",
         help="Hours of day interval expresses as 0-23 or 2",
-        type=parseNumList,
+        type=parseHourList,
     )
     args = parser.parse_args()
 

@@ -1,3 +1,9 @@
+# Unreleased
+
+## New Features
+
+- Added the possibility to limit the time range in which the docker image runner can execute the bandersnatch mirroring activity. This can be done by providing an optional command line argument with like `--hours-range 23-7` where the interval is expressed as `<start_hour>-<end_hour>`.
+
 # 6.0.0
 
 ## New Features
