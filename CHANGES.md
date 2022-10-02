@@ -1,8 +1,9 @@
-# PR #1230
+# Unreleased
 
 ## New Features
 
-- Add support for globbing in the allowed requirements list. User can specify `requirements*.txt` or `*.txt` to merge multiple requirements files.
+- Add support for globbing in the allowed requirements list. 
+  User can specify `requirements*.txt` or `*.txt` to merge multiple requirements files `PR #1230`
 
 # 6.0.0
 
