@@ -121,7 +121,7 @@ def _parse_package_lines(package_lines: List[str]) -> Set[Requirement]:
     filtered_requirements: Set[Requirement] = set()
     for package_line in package_lines:
         package_line = package_line.strip()
-        if not package_line or package_line.startswith(("#", "-"))):
+        if not package_line or package_line.startswith(("#", "-")):
             continue
         package_line, *_ = package_line.split("#", maxsplit=1)
         requirement = Requirement(package_line.strip())
