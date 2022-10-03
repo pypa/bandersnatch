@@ -476,3 +476,65 @@ requirements =
         }
         mirror._filter_packages()
         self.assertEqual({"foo": ""}, mirror.packages_to_sync)
+
+    def test__filter__find__glob__files(self) -> None:
+
+        with open(Path(self.tempdir.name) / "requirements-project1.txt", "w") as fh:
+            fh.write(
+                """\
+#
+foo==1.2.0             # via -r requirements.in
+"""
+            )
+
+        with open(Path(self.tempdir.name) / "requirements-project2.txt", "w") as fh:
+            fh.write(
+                """\
+#
+bar==2.3.0             # via -r requirements.in
+"""
+            )
+
+        with open(Path(self.tempdir.name) / "project3.txt", "w") as fh:
+            fh.write(
+                """\
+#
+baz==4.5.1             # via -r requirements.in
+"""
+            )
+
+        mock_config(
+            f"""\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
+[plugins]
+enabled =
+    project_requirements
+[allowlist]
+requirements_path = {self.tempdir.name}
+requirements =
+    # Importing all the requirements-*.txt from the chosen folder
+    requirements-*.txt
+"""
+        )
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+
+        mirror.packages_to_sync = {
+            "foo": "",
+            "bar": "",
+            "baz": "",
+        }
+
+        mirror._filter_packages()
+
+        # Check that the packages in the two allowed files starting
+        # for requirements- are being considered
+        self.assertIn("foo", mirror.packages_to_sync)
+        self.assertIn("bar", mirror.packages_to_sync)
+
+        # Check that the package in the last file, excluded
+        # from the glob is not considered
+        self.assertNotIn("baz", mirror.packages_to_sync)
