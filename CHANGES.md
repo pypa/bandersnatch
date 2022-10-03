@@ -1,3 +1,19 @@
+# Unreleased
+
+## New Features
+
+## Bug Fixes
+
+- Fixed requirements file parsing when it contains pip options `PR #1231`
+
+## New Features
+
+- Added the possibility to limit the time range in which the docker image runner can execute the bandersnatch mirroring activity.
+  This can be done by providing an optional command line argument with like `--hours-range 23-7` where the interval is expressed
+  as `<start_hour>-<end_hour>`. `PR #1232`
+- Add support for globbing in the allowed requirements list.
+  User can specify `requirements*.txt` or `*.txt` to merge multiple requirements files `PR #1230`
+
 # 6.0.0
 
 ## New Features
