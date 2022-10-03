@@ -477,7 +477,6 @@ requirements =
         mirror._filter_packages()
         self.assertEqual({"foo": ""}, mirror.packages_to_sync)
 
-
     def test__filter__requirements__pip__options(self) -> None:
         absolute_file_path = Path(self.tempdir.name) / "requirements.txt"
         with open(absolute_file_path, "w") as fh:
@@ -575,4 +574,3 @@ requirements =
         # Check that the package in the last file, excluded
         # from the glob is not considered
         self.assertNotIn("baz", mirror.packages_to_sync)
-
