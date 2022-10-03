@@ -4,6 +4,11 @@
 
 - Fixed requirements file parsing when it contains pip options `PR #1231`
 
+## New Features
+
+- Add support for globbing in the allowed requirements list.
+  User can specify `requirements*.txt` or `*.txt` to merge multiple requirements files `PR #1230`
+
 # 6.0.0
 
 ## New Features
