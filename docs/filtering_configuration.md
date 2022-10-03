@@ -102,6 +102,18 @@ requirements =
     requirements.txt
 ```
 
+Requirements file can be also expressed as a glob file name. In the following example all the requirements files matching the `requirements-*.txt` pattern will be considered and loaded.
+
+```ini
+[plugins]
+enabled =
+    project_requirements
+[allowlist]
+requirements_path = /requirements
+requirements =
+    requirements-*.txt
+```
+
 ### Project Regex Matching
 
 Filter projects to be synced based on regex matches against their raw metadata entries straight from parsed downloaded json.
