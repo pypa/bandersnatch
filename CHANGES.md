@@ -1,5 +1,9 @@
 # Unreleased
 
+## Bug Fixes
+
+- Fixed requirements file parsing when it contains pip options `PR #1231`
+
 ## New Features
 
 - Add support for globbing in the allowed requirements list.
