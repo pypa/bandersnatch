@@ -725,7 +725,7 @@ class BandersnatchMirror(Mirror):
                 simple_json_page, "w", encoding="utf-8"
             ) as f:
                 f.write(content.json)
-            self.diff_file_list.append(simple_page)
+            self.diff_file_list.append(simple_json_page)
 
     def _save_simple_page_version(
         self, package: Package, content: SimpleFormats
