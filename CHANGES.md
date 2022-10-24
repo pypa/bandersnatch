@@ -4,6 +4,7 @@
 
 ## Bug Fixes
 
+- Fixed JSON only mirroring adding correct path to diff_file_list `PR #1248`
 - Fixed requirements file parsing when it contains pip options `PR #1231`
 
 ## New Features

@@ -14,6 +14,7 @@ from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
+from bandersnatch.simple import SimpleFormats
 from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
 from bandersnatch.utils import WINDOWS, make_time_stamp
 
@@ -1259,13 +1260,20 @@ def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
 
 
 def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
+    html_content = SimpleFormats(html="html", json="")
+    json_content = SimpleFormats(html="", json="json")
     package = Package("69")
     package._metadata = SIXTYNINE_METADATA
     with TemporaryDirectory() as td:
         td_path = Path(td)
-        package_simple_dir = td_path / "simple" / package.name
+        package_simple_dir = td_path / "web" / "simple" / package.name
         package_simple_dir.mkdir(parents=True)
-    mirror.homedir = mirror.storage_backend.PATH_BACKEND(str(td_path))
+        mirror.homedir = mirror.storage_backend.PATH_BACKEND(str(td_path))
+        # Run function for each format separately only
+        mirror.write_simple_pages(package, html_content)
+        mirror.write_simple_pages(package, json_content)
+    # Expect .html, .v1_html and .v1_json ...
+    assert 3 == len(mirror.diff_file_list)
 
 
 if __name__ == "__main__":
