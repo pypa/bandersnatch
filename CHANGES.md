@@ -1,7 +1,5 @@
 # 6.0.1
 
-## New Features
-
 ## Bug Fixes
 
 - Fixed JSON only mirroring adding correct path to diff_file_list `PR #1248`
