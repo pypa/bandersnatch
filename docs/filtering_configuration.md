@@ -75,6 +75,7 @@ packages =
 ```
 
 ## Metadata Filtering
+
 Packages and release files may be selected by filtering on specific metadata value.
 
 General form of configuration entries is:
@@ -87,6 +88,7 @@ tag:tag:path.to.object =
 ```
 
 ## requirements files Filtering
+
 Packages and releases might be given as requirements.txt files
 
 if requirements_path is missing it is assumed to be system root folder ('/')
@@ -130,7 +132,6 @@ Valid tags are `all`,`any`,`none`,`match-null`,`not-null`, with default of `any:
 
 All metadata provided by json is available, including `info`, `last_serial`, `releases`, etc. headings.
 
-
 ### Release File Regex Matching
 
 Filter release files to be downloaded for projects based on regex matches against the stored metadata entries for each release file.
@@ -149,7 +150,6 @@ Valid tags are the same as for projects.
 Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info`
 containing the package-wide info, `release` containing the version of the release and `release_file` the metadata
 for an individual file for that release.
-
 
 ## Prerelease filtering
 
@@ -189,13 +189,11 @@ releases =
 
 Note the same `filter_regex` section may include a `packages` and a `releases` entry with any number of regular expressions.
 
-
 ## Platform/Python-specific binaries filtering
 
 This filter allows advanced users not interesting in Windows/macOS/Linux specific binaries to not mirror the corresponding files.
 
 You can also exclude Python versions by their minor version (ex. Python 2.6, 2.7) if you're sure your mirror does not need to serve these binaries.
-
 
 ```ini
 [plugins]
@@ -209,15 +207,16 @@ platforms =
 ```
 
 Available platforms are:
+
 - `windows`
 - `macos`
 - `freebsd`
 - `linux`
 
 Available python versions are:
+
 - `py2.4` ~ `py2.7`
 - `py3.1` ~ `py3.10`
-
 
 ## Keep only latest releases
 
@@ -235,7 +234,6 @@ keep = 3
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
 
 You should be aware that it can break requirements. Prereleases are also kept.
-
 
 ## Block projects above a specified size threshold
 
@@ -263,7 +261,7 @@ readable value as shown.)
 
 It can be combined with an allowlist to overrule the size limit for large projects
 you are actually interested in and want make exceptions for. The following has the
-logic of including all projects where the size is <1GB *or* the name is
+logic of including all projects where the size is \<1GB *or* the name is
 [numpy](https://pypi.org/project/numpy/).
 
 ```ini
@@ -280,7 +278,7 @@ max_package_size = 1G
 ```
 
 If the allowlist_project is also enabled, then the filter becomes a logical
-and, e.g. the following will include all projects where the size is <1GB *and* the
+and, e.g. the following will include all projects where the size is \<1GB *and* the
 name appears in the allowlist:
 
 ```ini
