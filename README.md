@@ -4,10 +4,10 @@
 [![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
 [![Downloads](https://pepy.tech/badge/bandersnatch)](https://pepy.tech/project/bandersnatch)
 
-----
+______________________________________________________________________
 
 This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
-http://www.python.org/dev/peps/pep-0381/.
+<http://www.python.org/dev/peps/pep-0381/>.
 
 - bandersnatch >=6.0 implements PEP691
 - bandersnatch >=4.0 supports *Linux*, *MacOSX* + *Windows*
@@ -55,21 +55,21 @@ bandersnatch/bin/bandersnatch --help
 
 ## Quickstart
 
-- Run ``bandersnatch mirror`` - it will create an empty configuration file
-  for you in ``/etc/bandersnatch.conf``.
-- Review ``/etc/bandersnatch.conf`` and adapt to your needs.
-- Run ``bandersnatch mirror`` again. It will populate your mirror with the
+- Run `bandersnatch mirror` - it will create an empty configuration file
+  for you in `/etc/bandersnatch.conf`.
+- Review `/etc/bandersnatch.conf` and adapt to your needs.
+- Run `bandersnatch mirror` again. It will populate your mirror with the
   current status of all PyPI packages.
-  Current mirror package size can be seen here: https://pypi.org/stats/
-- A ``blocklist`` or ``allowlist`` can be created to cut down your mirror size.
+  Current mirror package size can be seen here: <https://pypi.org/stats/>
+- A `blocklist` or `allowlist` can be created to cut down your mirror size.
   You might want to [Analyze PyPI downloads](https://packaging.python.org/guides/analyzing-pypi-package-downloads/)
   to determine which packages to add to your list.
-- Run ``bandersnatch mirror`` regularly to update your mirror with any
+- Run `bandersnatch mirror` regularly to update your mirror with any
   intermediate changes.
 
 ### Webserver
 
-Configure your webserver to serve the ``web/`` sub-directory of the mirror.
+Configure your webserver to serve the `web/` sub-directory of the mirror.
 For PEP691 support we need to respect the format the client requests.
 
 For an [nginx](https://www.nginx.com/) example, please look at our
@@ -98,7 +98,7 @@ Here's a sample that you could place in `/etc/cron.d/bandersnatch`:
     */2 * * * * root bandersnatch mirror |& logger -t bandersnatch[mirror]
 ```
 
-This assumes that you have a ``logger`` utility installed that will convert the
+This assumes that you have a `logger` utility installed that will convert the
 output of the commands to syslog entries.
 
 [SystemD Timers](https://www.freedesktop.org/software/systemd/man/systemd.timer.html)
@@ -164,7 +164,7 @@ An example of an unsupported API is [PyPI's XML-RPC interface](https://warehouse
 
 The bandersnatch project strives to:
 
-- Mirror all static objects of the Python Package Index (https://pypi.org/)
+- Mirror all static objects of the Python Package Index (<https://pypi.org/>)
 - bandersnatch's main goal is to support the main global index to local syncing **only**
 - This will allow organizations to have lower latency access to PyPI and
   save bandwidth on their WAN connections and more importantly the PyPI CDN
@@ -174,9 +174,9 @@ The bandersnatch project strives to:
 ### Contact
 
 If you have questions or comments, please submit a bug report to
-https://github.com/pypa/bandersnatch/issues/new
+<https://github.com/pypa/bandersnatch/issues/new>
 
-- Discord: #bandersnatch now sit in the *PyPA Discord* server. To join visit https://discord.com/invite/pypa
+- Discord: #bandersnatch now sit in the *PyPA Discord* server. To join visit <https://discord.com/invite/pypa>
 
 ### Code of Conduct
 

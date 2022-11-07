@@ -78,18 +78,18 @@ If your mirror is targeted to global clients, you can use CloudFront or other CD
 
 Please read Amazon documents to get [detailed instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/website-hosting-cloudfront-walkthrough.html)
 
-
 ### Set redirect or url rewrite in CloudFront or other cdn(optional)
 
-In most cases, packages and index pages are all inside ``/my-s3-bucket/prefix/web``, if you set up a steps above, you should be able to use the mirror like this:
+In most cases, packages and index pages are all inside `/my-s3-bucket/prefix/web`, if you set up a steps above, you should be able to use the mirror like this:
 
 ```shell
 pip install -i my-s3-bucket.cloudfront.net/prefix/web/simple install django
 ```
 
 But there are two main disadvantages:
+
 1. The url is quite long and exposing the structure of bucket.
-2. Users will be able to view all content in the bucket, including bandersnatch todo file and status file.
+1. Users will be able to view all content in the bucket, including bandersnatch todo file and status file.
 
 It is strongly recommended to set redirect or url rewrite for CDN. Please contact your service assistant for detailed instructions.
 

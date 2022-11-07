@@ -55,7 +55,7 @@ Successfully installed pip-10.0.1
 
 - Then install the dependencies to the venv:
 
-``` console
+```console
 /path/to/venv/bin/pip install -r requirements.txt -r test-requirements.txt
 ```
 
@@ -93,7 +93,7 @@ Congrats, now you have a bandersnatch development environment ready to go! Just 
 S3 unittests are more integration tests. They depend on [minio](https://docs.min.io/) to work.
 
 - You will either need to skip them or install mino
-- Install options: https://docs.min.io/docs/
+- Install options: <https://docs.min.io/docs/>
 
 #### Docker Install
 
@@ -137,7 +137,7 @@ You will need to customize `src/bandersnatch/default.conf` and run via the follo
 
 **WARNING: Bandersnatch will go off and sync from pypi.org and use large amounts of disk space!**
 
-``` console
+```console
 cd bandersnatch
 /path/to/venv/bin/pip install --upgrade .
 /path/to/venv/bin/bandersnatch -c src/bandersnatch/default.conf mirror
@@ -211,11 +211,11 @@ GitHub actions to build and upload our releases.
 - To cut a release first make a PR updating:
   - the version in `setup.cfg` + `src/badnersnatch/__init__.py`
   - Update `CHANGES.md`. Here check for typos + missing commits that should be mentioned
-    - Example PR: https://github.com/pypa/bandersnatch/pull/1069
+    - Example PR: <https://github.com/pypa/bandersnatch/pull/1069>
 - THen, once merged and CI is passing
   - Cut a [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
-and GitHub Actions will package and upload to PyPI.
-  - https://github.com/pypa/bandersnatch/releases
+    and GitHub Actions will package and upload to PyPI.
+  - <https://github.com/pypa/bandersnatch/releases>
     - Select "Draft a new release"
 
 ### Conventions
