@@ -31,13 +31,15 @@ compatible way like a PEP381 mirror. Simple is always better than complex and al
 issues need to be reproducible for our developers.
 
 #### pyup.io
+
 - Remember it's not perfect
   - It does not take into account modules pinned dependencies
-  - e.g. If requests wants *urllib3<1.25* *pyup.io* can still try and update it
+  - e.g. If requests wants *urllib3\<1.25* *pyup.io* can still try and update it
 - Until we have **CI** that effectively runs `pip freeze` from time to time we
   should recheck our minimal deps that we pin in `requirements.txt`
 
 ### Releasing to PyPI
+
 Every maintainer can release to PyPI. A maintainer should have agreement of
 two or more Maintainers that it is a suitable time for a release.
 
@@ -50,7 +52,6 @@ two or more Maintainers that it is a suitable time for a release.
   - Tag with the semantic version number
 - Build a `sdist` + `wheel`
 - Use `twine` to upload to PyPI
-
 
 ### Building Docker Image
 
