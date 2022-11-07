@@ -71,7 +71,7 @@
 - Add bandersnatch command line help to the documentation main page `PR #920` - Thanks **ichard26**
 - Generate data-yanked tag in simple page `PR #931` - Thanks **happyaron**
 - Protect repository metadata from being trashed when disk is full `PR #962` - Thanks **happyaron**
-- Fix tox to used pinned requirements*.txt files for deps - `PR #1011` - Thanks **cooperlees**
+- Fix tox to used pinned requirements\*.txt files for deps - `PR #1011` - Thanks **cooperlees**
 
 ## Documentation
 
@@ -107,7 +107,7 @@
 - Migrated Markdown documentation from recommonmark to MyST-Parser + docs config clean up - `PR #879` - Thanks **ichard26**
 - Use `shutil.move()` for temp file management - `PR #883` - Thanks **happyaron**
 - Fixed logging bug in `SizeProjectMetadataFilter` to show it activated - `PR #889` - Thanks **cooperlees**
-- Attempt to wrap all potentially block calls in a ThreadPoolExecutor - `PR #894` - Thanks **cooperlees**`
+- Attempt to wrap all potentially block calls in a ThreadPoolExecutor - `PR #894` - Thanks **cooperlees**
 
 # 4.4.0 (2020-12-31)
 
@@ -158,12 +158,12 @@ Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work
 
 - Old Mirror class has been renamed to BandersnatchMirror.  Performs same functionality with use of new Mirror API.
 - BandersnatchMirror now performs all filesystem operations throughout the sync process including the ones previously
-in Package.
+  in Package.
 - Package no longer performs filesystem operations.  Properties `json_file`, `json_pypi_symlink`, `simple_directory`
-and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_python`, `generate_simple_page`,
-`sync_simple_page`, `_save_simple_page_version`, `_prepare_versions_path`, `_file_url_to_local_url`,
-`_file_url_to_local_path`, `download_file` have all been moved into BandersnatchMirror. Package's `sync` has been
- refactored into Bandersnatch's `process_package`.
+  and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_python`, `generate_simple_page`,
+  `sync_simple_page`, `_save_simple_page_version`, `_prepare_versions_path`, `_file_url_to_local_url`,
+  `_file_url_to_local_path`, `download_file` have all been moved into BandersnatchMirror. Package's `sync` has been
+  refactored into Bandersnatch's `process_package`.
 - Package class is no longer created with an instance of Mirror
 - StaleMetadata exception has been moved to new errors.py file
 - PackageNotFound exception has been moved to new errors.py file
@@ -292,6 +292,7 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 - Many pyup.io dependency upgrades
 
 ### Known Bug
+
 - From 3.0.0 we've been implicitly turning on *ALL* plugins - This version reverses that
 
 ## 3.1.3 (2018-12-26)
@@ -342,8 +343,7 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 - Allow digest_name to be specified. `Fixes #105` - Thanks **@ewdurbin** !
 - synchronize generated index pages with warehouse - Thanks **@ewdurbin** !
 - Allow root_uri to be configured - Thanks **@ewdurbin** !
--- This is how warehouse (pypi.org) will function
-
+  - This is how warehouse (pypi.org) will function
 
 ## 2.1.3 (2018-03-04)
 
@@ -351,13 +351,11 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
   `Fixes #98`.
 - Add ability to blacklist packages to sync via conf file. `Fixes #100`.
 
-
 ## 2.1.2
 
 - Add saving of JSON metadata grabbed from pypi.facebook.com for syncing `Fixes #91` - Thanks **@cooperlees**
--- Can be disabled via config and disabled by default
--- bandersnatch symlinks WEB_ROOT/pypi/PKG_NAME/json to WEB_ROOT/json/PKG_NAME
-
+  - Can be disabled via config and disabled by default
+  - bandersnatch symlinks WEB_ROOT/pypi/PKG_NAME/json to WEB_ROOT/json/PKG_NAME
 
 ## 2.1.0
 
@@ -370,7 +368,6 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 - Tweak atomic file writes in utils.rewrite() to prefix the temporary
   file with the 'hidden' filename of the destination adding more
   support for hashed POSIX filesystems like GlusterFS. - Thanks **@cooperlees**
-
 
 # 2.0.0 (2017-04-05)
 
@@ -392,7 +389,6 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
 
 - Make the package-specific simple pages human-readable again. `Fixes #71`.
 
-
 ## 1.11 (2016-05-18)
 
 - Add option to dir-hash index files. See
@@ -403,16 +399,13 @@ and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_pytho
   could result in crashing workers that would result in bandersnatch
   getting stuck. Thanks **@wjjt**!
 
-
 ## 1.10.0.1 (2016-05-11)
 
 - Brownbag release for re-upload. My train's Wifi broke while uploading
   ending up with a partial file on PyPI. Can your train service do better
   than mine?
 
-
-1.10 (2016-05-11)
------------------
+## 1.10 (2016-05-11)
 
 This is release is massively supported by **@dstufft** getting bandersnatch
 back in sync with current packaging ecosystem changes. All clap your hands
@@ -428,12 +421,10 @@ now, please.
 - Implement PEP 503 normalization rules while also providing support
   for legacy and very legacy clients.
 
-
 ## 1.9 (2016-04-21)
 
 - Fix a long standing, misunderstood bug: a non-deleting mirror would
   delete packages if they were fully removed from PyPI. `Fixes #61`
-
 
 ## 1.8 (2015-03-16)
 
@@ -443,14 +434,12 @@ now, please.
 - Increase our generation to help mirrors recover potential
   setuptools corruption after some data bug on PyPI.
 
-
 ## 1.7 (2014-12-14)
 
 - Fixes #54 by reordering the simple index page and file fetching
   parts. Thanks **@dstufft** for the inspiration.
 
 - Stop syncing serversig files and even start removing them.
-
 
 ## 1.6.1 (2014-09-24)
 
@@ -488,11 +477,9 @@ now, please.
 - Potential performance improvement: use requests' session object to allow HTTP
   pipelining. Thanks to Wouter Bolsterlee for the recommendation in `Fixes #39`.
 
-
 ## 1.1 (2013-11-26)
 
 - Made code Python 2.6 compatible. Thanks to **@ewdurbin** for the pull request.
-
 
 ## 1.0.5 (2013-07-25)
 
@@ -500,7 +487,6 @@ now, please.
   lockfile vs. acquiring the lock.
 
 - Move from distribute back to setuptools.
-
 
 ## 1.0.4 (2013-07-10)
 
@@ -511,7 +497,6 @@ now, please.
 
 - Fix brownbag release with broken 'stable' tag and missing requirements.txt
   update.
-
 
 ## 1.0.2 (2013-07-08)
 
@@ -536,7 +521,6 @@ now, please.
 
 - Fix packaging: include default config file. (Thanks to **Jannis Leidel**)
 
-
 # 1.0 (2013-04-09)
 
 - Update pip install documentation to use the a URL for referring to the
@@ -549,31 +533,25 @@ now, please.
 
 - Hopefully fixed updating the stable tag when releasing.
 
-
 ## 1.0rc5 (2013-04-09)
 
 - Experiment with zest.releaser integration to automatically generate
   requirements.txt during release process.
 
-
 ## 1.0rc4 (2013-04-09)
--------------------
 
 - Experiment with zest.releaser integration to automatically generate
   requirements.txt during release process.
-
 
 ## 1.0rc3 (2013-04-09)
 
 - Experiment with zest.releaser integration to automatically generate
   requirements.txt during release process.
 
-
 ## 1.0rc2 (2013-04-09)
 
 - Experiment with zest.releaser integration to automatically generate
   requirements.txt during release process.
-
 
 ## 1.0rc1 (2013-04-09)
 
