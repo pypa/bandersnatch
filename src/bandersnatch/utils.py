@@ -113,7 +113,7 @@ def find_all_files(files: Set[Path], base_dir: Path) -> None:
     for f in base_dir.rglob("*"):
         if not f.is_file():
             continue
-        if hasattr(f, "keep_file") and f.name == f.keep_file:  # type: ignore
+        if hasattr(f, "keep_file") and f.name == f.keep_file:
             continue
         files.add(f)
 

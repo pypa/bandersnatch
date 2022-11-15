@@ -159,12 +159,6 @@ class S3Storage(StoragePlugin):
         resource = boto3.resource("s3", **s3_args)
         register_configuration_parameter(mirror_base_path, resource=resource)
 
-    def get_flock_path(self) -> PATH_TYPES:
-        """Not sure what it does
-        this method is not implemented in neither filesystem or swift
-        """
-        pass
-
     def get_lock(self, path: str | None = None) -> S3FileLock:
         if path is None:
             path = str(self.mirror_base_path / ".lock")
