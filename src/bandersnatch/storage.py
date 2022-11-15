@@ -133,9 +133,6 @@ class Storage:
             paths.append(self.json_base_path / name)
         return paths
 
-    def get_flock_path(self) -> PATH_TYPES:
-        raise NotImplementedError
-
     def initialize_plugin(self) -> None:
         """
         Code to initialize the plugin
