@@ -265,3 +265,36 @@ Default: `ALL` formats
 ```ini
 simple-format = ALL
 ```
+
+## sample-log-config
+
+```ini
+[loggers]
+keys=root,file
+[handlers]
+keys=root,file
+[formatters]
+keys=common
+[logger_root]
+level=NOTSET
+handlers=root
+[logger_file]
+level=INFO
+handlers=file
+propagate=1
+qualname=bandersnatch
+[formatter_common]
+format=%(asctime)s %(name)-12s: %(levelname)s %(message)s
+[handler_root]
+class=StreamHandler
+level=DEBUG
+formatter=common
+args=(sys.stdout,)
+[handler_file]
+class=handlers.TimedRotatingFileHandler
+level=DEBUG
+formatter=common
+delay=False
+args=('/repo/bandersnatch/banderlogfile.log', 'D', 1, 0)
+
+```
