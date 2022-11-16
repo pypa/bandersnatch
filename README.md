@@ -87,6 +87,8 @@ example configuration.
 For more information visit out [official documentation](https://bandersnatch.readthedocs.io/)
 for instructions on how to use a NGINX example Docker Image.
 
+If you are looking to an docker-compose example head over [here](https://github.com/pypa/bandersnatch/tree/main/src/bandersnatch_docker_compose)
+
 ### Cron jobs
 
 You need to set up one cron job to run the mirror itself.

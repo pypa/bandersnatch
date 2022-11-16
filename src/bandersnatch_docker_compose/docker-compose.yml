@@ -1,0 +1,23 @@
+services:
+  bandersnatch:
+    image: pypa/bandersnatch:latest
+    volumes:
+      - "./config:/conf"
+      - "./data:/srv/pypi/web"
+    networks:
+      - bandersnatch_net
+  bandersnatch_nginx:
+    image: bandersnatch_nginx
+    build: .
+    volumes:
+      - "./data:/data/pypi/web:ro"
+    ports:
+      - "40080:80"
+    networks:
+      - bandersnatch_net
+
+networks:
+  bandersnatch_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 800
