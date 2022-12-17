@@ -1,8 +1,8 @@
 import logging
 from operator import itemgetter
-from typing import Dict, Iterator, Tuple, Union
+from typing import Dict, Iterator, Tuple
 
-from packaging.version import LegacyVersion, Version, parse
+from packaging.version import Version, parse
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -45,7 +45,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep == 0 or self.keep > len(releases):
             return True
 
-        versions_pair: Iterator[Tuple[Union[LegacyVersion, Version], str]] = map(
+        versions_pair: Iterator[Tuple[Version, str]] = map(
             lambda v: (parse(v), v), releases.keys()
         )
         # Sort all versions
