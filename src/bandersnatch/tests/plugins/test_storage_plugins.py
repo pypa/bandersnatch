@@ -346,7 +346,6 @@ class MockConnection:
 
 
 class BasePluginTestCase(TestCase):
-
     tempdir = None
     cwd = None
     backend: Optional[str] = None
@@ -660,7 +659,6 @@ web{0}simple{0}index.html""".format(
                 )
 
     def test_iter_dir(self) -> None:
-
         base_path = self.plugin.PATH_BACKEND(self.simple_base_path)
         lists = [
             (base_path.joinpath("foobar"), True),

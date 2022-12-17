@@ -62,7 +62,6 @@ class RegexFilter(Filter):
         return all(self._match_node_at_path(k, metadata) for k in self.patterns)
 
     def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
-
         # Grab any tags prepended to key
         tags = key.split(":")
 
@@ -203,7 +202,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
             except KeyError:
                 logger.warning(
                     f"Unable to initialise {self.name} plugin;"
-                    f"must create max_package_size in configuration."
+                    "must create max_package_size in configuration."
                 )
                 return
             try:
@@ -312,7 +311,6 @@ class VersionRangeFilter(Filter):
         return node
 
     def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
-
         # Grab any tags prepended to key
         tags = key.split(":")
 

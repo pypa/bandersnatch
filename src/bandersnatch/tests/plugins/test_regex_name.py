@@ -13,7 +13,6 @@ from bandersnatch_filter_plugins import regex_name
 
 
 class BasePluginTestCase(TestCase):
-
     tempdir = None
     cwd = None
 
@@ -31,7 +30,6 @@ class BasePluginTestCase(TestCase):
 
 
 class TestRegexReleaseFilter(BasePluginTestCase):
-
     config_contents = """\
 [plugins]
 enabled =
@@ -72,7 +70,6 @@ releases =
 
 
 class TestRegexProjectFilter(BasePluginTestCase):
-
     config_contents = """\
 [plugins]
 enabled =

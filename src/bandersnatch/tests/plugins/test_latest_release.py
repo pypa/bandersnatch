@@ -12,7 +12,6 @@ from bandersnatch_filter_plugins import latest_name
 
 
 class BasePluginTestCase(TestCase):
-
     tempdir = None
     cwd = None
 
@@ -30,7 +29,6 @@ class BasePluginTestCase(TestCase):
 
 
 class TestLatestReleaseFilter(BasePluginTestCase):
-
     config_contents = """\
 [plugins]
 enabled =
@@ -143,7 +141,6 @@ keep = 2
 
 
 class TestLatestReleaseFilterUninitialized(BasePluginTestCase):
-
     config_contents = """\
 [plugins]
 enabled =

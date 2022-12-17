@@ -1,3 +1,14 @@
+# Unreleased
+
+## New Features
+
+- Format with black `--preview` style `PR #1313`
+  - I contribute to black and want to help find bugs ...
+
+## Dropped Support
+
+- Dropped LegacyVersion support for latest_name plugin `PR #1315`
+
 # 6.0.1
 
 ## Bug Fixes

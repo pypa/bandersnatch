@@ -86,7 +86,9 @@ SIXTYNINE_METADATA = {
             "comment_text": "",
             "digests": {
                 "md5": "ff4bf804ef3722a1fd8853a8a32513d4",
-                "sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597",
+                "sha256": (
+                    "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"
+                ),
             },
             "downloads": -1,
             "filename": "69-6.9.tar.gz",
