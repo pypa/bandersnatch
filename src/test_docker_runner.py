@@ -16,7 +16,6 @@ class TestRunner(TestCase):
         pass
 
     def test__parseHourList__function(self) -> None:
-
         # Case where start time is less than end time
         input_time_range = "10-18"
         expected_hours_list = [10, 11, 12, 13, 14, 15, 16, 17, 18]

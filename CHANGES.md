@@ -1,3 +1,10 @@
+# Unreleased
+
+## New Features
+
+- Format with black `--preview` style `PR #1313`
+  - I contribute to black and want to help find bugs ...
+
 # 6.0.1
 
 ## Bug Fixes

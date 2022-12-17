@@ -684,7 +684,7 @@ class BandersnatchMirror(Mirror):
                     # suggesting the final attempt of retrieving the file has failed
                     else:
                         logger.exception(
-                            "Continuing to next file after error downloading: " f"{url}"
+                            f"Continuing to next file after error downloading: {url}"
                         )
                     # keep previous exception, also ignore non-default urls
                     if not deferred_exception and len(download_urls) == (cnt + 1):
