@@ -1,6 +1,6 @@
 import logging
 from operator import itemgetter
-from typing import Dict, Iterator, Tuple, Union
+from typing import Dict, Iterator, Tuple
 
 from packaging.version import Version, parse
 
