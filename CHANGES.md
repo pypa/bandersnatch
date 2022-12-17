@@ -2,7 +2,7 @@
 
 ## New Features
 
-- Format with black `--preview` style (#1313)
+- Format with black `--preview` style `PR #1313`
   - I contribute to black and want to help find bugs ...
 
 # 6.0.1
