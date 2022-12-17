@@ -632,7 +632,6 @@ def test_mirror_json_metadata(
 async def test_metadata_404_keeps_package_on_non_deleting_mirror(
     mirror: BandersnatchMirror,
 ) -> None:
-
     paths = [Path("web/packages/2.4/f/foo/foo.zip"), Path("web/simple/foo/index.html")]
     touch_files(paths)
 

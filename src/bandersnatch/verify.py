@@ -139,7 +139,7 @@ async def verify(
         and json_full_path.name == json_full_path.keep_file
     ):
         logger.debug(
-            f"Skipping deleting JSON file due to keep_file attribute "
+            "Skipping deleting JSON file due to keep_file attribute "
             f"being set {str(json_full_path)}"
         )
         return

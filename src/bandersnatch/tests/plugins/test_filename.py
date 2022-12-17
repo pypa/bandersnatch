@@ -12,7 +12,6 @@ from bandersnatch_filter_plugins import filename_name
 
 
 class BasePluginTestCase(TestCase):
-
     tempdir = None
     cwd = None
 
@@ -30,7 +29,6 @@ class BasePluginTestCase(TestCase):
 
 
 class TestExcludePlatformFilter(BasePluginTestCase):
-
     config_contents = """\
 [plugins]
 enabled =

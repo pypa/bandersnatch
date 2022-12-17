@@ -324,7 +324,7 @@ class S3Storage(StoragePlugin):
         This operation is a no-op on swift.
         """
         logger.warning(
-            f"Creating directory in object storage: "
+            "Creating directory in object storage: "
             f"{path} with {self.PATH_BACKEND.keep_file} file"
         )
         if not isinstance(path, self.PATH_BACKEND):

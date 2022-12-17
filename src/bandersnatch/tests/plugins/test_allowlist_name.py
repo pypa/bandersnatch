@@ -403,7 +403,6 @@ enabled =
         self.assertNotIn("project_requirements", names)
 
     def test__filter__matches__release(self) -> None:
-
         with open(Path(self.tempdir.name) / "requirements.txt", "w") as fh:
             fh.write(
                 """\
@@ -514,7 +513,6 @@ requirements =
         self.assertEqual({"foo": ""}, mirror.packages_to_sync)
 
     def test__filter__find__glob__files(self) -> None:
-
         with open(Path(self.tempdir.name) / "requirements-project1.txt", "w") as fh:
             fh.write(
                 """\
