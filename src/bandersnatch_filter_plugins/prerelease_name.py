@@ -2,6 +2,8 @@ import logging
 import re
 from typing import Dict, List, Pattern
 
+from packaging.utils import canonicalize_name
+
 from bandersnatch.filter import FilterReleasePlugin
 
 logger = logging.getLogger("bandersnatch")
@@ -20,6 +22,7 @@ class PreReleaseFilter(FilterReleasePlugin):
         r".+dev\d+$",
     )
     patterns: List[Pattern] = []
+    package_names: List[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -32,9 +35,27 @@ class PreReleaseFilter(FilterReleasePlugin):
             ]
             logger.info(f"Initialized prerelease plugin with {self.patterns}")
 
+        if not self.package_names:
+            try:
+                lines = self.configuration["filter_prerelease"]["packages"]
+                self.package_names = [
+                    canonicalize_name(package_line.strip())
+                    for package_line in lines.split("\n")
+                    if package_line.strip()
+                ]
+            except KeyError:
+                pass
+            logger.info(
+                f"Initialized prerelease plugin {self.name}, filtering "
+                + f"{self.package_names if self.package_names else 'all packages'}"
+            )
+
     def filter(self, metadata: Dict) -> bool:
         """
         Returns False if version fails the filter, i.e. follows a prerelease pattern
         """
+        name = metadata["info"]["name"]
         version = metadata["version"]
+        if self.package_names and name not in self.package_names:
+            return True
         return not any(pattern.match(version) for pattern in self.patterns)

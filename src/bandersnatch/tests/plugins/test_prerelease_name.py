@@ -35,6 +35,11 @@ class TestRegexReleaseFilter(BasePluginTestCase):
 enabled =
     prerelease_release
 """
+    config_match_package = """\
+[filter_prerelease]
+packages =
+    duckdb
+"""
 
     def test_plugin_includes_predefined_patterns(self) -> None:
         mock_config(self.config_contents)
@@ -54,23 +59,32 @@ enabled =
         ]
         assert plugin.patterns == expected_patterns
 
-    def test_plugin_check_match(self) -> None:
-        mock_config(self.config_contents)
-
+    def _check_filter(self, package: str) -> bool:
         mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", serial=1)
+        pkg = Package(package, serial=1)
         pkg._metadata = {
-            "info": {"name": "foo", "version": "1.2.0"},
+            "info": {"name": package, "version": "1.2.0"},
             "releases": {
                 "1.2.0alpha1": {},
                 "1.2.0a2": {},
                 "1.2.0beta1": {},
                 "1.2.0b2": {},
                 "1.2.0rc1": {},
+                "1.2.0.dev912": {},
                 "1.2.0": {},
             },
         }
 
         pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
-        assert pkg.releases == {"1.2.0": {}}
+        return bool(pkg.releases == {"1.2.0": {}})
+
+    def test_plugin_filter_all(self) -> None:
+        mock_config(self.config_contents)
+        assert self._check_filter("foo") is True
+        assert self._check_filter("duckdb") is True
+
+    def test_plugin_filter_packages(self) -> None:
+        mock_config(self.config_contents + self.config_match_package)
+        assert self._check_filter("foo") is False
+        assert self._check_filter("duckdb") is True

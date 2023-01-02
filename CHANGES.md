@@ -4,6 +4,7 @@
 
 - Format with black `--preview` style `PR #1313`
   - I contribute to black and want to help find bugs ...
+- Add a `packages` config under `[filter_prerelease]` for prerelease filter to filter only specified packages. `PR #1328`
 
 ## Dropped Support
 

@@ -161,6 +161,14 @@ enabled =
     prerelease_release
 ```
 
+If you only want to filter out the pre-releases for some specific projects (e.g. with nightly updates), list them in the configuration like:
+
+```ini
+[filter_prerelease]
+packages =
+    duckdb
+```
+
 ## Regex filtering
 
 Advanced users who would like finer control over which packages and releases to filter can use the regex Bandersnatch plugin.
