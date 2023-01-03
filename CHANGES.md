@@ -1,15 +1,18 @@
-# Unreleased
+# 6.1.0
 
 ## New Features
 
-- Format with black `--preview` style `PR #1313`
-  - I contribute to black and want to help find bugs ...
 - Add a `packages` config under `[filter_prerelease]` for prerelease filter to filter only specified packages. `PR #1328`
 
 ## Dropped Support
 
 - Dropped LegacyVersion support for latest_name plugin `PR #1315`
 - No longer issue PURGE requests on StalePage exceptions as PyPI now requires authentication `PR #1335`
+
+## CI
+
+- Format with black `--preview` style `PR #1313`
+  - I contribute to black and want to help find bugs ...
 
 # 6.0.1
 
