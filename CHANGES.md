@@ -9,6 +9,7 @@
 ## Dropped Support
 
 - Dropped LegacyVersion support for latest_name plugin `PR #1315`
+- No longer issue PURGE on StalePage `PR #1335`
 
 # 6.0.1
 
