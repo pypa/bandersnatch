@@ -9,6 +9,7 @@
 ## Dropped Support
 
 - Dropped LegacyVersion support for latest_name plugin `PR #1315`
+- No longer issue PURGE requests on StalePage exceptions as PyPI now requires authentication `PR #1335`
 
 # 6.0.1
 

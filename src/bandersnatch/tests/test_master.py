@@ -61,7 +61,6 @@ async def test_master_raises_if_serial_too_small(master: Master) -> None:
     get_ag = master.get("/asdf", 10)
     with pytest.raises(StalePage):
         await get_ag.asend(None)
-    assert master.session.request.called
 
 
 @pytest.mark.asyncio

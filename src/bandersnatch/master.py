@@ -114,30 +114,10 @@ class Master:
             # really important check to achieve consistency and you should only
             # leave it out if you know what you're doing.
             if not got_serial or got_serial < required_serial:
-                logger.debug(
-                    f"Expected PyPI serial {required_serial} for request {path} "
-                    + f"but got {got_serial}"
-                )
-
-                # HACK: The following attempts to purge the cache of the page we
-                # just tried to fetch. This works around PyPI's caches sometimes
-                # returning a stale serial for a package. Ideally, this should
-                # be fixed on the PyPI side, at which point the following code
-                # should be removed.
-                # Timeout: uses self.sessions's timeout value
-                logger.debug(f"Issuing a PURGE for {path} to clear the cache")
-                try:
-                    async with self.session.request("PURGE", path):
-                        pass
-                except (aiohttp.ClientError, asyncio.TimeoutError):
-                    logger.warning(
-                        "Got an error when attempting to clear the cache", exc_info=True
-                    )
-
                 raise StalePage(
                     f"Expected PyPI serial {required_serial} for request {path} "
-                    + f"but got {got_serial}. "
-                    + "HTTP PURGE has been issued to the request url"
+                    + f"but got {got_serial}. We can no longer issue a PURGE. "
+                    + "Report issue to PyPA Warehouse GitHub if it persists ..."
                 )
 
     async def get(
