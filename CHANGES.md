@@ -2,7 +2,7 @@
 
 ## New Features
 
-- Declare support Python 3.11 `PR #1338`
+- Declare support for Python 3.11 `PR #1338`
 
 # 6.1.0
 
