@@ -59,10 +59,12 @@ def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[st
     result_dict = {
         "bytes": len(data),
         "hash": hashlib.md5(data).hexdigest(),
-        "name": Path(name.lstrip("/")),
+        "name": str(Path(name.lstrip("/"))),
         "content_type": mimetype,
         "last_modified": last_modified,
     }
+    if path.is_symlink():
+        result_dict["symlink_path"] = str(os.readlink(path))
     return result_dict
 
 
@@ -840,6 +842,29 @@ web{0}simple{0}index.html""".format(
         self.plugin.PATH_BACKEND(
             os.path.join(self.mirror_base_path, "test_dir")
         ).rmdir()
+
+    def test_scandir(self) -> None:
+        test_dir = os.path.join(self.mirror_base_path, "test_dir")
+        sub_dir = os.path.join(test_dir, "sub_dir")
+        sub_file = os.path.join(test_dir, "sub_file")
+        sub_link = os.path.join(test_dir, "sub_link")
+        self.plugin.mkdir(test_dir)
+        self.plugin.mkdir(sub_dir)
+        self.plugin.write_file(sub_file, "test")
+        self.plugin.symlink(sub_file, sub_link)
+        for ent in self.plugin.scandir(test_dir):
+            if ent.name == "sub_dir":
+                assert ent.is_dir()
+            elif ent.name == "sub_file":
+                assert ent.is_file()
+            elif ent.name == "sub_link":
+                assert ent.is_symlink()
+            else:
+                raise ValueError(f"unexpected dir entry {str(ent.name)}")
+        self.plugin.delete(sub_link)
+        self.plugin.delete(sub_file)
+        self.plugin.delete(sub_dir)
+        self.plugin.delete(test_dir)
 
     def test_rmdir(self) -> None:
         self.plugin.PATH_BACKEND(

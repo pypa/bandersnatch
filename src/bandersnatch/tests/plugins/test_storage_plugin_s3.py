@@ -124,6 +124,22 @@ def test_mkdir_rmdir(s3_mock: S3Path) -> None:
     assert not backend.is_dir(f"/{s3_mock.bucket}/test_folder")
 
 
+def test_scandir(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    backend.mkdir(f"/{s3_mock.bucket}/test_folder")
+    backend.mkdir(f"/{s3_mock.bucket}/test_folder/sub_dir")
+    backend.write_file(f"/{s3_mock.bucket}/test_folder/sub_file", "test")
+    for ent in backend.scandir(f"/{s3_mock.bucket}/test_folder"):
+        if ent.name == "sub_dir":
+            assert ent.is_dir()
+        elif ent.name == "sub_file":
+            assert ent.is_file()
+        # no symlink for S3
+        else:
+            raise ValueError(f"unexpected dir entry {str(ent.name)}")
+    backend.delete(f"/{s3_mock.bucket}/test_folder")
+
+
 def test_plugin_init(s3_mock: S3Path) -> None:
     config_loader = mock_config(
         """

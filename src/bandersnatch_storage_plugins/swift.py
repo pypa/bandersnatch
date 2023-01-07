@@ -96,6 +96,25 @@ class SwiftFileLock(filelock.BaseFileLock):
         return self.path_backend(self.lock_file).exists()
 
 
+class SwiftDirEntry:
+    def __init__(self, entry: dict):
+        if "subdir" in entry:
+            self.path = str(entry["subdir"])
+        else:
+            self.path = str(entry["name"])
+        self.name = self.path.rstrip("/").split("/")[-1]
+        self._entry = entry
+
+    def is_dir(self) -> bool:
+        return "subdir" in self._entry
+
+    def is_file(self) -> bool:
+        return not self.is_dir()
+
+    def is_symlink(self) -> bool:
+        return "symlink_path" in self._entry
+
+
 # TODO: Refactor this out into reusable base class?
 class _SwiftAccessor:
     BACKEND: "SwiftStorage"
@@ -142,8 +161,15 @@ class _SwiftAccessor:
         return results
 
     @staticmethod
-    def scandir(target: str) -> NoReturn:
-        raise NotImplementedError("scandir() is not available on this platform")
+    def scandir(target: str) -> Generator[SwiftDirEntry, None, None]:
+        if not target.endswith("/"):
+            target = f"{target}/"
+        with _SwiftAccessor.BACKEND.connection() as conn:
+            paths = conn.get_container(
+                _SwiftAccessor.BACKEND.default_container, prefix=target, delimiter="/"
+            )
+            for p in paths:
+                yield SwiftDirEntry(p)
 
     @staticmethod
     def chmod(target: str) -> NoReturn:
@@ -819,6 +845,15 @@ class SwiftStorage(StoragePlugin):
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         path.joinpath(".swiftkeep").touch()
+
+    def scandir(self, path: PATH_TYPES) -> Generator[SwiftDirEntry, None, None]:
+        """Read entries from the provided directory"""
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.PATH_BACKEND(path)
+        for p in path._accessor.scandir(str(path)):
+            if p.name == ".swiftkeep":
+                continue
+            yield p
 
     def rmdir(
         self,
