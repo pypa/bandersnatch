@@ -3,6 +3,7 @@
 ## New Features
 
 - Declare support for Python 3.11 `PR #1338`
+- Add scandir() as Storage plugin API to speedup large directory read when generating global index `PR #1340`
 
 # 6.1.0
 

@@ -6,8 +6,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
 from urllib.parse import urlparse
 
-from packaging.utils import canonicalize_name
-
 from .package import Package
 
 if TYPE_CHECKING:
@@ -75,16 +73,15 @@ class SimpleAPI:
     def json_enabled(self) -> bool:
         return self.format in {SimpleFormat.ALL, SimpleFormat.JSON}
 
-    def find_package_indexes_in_dir(self, simple_dir: Path) -> List[str]:
+    def find_packages_in_dir(self, simple_dir: Path) -> List[str]:
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
-        simple_path = self.storage_backend.PATH_BACKEND(str(simple_dir))
         return sorted(
             {
-                canonicalize_name(str(x.parent.relative_to(simple_path)))
-                for x in simple_path.glob("**/index.html")
-                if str(x.parent.relative_to(simple_path)) != "."
+                str(x.name)
+                for x in self.storage_backend.scandir(simple_dir)
+                if x.is_dir()
             }
         )
 
@@ -114,7 +111,11 @@ class SimpleAPI:
             # We are using index page directory hashing, so the directory
             # format is /simple/f/foo/.  We want to return a list of dirs
             # like "simple/f".
-            subdirs = [simple_dir / x for x in simple_dir.iterdir() if x.is_dir()]
+            subdirs = sorted(
+                simple_dir / str(x.name)
+                for x in self.storage_backend.scandir(simple_dir)
+                if x.is_dir()
+            )
         else:
             # This is the traditional layout of /simple/foo/.  We should
             # return a single directory, "simple".
@@ -245,7 +246,7 @@ class SimpleAPI:
             # This will either be the simple dir, or if we are using index
             # directory hashing, a list of subdirs to process.
             for subdir in self.get_simple_dirs(simple_dir):
-                for pkg in self.find_package_indexes_in_dir(subdir):
+                for pkg in self.find_packages_in_dir(subdir):
                     # We're really trusty that this is all encoded in UTF-8. :/
                     f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
                     if self.json_enabled():

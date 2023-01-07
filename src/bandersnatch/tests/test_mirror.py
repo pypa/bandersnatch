@@ -649,6 +649,12 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         "web/simple/implicit",
         "web/simple/pyaib",
         "web/simple/setuptools",
+        "web_hash/simple/p/peerme",
+        "web_hash/simple/c/click",
+        "web_hash/simple/z/zebra",
+        "web_hash/simple/i/implicit",
+        "web_hash/simple/p/pyaib",
+        "web_hash/simple/s/setuptools",
     )
     with TemporaryDirectory() as td:
         # Create local mirror first so we '_bootstrap'
@@ -662,10 +668,26 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
             (mirror_base / directory / "index.html").touch()
         with (mirror_base / "web/simple/index.html").open("w") as index:
             index.write("<html></html>")
+        with (mirror_base / "web_hash/simple/index.html").open("w") as index:
+            index.write("<html></html>")
 
-        packages = local_mirror.simple_api.find_package_indexes_in_dir(
-            mirror_base / "web/simple"
-        )
+        packages = [
+            pkg
+            for subdir in local_mirror.simple_api.get_simple_dirs(
+                mirror_base / "web/simple"
+            )
+            for pkg in local_mirror.simple_api.find_packages_in_dir(subdir)
+        ]
+        local_mirror.simple_api.hash_index = True
+        packages_hash = [
+            pkg
+            for subdir in local_mirror.simple_api.get_simple_dirs(
+                mirror_base / "web_hash/simple"
+            )
+            for pkg in local_mirror.simple_api.find_packages_in_dir(subdir)
+        ]
+
+        assert packages == packages_hash
         assert "index.html" not in packages  # This should never be in the list
         assert len(packages) == 6  # We expect 6 packages with 6 dirs created
         assert packages[0] == "click"  # Check sorted - click should be first
