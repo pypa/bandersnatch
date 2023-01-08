@@ -2,8 +2,9 @@
 
 ## New Features
 
-- Declare support for Python 3.11 `PR #1338`
 - Add scandir() as Storage plugin API to speedup large directory read when generating global index `PR #1340`
+- Declare support for Python 3.11 `PR #1338`
+- Move Docker to build in 3.11 `PR #1341`
 
 # 6.1.0
 

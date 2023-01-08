@@ -35,7 +35,7 @@ jobs:
       - name: Build and push filesystem image
         uses: docker/build-push-action@v3
         env:
-          PY_VERSION: '3.10'
+          PY_VERSION: '3.11'
         with:
           build-args: PY_VERSION
           context: .
@@ -49,7 +49,7 @@ jobs:
       - name: Build and push s3 image
         uses: docker/build-push-action@v3
         env:
-          PY_VERSION: '3.10'
+          PY_VERSION: '3.11'
           WITH_S3: yes
         with:
           build-args: |
@@ -66,7 +66,7 @@ jobs:
       - name: Build and push swift image
         uses: docker/build-push-action@v3
         env:
-          PY_VERSION: '3.10'
+          PY_VERSION: '3.11'
           WITH_SWIFT: yes
         with:
           build-args: |
