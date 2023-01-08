@@ -18,6 +18,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Type,
@@ -41,6 +42,25 @@ STORAGE_PLUGIN_RESOURCE = f"bandersnatch_storage_plugins.v{PLUGIN_API_REVISION}.
 loaded_storage_plugins: Dict[str, List["Storage"]] = defaultdict(list)
 
 logger = logging.getLogger("bandersnatch")
+
+
+class StorageDirEntry(Protocol):
+    @property
+    def name(self) -> Union[str, bytes]:
+        ...
+
+    @property
+    def path(self) -> Union[str, bytes]:
+        ...
+
+    def is_dir(self) -> bool:
+        ...
+
+    def is_file(self) -> bool:
+        ...
+
+    def is_symlink(self) -> bool:
+        ...
 
 
 class Storage:
@@ -249,6 +269,10 @@ class Storage:
         self, path: PATH_TYPES, exist_ok: bool = False, parents: bool = False
     ) -> None:
         """Create the provided directory"""
+        raise NotImplementedError
+
+    def scandir(self, path: PATH_TYPES) -> Generator[StorageDirEntry, None, None]:
+        """Read entries from the provided directory"""
         raise NotImplementedError
 
     def rmdir(

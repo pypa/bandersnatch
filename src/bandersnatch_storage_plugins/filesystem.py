@@ -197,6 +197,12 @@ class FilesystemStorage(StoragePlugin):
             path = pathlib.Path(path)
         return path.mkdir(exist_ok=exist_ok, parents=parents)
 
+    def scandir(self, path: PATH_TYPES) -> Generator[os.DirEntry, None, None]:
+        """Read entries from the provided directory"""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        yield from os.scandir(path)
+
     def rmdir(
         self,
         path: PATH_TYPES,
