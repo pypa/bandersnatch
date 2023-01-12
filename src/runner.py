@@ -39,7 +39,17 @@ def main() -> int:
         help="Hours of day interval expresses as 0-23 or 2",
         type=parseHourList,
     )
+    parser.add_argument(
+        "--force-check",
+        default="false",
+        help="Force bandersnatch to reset the PyPI serial to perform a full sync",
+    )
     args = parser.parse_args()
+
+    if args.force_check == "true":
+        force_check = "--force-check"
+    else:
+        force_check = ""
 
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
     try:
@@ -55,6 +65,7 @@ def main() -> int:
                         "--config",
                         args.config,
                         "mirror",
+                        force_check,
                     ]
                     run(cmd, check=True)
                 except CalledProcessError as cpe:
