@@ -86,11 +86,10 @@ def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
-    with pytest.raises(Exception):
-        with rewrite("sample") as f:
+    with pytest.raises(OSError):
+        with rewrite("sample", "r") as f:
             f.write("csdf")
-            raise Exception()
-    assert open("sample").read() == "bsdf"  # type: ignore
+    assert open("sample").read() == "bsdf"
 
 
 def test_rewrite_nonexisting_file(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
