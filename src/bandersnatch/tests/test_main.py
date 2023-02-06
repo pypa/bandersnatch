@@ -64,9 +64,11 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
     base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
     diff_file = Path(tempfile.gettempdir()) / "srv/pypi/mirrored-files"
     config_lines = [
-        f"diff-file = {diff_file.as_posix()}\n"
-        if line.startswith("diff-file")
-        else line
+        (
+            f"diff-file = {diff_file.as_posix()}\n"
+            if line.startswith("diff-file")
+            else line
+        )
         for line in base_config_path.read_text().splitlines()
     ]
     config_path = tmpdir / "unittest.conf"
