@@ -33,7 +33,7 @@ jobs:
           latest_non_release)" >> $GITHUB_ENV
 
       - name: Build and push filesystem image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         env:
           PY_VERSION: '3.11'
         with:
@@ -47,7 +47,7 @@ jobs:
         run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Build and push s3 image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         env:
           PY_VERSION: '3.11'
           WITH_S3: yes
@@ -64,7 +64,7 @@ jobs:
         run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Build and push swift image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         env:
           PY_VERSION: '3.11'
           WITH_SWIFT: yes
