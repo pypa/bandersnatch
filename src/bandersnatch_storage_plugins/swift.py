@@ -431,7 +431,8 @@ class SwiftPath(pathlib.Path):
             src_container=src_container,
         )
 
-    def write_bytes(
+    # Different signature than Path.write_bytes
+    def write_bytes(  # type: ignore
         self,
         contents: bytes,
         encoding: Optional[str] = "utf-8",
