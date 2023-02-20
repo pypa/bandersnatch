@@ -2,7 +2,7 @@ async-timeout>=4.0.0a3
 black==23.1.0
 coverage==7.0.5
 flake8==6.0.0
-flake8-bugbear==23.1.20
+flake8-bugbear==23.2.13
 freezegun==1.2.2
 mypy==0.991
 pre-commit==3.0.4
