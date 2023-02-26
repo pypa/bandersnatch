@@ -7,6 +7,10 @@
 - Move Docker to build in 3.11 `PR #1341`
 - Add "--force-check" parameter to runner.py `PR #1347`
 
+## Bug Fixes
+
+- Fixed import of packages from requirement files with UTF-16 encoding `PR #1386`
+
 # 6.1.0
 
 ## New Features

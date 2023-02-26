@@ -153,7 +153,17 @@ class AllowListRequirements(AllowListProject):
             return []
 
         for filepath in filepaths:
-            with open(filepath) as req_fh:
+            encoding = "UTF-8"
+            try:
+                f = open(filepath, encoding=encoding)
+                f.read()
+                f.close()
+            except UnicodeDecodeError:
+                encoding = "UTF-16"
+                f = open(filepath, encoding=encoding)
+                f.read()
+                f.close()
+            with open(filepath, encoding=encoding) as req_fh:
                 filtered_requirements |= _parse_package_lines(req_fh.readlines())
         return list(req.name for req in filtered_requirements)
 
