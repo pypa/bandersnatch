@@ -9,7 +9,7 @@
 
 ## Bug Fixes
 
-- Fixed import of packages from requirement files with UTF-16 encoding `PR #1386`
+- Fixed import of packages from requirement files with UTF-16 encoding `PR #1387`
 
 # 6.1.0
 
