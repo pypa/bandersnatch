@@ -572,3 +572,37 @@ requirements =
         # Check that the package in the last file, excluded
         # from the glob is not considered
         self.assertNotIn("baz", mirror.packages_to_sync)
+
+    def test__filter__requirements__utf16__encoding(self) -> None:
+        absolute_file_path = Path(self.tempdir.name) / "requirements.txt"
+        with open(absolute_file_path, "w", encoding="UTF-16") as fh:
+            fh.write(
+                """\
+foo==1.2.0             # via -r requirements.in
+"""
+            )
+
+        mock_config(
+            f"""\
+[mirror]
+storage-backend = filesystem
+workers = 2
+
+[plugins]
+enabled =
+    project_requirements
+[allowlist]
+requirements =
+    {absolute_file_path}
+"""
+        )
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+
+        mirror.packages_to_sync = {
+            "foo": "",
+            "bar": "",
+            "baz": "",
+        }
+        mirror._filter_packages()
+        self.assertEqual({"foo": ""}, mirror.packages_to_sync)

@@ -11,6 +11,8 @@ from packaging.version import InvalidVersion, Version
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
+from .encoding import auto_decode
+
 logger = logging.getLogger("bandersnatch")
 
 
@@ -153,8 +155,9 @@ class AllowListRequirements(AllowListProject):
             return []
 
         for filepath in filepaths:
-            with open(filepath) as req_fh:
-                filtered_requirements |= _parse_package_lines(req_fh.readlines())
+            with open(filepath, "rb") as req_fh:
+                content = auto_decode(req_fh.read())
+                filtered_requirements |= _parse_package_lines(content.splitlines())
         return list(req.name for req in filtered_requirements)
 
 
