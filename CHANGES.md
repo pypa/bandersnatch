@@ -1,4 +1,4 @@
-# Unreleased
+# 6.2.0
 
 ## New Features
 
@@ -9,7 +9,13 @@
 
 ## Bug Fixes
 
-- Fixed import of packages from requirement files with UTF-16 encoding `PR #1387`
+- Fixed read of requirement files with non UTF-8 encoding - compatible with pip `PR #1387`
+- Type checking fixed to pass mypy > 1.0.0
+- Don't attempt docker on forks `PR #1336`
+
+## Notice
+
+- This will be the last python 3.8 and 3.9 tested version. Going to plan to be >= 3.10
 
 # 6.1.0
 
