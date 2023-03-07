@@ -1,5 +1,5 @@
 aiohttp==3.8.4
-aiohttp-socks==0.7.1
+aiohttp-socks==0.8.0
 aiohttp-xmlrpc==1.5.0
 async-timeout>=4.0.0a3
 attrs==22.2.0
@@ -11,6 +11,6 @@ lxml==4.9.2
 multidict==6.0.4
 packaging==23.0
 pyparsing==3.0.9
-setuptools==67.4.0
+setuptools==67.5.1
 six==1.16.0
 yarl==1.8.2
