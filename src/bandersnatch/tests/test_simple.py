@@ -70,11 +70,7 @@ simple{0}foo
 simple{0}foo{0}index.html
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(
-            sep
-        ) == utils.find(
-            td_path
-        )
+simple{0}index.v1_json""".format(sep) == utils.find(td_path)
         # Check format of JSON
         assert (simple_dir / "index.v1_json").open(
             "r"

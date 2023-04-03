@@ -601,9 +601,7 @@ web{0}pypi
 web{0}simple
 web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
-web{0}simple{0}index.html""".format(
-        os.sep
-    ).strip()
+web{0}simple{0}index.html""".format(os.sep).strip()
     if sys.platform == "win32":
         base_find_contents = base_find_contents.replace(".lock\n", "")
 
