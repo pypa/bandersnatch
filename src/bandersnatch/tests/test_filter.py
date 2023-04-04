@@ -38,12 +38,10 @@ class TestBandersnatchFilter(TestCase):
             self.tempdir = None
 
     def test__filter_project_plugins__loads(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled = all
-"""
-        )
+""")
         builtin_plugin_names = [
             "blocklist_project",
             "regex_project",
@@ -56,12 +54,10 @@ enabled = all
             self.assertIn(name, names)
 
     def test__filter_release_plugins__loads(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled = all
-"""
-        )
+""")
         builtin_plugin_names = [
             "blocklist_release",
             "prerelease_release",
@@ -75,12 +71,10 @@ enabled = all
             self.assertIn(name, names)
 
     def test__filter_no_plugin(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled =
-"""
-        )
+""")
 
         plugins = LoadedFilters().filter_release_plugins()
         self.assertEqual(len(plugins), 0)
@@ -134,8 +128,7 @@ enabled =
         assert plugin.blocklist.name == "blocklist"
 
     def test__filter_project_blocklist_allowlist__pep503_normalize(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled =
     blocklist_project
@@ -150,8 +143,7 @@ packages =
 packages =
     SampleProject
     trove----classifiers
-"""
-        )
+""")
 
         plugins = {
             plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()

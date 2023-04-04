@@ -141,8 +141,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config_loader = mock_config(
-        """
+    config_loader = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -162,8 +161,7 @@ aws_access_key_id = 123456
 aws_secret_access_key = 123456
 endpoint_url = http://localhost:9090
 signature_version = s3v4
-"""
-    )
+""")
     backend = s3.S3Storage(config=config_loader.config)
     backend.initialize_plugin()
 
@@ -171,8 +169,7 @@ signature_version = s3v4
     resource, _ = path._accessor.configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config_loader = mock_config(
-        """
+    config_loader = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -188,8 +185,7 @@ keep_index_versions = 2
 compare-method = hash
 [s3]
 endpoint_url = http://localhost:9090
-"""
-    )
+""")
     backend = s3.S3Storage(config=config_loader.config)
     backend.initialize_plugin()
 
