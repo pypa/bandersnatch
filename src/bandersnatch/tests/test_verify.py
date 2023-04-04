@@ -181,9 +181,7 @@ web{0}simple
 web{0}simple{0}bandersnatch
 web{0}simple{0}bandersnatch{0}index.html
 web{0}simple{0}black
-web{0}simple{0}black{0}index.html""".format(
-        os.sep
-    )
+web{0}simple{0}black{0}index.html""".format(os.sep)
     fm = FakeMirror("_mirror_base_test")
     assert expected_mirror_layout == find(str(fm.mirror_base), True)
     fm.clean_up()

@@ -29,16 +29,14 @@ class TestSizeProjectMetadataFilter(TestCase):
             self.tempdir.cleanup()
 
     def test__size__plugin__loads__and__initializes(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled =
     size_project_metadata
 
 [size_project_metadata]
 max_package_size = 1G
-"""
-        )
+""")
 
         plugins = bandersnatch.filter.LoadedFilters().filter_metadata_plugins()
         names = [plugin.name for plugin in plugins]
@@ -49,16 +47,14 @@ max_package_size = 1G
         self.assertTrue(plugin.initialized)
 
     def test__filter__size__only(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled =
     size_project_metadata
 
 [size_project_metadata]
 max_package_size = 2K
-"""
-        )
+""")
 
         mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
 
@@ -79,8 +75,7 @@ max_package_size = 2K
         self.assertFalse(pkg.filter_metadata(mirror.filters.filter_metadata_plugins()))
 
     def test__filter__size__or__allowlist(self) -> None:
-        mock_config(
-            """\
+        mock_config("""\
 [plugins]
 enabled =
     size_project_metadata
@@ -91,8 +86,7 @@ max_package_size = 2K
 [allowlist]
 packages =
     foo
-"""
-        )
+""")
 
         mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
 
