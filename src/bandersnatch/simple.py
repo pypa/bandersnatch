@@ -4,8 +4,9 @@ import logging
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union, Set
 from urllib.parse import urlparse
+import shutil, os
 
 from .package import Package
 
@@ -252,7 +253,7 @@ class SimpleAPI:
         return SimpleFormats(simple_html_content, simple_json_content)
 
     def sync_index_page(
-        self, need_index_sync: bool, webdir: Path, serial: int, *, pretty: bool = False
+        self, need_index_sync: bool, webdir: Path, serial: int, *, pretty: bool = False, packages_to_remove: Set[str] = []
     ) -> None:
         if not need_index_sync:
             return
@@ -267,6 +268,9 @@ class SimpleAPI:
             "meta": {"_last-serial": serial, "api-version": "1.0"},
             "projects": [],
         }
+
+        if len(packages_to_remove) > 0:
+            logger.info(f'{len(packages_to_remove)} packages will be removed becuase they are no longer exist on master.')
 
         with self.storage_backend.rewrite(str(simple_html_path)) as f:
             f.write("<!DOCTYPE html>\n")
@@ -283,10 +287,18 @@ class SimpleAPI:
             # directory hashing, a list of subdirs to process.
             for subdir in self.get_simple_dirs(simple_dir):
                 for pkg in self.find_packages_in_dir(subdir):
-                    # We're really trusty that this is all encoded in UTF-8. :/
-                    f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
+                    if pkg in packages_to_remove:
+                        shutil.rmtree(os.path.join(subdir, pkg))
+                    else:
+                        # We're really trusty that this is all encoded in UTF-8. :/
+                        f.write(f'    <a href="{pkg}/">{pkg}</a><br/>\n')
+
                     if self.json_enabled():
-                        simple_json["projects"].append({"name": pkg})
+                        if pkg in packages_to_remove:
+                            os.remove(os.path.join(webdir, "json", pkg))
+                            shutil.rmtree(os.path.join(webdir, "pypi", pkg))
+                        else:
+                            simple_json["projects"].append({"name": pkg})
             f.write("  </body>\n</html>")
 
         if self.html_enabled():

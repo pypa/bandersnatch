@@ -31,6 +31,7 @@ class Mirror:
     synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
     target_serial: Optional[int] = None  # What is the serial we are trying to reach?
     packages_to_sync: Dict[str, Union[int, str]] = {}
+    removed_package_list: Set[Package] = set()
 
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
@@ -53,7 +54,7 @@ class Mirror:
         self,
         specific_packages: Optional[List[str]] = None,
         sync_simple_index: bool = True,
-    ) -> Dict[str, Set[str]]:
+    ) -> Tuple[Dict[str, Set[str]], Set[Package]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
@@ -83,7 +84,7 @@ class Mirror:
 
         await self.sync_packages()
         self.finalize_sync(sync_index_page=sync_simple_index)
-        return self.altered_packages
+        return self.altered_packages, self.removed_package_list
 
     def _filter_packages(self) -> None:
         """
@@ -131,7 +132,8 @@ class Mirror:
             except asyncio.QueueEmpty:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
-            except PackageNotFound:
+            except PackageNotFound as e:
+                self.removed_package_list.add(e.package_name)
                 continue
             except Exception as e:
                 self.on_error(e, package=package)
@@ -352,7 +354,7 @@ class BandersnatchMirror(Mirror):
     def finalize_sync(self, sync_index_page: bool = True) -> None:
         if sync_index_page:
             self.simple_api.sync_index_page(
-                self.need_index_sync, self.webdir, self.synced_serial
+                self.need_index_sync, self.webdir, self.synced_serial, packages_to_remove=self.removed_package_list
             )
         if self.need_wrapup:
             self.wrapup_successful_sync()
@@ -983,11 +985,11 @@ async def mirror(
             download_mirror_no_fallback=config_values.download_mirror_no_fallback,
             simple_format=config_values.simple_format,
         )
-        changed_packages = await mirror.synchronize(
+        changed_packages, removed_packages = await mirror.synchronize(
             specific_packages, sync_simple_index=sync_simple_index
         )
 
-    logger.info(f"{len(changed_packages)} packages had changes")
+    logger.info(f"{len(changed_packages)} packages had changes, {len(removed_packages)} packages was removed.")
     for package_name, changes in changed_packages.items():
         package_changes = []
         for change in changes:
