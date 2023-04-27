@@ -190,8 +190,7 @@ class SimpleAPI:
                 {
                     "filename": r["filename"],
                     "hashes": {
-                        digest_name: digest_hash
-                        for digest_name, digest_hash in r["digests"].items()
+                        self.digest_name: r["digests"][self.digest_name],
                     },
                     "requires-python": r.get("requires_python", ""),
                     "url": self._file_url_to_local_url(r["url"]),
