@@ -36,7 +36,7 @@ def get_format_value(format: str) -> SimpleFormat:
     try:
         return SimpleFormat[format.upper()]
     except KeyError:
-        valid_formats = [v.name for v in SimpleFormat].sort()
+        valid_formats = sorted([v.name for v in SimpleFormat])
         raise InvalidSimpleFormat(
             f"{format.upper()} is not a valid Simple API format. "
             + f"Valid Options: {valid_formats}"
