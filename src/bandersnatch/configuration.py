@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Type
 
-from .simple import SimpleFormat, get_format_value
+from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
 
 logger = logging.getLogger("bandersnatch")
 
@@ -131,15 +131,17 @@ def validate_config_values(  # noqa: C901
     logger.info(f"Selected storage backend: {storage_backend_name}")
 
     try:
-        digest_name = config.get("mirror", "digest_name")
+        digest_name = get_digest_value(config.get("mirror", "digest_name"))
     except configparser.NoOptionError:
-        digest_name = "sha256"
-    if digest_name not in ("md5", "sha256"):
-        raise ValueError(
-            f"Supplied digest_name {digest_name} is not supported! Please "
-            + "update digest_name to one of ('sha256', 'md5') in the [mirror] "
-            + "section."
+        digest_name = SimpleDigest.SHA256
+        logger.debug(f"Using digest {digest_name} by default ...")
+    except KeyError as e:
+        logger.error(
+            f"Supplied digest_name {config.get('mirror', 'digest_name')} is "
+            + "not supported! Please update the digest_name in the [mirror] "
+            + "section of your config to a supported digest value."
         )
+        raise e
 
     try:
         cleanup = config.getboolean("mirror", "cleanup")
