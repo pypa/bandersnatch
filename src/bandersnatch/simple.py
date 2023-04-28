@@ -42,7 +42,7 @@ class InvalidSimpleFormat(KeyError):
     pass
 
 
-class InvalidDigestFormat(KeyError):
+class InvalidDigestFormat(ValueError):
     """We don't have a valid digest choice from configuration"""
 
     pass
@@ -65,7 +65,7 @@ def get_digest_value(digest: str) -> SimpleDigest:
     except KeyError:
         valid_digests = sorted([v.name for v in SimpleDigest])
         raise InvalidDigestFormat(
-            f"{digest.upper()} is not a valid Simple API file hash digest. "
+            f"{digest} is not a valid Simple API file hash digest. "
             + f"Valid Options: {valid_digests}"
         )
 

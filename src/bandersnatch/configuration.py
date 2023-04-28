@@ -135,7 +135,7 @@ def validate_config_values(  # noqa: C901
     except configparser.NoOptionError:
         digest_name = SimpleDigest.SHA256
         logger.debug(f"Using digest {digest_name} by default ...")
-    except KeyError as e:
+    except ValueError as e:
         logger.error(
             f"Supplied digest_name {config.get('mirror', 'digest_name')} is "
             + "not supported! Please update the digest_name in the [mirror] "
