@@ -23,11 +23,27 @@ class SimpleFormat(Enum):
     JSON = auto()
 
 
+class SimpleDigests(NamedTuple):
+    sha256: str
+    md5: str
+
+
+class SimpleDigest(str, Enum):
+    SHA256 = "sha256"
+    MD5 = "md5"
+
+
 logger = logging.getLogger(__name__)
 
 
 class InvalidSimpleFormat(KeyError):
     """We don't have a valid format choice from configuration"""
+
+    pass
+
+
+class InvalidDigestFormat(KeyError):
+    """We don't have a valid digest choice from configuration"""
 
     pass
 
@@ -40,6 +56,17 @@ def get_format_value(format: str) -> SimpleFormat:
         raise InvalidSimpleFormat(
             f"{format.upper()} is not a valid Simple API format. "
             + f"Valid Options: {valid_formats}"
+        )
+
+
+def get_digest_value(digest: str) -> SimpleDigest:
+    try:
+        return SimpleDigest[digest.upper()]
+    except KeyError:
+        valid_digests = sorted([v.name for v in SimpleDigest])
+        raise InvalidDigestFormat(
+            f"{digest.upper()} is not a valid Simple API file hash digest. "
+            + f"Valid Options: {valid_digests}"
         )
 
 
@@ -56,12 +83,16 @@ class SimpleAPI:
         storage_backend: "Storage",
         format: Union[SimpleFormat, str],
         diff_file_list: List[Path],
-        digest_name: str,
+        digest_name: Union[SimpleDigest, str],
         hash_index: bool,
         root_uri: Optional[str],
     ) -> None:
         self.diff_file_list = diff_file_list
-        self.digest_name = digest_name
+        self.digest_name = (
+            get_digest_value(digest_name)
+            if isinstance(digest_name, str)
+            else digest_name
+        )
         self.format = get_format_value(format) if isinstance(format, str) else format
         self.hash_index = hash_index
         self.root_uri = root_uri
