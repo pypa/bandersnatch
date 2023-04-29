@@ -1,6 +1,7 @@
 import html
 import json
 import logging
+import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
@@ -10,6 +11,11 @@ from .package import Package
 
 if TYPE_CHECKING:
     from .storage import Storage
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from .utils import StrEnum
 
 
 class SimpleFormats(NamedTuple):
@@ -28,7 +34,7 @@ class SimpleDigests(NamedTuple):
     md5: str
 
 
-class SimpleDigest(str, Enum):
+class SimpleDigest(StrEnum):
     SHA256 = "sha256"
     MD5 = "md5"
 
