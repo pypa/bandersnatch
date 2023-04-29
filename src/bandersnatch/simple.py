@@ -1,6 +1,7 @@
 import html
 import json
 import logging
+import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
@@ -10,6 +11,11 @@ from .package import Package
 
 if TYPE_CHECKING:
     from .storage import Storage
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    from .utils import StrEnum
 
 
 class SimpleFormats(NamedTuple):
@@ -23,6 +29,16 @@ class SimpleFormat(Enum):
     JSON = auto()
 
 
+class SimpleDigests(NamedTuple):
+    sha256: str
+    md5: str
+
+
+class SimpleDigest(StrEnum):
+    SHA256 = "sha256"
+    MD5 = "md5"
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,14 +48,31 @@ class InvalidSimpleFormat(KeyError):
     pass
 
 
+class InvalidDigestFormat(ValueError):
+    """We don't have a valid digest choice from configuration"""
+
+    pass
+
+
 def get_format_value(format: str) -> SimpleFormat:
     try:
         return SimpleFormat[format.upper()]
     except KeyError:
-        valid_formats = [v.name for v in SimpleFormat].sort()
+        valid_formats = sorted([v.name for v in SimpleFormat])
         raise InvalidSimpleFormat(
             f"{format.upper()} is not a valid Simple API format. "
             + f"Valid Options: {valid_formats}"
+        )
+
+
+def get_digest_value(digest: str) -> SimpleDigest:
+    try:
+        return SimpleDigest[digest.upper()]
+    except KeyError:
+        valid_digests = sorted([v.name for v in SimpleDigest])
+        raise InvalidDigestFormat(
+            f"{digest} is not a valid Simple API file hash digest. "
+            + f"Valid Options: {valid_digests}"
         )
 
 
@@ -56,12 +89,16 @@ class SimpleAPI:
         storage_backend: "Storage",
         format: Union[SimpleFormat, str],
         diff_file_list: List[Path],
-        digest_name: str,
+        digest_name: Union[SimpleDigest, str],
         hash_index: bool,
         root_uri: Optional[str],
     ) -> None:
         self.diff_file_list = diff_file_list
-        self.digest_name = digest_name
+        self.digest_name = (
+            get_digest_value(digest_name)
+            if isinstance(digest_name, str)
+            else digest_name
+        )
         self.format = get_format_value(format) if isinstance(format, str) else format
         self.hash_index = hash_index
         self.root_uri = root_uri
@@ -190,8 +227,7 @@ class SimpleAPI:
                 {
                     "filename": r["filename"],
                     "hashes": {
-                        digest_name: digest_hash
-                        for digest_name, digest_hash in r["digests"].items()
+                        self.digest_name: r["digests"][self.digest_name],
                     },
                     "requires-python": r.get("requires_python", ""),
                     "url": self._file_url_to_local_url(r["url"]),

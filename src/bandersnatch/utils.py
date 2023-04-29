@@ -9,6 +9,7 @@ import shutil
 import sys
 import tempfile
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import IO, Any, Generator, List, Set, Union
 from urllib.parse import urlparse
@@ -35,6 +36,15 @@ def user_agent() -> str:
 SAFE_NAME_REGEX = re.compile(r"[^A-Za-z0-9.]+")
 USER_AGENT = user_agent()
 WINDOWS = bool(platform.system() == "Windows")
+
+
+class StrEnum(str, Enum):
+    """Enumeration class where members can be treated as strings."""
+
+    value: str
+
+    def __str__(self) -> str:
+        return self.value
 
 
 def make_time_stamp() -> str:

@@ -1,3 +1,10 @@
+# Unreleased
+
+## Bug Fixes
+
+- Fix digest used for file hashes in PEP 691 simple JSON file output `PR #1442`
+  - The `digest_name` setting from configuration (default value: `sha256`) will now be used for both HTML and JSON files.
+
 # 6.2.0
 
 ## New Features

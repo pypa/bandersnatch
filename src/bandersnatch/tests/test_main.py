@@ -128,7 +128,7 @@ def test_main_throws_exception_on_unsupported_digest_name(
     with pytest.raises(ValueError) as e:
         main(asyncio.new_event_loop())
 
-    assert "foobar is not supported" in str(e.value)
+    assert "foobar is not a valid" in str(e.value)
 
 
 @pytest.fixture

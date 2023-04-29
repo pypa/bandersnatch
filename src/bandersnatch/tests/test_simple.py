@@ -6,8 +6,15 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from bandersnatch import utils
+from bandersnatch.configuration import validate_config_values
 from bandersnatch.package import Package
-from bandersnatch.simple import InvalidSimpleFormat, SimpleAPI, SimpleFormat
+from bandersnatch.simple import (
+    InvalidDigestFormat,
+    InvalidSimpleFormat,
+    SimpleAPI,
+    SimpleDigest,
+    SimpleFormat,
+)
 from bandersnatch.storage import Storage
 from bandersnatch.tests.test_simple_fixtures import (
     EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY,
@@ -20,16 +27,35 @@ from bandersnatch_storage_plugins.filesystem import FilesystemStorage
 
 def test_format_invalid() -> None:
     with pytest.raises(InvalidSimpleFormat):
-        SimpleAPI(Storage(), "l33t", [], "digest", False, None)
+        SimpleAPI(Storage(), "l33t", [], "sha256", False, None)
 
 
 def test_format_valid() -> None:
-    s = SimpleAPI(Storage(), "ALL", [], "digest", False, None)
+    s = SimpleAPI(Storage(), "ALL", [], "sha256", False, None)
     assert s.format == SimpleFormat.ALL
 
 
+def test_digest_invalid() -> None:
+    with pytest.raises(InvalidDigestFormat):
+        SimpleAPI(Storage(), "ALL", [], "digest", False, None)
+
+
+def test_digest_valid() -> None:
+    s = SimpleAPI(Storage(), "ALL", [], "md5", False, None)
+    assert s.digest_name == SimpleDigest.MD5
+
+
+def test_digest_config_default() -> None:
+    c = ConfigParser()
+    c.add_section("mirror")
+    config = validate_config_values(c)
+    s = SimpleAPI(Storage(), "ALL", [], config.digest_name, False, None)
+    assert config.digest_name.upper() in [v.name for v in SimpleDigest]
+    assert s.digest_name == SimpleDigest.SHA256
+
+
 def test_json_package_page() -> None:
-    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "digest", False, None)
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], SimpleDigest.SHA256, False, None)
     p = Package("69")
     p._metadata = SIXTYNINE_METADATA
     assert EXPECTED_SIMPLE_SIXTYNINE_JSON == s.generate_json_simple_page(p)
@@ -44,7 +70,7 @@ def test_json_index_page() -> None:
     c.add_section("mirror")
     c["mirror"]["workers"] = "1"
     s = SimpleAPI(
-        FilesystemStorage(config=c), SimpleFormat.ALL, [], "digest", False, None
+        FilesystemStorage(config=c), SimpleFormat.ALL, [], "sha256", False, None
     )
     with TemporaryDirectory() as td:
         td_path = Path(td)

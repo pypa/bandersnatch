@@ -109,7 +109,7 @@ SIXTYNINE_METADATA = {
 }
 
 EXPECTED_SIMPLE_SIXTYNINE_JSON = """\
-{"files": [{"filename": "69-0.69.tar.gz", "hashes": {"md5": "4328d962656395fbd3e730c9d30bb48c", "sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"}, "requires-python": ">=3.6", "url": "../../packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz", "yanked": false}, {"filename": "69-6.9.tar.gz", "hashes": {"md5": "ff4bf804ef3722a1fd8853a8a32513d4", "sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"}, "requires-python": ">=3.6", "url": "../../packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz", "yanked": false}], "meta": {"api-version": "1.0", "_last-serial": "10333928"}, "name": "69"}\
+{"files": [{"filename": "69-0.69.tar.gz", "hashes": {"sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"}, "requires-python": ">=3.6", "url": "../../packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz", "yanked": false}, {"filename": "69-6.9.tar.gz", "hashes": {"sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"}, "requires-python": ">=3.6", "url": "../../packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz", "yanked": false}], "meta": {"api-version": "1.0", "_last-serial": "10333928"}, "name": "69"}\
 """
 
 EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
@@ -118,7 +118,6 @@ EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
         {
             "filename": "69-0.69.tar.gz",
             "hashes": {
-                "md5": "4328d962656395fbd3e730c9d30bb48c",
                 "sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"
             },
             "requires-python": ">=3.6",
@@ -128,7 +127,6 @@ EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
         {
             "filename": "69-6.9.tar.gz",
             "hashes": {
-                "md5": "ff4bf804ef3722a1fd8853a8a32513d4",
                 "sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"
             },
             "requires-python": ">=3.6",
