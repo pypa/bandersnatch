@@ -1,9 +1,12 @@
-# Unreleased
+# 6.3.0
 
 ## Bug Fixes
 
 - Fix digest used for file hashes in PEP 691 simple JSON file output `PR #1442`
   - The `digest_name` setting from configuration (default value: `sha256`) will now be used for both HTML and JSON files.
+  - This mirrors pypi.org ("Warehouse") behavior
+  - Please use `bandersnatch mirror --force-check` to regenerate all your mirror's simple API
+    - `bandersnatch sync` could also be a way to update important packages faster too
 
 # 6.2.0
 

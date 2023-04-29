@@ -28,7 +28,6 @@ except ImportError:
 logger = logging.getLogger(__name__)  # pylint: disable=C0103
 
 
-# TODO: Workout why argparse.ArgumentParser causes type errors
 def _delete_parser(subparsers: argparse._SubParsersAction) -> None:
     d = subparsers.add_parser(
         "delete",

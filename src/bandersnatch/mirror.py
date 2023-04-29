@@ -64,7 +64,7 @@ class Mirror:
             # Changelog-based synchronization
             await self.determine_packages_to_sync()
         else:
-            # Synchronize specific packages. This method doesn't update the statusfile
+            # Synchronize specific packages. This method doesn't update the status file
             # Pass serial number 0 to bypass the stale serial check in Package class
             SERIAL_DONT_CARE = 0
             self.packages_to_sync = {
