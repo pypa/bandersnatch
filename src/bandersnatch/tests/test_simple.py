@@ -85,7 +85,7 @@ def test_json_index_page() -> None:
         for a_file in (sixtynine_html, foo_html):
             a_file.touch()
 
-        s.sync_index_page(True, td_path, 12345, pretty=True)
+        s.sync_index_page(True, td_path, 12345, set(), pretty=True)
         # See we get the files we expect on the file system
         # index.html is needed to trigger the global index finding the package
         assert """\

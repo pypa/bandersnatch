@@ -1,12 +1,13 @@
 import html
 import json
 import logging
+import os
+import shutil
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union, Set
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, Union
 from urllib.parse import urlparse
-import shutil, os
 
 from .package import Package
 
@@ -253,7 +254,13 @@ class SimpleAPI:
         return SimpleFormats(simple_html_content, simple_json_content)
 
     def sync_index_page(
-        self, need_index_sync: bool, webdir: Path, serial: int, *, pretty: bool = False, packages_to_remove: Set[str] = []
+        self,
+        need_index_sync: bool,
+        webdir: Path,
+        serial: int,
+        packages_to_remove: Set[str],
+        *,
+        pretty: bool = False,
     ) -> None:
         if not need_index_sync:
             return
@@ -270,7 +277,10 @@ class SimpleAPI:
         }
 
         if len(packages_to_remove) > 0:
-            logger.info(f'{len(packages_to_remove)} packages will be removed becuase they are no longer exist on master.')
+            logger.info(
+                f"{len(packages_to_remove)} packages will be removed becuase they are"
+                " no longer exist on master."
+            )
 
         with self.storage_backend.rewrite(str(simple_html_path)) as f:
             f.write("<!DOCTYPE html>\n")
