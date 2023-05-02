@@ -353,7 +353,7 @@ async def test_mirror_sync_package_error_no_early_exit(
 ) -> None:
     mirror.master.all_packages = mock.AsyncMock(return_value={"foo": 1})  # type: ignore
     mirror.errors = True
-    changed_packages = await mirror.synchronize()
+    changed_packages, _ = await mirror.synchronize()
 
     expected = """\
 .lock
