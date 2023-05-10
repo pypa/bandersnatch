@@ -7,7 +7,8 @@ import os
 import pathlib
 import shutil
 import tempfile
-from typing import IO, Any, Generator, List, Optional, Type, Union
+from collections.abc import Generator
+from typing import IO, Any
 
 import filelock
 
@@ -18,12 +19,12 @@ logger = logging.getLogger("bandersnatch")
 
 class FilesystemStorage(StoragePlugin):
     name = "filesystem"
-    PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
+    PATH_BACKEND: type[pathlib.Path] = pathlib.Path
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def get_lock(self, path: Optional[str] = None) -> filelock.FileLock:
+    def get_lock(self, path: str | None = None) -> filelock.FileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -36,11 +37,11 @@ class FilesystemStorage(StoragePlugin):
         logger.debug(f"Retrieving FileLock instance @ {path}")
         return filelock.FileLock(path)
 
-    def walk(self, root: PATH_TYPES, dirs: bool = True) -> List[pathlib.Path]:
+    def walk(self, root: PATH_TYPES, dirs: bool = True) -> list[pathlib.Path]:
         if not isinstance(root, pathlib.Path):
             root = pathlib.Path(str(root))
 
-        results: List[pathlib.Path] = []
+        results: list[pathlib.Path] = []
         for pth in root.iterdir():
             if pth.is_dir():
                 if dirs:
@@ -140,7 +141,7 @@ class FilesystemStorage(StoragePlugin):
         shutil.move(str(source), dest)
         return
 
-    def write_file(self, path: PATH_TYPES, contents: Union[str, bytes]) -> None:
+    def write_file(self, path: PATH_TYPES, contents: str | bytes) -> None:
         """Write data to the provided path.  If **contents** is a string, the file will
         be opened and written in "r" + "utf-8" mode, if bytes are supplied it will be
         accessed using "rb" mode (i.e. binary write)."""
@@ -171,12 +172,12 @@ class FilesystemStorage(StoragePlugin):
         path: PATH_TYPES,
         text: bool = True,
         encoding: str = "utf-8",
-        errors: Optional[str] = None,
-    ) -> Union[str, bytes]:
+        errors: str | None = None,
+    ) -> str | bytes:
         """Return the contents of the requested file, either a bytestring or a unicode
         string depending on whether **text** is True"""
         with self.open_file(path, text=text, encoding=encoding) as fh:
-            contents: Union[str, bytes] = fh.read()
+            contents: str | bytes = fh.read()
         return contents
 
     def delete_file(self, path: PATH_TYPES, dry_run: bool = False) -> int:

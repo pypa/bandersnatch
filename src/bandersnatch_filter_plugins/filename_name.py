@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List
 
 from bandersnatch.filter import FilterReleaseFilePlugin
 from bandersnatch.utils import parse_version
@@ -14,8 +13,8 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
 
     name = "exclude_platform"
 
-    _patterns: List[str] = []
-    _packagetypes: List[str] = []
+    _patterns: list[str] = []
+    _packagetypes: list[str] = []
 
     _pythonversions = [
         "py2.4",
@@ -107,14 +106,14 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
 
         logger.info(f"Initialized {self.name} plugin with {self._patterns!r}")
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if file matches any of the filename patterns
         """
         file = metadata["release_file"]
         return not self._check_match(file)
 
-    def _check_match(self, file_desc: Dict) -> bool:
+    def _check_match(self, file_desc: dict) -> bool:
         """
         Check if a release version matches any of the specified patterns.
 
