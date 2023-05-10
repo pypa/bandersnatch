@@ -1,8 +1,9 @@
 # flake8: noqa
 import os
 import unittest.mock as mock
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterator
+from typing import TYPE_CHECKING, Any, Dict
 
 import boto3
 import pytest
@@ -53,7 +54,7 @@ def package(package_json: dict) -> "Package":
 
 
 @pytest.fixture
-def package_json() -> Dict[str, Any]:
+def package_json() -> dict[str, Any]:
     return {
         "info": {"name": "Foo", "version": "0.1"},
         "last_serial": 654_321,
@@ -90,7 +91,7 @@ def package_json() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def master(package_json: Dict[str, Any]) -> "Master":
+def master(package_json: dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
 
     class FakeReader:
@@ -110,7 +111,7 @@ def master(package_json: Dict[str, Any]) -> "Master":
         def content(self) -> "FakeReader":
             return FakeReader()
 
-        async def json(self, *args: Any) -> Dict[str, Any]:
+        async def json(self, *args: Any) -> dict[str, Any]:
             return package_json
 
     def session_side_effect(*args: Any, **kwargs: Any) -> Any:

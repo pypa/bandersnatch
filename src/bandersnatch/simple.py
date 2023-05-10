@@ -4,7 +4,7 @@ import logging
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 from .package import Package
@@ -87,11 +87,11 @@ class SimpleAPI:
     def __init__(
         self,
         storage_backend: "Storage",
-        format: Union[SimpleFormat, str],
-        diff_file_list: List[Path],
-        digest_name: Union[SimpleDigest, str],
+        format: SimpleFormat | str,
+        diff_file_list: list[Path],
+        digest_name: SimpleDigest | str,
         hash_index: bool,
-        root_uri: Optional[str],
+        root_uri: str | None,
     ) -> None:
         self.diff_file_list = diff_file_list
         self.digest_name = (
@@ -110,7 +110,7 @@ class SimpleAPI:
     def json_enabled(self) -> bool:
         return self.format in {SimpleFormat.ALL, SimpleFormat.JSON}
 
-    def find_packages_in_dir(self, simple_dir: Path) -> List[str]:
+    def find_packages_in_dir(self, simple_dir: Path) -> list[str]:
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
@@ -122,7 +122,7 @@ class SimpleAPI:
             }
         )
 
-    def gen_html_file_tags(self, release: Dict) -> str:
+    def gen_html_file_tags(self, release: dict) -> str:
         file_tags = ""
 
         # data-requires-python: requires_python
@@ -141,7 +141,7 @@ class SimpleAPI:
         return file_tags
 
     # TODO: This can return SwiftPath types now
-    def get_simple_dirs(self, simple_dir: Path) -> List[Path]:
+    def get_simple_dirs(self, simple_dir: Path) -> list[Path]:
         """Return a list of simple index directories that should be searched
         for package indexes when compiling the main index page."""
         if self.hash_index:
@@ -209,7 +209,7 @@ class SimpleAPI:
     def generate_json_simple_page(
         self, package: Package, *, pretty: bool = False
     ) -> str:
-        package_json: Dict[str, Any] = {
+        package_json: dict[str, Any] = {
             "files": [],
             "meta": {
                 "api-version": self.pypi_simple_api_version,
@@ -263,7 +263,7 @@ class SimpleAPI:
         simple_html_version_path = simple_dir / "index.v1_html"
         simple_json_path = simple_dir / "index.v1_json"
 
-        simple_json: Dict[str, Any] = {
+        simple_json: dict[str, Any] = {
             "meta": {"_last-serial": serial, "api-version": "1.0"},
             "projects": [],
         }

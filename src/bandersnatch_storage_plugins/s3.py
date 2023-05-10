@@ -8,8 +8,9 @@ import logging
 import os
 import pathlib
 import tempfile
+from collections.abc import Generator, Iterator
 from fnmatch import fnmatch
-from typing import IO, Any, Generator, Iterator
+from typing import IO, Any
 
 import boto3
 import filelock

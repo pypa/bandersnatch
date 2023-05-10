@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest.mock as mock
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from _pytest.capture import CaptureFixture
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from bandersnatch.mirror import BandersnatchMirror
 
 
-async def empty_dict(*args: Any, **kwargs: Any) -> Dict:
+async def empty_dict(*args: Any, **kwargs: Any) -> dict:
     return {}
 
 

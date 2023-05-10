@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Iterator
 from operator import itemgetter
-from typing import Dict, Iterator, Tuple
 
 from packaging.version import Version, parse
 
@@ -33,19 +33,19 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.keep > 0:
             logger.info(f"Initialized latest releases plugin with keep={self.keep}")
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter, i.e. is not a latest/current release
         """
 
-        info: Dict = metadata["info"]
-        releases: Dict = metadata["releases"]
+        info: dict = metadata["info"]
+        releases: dict = metadata["releases"]
         version: str = metadata["version"]
 
         if self.keep == 0 or self.keep > len(releases):
             return True
 
-        versions_pair: Iterator[Tuple[Version, str]] = map(
+        versions_pair: Iterator[tuple[Version, str]] = map(
             lambda v: (parse(v), v), releases.keys()
         )
         # Sort all versions

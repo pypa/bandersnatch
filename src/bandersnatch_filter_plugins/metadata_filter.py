@@ -1,7 +1,7 @@
 import logging
 import re
 from configparser import SectionProxy
-from typing import Any, Dict, List
+from typing import Any
 
 from humanfriendly import InvalidSize, parse_size
 from packaging.specifiers import SpecifierSet
@@ -27,7 +27,7 @@ class RegexFilter(Filter):
     match_patterns = "any"
     nulls_match = True
     initialized = False
-    patterns: Dict = {}
+    patterns: dict = {}
 
     def initialize_plugin(self) -> None:
         """
@@ -50,7 +50,7 @@ class RegexFilter(Filter):
                 logger.info(f"Initialized {self.name} plugin with {self.patterns}")
                 self.initialized = True
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Filter out all projects that don't match the specified metadata patterns.
         """
@@ -61,7 +61,7 @@ class RegexFilter(Filter):
         # Walk through keys of patterns dict and return True iff all match
         return all(self._match_node_at_path(k, metadata) for k in self.patterns)
 
-    def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
+    def _match_node_at_path(self, key: str, metadata: dict) -> bool:
         # Grab any tags prepended to key
         tags = key.split(":")
 
@@ -98,7 +98,7 @@ class RegexFilter(Filter):
             return self._match_any_patterns(key, node, nulls_match=nulls_match)
 
     # TODO: Add unittest and cleanup code + fix typing
-    def _find_element_by_dotted_path(self, path: str, metadata: Dict) -> List:
+    def _find_element_by_dotted_path(self, path: str, metadata: dict) -> list:
         # Walk our metadata structure following dotted path.
         split_path = path.split(".")
         node = metadata
@@ -113,7 +113,7 @@ class RegexFilter(Filter):
             return [node]
 
     def _match_any_patterns(
-        self, key: str, values: List[str], nulls_match: bool = True
+        self, key: str, values: list[str], nulls_match: bool = True
     ) -> bool:
         results = []
         for pattern in self.patterns[key]:
@@ -125,7 +125,7 @@ class RegexFilter(Filter):
         return any(results)
 
     def _match_all_patterns(
-        self, key: str, values: List[str], nulls_match: bool = True
+        self, key: str, values: list[str], nulls_match: bool = True
     ) -> bool:
         results = []
         for pattern in self.patterns[key]:
@@ -136,7 +136,7 @@ class RegexFilter(Filter):
         return all(results)
 
     def _match_none_patterns(
-        self, key: str, values: List[str], nulls_match: bool = True
+        self, key: str, values: list[str], nulls_match: bool = True
     ) -> bool:
         return not self._match_any_patterns(key, values)
 
@@ -151,12 +151,12 @@ class RegexProjectMetadataFilter(FilterMetadataPlugin, RegexFilter):
     match_patterns = "any"
     nulls_match = True
     initialized = False
-    patterns: Dict = {}
+    patterns: dict = {}
 
     def initilize_plugin(self) -> None:
         RegexFilter.initialize_plugin(self)
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         return RegexFilter.filter(self, metadata)
 
 
@@ -170,12 +170,12 @@ class RegexReleaseFileMetadataFilter(FilterReleaseFilePlugin, RegexFilter):
     match_patterns = "any"
     nulls_match = True
     initialized = False
-    patterns: Dict = {}
+    patterns: dict = {}
 
     def initilize_plugin(self) -> None:
         RegexFilter.initialize_plugin(self)
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         return RegexFilter.filter(self, metadata)
 
 
@@ -188,7 +188,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
     name = "size_project_metadata"
     initialized = False
     max_package_size: int = 0
-    allowlist_package_names: List[str] = []
+    allowlist_package_names: list[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -232,7 +232,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
 
             self.initialized = True
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Return False for projects with metadata indicating
         total file sizes greater than threshold.
@@ -261,7 +261,7 @@ class VersionRangeFilter(Filter):
 
     name = "version_range_filter"
     initialized = False
-    specifiers: Dict = {}
+    specifiers: dict = {}
     nulls_match = True
 
     def initialize_plugin(self) -> None:
@@ -286,7 +286,7 @@ class VersionRangeFilter(Filter):
                 )
                 self.initialized = True
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Return False for input not having metadata
         entries matching the specified version specifier.
@@ -298,7 +298,7 @@ class VersionRangeFilter(Filter):
 
         return all(self._match_node_at_path(k, metadata) for k in self.specifiers)
 
-    def _find_element_by_dotted_path(self, path: str, metadata: Dict) -> Any:
+    def _find_element_by_dotted_path(self, path: str, metadata: dict) -> Any:
         # Walk our metadata structure following dotted path.
         split_path = path.split(".")
         node = metadata
@@ -310,7 +310,7 @@ class VersionRangeFilter(Filter):
 
         return node
 
-    def _match_node_at_path(self, key: str, metadata: Dict) -> bool:
+    def _match_node_at_path(self, key: str, metadata: dict) -> bool:
         # Grab any tags prepended to key
         tags = key.split(":")
 
@@ -356,7 +356,7 @@ class VersionRangeProjectMetadataFilter(FilterMetadataPlugin, VersionRangeFilter
 
     name = "version_range_project_metadata"
     initialized = False
-    specifiers: Dict = {}
+    specifiers: dict = {}
     nulls_match = True
 
     def initialize_plugin(self) -> None:
@@ -376,7 +376,7 @@ class VersionRangeReleaseFileMetadataFilter(
 
     name = "version_range_release_file_metadata"
     initialized = False
-    specifiers: Dict = {}
+    specifiers: dict = {}
     nulls_match = True
 
     def initialize_plugin(self) -> None:

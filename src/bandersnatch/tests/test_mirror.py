@@ -1,10 +1,11 @@
 import os.path
 import sys
 import unittest.mock as mock
+from collections.abc import Iterator
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Iterator, List, NoReturn
+from typing import Any, NoReturn
 
 import pytest
 from freezegun import freeze_time
@@ -64,7 +65,7 @@ FAKE_RELEASE_DATA = JsonDict(
 )
 
 
-def touch_files(paths: List[Path]) -> None:
+def touch_files(paths: list[Path]) -> None:
     for path in paths:
         if not path.parent.exists():
             path.parent.mkdir(parents=True)
@@ -562,7 +563,7 @@ last-modified""" == utils.find(mirror.webdir, dirs=False)
 
 
 def test_mirror_json_metadata(
-    mirror: BandersnatchMirror, package_json: Dict[str, Any]
+    mirror: BandersnatchMirror, package_json: dict[str, Any]
 ) -> None:
     package = Package("foo", serial=11)
     mirror.json_file(package.name).parent.mkdir(parents=True)
@@ -994,7 +995,7 @@ async def test_package_sync_does_not_touch_existing_local_file(
 
 
 def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
-    fake_no_release: Dict[str, str] = {}
+    fake_no_release: dict[str, str] = {}
 
     # only requires_python
     fake_release_1 = {"requires_python": ">=3.6"}

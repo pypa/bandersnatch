@@ -1,6 +1,7 @@
 import logging
 import re
-from typing import Any, Dict, List, Pattern
+from re import Pattern
+from typing import Any
 
 from bandersnatch.filter import FilterProjectPlugin, FilterReleasePlugin
 
@@ -14,7 +15,7 @@ class RegexReleaseFilter(FilterReleasePlugin):
 
     name = "regex_release"
     # Has to be iterable to ensure it works with any()
-    patterns: List[Pattern] = []
+    patterns: list[Pattern] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -34,7 +35,7 @@ class RegexReleaseFilter(FilterReleasePlugin):
 
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter, i.e. follows a regex pattern
         """
@@ -49,7 +50,7 @@ class RegexProjectFilter(FilterProjectPlugin):
 
     name = "regex_project"
     # Has to be iterable to ensure it works with any()
-    patterns: List[Pattern] = []
+    patterns: list[Pattern] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -68,7 +69,7 @@ class RegexProjectFilter(FilterProjectPlugin):
 
                 logger.info(f"Initialized regex release plugin with {self.patterns}")
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs: Any) -> bool:

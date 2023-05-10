@@ -19,7 +19,7 @@ repos:
     rev: v3.4.0
     hooks:
       - id: pyupgrade
-        args: [--py38-plus]
+        args: [--py310-plus]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0

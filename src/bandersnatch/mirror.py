@@ -6,10 +6,11 @@ import logging
 import os
 import sys
 import time
+from collections.abc import Awaitable
 from json import dump
 from pathlib import Path, WindowsPath
 from threading import RLock
-from typing import Any, Awaitable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -28,9 +29,9 @@ logger = logging.getLogger(__name__)
 
 
 class Mirror:
-    synced_serial: Optional[int] = 0  # The last serial we have consistently synced to.
-    target_serial: Optional[int] = None  # What is the serial we are trying to reach?
-    packages_to_sync: Dict[str, Union[int, str]] = {}
+    synced_serial: int | None = 0  # The last serial we have consistently synced to.
+    target_serial: int | None = None  # What is the serial we are trying to reach?
+    packages_to_sync: dict[str, int | str] = {}
 
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
@@ -47,13 +48,13 @@ class Mirror:
         # Lets record and report back the changes we do each run
         # Format: dict['pkg_name'] = [set(removed), Set[added]
         # Class Instance variable so each package can add their changes
-        self.altered_packages: Dict[str, Set[str]] = {}
+        self.altered_packages: dict[str, set[str]] = {}
 
     async def synchronize(
         self,
-        specific_packages: Optional[List[str]] = None,
+        specific_packages: list[str] | None = None,
         sync_simple_index: bool = True,
-    ) -> Dict[str, Set[str]]:
+    ) -> dict[str, set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
         self.now = datetime.datetime.utcnow()
         # Lets ensure we get a new dict each run
@@ -148,7 +149,7 @@ class Mirror:
                 serial = int(self.packages_to_sync[name])
                 await self.package_queue.put(Package(name, serial=serial))
 
-            sync_coros: List[Awaitable] = [
+            sync_coros: list[Awaitable] = [
                 self.package_syncer(idx) for idx in range(self.workers)
             ]
             try:
@@ -165,7 +166,7 @@ class Mirror:
     def finalize_sync(self, sync_index_page: bool = True) -> None:
         raise NotImplementedError()
 
-    def on_error(self, exception: BaseException, **kwargs: Dict) -> None:
+    def on_error(self, exception: BaseException, **kwargs: dict) -> None:
         raise NotImplementedError()
 
 
@@ -179,26 +180,26 @@ class BandersnatchMirror(Mirror):
         self,
         homedir: Path,
         master: Master,
-        storage_backend: Optional[str] = None,
+        storage_backend: str | None = None,
         stop_on_error: bool = False,
         workers: int = 3,
         hash_index: bool = False,
         json_save: bool = False,
-        digest_name: Optional[str] = None,
-        root_uri: Optional[str] = None,
+        digest_name: str | None = None,
+        root_uri: str | None = None,
         keep_index_versions: int = 0,
-        diff_file: Optional[Union[Path, str]] = None,
+        diff_file: Path | str | None = None,
         diff_append_epoch: bool = False,
-        diff_full_path: Optional[Union[Path, str]] = None,
+        diff_full_path: Path | str | None = None,
         flock_timeout: int = 1,
-        diff_file_list: Optional[List[Path]] = None,
+        diff_file_list: list[Path] | None = None,
         *,
         cleanup: bool = False,
         release_files_save: bool = True,
-        compare_method: Optional[str] = None,
-        download_mirror: Optional[str] = None,
-        download_mirror_no_fallback: Optional[bool] = False,
-        simple_format: Union[SimpleFormat, str] = "ALL",
+        compare_method: str | None = None,
+        download_mirror: str | None = None,
+        download_mirror_no_fallback: bool | None = False,
+        simple_format: SimpleFormat | str = "ALL",
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
@@ -358,7 +359,7 @@ class BandersnatchMirror(Mirror):
             self.wrapup_successful_sync()
         return None
 
-    def on_error(self, exception: BaseException, **kwargs: Dict) -> None:
+    def on_error(self, exception: BaseException, **kwargs: dict) -> None:
         self.errors = True
         if isinstance(exception, KeyboardInterrupt):
             # Setting self.errors to True to ensure we don't save Serial
@@ -591,7 +592,7 @@ class BandersnatchMirror(Mirror):
             return self.webdir / "simple" / package.name[0] / package.name
         return self.webdir / "simple" / package.name
 
-    def save_json_metadata(self, package_info: Dict, name: str) -> bool:
+    def save_json_metadata(self, package_info: dict, name: str) -> bool:
         """
         Take the JSON metadata we just fetched and save to disk
         """
@@ -618,8 +619,8 @@ class BandersnatchMirror(Mirror):
         return True
 
     def populate_download_urls(
-        self, release_file: Dict[str, str]
-    ) -> Tuple[str, List[str]]:
+        self, release_file: dict[str, str]
+    ) -> tuple[str, list[str]]:
         """
         Populate download URLs for a certain file, possible combinations are:
 
@@ -805,7 +806,7 @@ class BandersnatchMirror(Mirror):
         sha256sum: str,
         chunk_size: int = 64 * 1024,
         urlpath: str = "",
-    ) -> Optional[Path]:
+    ) -> Path | None:
         if urlpath != "":
             path = self._file_url_to_local_path(urlpath)
         else:
@@ -914,7 +915,7 @@ class BandersnatchMirror(Mirror):
 
 async def mirror(
     config: configparser.ConfigParser,
-    specific_packages: Optional[List[str]] = None,
+    specific_packages: list[str] | None = None,
     sync_simple_index: bool = True,
 ) -> int:
     config_values = validate_config_values(config)
@@ -928,7 +929,7 @@ async def mirror(
     )
 
     diff_file = storage_plugin.PATH_BACKEND(config_values.diff_file_path)
-    diff_full_path: Union[Path, str]
+    diff_full_path: Path | str
     if diff_file:
         diff_file.parent.mkdir(exist_ok=True, parents=True)
         if config_values.diff_append_epoch:

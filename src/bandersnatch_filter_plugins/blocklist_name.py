@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Set
+from typing import Any
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
@@ -13,7 +13,7 @@ logger = logging.getLogger("bandersnatch")
 class BlockListProject(FilterProjectPlugin):
     name = "blocklist_project"
     # Requires iterable default
-    blocklist_package_names: List[str] = []
+    blocklist_package_names: list[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -29,7 +29,7 @@ class BlockListProject(FilterProjectPlugin):
                 + f"{self.blocklist_package_names}"
             )
 
-    def _determine_filtered_package_names(self) -> List[str]:
+    def _determine_filtered_package_names(self) -> list[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
@@ -38,7 +38,7 @@ class BlockListProject(FilterProjectPlugin):
         # configuration contains a PEP440 specifier it will be processed by the
         # blocklist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
-        filtered_packages: Set[str] = set()
+        filtered_packages: set[str] = set()
         try:
             lines = self.blocklist["packages"]
             package_lines = lines.split("\n")
@@ -62,7 +62,7 @@ class BlockListProject(FilterProjectPlugin):
         logger.debug("Project blocklist is %r", list(filtered_packages))
         return list(filtered_packages)
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs: Any) -> bool:
@@ -94,7 +94,7 @@ class BlockListProject(FilterProjectPlugin):
 class BlockListRelease(FilterReleasePlugin):
     name = "blocklist_release"
     # Requires iterable default
-    blocklist_package_names: List[Requirement] = []
+    blocklist_package_names: list[Requirement] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -112,7 +112,7 @@ class BlockListRelease(FilterReleasePlugin):
                 + f"{self.blocklist_release_requirements}"
             )
 
-    def _determine_filtered_package_requirements(self) -> List[Requirement]:
+    def _determine_filtered_package_requirements(self) -> list[Requirement]:
         """
         Parse the configuration file for [blocklist]packages
 
@@ -121,7 +121,7 @@ class BlockListRelease(FilterReleasePlugin):
         list of packaging.requirements.Requirement
             For all PEP440 package specifiers
         """
-        filtered_requirements: Set[Requirement] = set()
+        filtered_requirements: set[Requirement] = set()
         try:
             lines = self.blocklist["packages"]
             package_lines = lines.split("\n")
@@ -137,7 +137,7 @@ class BlockListRelease(FilterReleasePlugin):
             filtered_requirements.add(requirement)
         return list(filtered_requirements)
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter,
         i.e. matches a blocklist version specifier

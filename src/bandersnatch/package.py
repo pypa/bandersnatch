@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from packaging.utils import canonicalize_name
 
@@ -21,10 +21,10 @@ class Package:
         self.raw_name = name
         self.serial = serial
 
-        self._metadata: Optional[Dict] = None
+        self._metadata: dict | None = None
 
     @property
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         assert self._metadata is not None, "Must fetch metadata before accessing it"
         return self._metadata
 
@@ -41,8 +41,8 @@ class Package:
         return self.metadata["releases"]
 
     @property
-    def release_files(self) -> List:
-        release_files: List[Dict] = []
+    def release_files(self) -> list:
+        release_files: list[dict] = []
 
         for release in self.releases.values():
             release_files.extend(release)
@@ -85,13 +85,13 @@ class Package:
                 )
                 raise error_class(package_name=self.name, attempts=attempts)
 
-    def filter_metadata(self, metadata_filters: List["Filter"]) -> bool:
+    def filter_metadata(self, metadata_filters: list["Filter"]) -> bool:
         """
         Run the metadata filtering plugins
         """
         return all(plugin.filter(self.metadata) for plugin in metadata_filters)
 
-    def filter_all_releases(self, release_filters: List["Filter"]) -> bool:
+    def filter_all_releases(self, release_filters: list["Filter"]) -> bool:
         """
         Filter releases and removes releases that fail the filters
         """
@@ -108,7 +108,7 @@ class Package:
             return True
         return False
 
-    def filter_all_releases_files(self, release_file_filters: List["Filter"]) -> bool:
+    def filter_all_releases_files(self, release_file_filters: list["Filter"]) -> bool:
         """
         Filter release files and remove empty releases after doing so.
         """

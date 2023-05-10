@@ -43,11 +43,11 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(id(instance1), id(instance2))
 
     def test_single_config__default__all_sections_present(self) -> None:
-        with importlib.resources.path("bandersnatch", "unittest.conf") as config_file:
-            instance = BandersnatchConfig(str(config_file))
-            # All default values should at least be present and be the write types
-            for section in ["mirror", "plugins", "blocklist"]:
-                self.assertIn(section, instance.config.sections())
+        config_file = str(importlib.resources.files("bandersnatch") / "unittest.conf")
+        instance = BandersnatchConfig(str(config_file))
+        # All default values should at least be present and be the write types
+        for section in ["mirror", "plugins", "blocklist"]:
+            self.assertIn(section, instance.config.sections())
 
     def test_single_config__default__mirror__setting_attributes(self) -> None:
         instance = BandersnatchConfig()

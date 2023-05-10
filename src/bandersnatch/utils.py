@@ -8,10 +8,11 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Generator
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import IO, Any, Generator, List, Set, Union
+from typing import IO, Any
 from urllib.parse import urlparse
 
 import aiohttp
@@ -66,7 +67,7 @@ def hash(path: Path, function: str = "sha256") -> str:
     raise TypeError("hashlib did not return str")
 
 
-def find(root: Union[Path, str], dirs: bool = True) -> str:
+def find(root: Path | str, dirs: bool = True) -> str:
     """A test helper simulating 'find'.
 
     Iterates over directories and filenames, given as relative paths to the
@@ -77,7 +78,7 @@ def find(root: Union[Path, str], dirs: bool = True) -> str:
     if isinstance(root, str):
         root = Path(root)
 
-    results: List[Path] = []
+    results: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
         names = filenames
         if dirs:
@@ -90,7 +91,7 @@ def find(root: Union[Path, str], dirs: bool = True) -> str:
 
 @contextlib.contextmanager
 def rewrite(
-    filepath: Union[str, Path], mode: str = "w", **kw: Any
+    filepath: str | Path, mode: str = "w", **kw: Any
 ) -> Generator[IO, None, None]:
     """Rewrite an existing file atomically to avoid programs running in
     parallel to have race conditions while reading."""
@@ -119,7 +120,7 @@ def rewrite(
     shutil.move(filepath_tmp, filepath)
 
 
-def find_all_files(files: Set[Path], base_dir: Path) -> None:
+def find_all_files(files: set[Path], base_dir: Path) -> None:
     for f in base_dir.rglob("*"):
         if not f.is_file():
             continue
@@ -174,7 +175,7 @@ def removeprefix(original: str, prefix: str) -> str:
 
 
 # Python tags https://peps.python.org/pep-0425/#python-tag
-def parse_version(version: str) -> List[str]:
+def parse_version(version: str) -> list[str]:
     """Converts a version string to a list of strings to check the 1st part of build
     tags. See PEP 425 (https://peps.python.org/pep-0425/#python-tag) for details.
 
@@ -188,7 +189,7 @@ def parse_version(version: str) -> List[str]:
             Some Windows binaries have only the 1st part before the file extension.
             e.g. ['-cp36-', '-pp36-', '-ip36-', '-jy36-', '-py3.6-', '-py3.6.']
     """
-    _versions: List[str] = []
+    _versions: list[str] = []
 
     _version_with_dot = removeprefix(version.lower(), "py")
     _version_without_dot = _version_with_dot.replace(".", "")

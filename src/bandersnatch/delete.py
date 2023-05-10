@@ -4,11 +4,11 @@ import asyncio
 import concurrent.futures
 import logging
 from argparse import Namespace
+from collections.abc import Awaitable
 from configparser import ConfigParser
 from functools import partial
 from json import JSONDecodeError, load
 from pathlib import Path
-from typing import Awaitable, List
 from urllib.parse import urlparse
 
 from packaging.utils import canonicalize_name
@@ -97,7 +97,7 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
     pypi_base_path = storage_backend.pypi_base_path
     simple_base_path = storage_backend.simple_base_path
 
-    delete_coros: List[Awaitable] = []
+    delete_coros: list[Awaitable] = []
     for package in args.pypi_packages:
         canon_name = canonicalize_name(package)
         need_nc_paths = canon_name != package

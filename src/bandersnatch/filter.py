@@ -2,7 +2,7 @@
 Blocklist management
 """
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 import pkg_resources
 
@@ -145,16 +145,16 @@ class LoadedFilters:
         Loads and stores all of specified filters from the config file
         """
         self.config = BandersnatchConfig().config
-        self.loaded_filter_plugins: Dict[str, List["Filter"]] = defaultdict(list)
+        self.loaded_filter_plugins: dict[str, list["Filter"]] = defaultdict(list)
         self.enabled_plugins = self._load_enabled()
         if load_all:
             self._load_filters(self.ENTRYPOINT_GROUPS)
 
-    def _load_enabled(self) -> List[str]:
+    def _load_enabled(self) -> list[str]:
         """
         Reads the config and returns all the enabled plugins
         """
-        enabled_plugins: List[str] = []
+        enabled_plugins: list[str] = []
         try:
             config_plugins = self.config["plugins"]["enabled"]
             split_plugins = config_plugins.split("\n")
@@ -169,7 +169,7 @@ class LoadedFilters:
             pass
         return enabled_plugins
 
-    def _load_filters(self, groups: List[str]) -> None:
+    def _load_filters(self, groups: list[str]) -> None:
         """
         Loads filters from the entry-point groups specified in groups
         """
@@ -187,7 +187,7 @@ class LoadedFilters:
 
             self.loaded_filter_plugins[group] = list(plugins)
 
-    def filter_project_plugins(self) -> List[Filter]:
+    def filter_project_plugins(self) -> list[Filter]:
         """
         Load and return the project filtering plugin objects
 
@@ -200,7 +200,7 @@ class LoadedFilters:
             self._load_filters([PROJECT_PLUGIN_RESOURCE])
         return self.loaded_filter_plugins[PROJECT_PLUGIN_RESOURCE]
 
-    def filter_metadata_plugins(self) -> List[Filter]:
+    def filter_metadata_plugins(self) -> list[Filter]:
         """
         Load and return the metadata filtering plugin objects
 
@@ -213,7 +213,7 @@ class LoadedFilters:
             self._load_filters([METADATA_PLUGIN_RESOURCE])
         return self.loaded_filter_plugins[METADATA_PLUGIN_RESOURCE]
 
-    def filter_release_plugins(self) -> List[Filter]:
+    def filter_release_plugins(self) -> list[Filter]:
         """
         Load and return the release filtering plugin objects
 
@@ -226,7 +226,7 @@ class LoadedFilters:
             self._load_filters([RELEASE_PLUGIN_RESOURCE])
         return self.loaded_filter_plugins[RELEASE_PLUGIN_RESOURCE]
 
-    def filter_release_file_plugins(self) -> List[Filter]:
+    def filter_release_file_plugins(self) -> list[Filter]:
         """
         Load and return the release file filtering plugin objects
 

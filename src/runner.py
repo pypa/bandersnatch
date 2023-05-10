@@ -8,10 +8,9 @@ import sys
 from datetime import datetime
 from subprocess import CalledProcessError, run
 from time import sleep, time
-from typing import List
 
 
-def parseHourList(time_str: str) -> List[int]:
+def parseHourList(time_str: str) -> list[int]:
     m = re.match(r"(\d+)(?:-(\d+))?$", time_str)
     if not m:
         raise argparse.ArgumentTypeError(
