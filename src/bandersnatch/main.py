@@ -7,7 +7,6 @@ import sys
 from configparser import ConfigParser
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Optional
 
 import bandersnatch.configuration
 import bandersnatch.delete
@@ -191,7 +190,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     return await bandersnatch.mirror.mirror(config)
 
 
-def main(loop: Optional[asyncio.AbstractEventLoop] = None) -> int:
+def main(loop: asyncio.AbstractEventLoop | None = None) -> int:
     parser = _make_parser()
     if len(sys.argv) < 2:
         parser.print_help()

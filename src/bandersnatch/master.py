@@ -2,11 +2,12 @@ import asyncio
 import logging
 import re
 import sys
+from collections.abc import AsyncGenerator
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 from os import environ
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, Optional, Union
+from typing import Any
 
 import aiohttp
 from aiohttp_socks import ProxyConnector
@@ -38,8 +39,8 @@ class Master:
         self,
         url: str,
         timeout: float = 10.0,
-        global_timeout: Optional[float] = FIVE_HOURS_FLOAT,
-        proxy: Optional[str] = None,
+        global_timeout: float | None = FIVE_HOURS_FLOAT,
+        proxy: str | None = None,
     ) -> None:
         self.proxy = proxy
         self.loop = asyncio.get_event_loop()
@@ -51,7 +52,7 @@ class Master:
             logger.error(err)
             raise ValueError(err)
 
-    def _check_for_socks_proxy(self) -> Optional[ProxyConnector]:
+    def _check_for_socks_proxy(self) -> ProxyConnector | None:
         """Check env for a SOCKS proxy URL and return a connector if found"""
         proxy_vars = (
             "https_proxy",
@@ -103,7 +104,7 @@ class Master:
         await asyncio.sleep(0.1)
 
     async def check_for_stale_cache(
-        self, path: str, required_serial: Optional[int], got_serial: Optional[int]
+        self, path: str, required_serial: int | None, got_serial: int | None
     ) -> None:
         # The PYPI-LAST-SERIAL header allows us to identify cached entries,
         # e.g. via the public CDN or private, transparent mirrors and avoid us
@@ -121,7 +122,7 @@ class Master:
                 )
 
     async def get(
-        self, path: str, required_serial: Optional[int], **kw: Any
+        self, path: str, required_serial: int | None, **kw: Any
     ) -> AsyncGenerator[aiohttp.ClientResponse, None]:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
@@ -143,7 +144,7 @@ class Master:
         self,
         url: str,
         file_path: Path,
-        executor: Optional[Union[ProcessPoolExecutor, ThreadPoolExecutor]] = None,
+        executor: ProcessPoolExecutor | ThreadPoolExecutor | None = None,
         chunk_size: int = 65536,
     ) -> None:
         logger.info(f"Fetching {url}")
@@ -165,7 +166,7 @@ class Master:
         return f"{self.url}/pypi"
 
     # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
-    async def _gen_custom_headers(self) -> Dict[str, str]:
+    async def _gen_custom_headers(self) -> dict[str, str]:
         # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
         dummy_client = ServerProxy(self.xmlrpc_url, loop=self.loop)
         custom_headers = {
@@ -203,12 +204,12 @@ class Master:
             raise XmlRpcError("Unable to get full list of packages")
         return all_packages_with_serial
 
-    async def changed_packages(self, last_serial: int) -> Dict[str, int]:
+    async def changed_packages(self, last_serial: int) -> dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)
         if changelog is None:
             changelog = []
 
-        packages: Dict[str, int] = {}
+        packages: dict[str, int] = {}
         for package, _version, _time, _action, serial in changelog:
             if serial > packages.get(package, 0):
                 packages[package] = serial

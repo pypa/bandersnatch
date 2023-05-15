@@ -10,8 +10,9 @@ import shutil
 import sys
 import tempfile
 import unittest
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 from unittest import TestCase, mock
 
 import bandersnatch.storage
@@ -34,7 +35,7 @@ SWIFT_CONTAINER_FILE = os.path.join(
 )
 
 
-def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[str, Any]:
+def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> dict[str, Any]:
     path = strip_dir_prefix(base, path, container=container)
     if not path.is_absolute():
         path = "/" / path
@@ -69,7 +70,7 @@ def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> Dict[st
 
 
 def strip_dir_prefix(
-    base_dir: Path, subdir: Path, container: Optional[str] = None
+    base_dir: Path, subdir: Path, container: str | None = None
 ) -> Path:
     if container is not None:
         base_dir = base_dir.joinpath(container)
@@ -81,8 +82,8 @@ def strip_dir_prefix(
 
 
 def iter_dir(
-    path: Path, base: Optional[Path] = None, recurse: bool = False, container: str = ""
-) -> Iterator[Dict[str, Any]]:
+    path: Path, base: Path | None = None, recurse: bool = False, container: str = ""
+) -> Iterator[dict[str, Any]]:
     if base is None:
         base = path
     if path.is_dir():
@@ -151,7 +152,7 @@ class MockConnection:
             obj = Path(f"/{obj!s}")
         return obj
 
-    def _strip_prefix(self, prefix: str, container: Optional[str] = None) -> str:
+    def _strip_prefix(self, prefix: str, container: str | None = None) -> str:
         base_dir_prefix = self.tmpdir.name[1:]
         if container is not None:
             base_dir_prefix = os.path.join(base_dir_prefix, container)
@@ -159,10 +160,10 @@ class MockConnection:
             return prefix[len(base_dir_prefix) :].lstrip("/")  # noqa:E203
         return prefix.lstrip("/")
 
-    def get_account(self) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    def get_account(self) -> tuple[dict[Any, Any], dict[Any, Any]]:
         return {}, {}
 
-    def get_object(self, container: str, obj: str) -> Tuple[Dict[Any, Any], bytes]:
+    def get_object(self, container: str, obj: str) -> tuple[dict[Any, Any], bytes]:
         path = self.clean_path(container, obj)
         if not path.exists():
             from swiftclient.exceptions import ClientException
@@ -174,9 +175,9 @@ class MockConnection:
         self,
         container: str,
         obj: str,
-        headers: Optional[Dict[str, str]] = None,
-        query_string: Optional[str] = None,
-    ) -> Dict[str, str]:
+        headers: dict[str, str] | None = None,
+        query_string: str | None = None,
+    ) -> dict[str, str]:
         path = self.clean_path(container, obj)
         if not path.exists():
             from swiftclient.exceptions import ClientException
@@ -213,8 +214,8 @@ class MockConnection:
         self,
         container: str,
         obj: str,
-        headers: Dict[str, str],
-        response_dict: Optional[Dict[str, Any]] = None,
+        headers: dict[str, str],
+        response_dict: dict[str, Any] | None = None,
     ) -> None:
         path = self.clean_path(container, obj)
         path.touch()
@@ -222,16 +223,16 @@ class MockConnection:
     def _get_container(
         self,
         container: str,
-        marker: Optional[str] = None,
-        limit: Optional[int] = None,
-        prefix: Optional[str] = None,
-        delimiter: Optional[str] = None,
-        end_marker: Optional[str] = None,
-        path: Optional[Path] = None,
+        marker: str | None = None,
+        limit: int | None = None,
+        prefix: str | None = None,
+        delimiter: str | None = None,
+        end_marker: str | None = None,
+        path: Path | None = None,
         full_listing: bool = False,
-        headers: Optional[Dict[str, str]] = None,
-        query_string: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+        query_string: str | None = None,
+    ) -> list[dict[str, Any]]:
         base = self.base
         if container:
             base = base / container
@@ -248,16 +249,16 @@ class MockConnection:
     def get_container(
         self,
         container: str,
-        marker: Optional[str] = None,
-        limit: Optional[int] = None,
-        prefix: Optional[str] = None,
-        delimiter: Optional[str] = None,
-        end_marker: Optional[str] = None,
-        path: Optional[Path] = None,
+        marker: str | None = None,
+        limit: int | None = None,
+        prefix: str | None = None,
+        delimiter: str | None = None,
+        end_marker: str | None = None,
+        path: Path | None = None,
         full_listing: bool = False,
-        headers: Optional[Dict[str, str]] = None,
-        query_string: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+        query_string: str | None = None,
+    ) -> list[dict[str, Any]]:
         with open(SWIFT_CONTAINER_FILE) as fh:
             contents = json.load(fh)
         if prefix:
@@ -288,9 +289,9 @@ class MockConnection:
         container: str,
         obj: str,
         destination: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         fresh_metadata: Any = None,
-        response_dict: Optional[Dict[str, Any]] = None,
+        response_dict: dict[str, Any] | None = None,
     ) -> None:
         # destination path always starts with container/
         dest_container, _, dest_path = destination.partition("/")
@@ -304,14 +305,14 @@ class MockConnection:
         self,
         container: str,
         obj: str,
-        contents: Union[str, bytes],
-        content_length: Optional[int] = None,
+        contents: str | bytes,
+        content_length: int | None = None,
         etag: Any = None,
-        chunk_size: Optional[int] = None,
-        content_type: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
-        query_string: Optional[str] = None,
-        response_dict: Optional[Dict[str, Any]] = None,
+        chunk_size: int | None = None,
+        content_type: str | None = None,
+        headers: dict[str, str] | None = None,
+        query_string: str | None = None,
+        response_dict: dict[str, Any] | None = None,
     ) -> None:
         dest = self.clean_path(container, obj)
         if not dest.parent.exists():
@@ -333,9 +334,9 @@ class MockConnection:
         self,
         container: str,
         obj: str,
-        query_string: Optional[str] = None,
-        response_dict: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        query_string: str | None = None,
+        response_dict: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         target = self.clean_path(container, obj)
         if not target.exists():
@@ -350,7 +351,7 @@ class MockConnection:
 class BasePluginTestCase(TestCase):
     tempdir = None
     cwd = None
-    backend: Optional[str] = None
+    backend: str | None = None
 
     config_contents = """\
 [mirror]
@@ -375,8 +376,8 @@ workers = 3
             raise unittest.SkipTest("Skipping base test case")
         self.cwd = os.getcwd()
         self.tempdir = tempfile.TemporaryDirectory()
-        self.pkgs: List[Package] = []
-        self.container: Optional[str] = None
+        self.pkgs: list[Package] = []
+        self.container: str | None = None
         self.config_data = mock_config(self.config_contents.format(self.backend))
         os.chdir(self.tempdir.name)
         self.setUp_backEnd()
@@ -755,12 +756,12 @@ web{0}simple{0}index.html""".format(os.sep).strip()
                     self.assertEqual(fh.read(), rv)
 
     def test_write_file(self) -> None:
-        data: List[Union[str, bytes]] = ["this is some text", b"this is some text"]
+        data: list[str | bytes] = ["this is some text", b"this is some text"]
         tmp_path = os.path.join(self.mirror_base_path, "test_write_file.txt")
         for write_val in data:
             with self.subTest(write_val=write_val):
                 self.plugin.write_file(tmp_path, write_val)
-                rv: Union[str, bytes]
+                rv: str | bytes
                 if not isinstance(write_val, str):
                     rv = self.plugin.PATH_BACKEND(tmp_path).read_bytes()
                 else:

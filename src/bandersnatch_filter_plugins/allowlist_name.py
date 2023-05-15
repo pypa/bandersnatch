@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Set
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from configparser import SectionProxy
@@ -19,7 +20,7 @@ logger = logging.getLogger("bandersnatch")
 class AllowListProject(FilterProjectPlugin):
     name = "allowlist_project"
     # Requires iterable default
-    allowlist_package_names: List[str] = []
+    allowlist_package_names: list[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -35,7 +36,7 @@ class AllowListProject(FilterProjectPlugin):
                 + f"{self.allowlist_package_names}"
             )
 
-    def _determine_unfiltered_package_names(self) -> List[str]:
+    def _determine_unfiltered_package_names(self) -> list[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
@@ -44,7 +45,7 @@ class AllowListProject(FilterProjectPlugin):
         # configuration contains a PEP440 specifier it will be processed by the
         # allowlist release filter.  So we need to remove any packages that
         # are not applicable for this plugin.
-        unfiltered_packages: Set[str] = set()
+        unfiltered_packages: set[str] = set()
         try:
             lines = self.allowlist["packages"]
             package_lines = lines.split("\n")
@@ -60,7 +61,7 @@ class AllowListProject(FilterProjectPlugin):
             )
         return list(unfiltered_packages)
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         return not self.check_match(name=metadata["info"]["name"])
 
     def check_match(self, **kwargs: Any) -> bool:
@@ -121,13 +122,13 @@ def get_requirement_files(allowlist: "SectionProxy") -> Iterator[Path]:
             yield requirements_path / requirement
 
 
-def _parse_package_lines(package_lines: List[str]) -> Set[Requirement]:
+def _parse_package_lines(package_lines: list[str]) -> set[Requirement]:
     """Parse a requirement line
 
     ignores commented line
     and inline comments
     """
-    filtered_requirements: Set[Requirement] = set()
+    filtered_requirements: set[Requirement] = set()
     for package_line in package_lines:
         package_line = package_line.strip()
         if not package_line or package_line.startswith(("#", "-")):
@@ -143,12 +144,12 @@ def _parse_package_lines(package_lines: List[str]) -> Set[Requirement]:
 class AllowListRequirements(AllowListProject):
     name = "project_requirements"
 
-    def _determine_unfiltered_package_names(self) -> List[str]:
+    def _determine_unfiltered_package_names(self) -> list[str]:
         """
         Return a list of package names to be filtered base on the configuration
         file.
         """
-        filtered_requirements: Set[Requirement] = set()
+        filtered_requirements: set[Requirement] = set()
         try:
             filepaths = get_requirement_files(self.allowlist)
         except KeyError:
@@ -164,7 +165,7 @@ class AllowListRequirements(AllowListProject):
 class AllowListRelease(FilterReleasePlugin):
     name = "allowlist_release"
     # Requires iterable default
-    allowlist_package_names: List[Requirement] = []
+    allowlist_package_names: list[Requirement] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -182,7 +183,7 @@ class AllowListRelease(FilterReleasePlugin):
                 + f"{self.allowlist_release_requirements}"
             )
 
-    def _determine_filtered_package_requirements(self) -> List[Requirement]:
+    def _determine_filtered_package_requirements(self) -> list[Requirement]:
         """
         Parse the configuration file for
 
@@ -201,7 +202,7 @@ class AllowListRelease(FilterReleasePlugin):
             package_lines = []
         return list(_parse_package_lines(package_lines))
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter,
         i.e. doesn't matches an allowlist version specifier
@@ -251,7 +252,7 @@ class AllowListRelease(FilterReleasePlugin):
 class AllowListRequirementsPinned(AllowListRelease):
     name = "project_requirements_pinned"
 
-    def _determine_filtered_package_requirements(self) -> List[Requirement]:
+    def _determine_filtered_package_requirements(self) -> list[Requirement]:
         """
         Parse the configuration file for
         [allowlist]
@@ -264,7 +265,7 @@ class AllowListRequirementsPinned(AllowListRelease):
         list of packaging.requirements.Requirement
             For all PEP440 package specifiers
         """
-        filtered_requirements: Set[Requirement] = set()
+        filtered_requirements: set[Requirement] = set()
 
         try:
             filepaths = get_requirement_files(self.allowlist)

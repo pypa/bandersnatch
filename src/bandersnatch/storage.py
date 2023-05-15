@@ -9,21 +9,9 @@ import hashlib
 import logging
 import pathlib
 from collections import defaultdict
+from collections.abc import Generator, Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from typing import (
-    IO,
-    Any,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Set,
-    Type,
-    Union,
-)
+from typing import IO, Any, Protocol
 
 import filelock
 import pkg_resources
@@ -31,7 +19,7 @@ from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
 
-PATH_TYPES = Union[pathlib.Path, str]
+PATH_TYPES = pathlib.Path | str
 
 # The API_REVISION is incremented if the plugin class is modified in a
 # backwards incompatible way.  In order to prevent loading older
@@ -39,18 +27,18 @@ PATH_TYPES = Union[pathlib.Path, str]
 # the methods of the classes.
 PLUGIN_API_REVISION = 1
 STORAGE_PLUGIN_RESOURCE = f"bandersnatch_storage_plugins.v{PLUGIN_API_REVISION}.backend"
-loaded_storage_plugins: Dict[str, List["Storage"]] = defaultdict(list)
+loaded_storage_plugins: dict[str, list["Storage"]] = defaultdict(list)
 
 logger = logging.getLogger("bandersnatch")
 
 
 class StorageDirEntry(Protocol):
     @property
-    def name(self) -> Union[str, bytes]:
+    def name(self) -> str | bytes:
         ...
 
     @property
-    def path(self) -> Union[str, bytes]:
+    def path(self) -> str | bytes:
         ...
 
     def is_dir(self) -> bool:
@@ -69,12 +57,12 @@ class Storage:
     """
 
     name = "storage"
-    PATH_BACKEND: Type[pathlib.Path] = pathlib.Path
+    PATH_BACKEND: type[pathlib.Path] = pathlib.Path
 
     def __init__(
         self,
         *args: Any,
-        config: Optional[configparser.ConfigParser] = None,
+        config: configparser.ConfigParser | None = None,
         **kwargs: Any,
     ) -> None:
         self.flock_path: PATH_TYPES = ".lock"
@@ -212,7 +200,7 @@ class Storage:
         """
         raise NotImplementedError
 
-    def write_file(self, path: PATH_TYPES, contents: Union[str, bytes]) -> None:
+    def write_file(self, path: PATH_TYPES, contents: str | bytes) -> None:
         """Write data to the provided path.  If **contents** is a string, the file will
         be opened and written in "r" + "utf-8" mode, if bytes are supplied it will be
         accessed using "rb" mode (i.e. binary write)."""
@@ -231,8 +219,8 @@ class Storage:
         path: PATH_TYPES,
         text: bool = True,
         encoding: str = "utf-8",
-        errors: Optional[str] = None,
-    ) -> Union[str, bytes]:
+        errors: str | None = None,
+    ) -> str | bytes:
         """Yield a file context to iterate over. If text is true, open the file with
         'rb' mode specified."""
         raise NotImplementedError
@@ -333,10 +321,10 @@ class StoragePlugin(Storage):
 
 def load_storage_plugins(
     entrypoint_group: str,
-    enabled_plugin: Optional[str] = None,
-    config: Optional[configparser.ConfigParser] = None,
+    enabled_plugin: str | None = None,
+    config: configparser.ConfigParser | None = None,
     clear_cache: bool = False,
-) -> Set[Storage]:
+) -> set[Storage]:
     """
     Load all storage plugins that are registered with pkg_resources
 
@@ -395,8 +383,8 @@ def load_storage_plugins(
 
 
 def storage_backend_plugins(
-    backend: Optional[str] = "filesystem",
-    config: Optional[configparser.ConfigParser] = None,
+    backend: str | None = "filesystem",
+    config: configparser.ConfigParser | None = None,
     clear_cache: bool = False,
 ) -> Iterable[Storage]:
     """

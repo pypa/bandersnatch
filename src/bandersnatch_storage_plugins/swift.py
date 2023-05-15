@@ -12,19 +12,8 @@ import re
 import shutil
 import sys
 import tempfile
-from typing import (
-    IO,
-    Any,
-    Dict,
-    Generator,
-    List,
-    NoReturn,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from collections.abc import Generator, Sequence
+from typing import IO, Any, NoReturn, Optional
 
 import filelock
 import keystoneauth1
@@ -59,7 +48,7 @@ class SwiftFileLock(filelock.BaseFileLock):
         super().__init__(lock_file, timeout=timeout)
 
     @property
-    def path_backend(self) -> Type["SwiftPath"]:
+    def path_backend(self) -> type["SwiftPath"]:
         if self.backend is not None:
             return self.backend.PATH_BACKEND
         raise RuntimeError("Failed to retrieve swift backend")
@@ -142,8 +131,8 @@ class _SwiftAccessor:
         return fh
 
     @staticmethod
-    def listdir(target: str) -> List[str]:
-        results: List[str] = []
+    def listdir(target: str) -> list[str]:
+        results: list[str] = []
         if not target.endswith("/"):
             target = f"{target}/"
         with _SwiftAccessor.BACKEND.connection() as conn:
@@ -218,8 +207,8 @@ class _SwiftAccessor:
         a: PATH_TYPES,
         b: PATH_TYPES,
         target_is_directory: bool = False,
-        src_container: Optional[str] = None,
-        src_account: Optional[str] = None,
+        src_container: str | None = None,
+        src_account: str | None = None,
     ) -> None:
         return _SwiftAccessor.BACKEND.symlink(
             a, b, src_container=src_container, src_account=src_account
@@ -234,7 +223,7 @@ class _SwiftAccessor:
         return str(path)
 
 
-_swift_accessor: Type[_SwiftAccessor]
+_swift_accessor: type[_SwiftAccessor]
 
 
 class SwiftPath(pathlib.Path):
@@ -295,10 +284,10 @@ class SwiftPath(pathlib.Path):
         return self._from_parsed_parts(self._drv, self._root, parts)  # type: ignore
 
     @classmethod
-    def _parse_args(cls, args: Sequence[str]) -> Tuple[Optional[str], str, List[str]]:
+    def _parse_args(cls, args: Sequence[str]) -> tuple[str | None, str, list[str]]:
         # This is useful when you don't want to create an instance, just
         # canonicalize some constructor arguments.
-        parts: List[str] = []
+        parts: list[str] = []
         for a in args:
             a = os.fspath(a)
             if isinstance(a, str):
@@ -329,7 +318,7 @@ class SwiftPath(pathlib.Path):
 
     @classmethod
     def _from_parsed_parts(
-        cls, drv: Optional[str], root: str, parts: List[str], init: bool = True
+        cls, drv: str | None, root: str, parts: list[str], init: bool = True
     ) -> "SwiftPath":
         self = object.__new__(cls)
         self._drv = drv  # type: ignore
@@ -363,7 +352,7 @@ class SwiftPath(pathlib.Path):
             and not target_path.endswith(self._flavour.sep)
         ):
             target_path = f"{target_path}{self._flavour.sep}"
-        files: List[str] = []
+        files: list[str] = []
         with self.backend.connection() as conn:
             try:
                 files = conn.get_container(
@@ -387,9 +376,7 @@ class SwiftPath(pathlib.Path):
     ) -> None:
         return self.backend.mkdir(str(self), exist_ok=exist_ok, parents=parents)
 
-    def read_text(
-        self, encoding: Optional[str] = None, errors: Optional[str] = None
-    ) -> str:
+    def read_text(self, encoding: str | None = None, errors: str | None = None) -> str:
         kwargs = {}
         if encoding is not None:
             kwargs["encoding"] = encoding
@@ -401,14 +388,13 @@ class SwiftPath(pathlib.Path):
 
     def write_text(
         self,
-        contents: Optional[str],
-        encoding: Optional[str] = "utf-8",
-        errors: Optional[str] = None,
+        data: str,
+        encoding: str | None = "utf-8",
+        errors: str | None = None,
+        newline: str | None = None,
     ) -> int:
-        if contents is None:
-            contents = ""
         self.backend.write_file(
-            str(self), contents=contents, encoding=encoding, errors=errors
+            str(self), contents=data, encoding=encoding, errors=errors
         )
         return 0
 
@@ -416,8 +402,8 @@ class SwiftPath(pathlib.Path):
         self,
         src: PATH_TYPES,
         target_is_directory: bool = False,
-        src_container: Optional[str] = None,
-        src_account: Optional[str] = None,
+        src_container: str | None = None,
+        src_account: str | None = None,
     ) -> None:
         """
         Make this path a symlink pointing to the given path.
@@ -435,8 +421,8 @@ class SwiftPath(pathlib.Path):
     def write_bytes(  # type: ignore
         self,
         contents: bytes,
-        encoding: Optional[str] = "utf-8",
-        errors: Optional[str] = None,
+        encoding: str | None = "utf-8",
+        errors: str | None = None,
     ) -> int:
         self.backend.write_file(
             str(self), contents=contents, encoding=encoding, errors=errors
@@ -453,7 +439,7 @@ class SwiftPath(pathlib.Path):
 
     def iterdir(
         self,
-        conn: Optional[swiftclient.client.Connection] = None,
+        conn: swiftclient.client.Connection | None = None,
         recurse: bool = False,
         include_swiftkeep: bool = False,
     ) -> Generator["SwiftPath", None, None]:
@@ -484,8 +470,8 @@ class SwiftStorage(StoragePlugin):
             return "srv/pypi"
 
     def get_config_value(
-        self, config_key: str, *env_keys: Any, default: Optional[str] = None
-    ) -> Optional[str]:
+        self, config_key: str, *env_keys: Any, default: str | None = None
+    ) -> str | None:
         value = None
         try:
             value = self.configuration["swift"][config_key]
@@ -510,7 +496,7 @@ class SwiftStorage(StoragePlugin):
             ),
             "password": self.get_config_value("password", "OS_PASSWORD"),
         }
-        os_options: Dict[str, Any] = {}
+        os_options: dict[str, Any] = {}
         user_id = self.get_config_value("username", "OS_USER_ID", "OS_USERNAME")
         project = self.get_config_value(
             "project_name", "OS_PROJECT_NAME", "OS_TENANT_NAME"
@@ -544,7 +530,7 @@ class SwiftStorage(StoragePlugin):
         global _swift_accessor
         _swift_accessor = _SwiftAccessor
 
-    def get_lock(self, path: Optional[str] = None) -> SwiftFileLock:
+    def get_lock(self, path: str | None = None) -> SwiftFileLock:
         """
         Retrieve the appropriate `FileLock` backend for this storage plugin
 
@@ -587,7 +573,7 @@ class SwiftStorage(StoragePlugin):
         ) as swift_conn:
             yield swift_conn
 
-    def get_container(self, container: Optional[str] = None) -> List[Dict[str, str]]:
+    def get_container(self, container: str | None = None) -> list[dict[str, str]]:
         """
         Given the name of a container, return its contents.
 
@@ -638,9 +624,9 @@ class SwiftStorage(StoragePlugin):
         self,
         root: PATH_TYPES,
         dirs: bool = True,
-        conn: Optional[swiftclient.client.Connection] = None,
-    ) -> List[SwiftPath]:
-        results: List[SwiftPath] = []
+        conn: swiftclient.client.Connection | None = None,
+    ) -> list[SwiftPath]:
+        results: list[SwiftPath] = []
 
         with contextlib.ExitStack() as stack:
             if conn is None:
@@ -736,7 +722,7 @@ class SwiftStorage(StoragePlugin):
         return
 
     def copy_file(
-        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: Optional[str] = None
+        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: str | None = None
     ) -> None:
         """Copy a file from **source** to **dest**"""
         if dest_container is None:
@@ -747,7 +733,7 @@ class SwiftStorage(StoragePlugin):
         return
 
     def move_file(
-        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: Optional[str] = None
+        self, source: PATH_TYPES, dest: PATH_TYPES, dest_container: str | None = None
     ) -> None:
         """Move a file from **source** to **dest**"""
         if dest_container is None:
@@ -764,9 +750,9 @@ class SwiftStorage(StoragePlugin):
     def write_file(
         self,
         path: PATH_TYPES,
-        contents: Union[str, bytes, IO],
-        encoding: Optional[str] = None,
-        errors: Optional[str] = None,
+        contents: str | bytes | IO,
+        encoding: str | None = None,
+        errors: str | None = None,
     ) -> None:
         """Write data to the provided path.  If **contents** is a string, the file will
         be opened and written in "r" + "utf-8" mode, if bytes are supplied it will be
@@ -800,17 +786,17 @@ class SwiftStorage(StoragePlugin):
         path: PATH_TYPES,
         text: bool = True,
         encoding: str = "utf-8",
-        errors: Optional[str] = None,
-    ) -> Union[str, bytes]:
+        errors: str | None = None,
+    ) -> str | bytes:
         """Return the contents of the requested file, either a a bytestring or a unicode
         string depending on whether **text** is True"""
-        content: Union[str, bytes]
+        content: str | bytes
         if not errors:
             try:
                 errors = sys.getfilesystemencodeerrors()
             except AttributeError:
                 errors = "surrogateescape"
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if errors:
             kwargs["errors"] = errors
         content = self.get_object(self.default_container, str(path))
@@ -909,7 +895,7 @@ class SwiftStorage(StoragePlugin):
             target_path = ""
         if target_path and not target_path.endswith("/"):
             target_path = f"{target_path}/"
-        files: List[str] = []
+        files: list[str] = []
         with self.connection() as conn:
             try:
                 files = conn.get_container(self.default_container, prefix=target_path)
@@ -961,8 +947,8 @@ class SwiftStorage(StoragePlugin):
         self,
         src: PATH_TYPES,
         dest: PATH_TYPES,
-        src_container: Optional[str] = None,
-        src_account: Optional[str] = None,
+        src_container: str | None = None,
+        src_account: str | None = None,
     ) -> None:
         with self.connection() as conn:
             if src_container is None:

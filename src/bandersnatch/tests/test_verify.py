@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
-from typing import Any, List
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -35,11 +35,11 @@ async def fake_fetch(_: str, save_path: Path, *__: Any) -> None:
     save_path.write_text("fake text")
 
 
-def some_dirs(*args: Any, **kwargs: Any) -> List[str]:
+def some_dirs(*args: Any, **kwargs: Any) -> list[str]:
     return ["/data/pypi/web/json/bandersnatch", "/data/pypi/web/json/black"]
 
 
-def some_paths(*_: Any, **__: Any) -> List[Path]:
+def some_paths(*_: Any, **__: Any) -> list[Path]:
     return [Path("/data/pypi/web/json/bandersnatch"), Path("/data/pypi/web/json/black")]
 
 
@@ -249,7 +249,7 @@ async def test_get_latest_json_timeout(
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[Path] = []
+    all_package_files: list[Path] = []
 
     await verify(
         master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore
@@ -279,7 +279,7 @@ async def test_get_latest_json_404(tmp_path: Path, monkeypatch: MonkeyPatch) -> 
     jsonpath.mkdir(parents=True)
     jsonfile = jsonpath / "bandersnatch"
     jsonfile.touch()
-    all_package_files: List[Path] = []
+    all_package_files: list[Path] = []
 
     await verify(
         master, fc, "bandersnatch", tmp_path, all_package_files, fa  # type: ignore # noqa: E501
@@ -312,7 +312,7 @@ async def test_verify_url_exception(tmp_path: Path, monkeypatch: MonkeyPatch) ->
         f.write(
             '{"releases":{"1.0":["url":"https://unittests.org/packages/a0/a0/a0a0/package-1.0.0.exe"}]}}'  # noqa: E501
         )
-    all_package_files: List[Path] = []
+    all_package_files: list[Path] = []
 
     await verify(master, fc, "bandersnatch", tmp_path, all_package_files, fa)  # type: ignore # noqa: E501
     assert jsonfile.exists()

@@ -91,7 +91,8 @@ async def test_session_raise_for_status(master: Master) -> None:
         assert create_session.call_args_list[0][1]["raise_for_status"]
 
 
-def test_check_for_socks_proxy(master: Master) -> None:
+@pytest.mark.asyncio
+async def test_check_for_socks_proxy(master: Master) -> None:
     assert master._check_for_socks_proxy() is None
 
     from os import environ

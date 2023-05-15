@@ -9,7 +9,6 @@ from asyncio.queues import Queue
 from configparser import ConfigParser
 from pathlib import Path
 from sys import stderr
-from typing import List, Optional, Set
 from urllib.parse import urlparse
 
 import aiohttp
@@ -44,7 +43,7 @@ def on_error(stop_on_error: bool, exception: BaseException, package: str) -> Non
 async def get_latest_json(
     master: Master,
     json_path: Path,
-    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
+    executor: concurrent.futures.ThreadPoolExecutor | None = None,
     delete_removed_packages: bool = False,
 ) -> None:
     url_parts = urlparse(master.url)
@@ -76,12 +75,12 @@ async def get_latest_json(
 async def delete_unowned_files(
     mirror_base: Path,
     executor: concurrent.futures.ThreadPoolExecutor,
-    all_package_files: List[Path],
+    all_package_files: list[Path],
     dry_run: bool,
 ) -> int:
     loop = asyncio.get_event_loop()
     packages_path = mirror_base / "web" / "packages"
-    all_fs_files: Set[Path] = set()
+    all_fs_files: set[Path] = set()
     await loop.run_in_executor(executor, find_all_files, all_fs_files, packages_path)
 
     all_package_files_set = set(all_package_files)
@@ -114,9 +113,9 @@ async def verify(
     config: ConfigParser,
     json_file: str,
     mirror_base_path: Path,
-    all_package_files: List[Path],
+    all_package_files: list[Path],
     args: argparse.Namespace,
-    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
+    executor: concurrent.futures.ThreadPoolExecutor | None = None,
     releases_key: str = "releases",
 ) -> None:
     json_base = mirror_base_path / "web" / "json"
@@ -201,11 +200,11 @@ async def verify(
 async def verify_producer(
     master: Master,
     config: ConfigParser,
-    all_package_files: List[Path],
+    all_package_files: list[Path],
     mirror_base_path: Path,
-    json_files: List[str],
+    json_files: list[str],
     args: argparse.Namespace,
-    executor: Optional[concurrent.futures.ThreadPoolExecutor] = None,
+    executor: concurrent.futures.ThreadPoolExecutor | None = None,
 ) -> None:
     queue: asyncio.Queue = asyncio.Queue()
     for jf in json_files:
@@ -232,7 +231,7 @@ async def verify_producer(
 async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
     """Crawl all saved JSON metadata or online to check we have all packages
     if delete - generate a diff of unowned files"""
-    all_package_files: List[Path] = []
+    all_package_files: list[Path] = []
 
     storage_backend = next(
         iter(

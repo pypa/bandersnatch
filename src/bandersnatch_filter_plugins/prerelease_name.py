@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, List, Pattern
+from re import Pattern
 
 from packaging.utils import canonicalize_name
 
@@ -21,8 +21,8 @@ class PreReleaseFilter(FilterReleasePlugin):
         r".+b(eta)?\d+$",
         r".+dev\d+$",
     )
-    patterns: List[Pattern] = []
-    package_names: List[str] = []
+    patterns: list[Pattern] = []
+    package_names: list[str] = []
 
     def initialize_plugin(self) -> None:
         """
@@ -50,7 +50,7 @@ class PreReleaseFilter(FilterReleasePlugin):
                 + f"{self.package_names if self.package_names else 'all packages'}"
             )
 
-    def filter(self, metadata: Dict) -> bool:
+    def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter, i.e. follows a prerelease pattern
         """

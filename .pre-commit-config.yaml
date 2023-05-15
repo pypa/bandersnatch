@@ -16,10 +16,10 @@ repos:
         args: [--target-version, py38, --preview]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.2
+    rev: v3.4.0
     hooks:
       - id: pyupgrade
-        args: [--py38-plus]
+        args: [--py310-plus]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0

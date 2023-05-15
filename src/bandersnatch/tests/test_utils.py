@@ -3,7 +3,6 @@ import os.path
 import re
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory, gettempdir
-from typing import Set
 
 import aiohttp
 import pytest
@@ -64,7 +63,7 @@ def test_find_files() -> None:
             with afile.open("w") as afp:
                 afp.write("PyPA ftw!")
 
-        found_files: Set[Path] = set()
+        found_files: set[Path] = set()
         find_all_files(found_files, td_path)
         assert found_files == expected_found_files
 

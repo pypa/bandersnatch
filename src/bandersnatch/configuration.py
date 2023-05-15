@@ -5,7 +5,7 @@ import configparser
 import importlib.resources
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Type
+from typing import Any, NamedTuple
 
 from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
 
@@ -28,9 +28,9 @@ class SetConfigValues(NamedTuple):
 
 
 class Singleton(type):  # pragma: no cover
-    _instances: Dict["Singleton", Type] = {}
+    _instances: dict["Singleton", type] = {}
 
-    def __call__(cls, *args: Any, **kwargs: Any) -> Type:
+    def __call__(cls, *args: Any, **kwargs: Any) -> type:
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
@@ -40,7 +40,7 @@ class BandersnatchConfig(metaclass=Singleton):
     # Ensure we only show the deprecations once
     SHOWN_DEPRECATIONS = False
 
-    def __init__(self, config_file: Optional[str] = None) -> None:
+    def __init__(self, config_file: str | None = None) -> None:
         """
         Bandersnatch configuration class singleton
 
@@ -52,9 +52,10 @@ class BandersnatchConfig(metaclass=Singleton):
         config_file: str, optional
             Path to the configuration file to use
         """
-        self.found_deprecations: List[str] = []
-        with importlib.resources.path("bandersnatch", "default.conf") as config_path:
-            self.default_config_file = str(config_path)
+        self.found_deprecations: list[str] = []
+        self.default_config_file = str(
+            importlib.resources.files("bandersnatch") / "default.conf"
+        )
         self.config_file = config_file
         self.load_configuration()
         # Keeping for future deprecations ... Commenting to save function call etc.
