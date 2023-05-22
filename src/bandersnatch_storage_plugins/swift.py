@@ -398,9 +398,10 @@ class SwiftPath(pathlib.Path):
         )
         return 0
 
-    def symlink_to(
+    # Different signature than Path.symlink_to
+    def symlink_to(  # type: ignore
         self,
-        src: PATH_TYPES,
+        target: PATH_TYPES,
         target_is_directory: bool = False,
         src_container: str | None = None,
         src_account: str | None = None,
@@ -410,7 +411,7 @@ class SwiftPath(pathlib.Path):
         Note the order of arguments (self, target) is the reverse of os.symlink's.
         """
         self._accessor.symlink(
-            src,
+            target,
             str(self),
             target_is_directory=target_is_directory,
             src_account=src_account,
