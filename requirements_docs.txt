@@ -5,7 +5,7 @@ packaging==23.1
 requests==2.31.0
 six==1.16.0
 sphinx==7.0.1
-MyST-Parser==1.0.0
+MyST-Parser==2.0.0
 xmlrpc2==0.3.1
 sphinx-argparse-cli==1.11.0
 
