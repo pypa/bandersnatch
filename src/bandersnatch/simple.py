@@ -182,8 +182,7 @@ class SimpleAPI:
         release_files = package.release_files
         logger.debug(f"There are {len(release_files)} releases for {package.name}")
         # Lets sort based on the filename rather than the whole URL
-        # Typing is hard here as we allow Any/Dict[Any, Any] for JSON
-        release_files.sort(key=lambda x: x["filename"])  # type: ignore
+        release_files.sort(key=lambda x: x["filename"])
 
         digest_name = self.digest_name
 
@@ -219,7 +218,7 @@ class SimpleAPI:
         }
 
         release_files = package.release_files
-        release_files.sort(key=lambda x: x["filename"])  # type: ignore
+        release_files.sort(key=lambda x: x["filename"])
 
         # Add release files into the JSON dict
         for r in release_files:
