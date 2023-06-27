@@ -1,11 +1,11 @@
-docutils==0.19
+docutils==0.20.1
 pyparsing==3.0.9
 python-dateutil==2.8.2
 packaging==23.1
-requests==2.29.0
+requests==2.31.0
 six==1.16.0
-sphinx==6.2.0
-MyST-Parser==1.0.0
+sphinx==7.0.1
+MyST-Parser==2.0.0
 xmlrpc2==0.3.1
 sphinx-argparse-cli==1.11.0
 
