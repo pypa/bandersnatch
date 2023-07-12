@@ -40,6 +40,7 @@ platforms =
     freebsd
     macos
     linux_armv7l
+    py3
     py3.5
     py3.7
     py3.9
@@ -134,6 +135,11 @@ platforms =
                     {
                         "packagetype": "bdist_wheel",
                         "filename": "foobar-0.1-win32.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-0.1-py3-none-any.whl",
                         "flag": "DROP",
                     },
                 ],
