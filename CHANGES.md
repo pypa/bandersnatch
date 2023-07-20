@@ -2,6 +2,10 @@
 
 - Move to >= 3.10 project `PR #1457`
 
+## Bug Fixes
+
+- Support `py2` + `py3` bdist file name filtering `PR #1495`
+
 # 6.3.0
 
 ## Bug Fixes

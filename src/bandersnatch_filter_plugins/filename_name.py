@@ -17,10 +17,12 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
     _packagetypes: list[str] = []
 
     _pythonversions = [
+        "py2",
         "py2.4",
         "py2.5",
         "py2.6",
         "py2.7",
+        "py3",
         "py3.0",
         "py3.1",
         "py3.2",
@@ -32,6 +34,8 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         "py3.8",
         "py3.9",
         "py3.10",
+        "py3.11",
+        "py3.12",
     ]
 
     _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
