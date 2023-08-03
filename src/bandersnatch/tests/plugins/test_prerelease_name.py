@@ -47,7 +47,7 @@ packages =
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
-            type(plugin) == prerelease_name.PreReleaseFilter for plugin in plugins
+            type(plugin) is prerelease_name.PreReleaseFilter for plugin in plugins
         )
         plugin = next(
             plugin
