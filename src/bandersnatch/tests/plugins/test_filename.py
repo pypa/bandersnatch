@@ -52,7 +52,7 @@ platforms =
         plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
 
         assert any(
-            type(plugin) == filename_name.ExcludePlatformFilter for plugin in plugins
+            type(plugin) is filename_name.ExcludePlatformFilter for plugin in plugins
         )
 
     def test_exclude_platform(self) -> None:
