@@ -3,7 +3,7 @@ aiohttp-socks==0.8.0
 aiohttp-xmlrpc==1.5.0
 async-timeout>=4.0.0a3
 attrs==23.1.0
-chardet==5.1.0
+chardet==5.2.0
 filelock==3.12.2
 humanfriendly==10.0
 idna==3.4
