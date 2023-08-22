@@ -15,7 +15,7 @@ from typing import IO, Any
 import boto3
 import filelock
 from botocore.client import Config
-from s3path import PureS3Path, S3DirEntry
+from s3path import PureS3Path, _S3DirEntry
 from s3path import S3Path as _S3Path
 from s3path import register_configuration_parameter
 
@@ -332,7 +332,7 @@ class S3Storage(StoragePlugin):
             path = self.PATH_BACKEND(path)
         path.joinpath(self.PATH_BACKEND.keep_file).touch()
 
-    def scandir(self, path: PATH_TYPES) -> Generator[S3DirEntry, None, None]:
+    def scandir(self, path: PATH_TYPES) -> Generator[_S3DirEntry, None, None]:
         """Read entries from the provided directory"""
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
