@@ -15,9 +15,9 @@ from typing import IO, Any
 import boto3
 import filelock
 from botocore.client import Config
-from s3path import PureS3Path, _S3DirEntry
+from s3path import PureS3Path
 from s3path import S3Path as _S3Path
-from s3path import register_configuration_parameter
+from s3path import _S3DirEntry, register_configuration_parameter
 
 from bandersnatch.storage import PATH_TYPES, StoragePlugin
 
