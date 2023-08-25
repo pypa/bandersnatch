@@ -17,9 +17,17 @@ import filelock
 from botocore.client import Config
 from s3path import PureS3Path
 from s3path import S3Path as _S3Path
-from s3path import _S3DirEntry, register_configuration_parameter
+from s3path import register_configuration_parameter
 
 from bandersnatch.storage import PATH_TYPES, StoragePlugin
+
+try:
+    # For backwards compatibility
+    from s3path import S3DirEntry as _S3DirEntry
+except ImportError:
+    # for s3path>=0.5.0;
+    from s3path import _S3DirEntry
+
 
 logger = logging.getLogger("bandersnatch")
 
