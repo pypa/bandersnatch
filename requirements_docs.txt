@@ -4,7 +4,7 @@ python-dateutil==2.8.2
 packaging==23.1
 requests==2.31.0
 six==1.16.0
-sphinx==7.1.2
+sphinx==7.2.4
 MyST-Parser==2.0.0
 xmlrpc2==0.3.1
 sphinx-argparse-cli==1.11.1
