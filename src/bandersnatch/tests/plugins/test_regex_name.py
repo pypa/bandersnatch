@@ -46,7 +46,7 @@ releases =
 
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
-        assert any(type(plugin) == regex_name.RegexReleaseFilter for plugin in plugins)
+        assert any(type(plugin) is regex_name.RegexReleaseFilter for plugin in plugins)
         plugin = next(
             plugin
             for plugin in plugins
@@ -86,7 +86,7 @@ packages =
 
         plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
 
-        assert any(type(plugin) == regex_name.RegexProjectFilter for plugin in plugins)
+        assert any(type(plugin) is regex_name.RegexProjectFilter for plugin in plugins)
         plugin = next(
             plugin
             for plugin in plugins

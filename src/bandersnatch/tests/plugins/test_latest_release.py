@@ -44,7 +44,7 @@ keep = 2
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
-            type(plugin) == latest_name.LatestReleaseFilter for plugin in plugins
+            type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins
         )
         plugin = next(
             plugin
@@ -153,7 +153,7 @@ enabled =
         plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
 
         assert any(
-            type(plugin) == latest_name.LatestReleaseFilter for plugin in plugins
+            type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins
         )
         plugin = next(
             plugin
