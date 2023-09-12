@@ -32,6 +32,7 @@ loaded_storage_plugins: dict[str, list["Storage"]] = defaultdict(list)
 logger = logging.getLogger("bandersnatch")
 
 
+# fmt: off
 class StorageDirEntry(Protocol):
     @property
     def name(self) -> str | bytes:
@@ -49,6 +50,7 @@ class StorageDirEntry(Protocol):
 
     def is_symlink(self) -> bool:
         ...
+# fmt: on
 
 
 class Storage:
