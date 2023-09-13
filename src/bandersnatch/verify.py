@@ -117,6 +117,7 @@ async def verify(
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
     releases_key: str = "releases",
+    sha256_check: bool = True
 ) -> None:
     json_base = mirror_base_path / "web" / "json"
     json_full_path = json_base / json_file
@@ -179,15 +180,16 @@ async def verify(
                             deferred_exception = e
                         continue
 
-            calc_sha256 = await loop.run_in_executor(executor, hash, pkg_file)
-            if calc_sha256 != jpkg["digests"]["sha256"]:
-                if not args.dry_run:
-                    await loop.run_in_executor(None, pkg_file.unlink)
-                    await master.url_fetch(jpkg["url"], pkg_file, executor)
-                else:
-                    logger.info(
-                        f"[DRY RUN] {jpkg['info']['name']} has a sha256 mismatch."
-                    )
+            if sha256_check:
+                calc_sha256 = await loop.run_in_executor(executor, hash, pkg_file)
+                if calc_sha256 != jpkg["digests"]["sha256"]:
+                    if not args.dry_run:
+                        await loop.run_in_executor(None, pkg_file.unlink)
+                        await master.url_fetch(jpkg["url"], pkg_file, executor)
+                    else:
+                        logger.info(
+                            f"[DRY RUN] {jpkg['info']['name']} has a sha256 mismatch."
+                        )
 
             all_package_files.append(pkg_file)
 
@@ -205,6 +207,7 @@ async def verify_producer(
     json_files: list[str],
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
+    sha256_check: bool = True
 ) -> None:
     queue: asyncio.Queue = asyncio.Queue()
     for jf in json_files:
@@ -221,6 +224,7 @@ async def verify_producer(
                 all_package_files,
                 args,
                 executor,
+                sha256_check=sha256_check,
             )
 
     await asyncio.gather(
@@ -264,7 +268,9 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
         config.get("mirror", "master"),
         config.getfloat("mirror", "timeout"),
         config.getfloat("mirror", "global-timeout", fallback=None),
+        config.get("mirror", "proxy")
     ) as master:
+        sha256_check = storage_backend.name == "filesystem" or args.force_sha256_check
         await verify_producer(
             master,
             config,
@@ -273,6 +279,7 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
             json_files,
             args,
             executor,
+            sha256_check
         )
 
     if not args.delete:

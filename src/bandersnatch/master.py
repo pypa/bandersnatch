@@ -52,6 +52,15 @@ class Master:
             logger.error(err)
             raise ValueError(err)
 
+    def _build_proxy_connector(self) -> ProxyConnector | None:
+        """Build a ProxyConnector if a proxy is set in the config"""
+        if not self.proxy:
+            connector = self._check_for_socks_proxy()
+            return connector
+
+        logger.debug(f"Creating a ProxyConnector to use {self.proxy}")
+        return ProxyConnector.from_url(self.proxy)
+
     def _check_for_socks_proxy(self) -> ProxyConnector | None:
         """Check env for a SOCKS proxy URL and return a connector if found"""
         proxy_vars = (
@@ -85,13 +94,13 @@ class Master:
             sock_connect=self.timeout,
             sock_read=self.timeout,
         )
-        socks_connector = self._check_for_socks_proxy()
+        proxy_connector = self._build_proxy_connector()
         self.session = aiohttp.ClientSession(
-            connector=socks_connector,
+            connector=proxy_connector,
             headers=custom_headers,
             skip_auto_headers=skip_headers,
             timeout=aiohttp_timeout,
-            trust_env=True if not socks_connector else False,
+            trust_env=True if not proxy_connector else False,
             raise_for_status=True,
         )
         return self
@@ -139,7 +148,6 @@ class Master:
             await self.check_for_stale_cache(path, required_serial, got_serial)
             yield r
 
-    # TODO: Add storage backend support / refactor - #554
     async def url_fetch(
         self,
         url: str,

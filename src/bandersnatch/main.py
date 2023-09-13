@@ -96,6 +96,12 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
         default=0,
         help="# of parallel iops [Defaults to bandersnatch.conf]",
     )
+    v.add_argument(
+        "--force-sha256-check",
+        action="store_true",
+        default=False,
+        help="force sha256 check on all storage backend",
+    )
     v.set_defaults(op="verify")
 
 
@@ -155,6 +161,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
             config.get("mirror", "master"),
             config.getfloat("mirror", "timeout"),
             config.getfloat("mirror", "global-timeout", fallback=None),
+            config.get("mirror", "proxy"),
         ) as master:
             return await bandersnatch.delete.delete_packages(config, args, master)
     elif args.op.lower() == "verify":
