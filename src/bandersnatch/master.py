@@ -136,9 +136,6 @@ class Master:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
-        if not kw.get("proxy") and self.proxy:
-            kw["proxy"] = self.proxy
-            logger.debug(f"Using proxy set in configuration: {self.proxy}")
         async with self.session.get(path, **kw) as r:
             got_serial = (
                 int(r.headers[PYPI_SERIAL_HEADER])
