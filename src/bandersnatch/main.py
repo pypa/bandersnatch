@@ -65,6 +65,12 @@ def _mirror_parser(subparsers: argparse._SubParsersAction) -> None:
             + "perform a full sync"
         ),
     )
+    m.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="# of parallel iops [Defaults to bandersnatch.conf]",
+    )
     m.set_defaults(op="mirror")
 
 
@@ -172,14 +178,19 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         )
 
     if args.force_check:
-        storage_plugin = next(iter(storage_backend_plugins()))
+        storage_plugin = next(iter(storage_backend_plugins(
+                config=config,
+                clear_cache=True,
+                backend=config.get("mirror", "storage-backend"),
+            )))
         status_file = (
             storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
         )
         if status_file.exists():
-            tmp_status_file = Path(gettempdir()) / "status"
+            tmp_status_file = storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status_backup"
             try:
-                shutil.move(str(status_file), tmp_status_file)
+                storage_plugin.copy_file(status_file, tmp_status_file)
+                storage_plugin.delete_file(status_file)
                 logger.debug(
                     "Force bandersnatch to check everything against the master PyPI"
                     + f" - status file moved to {tmp_status_file}"

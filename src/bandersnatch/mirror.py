@@ -917,6 +917,7 @@ async def mirror(
     config: configparser.ConfigParser,
     specific_packages: list[str] | None = None,
     sync_simple_index: bool = True,
+    workers: int = 0,
 ) -> int:
     config_values = validate_config_values(config)
 
@@ -957,7 +958,7 @@ async def mirror(
     proxy = config.get("mirror", "proxy", fallback=None)
     storage_backend = config_values.storage_backend_name
     homedir = Path(config.get("mirror", "directory"))
-
+    workers = workers or config.getint("mirror", "workers")
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(mirror_url, timeout, global_timeout, proxy) as master:
@@ -966,7 +967,7 @@ async def mirror(
             master,
             storage_backend=storage_backend,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
-            workers=config.getint("mirror", "workers"),
+            workers=workers,
             hash_index=config.getboolean("mirror", "hash-index"),
             json_save=config_values.json_save,
             root_uri=config_values.root_uri,
