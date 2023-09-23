@@ -81,8 +81,9 @@ class SimpleAPI:
 
     # PEP620 Simple API Version
     pypi_repository_version = "1.0"
-    # PEP691 Simple API Version
-    pypi_simple_api_version = "1.0"
+    # PEP691 Simple API Version 1.0
+    # PEP700 defines 1.1
+    pypi_simple_api_version = "1.1"
 
     def __init__(
         self,
@@ -215,6 +216,8 @@ class SimpleAPI:
                 "_last-serial": str(package.last_serial),
             },
             "name": package.name,
+            # TODO: Just sorting by default sort - Maybe specify order in future PEP
+            "versions": sorted(package.releases.keys()),
         }
 
         release_files = package.release_files
@@ -229,6 +232,8 @@ class SimpleAPI:
                         self.digest_name: r["digests"][self.digest_name],
                     },
                     "requires-python": r.get("requires_python", ""),
+                    "size": r.get("size", -1),
+                    "upload-time": r.get("upload_time_iso_8601", ""),
                     "url": self._file_url_to_local_url(r["url"]),
                     "yanked": r.get("yanked", False),
                 }
@@ -263,7 +268,10 @@ class SimpleAPI:
         simple_json_path = simple_dir / "index.v1_json"
 
         simple_json: dict[str, Any] = {
-            "meta": {"_last-serial": serial, "api-version": "1.0"},
+            "meta": {
+                "_last-serial": serial,
+                "api-version": self.pypi_simple_api_version,
+            },
             "projects": [],
         }
 

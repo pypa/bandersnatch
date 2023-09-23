@@ -18,8 +18,8 @@ from bandersnatch.simple import (
 from bandersnatch.storage import Storage
 from bandersnatch.tests.test_simple_fixtures import (
     EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY,
-    EXPECTED_SIMPLE_SIXTYNINE_JSON,
-    EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY,
+    EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1,
+    EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY_1_1,
     SIXTYNINE_METADATA,
 )
 from bandersnatch_storage_plugins.filesystem import FilesystemStorage
@@ -58,9 +58,9 @@ def test_json_package_page() -> None:
     s = SimpleAPI(Storage(), SimpleFormat.JSON, [], SimpleDigest.SHA256, False, None)
     p = Package("69")
     p._metadata = SIXTYNINE_METADATA
-    assert EXPECTED_SIMPLE_SIXTYNINE_JSON == s.generate_json_simple_page(p)
+    assert EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1 == s.generate_json_simple_page(p)
     # Only testing pretty so it's easier for humans ...
-    assert EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY == s.generate_json_simple_page(
+    assert EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY_1_1 == s.generate_json_simple_page(
         p, pretty=True
     )
 
