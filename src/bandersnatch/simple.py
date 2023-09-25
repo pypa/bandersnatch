@@ -232,7 +232,7 @@ class SimpleAPI:
                         self.digest_name: r["digests"][self.digest_name],
                     },
                     "requires-python": r.get("requires_python", ""),
-                    "size": r.get("size", -1),
+                    "size": r["size"],
                     "upload-time": r.get("upload_time_iso_8601", ""),
                     "url": self._file_url_to_local_url(r["url"]),
                     "yanked": r.get("yanked", False),
