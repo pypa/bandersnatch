@@ -1,6 +1,7 @@
 """
 Module containing classes to access the bandersnatch configuration file
 """
+
 import configparser
 import importlib.resources
 import logging
