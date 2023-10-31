@@ -1,5 +1,6 @@
-# 6.4.0 (Unreleased)
+# 6.4.0
 
+- Move JSON Simple API to version 1.1 (as per PEP700) `PR #1557`
 - Move to >= 3.10 project `PR #1457`
 
 ## Bug Fixes

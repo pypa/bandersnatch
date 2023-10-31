@@ -1,6 +1,7 @@
 """
 Storage management
 """
+
 import asyncio
 import configparser
 import contextlib
@@ -34,21 +35,16 @@ logger = logging.getLogger("bandersnatch")
 
 class StorageDirEntry(Protocol):
     @property
-    def name(self) -> str | bytes:
-        ...
+    def name(self) -> str | bytes: ...
 
     @property
-    def path(self) -> str | bytes:
-        ...
+    def path(self) -> str | bytes: ...
 
-    def is_dir(self) -> bool:
-        ...
+    def is_dir(self) -> bool: ...
 
-    def is_file(self) -> bool:
-        ...
+    def is_file(self) -> bool: ...
 
-    def is_symlink(self) -> bool:
-        ...
+    def is_symlink(self) -> bool: ...
 
 
 class Storage:

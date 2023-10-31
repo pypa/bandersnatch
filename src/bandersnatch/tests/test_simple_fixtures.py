@@ -108,11 +108,11 @@ SIXTYNINE_METADATA = {
     "vulnerabilities": [],
 }
 
-EXPECTED_SIMPLE_SIXTYNINE_JSON = """\
-{"files": [{"filename": "69-0.69.tar.gz", "hashes": {"sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"}, "requires-python": ">=3.6", "url": "../../packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz", "yanked": false}, {"filename": "69-6.9.tar.gz", "hashes": {"sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"}, "requires-python": ">=3.6", "url": "../../packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz", "yanked": false}], "meta": {"api-version": "1.0", "_last-serial": "10333928"}, "name": "69"}\
+EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1 = """\
+{"files": [{"filename": "69-0.69.tar.gz", "hashes": {"sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"}, "requires-python": ">=3.6", "size": 1078, "upload-time": "2018-05-17T03:37:19.330556Z", "url": "../../packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz", "yanked": false}, {"filename": "69-6.9.tar.gz", "hashes": {"sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"}, "requires-python": ">=3.6", "size": 1077, "upload-time": "2018-05-17T03:47:45.953704Z", "url": "../../packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz", "yanked": false}], "meta": {"api-version": "1.1", "_last-serial": "10333928"}, "name": "69", "versions": ["0.69", "6.9"]}\
 """
 
-EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
+EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY_1_1 = """\
 {
     "files": [
         {
@@ -121,6 +121,8 @@ EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
                 "sha256": "5c11f48399f9b1bca802751513f1f97bff6ce97e6facb576b7729e1351453c10"
             },
             "requires-python": ">=3.6",
+            "size": 1078,
+            "upload-time": "2018-05-17T03:37:19.330556Z",
             "url": "../../packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz",
             "yanked": false
         },
@@ -130,15 +132,21 @@ EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY = """\
                 "sha256": "0c8deb7c8574787283c3fc08b714ee63fd6752a38d13515a9d8508798d428597"
             },
             "requires-python": ">=3.6",
+            "size": 1077,
+            "upload-time": "2018-05-17T03:47:45.953704Z",
             "url": "../../packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz",
             "yanked": false
         }
     ],
     "meta": {
-        "api-version": "1.0",
+        "api-version": "1.1",
         "_last-serial": "10333928"
     },
-    "name": "69"
+    "name": "69",
+    "versions": [
+        "0.69",
+        "6.9"
+    ]
 }\
 """
 
@@ -146,7 +154,7 @@ EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY = """\
 {
     "meta": {
         "_last-serial": 12345,
-        "api-version": "1.0"
+        "api-version": "1.1"
     },
     "projects": [
         {
