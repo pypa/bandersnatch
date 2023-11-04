@@ -16,7 +16,8 @@ class LatestReleaseFilter(FilterReleasePlugin):
 
     name = "latest_release"
     keep = 0  # by default, keep 'em all
-    sort_by = "version"  # by default, sort by parsed version string, time (of release) is the other option
+    # by default, sort by parsed version string, time (of release) is the other option
+    sort_by = "version"
 
     def initialize_plugin(self) -> None:
         """
@@ -58,7 +59,11 @@ class LatestReleaseFilter(FilterReleasePlugin):
         getter_index = 1
         if self.sort_by == "time":
             getter_index = 0
-            versions_sorted = sorted(releases.items(), key=lambda x: x[1][0]['upload_time_iso_8601'], reverse=True)
+            versions_sorted = sorted(
+                releases.items(),
+                key=lambda x: x[1][0]["upload_time_iso_8601"],
+                reverse=True,
+            )
         else:
             versions_pair: Iterator[tuple[Version, str]] = map(
                 lambda v: (parse(v), v), releases.keys()
