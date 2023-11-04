@@ -94,9 +94,10 @@ keep = 2
 
         pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
-        assert pkg.releases == {"1.1.1d": [{"upload_time_iso_8601": "2020-10-01T15:24:37.255645Z"}],
-                                "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}]}
-
+        assert pkg.releases == {
+            "1.1.1d": [{"upload_time_iso_8601": "2020-10-01T15:24:37.255645Z"}],
+            "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
+        }
 
     def test_latest_releases_keep_stable(self) -> None:
         mock_config(self.config_contents)

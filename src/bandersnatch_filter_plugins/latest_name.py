@@ -38,7 +38,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
             sort_by = self.configuration["latest_release"]["sort_by"]
             if sort_by in ["time", "version"]:
                 self.sort_by = sort_by
-            logger.info(f"Initialized latest releases plugin with sort_by={self.sort_by}")
+            logger.info(
+                f"Initialized latest releases plugin with sort_by={self.sort_by}"
+            )
         except KeyError:
             return
         except ValueError:
