@@ -1,3 +1,9 @@
+# 6.5.0
+
+## New Features
+
+- Add option to filter releases based on upload time `PR #1594`
+
 # 6.4.0
 
 - Move JSON Simple API to version 1.1 (as per PEP700) `PR #1557`
