@@ -74,6 +74,30 @@ keep = 2
 
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
+    def test_latest_releases_keep_latest_time(self) -> None:
+        mock_config(self.config_contents + "\nsort_by = time")
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
+        pkg._metadata = {
+            "info": {"name": "foo", "version": "2.0.0"},
+            "releases": {
+                "1.0.0": [{"upload_time_iso_8601": "2013-10-01T15:24:37.255645Z"}],
+                "1.1.0": [{"upload_time_iso_8601": "2014-10-01T15:24:37.255645Z"}],
+                "1.1.1": [{"upload_time_iso_8601": "2015-10-01T15:24:37.255645Z"}],
+                "1.1.1d": [{"upload_time_iso_8601": "2020-10-01T15:24:37.255645Z"}],
+                "1.1.2": [{"upload_time_iso_8601": "2016-10-01T15:24:37.255645Z"}],
+                "1.1.3": [{"upload_time_iso_8601": "2017-10-01T15:24:37.255645Z"}],
+                "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
+            },
+        }
+
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        assert pkg.releases == {"1.1.1d": [{"upload_time_iso_8601": "2020-10-01T15:24:37.255645Z"}],
+                                "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}]}
+
+
     def test_latest_releases_keep_stable(self) -> None:
         mock_config(self.config_contents)
 
