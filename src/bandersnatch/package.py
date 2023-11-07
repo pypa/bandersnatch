@@ -1,6 +1,5 @@
 import asyncio
 import logging
-#import copy
 from typing import TYPE_CHECKING, Any
 
 from packaging.utils import canonicalize_name
@@ -108,11 +107,8 @@ class Package:
                 if plugin.pinned_version_exists(release_data):
                     pinned_version = True
                     break
-        #filters = copy.deepcopy(release_filters)
         if pinned_version:
-            #pinned_filter = filters[pinned_plugin]
             pinned_filter = release_filters[pinned_plugin]
-            #del filters[pinned_plugin]
             for version in releases:
                 release_data = {
                     "version": version,
@@ -122,14 +118,12 @@ class Package:
                 if not pinned_filter.filter(release_data):
                     del self.releases[version]
         else:
-            releases = list(self.releases.keys())
             for version in releases:
                 release_data = {
                     "version": version,
                     "releases": self.releases,
                     "info": self.info,
                 }
-                #if not all(plugin.filter(release_data) for plugin in filters):
                 if not all(plugin.filter(release_data) for plugin in release_filters):
                     del self.releases[version]
         if releases:
