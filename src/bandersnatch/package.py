@@ -103,7 +103,7 @@ class Package:
         pinned_plugin = -1
         for plugin in release_filters:
             pinned_plugin += 1
-            if plugin.name == 'project_requirements_pinned':
+            if plugin.name == "project_requirements_pinned":
                 if plugin.pinned_version_exists(release_data):
                     pinned_version = True
                     break

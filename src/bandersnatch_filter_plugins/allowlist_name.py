@@ -212,6 +212,7 @@ class AllowListRelease(FilterReleasePlugin):
             else:
                 return False
         return False
+
     def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter,
