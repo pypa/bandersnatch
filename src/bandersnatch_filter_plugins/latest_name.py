@@ -40,7 +40,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
                 self.sort_by = sort_by
             else:
                 logger.debug(
-                    "sort_by only allows 'time' and 'version', and not '{}'".format(sort_by)
+                    "sort_by only allows 'time' and 'version', and not '{}'".format(
+                        sort_by
+                    )
                 )
             logger.info(
                 f"Initialized latest releases plugin with sort_by={self.sort_by}"
