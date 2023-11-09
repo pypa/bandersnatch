@@ -207,10 +207,7 @@ class AllowListRelease(FilterReleasePlugin):
         for requirement in self.allowlist_release_requirements:
             if name != requirement.name:
                 continue
-            elif len(requirement.specifier) > 0:
-                return True
-            else:
-                return False
+            return len(requirement.specifier) > 0
         return False
 
     def filter(self, metadata: dict) -> bool:
