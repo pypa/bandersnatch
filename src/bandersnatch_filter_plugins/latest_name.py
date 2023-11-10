@@ -49,8 +49,6 @@ class LatestReleaseFilter(FilterReleasePlugin):
             )
         except KeyError:
             return
-        except ValueError:
-            return
 
     def filter(self, metadata: dict) -> bool:
         """
