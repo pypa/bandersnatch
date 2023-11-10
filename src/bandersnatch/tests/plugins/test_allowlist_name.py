@@ -409,15 +409,12 @@ requirements =
     def test__filter__matches__release_latest(self) -> None:
         with open(Path(self.tempdir.name) / "requirements.txt", "w") as fh:
             fh.write("""\
-#    This is needed for workshop 1
-#
 foo==1.2.0             # via -r requirements.in
 """)
 
         mock_config(f"""\
 [mirror]
 storage-backend = filesystem
-workers = 2
 
 [plugins]
 enabled =
