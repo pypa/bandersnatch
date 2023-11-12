@@ -202,6 +202,14 @@ class AllowListRelease(FilterReleasePlugin):
             package_lines = []
         return list(_parse_package_lines(package_lines))
 
+    def pinned_version_exists(self, metadata: dict) -> bool:
+        name = canonicalize_name(metadata["info"]["name"])
+        for requirement in self.allowlist_release_requirements:
+            if name != requirement.name:
+                continue
+            return len(requirement.specifier) > 0
+        return False
+
     def filter(self, metadata: dict) -> bool:
         """
         Returns False if version fails the filter,

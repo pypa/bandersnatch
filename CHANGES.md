@@ -1,3 +1,7 @@
+# 6.5.0
+
+- `project_requirements_pinned` with a pinned version (range) disables additional release filter for this package `PR #1601`
+
 # 6.4.0
 
 - Move JSON Simple API to version 1.1 (as per PEP700) `PR #1557`

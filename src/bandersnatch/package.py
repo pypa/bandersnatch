@@ -96,14 +96,36 @@ class Package:
         Filter releases and removes releases that fail the filters
         """
         releases = list(self.releases.keys())
-        for version in releases:
-            release_data = {
-                "version": version,
-                "releases": self.releases,
-                "info": self.info,
-            }
-            if not all(plugin.filter(release_data) for plugin in release_filters):
-                del self.releases[version]
+        release_data = {
+            "info": self.info,
+        }
+        pinned_version = False
+        pinned_plugin = -1
+        for plugin in release_filters:
+            pinned_plugin += 1
+            if plugin.name == "project_requirements_pinned":
+                if plugin.pinned_version_exists(release_data):
+                    pinned_version = True
+                    break
+        if pinned_version:
+            pinned_filter = release_filters[pinned_plugin]
+            for version in releases:
+                release_data = {
+                    "version": version,
+                    "releases": self.releases,
+                    "info": self.info,
+                }
+                if not pinned_filter.filter(release_data):
+                    del self.releases[version]
+        else:
+            for version in releases:
+                release_data = {
+                    "version": version,
+                    "releases": self.releases,
+                    "info": self.info,
+                }
+                if not all(plugin.filter(release_data) for plugin in release_filters):
+                    del self.releases[version]
         if releases:
             return True
         return False
