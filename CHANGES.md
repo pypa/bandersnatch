@@ -1,5 +1,8 @@
 # 6.5.0
 
+## New Features
+
+- Add option to filter releases based on upload time `PR #1594`
 - `project_requirements_pinned` with a pinned version (range) disables additional release filter for this package `PR #1601`
 
 # 6.4.0

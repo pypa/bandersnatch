@@ -241,9 +241,12 @@ enabled =
 
 [latest_release]
 keep = 3
+sort_by = [version|time]
 ```
 
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
+The default is to sort by `version` number (parsed according to semantic versioning).
+As an alternative, `time` can be used to sort releases chronologically by upload time and select the last `keep` ones.
 
 You should be aware that it can break requirements. Prereleases are also kept.
 
