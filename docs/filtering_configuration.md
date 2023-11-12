@@ -241,7 +241,7 @@ enabled =
 
 [latest_release]
 keep = 3
-sort_by = [version/time]
+sort_by = [version|time]
 ```
 
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
