@@ -406,6 +406,40 @@ requirements =
 
         self.assertEqual({"1.2.0": {}}, pkg.releases)
 
+    def test__filter__matches__release_latest(self) -> None:
+        with open(Path(self.tempdir.name) / "requirements.txt", "w") as fh:
+            fh.write("""\
+foo==1.2.0             # via -r requirements.in
+""")
+
+        mock_config(f"""\
+[mirror]
+storage-backend = filesystem
+
+[plugins]
+enabled =
+    project_requirements
+    project_requirements_pinned
+    latest_release
+[latest_release]
+keep = 2
+[allowlist]
+requirements_path = {self.tempdir.name}
+requirements =
+    requirements.txt
+""")
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foo", 1)
+        pkg._metadata = {
+            "info": {"name": "foo"},
+            "releases": {"1.2.0": {}, "1.2.1": {}, "1.2.2": {}},
+        }
+
+        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+        self.assertEqual({"1.2.0": {}}, pkg.releases)
+
     def test__filter__find_files(self) -> None:
         absolute_file_path = Path(self.tempdir.name) / "requirements.txt"
         with open(absolute_file_path, "w") as fh:

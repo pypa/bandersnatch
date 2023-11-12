@@ -13,6 +13,10 @@ converted.
 E.g. to Blocklist [discord.py](https://pypi.org/project/discord.py/) the string 'discord-py'
 is correct, but 'discord.PY' will also work.
 
+Plugins for release version filtering usually act in a way, that releases are only downloaded if all filter plugin rules are satisfied.
+An exception to this rule is the `project_requirements_pinned` filter: if there is a version number/range specified no other filter are applied.
+This allows smaller mirrors with newest versions and specifically needed ones.
+
 ## Plugins Enabling
 
 The plugins setting is a list of plugins to enable.

@@ -66,6 +66,17 @@ class Filter:
         # and check_match methods that are called in the fast path.
         pass
 
+    def pinned_version_exists(self, metadata: dict) -> bool:
+        """
+        Check if version specifier exist.
+
+        Returns
+        =======
+        bool:
+            True if version specifier exist, False otherwise
+        """
+        return False
+
     def filter(self, metadata: dict) -> bool:
         """
         Check if the plugin matches based on the package's metadata.
