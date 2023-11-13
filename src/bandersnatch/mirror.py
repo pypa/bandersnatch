@@ -493,12 +493,10 @@ class BandersnatchMirror(Mirror):
         ]
         if self.json_save:
             logger.debug("Adding json directories to bootstrap")
-            paths.extend(
-                [
-                    self.storage_backend.PATH_BACKEND("web/json"),
-                    self.storage_backend.PATH_BACKEND("web/pypi"),
-                ]
-            )
+            paths.extend([
+                self.storage_backend.PATH_BACKEND("web/json"),
+                self.storage_backend.PATH_BACKEND("web/pypi"),
+            ])
         for path in paths:
             path = self.homedir / path
             if not path.exists():
@@ -999,9 +997,9 @@ async def mirror(
 
     if mirror.diff_full_path:
         logger.info(f"Writing diff file to {mirror.diff_full_path}")
-        diff_text = f"{os.linesep}".join(
-            [str(chg.absolute()) for chg in mirror.diff_file_list]
-        )
+        diff_text = f"{os.linesep}".join([
+            str(chg.absolute()) for chg in mirror.diff_file_list
+        ])
         diff_file = mirror.storage_backend.PATH_BACKEND(mirror.diff_full_path)
         await storage_plugin.loop.run_in_executor(
             storage_plugin.executor, diff_file.write_text, diff_text
