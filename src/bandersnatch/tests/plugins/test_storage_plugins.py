@@ -940,14 +940,11 @@ web{0}simple{0}index.html""".format(os.sep).strip()
 
 class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
     backend = "filesystem"
-    base_find_contents = "\n".join(
-        [
-            line
-            for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
-            if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep)
-            != line.strip()
-        ]
-    )
+    base_find_contents = "\n".join([
+        line
+        for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
+        if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep) != line.strip()
+    ])
 
 
 class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
