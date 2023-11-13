@@ -199,27 +199,20 @@ def parse_version(version: str) -> list[str]:
     tag_separator1 = "-"
     tag_separator2 = "."
 
-    _versions.extend(
-        [
-            tag_separator1 + i + _version_without_dot + tag_separator1
-            for i in interpreters
-        ]
-    )
-    _versions.extend(
-        [
-            tag_separator1
-            + INTERPRETER_SHORT_NAMES.get("python")
-            + _version_with_dot
-            + tag_separator1
-        ]
-    )
-    _versions.extend(
-        [
-            tag_separator1
-            + INTERPRETER_SHORT_NAMES.get("python")
-            + _version_with_dot
-            + tag_separator2
-        ]
-    )
+    _versions.extend([
+        tag_separator1 + i + _version_without_dot + tag_separator1 for i in interpreters
+    ])
+    _versions.extend([
+        tag_separator1
+        + INTERPRETER_SHORT_NAMES.get("python")
+        + _version_with_dot
+        + tag_separator1
+    ])
+    _versions.extend([
+        tag_separator1
+        + INTERPRETER_SHORT_NAMES.get("python")
+        + _version_with_dot
+        + tag_separator2
+    ])
 
     return _versions
