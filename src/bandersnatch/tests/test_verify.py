@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import gettempdir
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch, Mock
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -318,6 +318,27 @@ async def test_verify_url_exception(tmp_path: Path, monkeypatch: MonkeyPatch) ->
     assert jsonfile.exists()
     assert not all_package_files
 
+
+@pytest.mark.asyncio
+async def test_force_sha256_check(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    class FakeArgs:
+        delete = True
+        dry_run = False
+        force_sha256_check = True
+        workers = 2
+        json_update = False
+    fa = FakeArgs()
+    fc = FakeConfig()
+    master = Master(fc.get("mirror", "master"))
+
+    fm = FakeMirror("_test_force_sha256_check")
+    
+    json_files = ["web/json/bandersnatch", "web/json/black"]
+
+    with patch("bandersnatch.verify.hash") as mock_hash:
+        await verify(master, fc, mirror_base_path=fm.mirror_base,
+                     json_file="black", all_package_files= [], args=fa,)
+        mock_hash.assert_called()
 
 if __name__ == "__main__":
     pytest.main(sys.argv)

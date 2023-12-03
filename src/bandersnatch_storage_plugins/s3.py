@@ -34,6 +34,7 @@ logger = logging.getLogger("bandersnatch")
 
 class S3Path(_S3Path):
     keep_file = ".s3keep"
+    contains_only_files_in_glob = True
 
     def mkdir(
         self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False

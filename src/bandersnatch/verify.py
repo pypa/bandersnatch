@@ -144,13 +144,12 @@ async def verify(
         )
         return
 
-    if not json_full_path.exists():
-        logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
-        return
-
     try:
         with json_full_path.open("r") as jfp:
             pkg = json.load(jfp)
+    except OSError as err:
+        logger.debug(f"Not trying to sync package as {json_full_path} does not exist, error: {str(err)}")
+        return
     except json.decoder.JSONDecodeError as jde:
         logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
         return

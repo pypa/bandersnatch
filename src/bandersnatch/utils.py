@@ -122,7 +122,9 @@ def rewrite(
 
 def find_all_files(files: set[Path], base_dir: Path) -> None:
     for f in base_dir.rglob("*"):
-        if not f.is_file():
+        # If the glob result would only contain files(eg. in s3)
+        # skip the `is_file` check
+        if getattr(f, "contains_only_files_in_glob", False) or not f.is_file():
             continue
         if hasattr(f, "keep_file") and f.name == f.keep_file:
             continue
