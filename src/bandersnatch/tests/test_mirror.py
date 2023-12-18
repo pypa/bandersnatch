@@ -42,23 +42,20 @@ FAKE_RELEASE_DATA = JsonDict({
     "info": {"name": "foo", "version": "0.1"},
     "last_serial": 654_321,
     "releases": {
-        "0.1": [
-            {
-                "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
-                "filename": "foo.zip",
-                "digests": {
-                    "md5": "ebdad75ed9a852bbfd9be4c18bf76d00",
-                    "sha256": (
-                        "746e6da7eda8b75af9acbdd29808473df08a00362981f0"
-                        "949023e387da1a4734"
-                    ),
-                },
-                "md5_digest": "ebdad75ed9a852bbfd9be4c18bf76d00",
-                "packagetype": "sdist",
-                "size": 1234,
-                "upload_time_iso_8601": "2000-01-01T01:23:45.123456Z",
-            }
-        ]
+        "0.1": [{
+            "url": "https://pypi.example.com/packages/any/f/foo/foo.zip",
+            "filename": "foo.zip",
+            "digests": {
+                "md5": "ebdad75ed9a852bbfd9be4c18bf76d00",
+                "sha256": (
+                    "746e6da7eda8b75af9acbdd29808473df08a00362981f0949023e387da1a4734"
+                ),
+            },
+            "md5_digest": "ebdad75ed9a852bbfd9be4c18bf76d00",
+            "packagetype": "sdist",
+            "size": 1234,
+            "upload_time_iso_8601": "2000-01-01T01:23:45.123456Z",
+        }]
     },
 })
 
