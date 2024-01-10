@@ -1,18 +1,31 @@
 services:
+  # The bandersnatch service configuration
   bandersnatch:
-    image: pypa/bandersnatch:latest
+    image: pypa/bandersnatch:latest  # Use the latest version of bandersnatch
     volumes:
-      - "./config:/conf"
-      - "./data:/srv/pypi/web"
+      - "./config:/conf"  # Mount the local configuration directory to the container
+      - "./data:/srv/pypi/web"  # Mount the local data directory where the mirror will be stored
+    command: bandersnatch mirror
+    # Uncomment the command you want to use:
+    # command: bandersnatch verify  # Verifies the integrity of the mirror
+    # command: bandersnatch once    # Runs the mirror operation once and then exits
+
+      # Default command is 'mirror', which synchronizes the mirror with PyPI
+      # You can append additional flags to customize the 'mirror' behavior:
+      # "--force-check" to force a recheck of all packages
+      # "--delete-packages" to remove packages that have been deleted from PyPI
     networks:
-      - bandersnatch_net
+      - bandersnatch_net  # Connects the service to the custom bridge network
+
+  # The nginx service configuration for serving the mirror
   bandersnatch_nginx:
     image: bandersnatch_nginx
+    # If the image not built yet, it will be built from the nginx image from the Dockerfile in the current directory
     build: .
     volumes:
-      - "./data:/data/pypi/web:ro"
+      - "./data:/data/pypi/web:ro"  # Mount the data directory as read-only for nginx
     ports:
-      - "40080:80"
+      - "40080:80"  # Map port 40080 on the host to port 80 in the container
     networks:
       - bandersnatch_net
 
