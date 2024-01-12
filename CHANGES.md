@@ -4,7 +4,7 @@
 
 - Add option to filter releases based on upload time `PR #1594`
 - `project_requirements_pinned` with a pinned version (range) disables additional release filter for this package `PR #1601`
-- Add command configuration for bandersnatch in Docker Compose, including 'mirror' default, 'verify' and 'once' options, improve documentation for docker compose, and added "Removing the Repository" section in Docker Compose README with a link in the main README. `PR #1645
+- Add command configuration for bandersnatch in Docker Compose, including 'mirror' default, 'verify' and 'once' options, improve documentation for docker compose, and added "Removing the Repository" section in Docker Compose README with a link in the main README. `PR #1645`
 
 # 6.4.0
 
