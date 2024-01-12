@@ -43,6 +43,10 @@ docker pull pypa/bandersnatch
 docker run pypa/bandersnatch bandersnatch --help
 ```
 
+### Docker Compose
+
+Bandersnatch setup using docker-compose is available [here](https://github.com/benjisho/bandersnatch/tree/main/src/bandersnatch_docker_compose)
+
 ### pip
 
 This installs the latest stable, released version.
