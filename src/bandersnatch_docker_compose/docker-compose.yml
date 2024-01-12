@@ -5,15 +5,24 @@ services:
     volumes:
       - "./config:/conf"  # Mount the local configuration directory to the container
       - "./data:/srv/pypi/web"  # Mount the local data directory where the mirror will be stored
-    command: bandersnatch mirror
-    # Uncomment the command you want to use:
-    # command: bandersnatch verify  # Verifies the integrity of the mirror
-    # command: bandersnatch once    # Runs the mirror operation once and then exits
-
-      # Default command is 'mirror', which synchronizes the mirror with PyPI
-      # You can append additional flags to customize the 'mirror' behavior:
-      # "--force-check" to force a recheck of all packages
-      # "--delete-packages" to remove packages that have been deleted from PyPI
+    # To run bandersnatch in mirror mode.
+    # It will mirror all the packages in the mirror list of the config file.
+    command: bandersnatch mirror --config-file /conf/bandersnatch.conf
+    # To run bandersnatch in --force mode, uncomment the following line.
+    # It will delete all packages that are not in the mirror list.
+    # command: bandersnatch mirror --config-file /conf/bandersnatch.conf --force
+    # To run bandersnatch in --debug mode, uncomment the following line.
+    # It will print out all the debug messages. This is useful for debugging.
+    # command: bandersnatch mirror --config-file /conf/bandersnatch.conf --debug
+    # To run bandersnatch in --verbose mode, uncomment the following line.
+    # It will print out all the verbose messages. This is useful for debugging.
+    # command: bandersnatch mirror --config-file /conf/bandersnatch.conf --verbose
+    # To run bandersnatch in verify mode, uncomment the following line.
+    # It will verify all the packages in the mirror list and delete the ones that are not in the list anymore.
+    # command: bandersnatch verify --config-file /conf/bandersnatch.conf
+    # To run bandersnatch in once mode, uncomment the following line.
+    # It will run bandersnatch once and exit. This is useful for testing.
+    # command: bandersnatch once --config-file /conf/bandersnatch.conf
     networks:
       - bandersnatch_net  # Connects the service to the custom bridge network
 
