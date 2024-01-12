@@ -24,6 +24,12 @@ docker pull pypa/bandersnatch:latest
 docker compose up -d
 ```
 
+## Watching live logs
+```bash
+docker compose logs -f bandersnatch
+docker compose logs -f bandersnatch_nginx
+```
+
 ## Removing the Repository
 
 To remove the Bandersnatch repository that you've set up using Docker Compose, follow these steps. Please be aware that this process will delete all the packages and configuration files you have downloaded or created. Ensure you have backups if necessary.
