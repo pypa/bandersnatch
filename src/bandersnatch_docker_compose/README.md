@@ -33,17 +33,13 @@ To remove the Bandersnatch repository that you've set up using Docker Compose, f
 docker compose down
 ```
 
-2. **Remove the Packages**: To delete all the downloaded packages, run the following command. This will remove the `packages` directory inside your `config` folder, which contains all the mirrored Python packages.
+2. **Remove the Packages and Configuration Files**: To delete all the downloaded packages and configuration files, run the following command. This will remove the `packages` and entire `config` directory directory inside your `config` folder, which contains all the mirrored Python packages.
 ```bash
 rm -rf ./data/
-```
-
-3. **Remove Configuration Files**: If you also wish to remove the configuration files for Bandersnatch, execute this command. It will delete the entire `config` directory, including your customized `bandersnatch.conf` file.
-```bash
 rm -rf ./config/
 ```
 
-4. **Clean up Docker Artifacts**: Finally, to remove any Docker volumes, networks, or other artifacts that were created with the Docker Compose file, you can use the following command:
+3. **Clean up Docker Artifacts**: Finally, to remove any Docker volumes, networks, or other artifacts that were created with the Docker Compose file, you can use the following command:
 ```bash
 docker system prune --volumes
 ```
