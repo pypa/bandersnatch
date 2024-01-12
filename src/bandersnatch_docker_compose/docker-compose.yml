@@ -4,6 +4,24 @@ services:
     volumes:
       - "./config:/conf"
       - "./data:/srv/pypi/web"
+    # To run bandersnatch in mirror mode.
+    # It will mirror all the packages in the mirror list of the config file.
+    command: ["bandersnatch", "mirror", "--config-file", "/conf/bandersnatch.conf"]
+    # To run bandersnatch in --force mode, uncomment the following line.
+    # It will delete all packages that are not in the mirror list.
+    # command: ["bandersnatch", "mirror", "--config-file", "/conf/bandersnatch.conf", "--force"]
+    # To run bandersnatch in --debug mode, uncomment the following line.
+    # It will print out all the debug messages. This is useful for debugging.
+    # command: ["bandersnatch", "mirror", "--config-file", "/conf/bandersnatch.conf", "--debug"]
+    # To run bandersnatch in --verbose mode, uncomment the following line.
+    # It will print out all the verbose messages. This is useful for debugging.
+    # command: ["bandersnatch", "mirror", "--config-file", "/conf/bandersnatch.conf", "--verbose"]
+    # To run bandersnatch in verify mode, uncomment the following line.
+    # It will verify all the packages in the mirror list and delete the ones that are not in the list anymore.
+    # command: ["bandersnatch", "verify", "--config-file", "/conf/bandersnatch.conf"]
+    # To run bandersnatch in once mode, uncomment the following line.
+    # It will run bandersnatch once and exit. This is useful for testing.
+    # command: ["bandersnatch", "once", "--config-file", "/conf/bandersnatch.conf"]
     networks:
       - bandersnatch_net
   bandersnatch_nginx:
