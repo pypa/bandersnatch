@@ -31,8 +31,11 @@ services:
     image: bandersnatch_nginx
     # If the image not built yet, it will be built from the nginx image from the Dockerfile in the current directory
     build: .
+      context: ../banderx
+      dockerfile: Dockerfile
     volumes:
-      - "./data:/data/pypi/web:ro"  # Mount the data directory as read-only for nginx
+      - "./data:/data/pypi/web:ro"  # Mount the data directory as read-only for nginx for serving the downloaded repository
+      - "../banderx/nginx.conf:/config/nginx.conf:ro"  # Mount custom nginx.conf as recommended in ../banderx/README.md
     ports:
       - "40080:80"  # Map port 40080 on the host to port 80 in the container
     networks:
