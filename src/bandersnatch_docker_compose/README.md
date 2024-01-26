@@ -33,6 +33,89 @@ docker compose logs -f bandersnatch
 docker compose logs -f bandersnatch_nginx
 ```
 
+### (Optional) - Enabling HTTPS Support
+
+The `bandersnatch_docker_compose` setup now includes optional HTTPS support for the Nginx server.
+
+To enable HTTPS:
+
+  1. **Uncomment the HTTPS sections** - in `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
+
+    ```yaml
+    volumes:
+      # ... other volumes ...
+      - "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # Uncomment for HTTPS support
+      - "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # Uncomment for HTTPS support
+
+    ports:
+      # ... other ports ...
+      - "44300:443"  # Uncomment to expose port 44300 on the host and map it to port 443 in the container
+    ```
+
+2. **Provide SSL Certificates**: Place your SSL certificate and key files in the `banderx` directory and name them `certificate.crt` and `private.key`, respectively. Ensure that these files are not publicly accessible.
+
+3. **Uncomment the HTTPS sections in `nginx.conf`**: In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
+
+    ```nginx
+    # Uncomment the following lines to enable HTTPS
+    #server {
+    #    listen 443 ssl;
+    #    server_name banderx;
+    #    ... [rest of the HTTPS server configuration] ...
+    #}
+
+    # Uncomment the following lines to redirect HTTP to HTTPS
+    #server {
+    #    listen 80;
+    #    server_name banderx;
+    #    return 301 https://$host$request_uri;
+    #}
+    ```
+
+4. **Rebuild and Restart the Containers**: After making these changes, rebuild and restart your Docker containers.
+
+    ```bash
+    docker-compose down
+    docker-compose up --build -d
+    ```
+
+#### Test HTTPS Connection
+Ensure that your Nginx server is correctly serving content over HTTPS and access it using https.
+
+##### Using a Web Browser
+
+1. Open your web browser.
+
+2. Navigate to `https://pypi-repo-domain>:44300`.
+
+3. You should see your site served over HTTPS.
+
+> Note - Your browser may display a security warning if you are using a self-signed certificate.
+
+##### Using `curl` Command
+
+1. Open a terminal or command prompt.
+
+2. Run the following command:
+
+   ```bash
+   curl -k https://pypi-repo-domain:44300
+   ```
+
+   - Replace `<your-server-domain-or-IP>` with your server's domain name or IP address.
+
+   - The `-k` option allows `curl` to perform "insecure" SSL connections and transfers, useful if you're using a self-signed certificate.
+
+3. If the Nginx server is correctly serving content over HTTPS, you should see the HTML content of your website in the terminal output.
+
+> Note
+>
+> - Ensure that the port `44300` is open and accessible from your network.
+>
+> - If you are using a self-signed certificate, web browsers and tools like `curl` may show a warning because the certificate is not signed by a recognized Certificate Authority.
+>
+> - This is expected behavior for self-signed certificates. For a production environment, it's recommended to use a certificate from a recognized Certificate Authority.
+
 ## Removing the Repository
 
 To remove the Bandersnatch repository that you've set up using Docker Compose, follow these steps. Please be aware that this process will delete all the packages and configuration files you have downloaded or created. Ensure you have backups if necessary.
