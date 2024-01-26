@@ -1,5 +1,17 @@
 # Bandersnatch with docker compose
 
+# Table of Contents
+1. [Introduction](#introduction)
+2. [Preparation](#preparation)
+3. [Pull the Docker Image](#pull-the-docker-image)
+4. [Run with Docker Compose](#run-with-docker-compose-v2)
+5. [Watching Live Logs](#watching-live-logs)
+6. [(Optional) - Enabling HTTPS Support](#optional---enabling-https-support)
+7. [Removing the Repository](#removing-the-repository)
+8. [Caveats](#caveats)
+
+## Introduction
+
 Similar to [banderx](https://github.com/pypa/bandersnatch/tree/main/src/banderx) but with docker compose.
 
 ## Preparation
