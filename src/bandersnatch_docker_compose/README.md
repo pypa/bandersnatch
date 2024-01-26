@@ -1,6 +1,7 @@
 # Bandersnatch with docker compose
 
 # Table of Contents
+
 1. [Introduction](#introduction)
 2. [Preparation](#preparation)
 3. [Pull the Docker Image](#pull-the-docker-image)
@@ -51,47 +52,48 @@ The `bandersnatch_docker_compose` setup now includes optional HTTPS support for 
 
 To enable HTTPS:
 
-  1. **Uncomment the HTTPS sections** - in `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
+1. **Uncomment the HTTPS sections** - in `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
 
-    ```yaml
-    volumes:
-      # ... other volumes ...
-      - "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # Uncomment for HTTPS support
-      - "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # Uncomment for HTTPS support
+```yaml
+volumes:
+  # ... other volumes ...
+  - "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # Uncomment for HTTPS support
+  - "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # Uncomment for HTTPS support
 
-    ports:
-      # ... other ports ...
-      - "44300:443"  # Uncomment to expose port 44300 on the host and map it to port 443 in the container
-    ```
+ports:
+  # ... other ports ...
+  - "44300:443"  # Uncomment to expose port 44300 on the host and map it to port 443 in the container
+```
 
 2. **Provide SSL Certificates**: Place your SSL certificate and key files in the `banderx` directory and name them `certificate.crt` and `private.key`, respectively. Ensure that these files are not publicly accessible.
 
 3. **Uncomment the HTTPS sections in `nginx.conf`**: In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
 
-    ```nginx
-    # Uncomment the following lines to enable HTTPS
-    #server {
-    #    listen 443 ssl;
-    #    server_name banderx;
-    #    ... [rest of the HTTPS server configuration] ...
-    #}
+   ```nginx
+   # Uncomment the following lines to enable HTTPS
+   #server {
+   #    listen 443 ssl;
+   #    server_name banderx;
+   #    ... [rest of the HTTPS server configuration] ...
+   #}
 
-    # Uncomment the following lines to redirect HTTP to HTTPS
-    #server {
-    #    listen 80;
-    #    server_name banderx;
-    #    return 301 https://$host$request_uri;
-    #}
-    ```
+   # Uncomment the following lines to redirect HTTP to HTTPS
+   #server {
+   #    listen 80;
+   #    server_name banderx;
+   #    return 301 https://$host$request_uri;
+   #}
+   ```
 
 4. **Rebuild and Restart the Containers**: After making these changes, rebuild and restart your Docker containers.
 
-    ```bash
-    docker-compose down
-    docker-compose up --build -d
-    ```
+   ```bash
+   docker-compose down
+   docker-compose up --build -d
+   ```
 
 #### Test HTTPS Connection
+
 Ensure that your Nginx server is correctly serving content over HTTPS and access it using https.
 
 ##### Using a Web Browser
