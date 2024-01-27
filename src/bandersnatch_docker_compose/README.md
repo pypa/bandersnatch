@@ -2,14 +2,14 @@
 
 # Table of Contents
 
-1. [Introduction](#introduction)
-2. [Preparation](#preparation)
-3. [Pull the Docker Image](#pull-the-docker-image)
-4. [Run with Docker Compose](#run-with-docker-compose-v2)
-5. [Watching Live Logs](#watching-live-logs)
-6. [(Optional) - Enabling HTTPS Support](#optional---enabling-https-support)
-7. [Removing the Repository](#removing-the-repository)
-8. [Caveats](#caveats)
+[Introduction](#introduction)
+[Preparation](#preparation)
+[Pull the Docker Image](#pull-the-docker-image)
+[Run with Docker Compose](#run-with-docker-compose-v2)
+[Watching Live Logs](#watching-live-logs)
+[(Optional) - Enabling HTTPS Support](#optional---enabling-https-support)
+[Removing the Repository](#removing-the-repository)
+[Caveats](#caveats)
 
 ## Introduction
 
@@ -58,22 +58,24 @@ In `docker-compose.yml` related to SSL certificate and key volumes, as well as t
 
 2. **Provide SSL Certificates**:
 
-Place your SSL certificate and key files in the `src/banderx` directory and name them `certificate.crt` and `private.key`, respectively. Ensure that these files are not publicly accessible.
+Place your SSL certificate and key files in the `src/banderx` directory and name them `certificate.crt` and `private.key`, respectively.
 
-1. **Uncomment the HTTPS sections in `nginx.conf`**:
+- Ensure that these files are not publicly accessible.
+
+- In case you need just a Self-Signed certificate just use the guide [here](https://github.com/pypa/bandersnatch/blob/main/src/banderx/README.md)
+
+3. **Uncomment the HTTPS sections in `nginx.conf`**:
 
 In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
 
-3. **Rebuild and Restart the Containers**:
+4. **Rebuild and Restart the Containers**:
 
 After making these changes, rebuild and restart your Docker containers.
 
-   ```bash
-   docker-compose down
-   docker-compose up --build -d
-   ```
-
-To generate a self-signed certificate for your Bandersnatch setup, you can follow these modified instructions, ensuring the file paths align with your Docker Compose volume configuration for the Nginx service. Here's how to do it:
+```bash
+docker-compose down
+docker-compose up --build -d
+```
 
 #### Integrating with Docker Compose
 
