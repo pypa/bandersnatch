@@ -52,45 +52,40 @@ The `bandersnatch_docker_compose` setup now includes optional HTTPS support for 
 
 To enable HTTPS:
 
-1. **Uncomment the HTTPS sections** - in `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
+1. **Uncomment the HTTPS sections**:
 
-```yaml
-volumes:
-  # ... other volumes ...
-  - "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # Uncomment for HTTPS support
-  - "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # Uncomment for HTTPS support
+In `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
 
-ports:
-  # ... other ports ...
-  - "44300:443"  # Uncomment to expose port 44300 on the host and map it to port 443 in the container
-```
+2. **Provide SSL Certificates**:
 
-2. **Provide SSL Certificates**: Place your SSL certificate and key files in the `banderx` directory and name them `certificate.crt` and `private.key`, respectively. Ensure that these files are not publicly accessible.
+Place your SSL certificate and key files in the `src/banderx` directory and name them `certificate.crt` and `private.key`, respectively. Ensure that these files are not publicly accessible.
 
-3. **Uncomment the HTTPS sections in `nginx.conf`**: In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
+1. **Uncomment the HTTPS sections in `nginx.conf`**:
 
-   ```nginx
-   # Uncomment the following lines to enable HTTPS
-   #server {
-   #    listen 443 ssl;
-   #    server_name banderx;
-   #    ... [rest of the HTTPS server configuration] ...
-   #}
+In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
 
-   # Uncomment the following lines to redirect HTTP to HTTPS
-   #server {
-   #    listen 80;
-   #    server_name banderx;
-   #    return 301 https://$host$request_uri;
-   #}
-   ```
+3. **Rebuild and Restart the Containers**:
 
-4. **Rebuild and Restart the Containers**: After making these changes, rebuild and restart your Docker containers.
+After making these changes, rebuild and restart your Docker containers.
 
    ```bash
    docker-compose down
    docker-compose up --build -d
    ```
+
+To generate a self-signed certificate for your Bandersnatch setup, you can follow these modified instructions, ensuring the file paths align with your Docker Compose volume configuration for the Nginx service. Here's how to do it:
+
+#### Integrating with Docker Compose
+
+```yaml
+services:
+   bandersnatch_nginx:
+      # ... other configurations ...
+      volumes:
+      # ... Other volunes ...
+      - "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # SSL certificate
+      - "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # SSL key
+```
 
 #### Test HTTPS Connection
 
