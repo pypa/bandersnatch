@@ -30,7 +30,7 @@ services:
   bandersnatch_nginx:
     image: bandersnatch_nginx
     # If the image not built yet, it will be built from the nginx image from the Dockerfile in the current directory
-    build: .
+    build:
       context: ../banderx
       dockerfile: Dockerfile
     volumes:
