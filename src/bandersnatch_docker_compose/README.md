@@ -116,13 +116,13 @@ Ensure that your Nginx server is correctly serving content over HTTPS and access
 
 - Run the following command:
 
-   ```bash
-   curl -k https://pypi-repo-domain:44300
-   ```
+  ```bash
+  curl -k https://pypi-repo-domain:44300
+  ```
 
-   - Replace `<your-server-domain-or-IP>` with your server's domain name or IP address.
+  - Replace `<your-server-domain-or-IP>` with your server's domain name or IP address.
 
-   - The `-k` option allows `curl` to perform "insecure" SSL connections and transfers, useful if you're using a self-signed certificate.
+  - The `-k` option allows `curl` to perform "insecure" SSL connections and transfers, useful if you're using a self-signed certificate.
 
 - If the Nginx server is correctly serving content over HTTPS, you should see the HTML content of your website in the terminal output.
 

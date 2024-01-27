@@ -18,30 +18,30 @@ Simple nginx PEP 501 + 691 mirror filesystem serving example.
 
 - **Generate a 2048-bit RSA Private Key**:
 
-   This key is used to decrypt traffic. Run the following command in PowerShell or Command Prompt (on Windows):
+  This key is used to decrypt traffic. Run the following command in PowerShell or Command Prompt (on Windows):
 
-   ```bash
-   openssl genrsa -out ./src/banderx/private.key 2048
-   ```
+  ```bash
+  openssl genrsa -out ./src/banderx/private.key 2048
+  ```
 
-   This will create a private key file `key.key`.
+  This will create a private key file `key.key`.
 
 - **Generate a Certificate S igning Request (CSR)**:
 
-   Using the private key from the previous step, generate a CSR:
+  Using the private key from the previous step, generate a CSR:
 
-   ```bash
-   openssl req -new -key ./src/banderx/private.key -out ./src/banderx/certificate.csr
-   ```
+  ```bash
+  openssl req -new -key ./src/banderx/private.key -out ./src/banderx/certificate.csr
+  ```
 
-   You will be prompted to enter details for the certificate; you can fill these out as needed or leave them blank.
+  You will be prompted to enter details for the certificate; you can fill these out as needed or leave them blank.
 
 - **Self-Sign the Certificate**:
 
-   Sign the CSR with the private key, setting the certificate's validity period. For example, for a validity of 365 days:
+  Sign the CSR with the private key, setting the certificate's validity period. For example, for a validity of 365 days:
 
-   ```bash
-   openssl x509 -req -days 180 -in ./src/banderx/certificate.csr -signkey ./src/banderx/private.key -out ../banderx/certificate.crt
-   ```
+  ```bash
+  openssl x509 -req -days 180 -in ./src/banderx/certificate.csr -signkey ./src/banderx/private.key -out ../banderx/certificate.crt
+  ```
 
-   This creates a self-signed certificate `cert.crt` in the `banderx` directory.
+  This creates a self-signed certificate `cert.crt` in the `banderx` directory.
