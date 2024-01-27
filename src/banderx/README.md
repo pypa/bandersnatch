@@ -16,7 +16,7 @@ Simple nginx PEP 501 + 691 mirror filesystem serving example.
 
 > Note - Use this only for HTTPS support
 
-1. **Generate a 2048-bit RSA Private Key**:
+- **Generate a 2048-bit RSA Private Key**:
 
    This key is used to decrypt traffic. Run the following command in PowerShell or Command Prompt (on Windows):
 
@@ -26,7 +26,7 @@ Simple nginx PEP 501 + 691 mirror filesystem serving example.
 
    This will create a private key file `key.key`.
 
-2. **Generate a Certificate S igning Request (CSR)**:
+- **Generate a Certificate S igning Request (CSR)**:
 
    Using the private key from the previous step, generate a CSR:
 
@@ -36,7 +36,7 @@ Simple nginx PEP 501 + 691 mirror filesystem serving example.
 
    You will be prompted to enter details for the certificate; you can fill these out as needed or leave them blank.
 
-3. **Self-Sign the Certificate**:
+- **Self-Sign the Certificate**:
 
    Sign the CSR with the private key, setting the certificate's validity period. For example, for a validity of 365 days:
 

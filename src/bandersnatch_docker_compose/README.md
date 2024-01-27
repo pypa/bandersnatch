@@ -59,11 +59,11 @@ The `bandersnatch_docker_compose` setup now includes optional HTTPS support for 
 
 To enable HTTPS:
 
-1. **Uncomment the HTTPS sections**:
+- **Uncomment the HTTPS sections**:
 
 In `docker-compose.yml` related to SSL certificate and key volumes, as well as the exposed HTTPS port.
 
-2. **Provide SSL Certificates**:
+- **Provide SSL Certificates**:
 
 Place your SSL certificate and key files in the `src/banderx` directory and name them `certificate.crt` and `private.key`, respectively.
 
@@ -71,11 +71,11 @@ Place your SSL certificate and key files in the `src/banderx` directory and name
 
 - In case you need just a Self-Signed certificate just use the guide [here](https://github.com/pypa/bandersnatch/blob/main/src/banderx/README.md)
 
-3. **Uncomment the HTTPS sections in `nginx.conf`**:
+- **Uncomment the HTTPS sections in `nginx.conf`**:
 
 In the `nginx.conf` file located in the `banderx` directory, uncomment the server block for HTTPS and the server block for redirecting HTTP to HTTPS.
 
-4. **Rebuild and Restart the Containers**:
+- **Rebuild and Restart the Containers**:
 
 After making these changes, rebuild and restart your Docker containers.
 
@@ -102,19 +102,19 @@ Ensure that your Nginx server is correctly serving content over HTTPS and access
 
 ##### Using a Web Browser
 
-1. Open your web browser.
+- Open your web browser.
 
-2. Navigate to `https://pypi-repo-domain>:44300`.
+- Navigate to `https://pypi-repo-domain>:44300`.
 
-3. You should see your site served over HTTPS.
+- You should see your site served over HTTPS.
 
 > Note - Your browser may display a security warning if you are using a self-signed certificate.
 
 ##### Using `curl` Command
 
-1. Open a terminal or command prompt.
+- Open a terminal or command prompt.
 
-2. Run the following command:
+- Run the following command:
 
    ```bash
    curl -k https://pypi-repo-domain:44300
@@ -124,7 +124,7 @@ Ensure that your Nginx server is correctly serving content over HTTPS and access
 
    - The `-k` option allows `curl` to perform "insecure" SSL connections and transfers, useful if you're using a self-signed certificate.
 
-3. If the Nginx server is correctly serving content over HTTPS, you should see the HTML content of your website in the terminal output.
+- If the Nginx server is correctly serving content over HTTPS, you should see the HTML content of your website in the terminal output.
 
 > Note
 >
@@ -138,20 +138,20 @@ Ensure that your Nginx server is correctly serving content over HTTPS and access
 
 To remove the Bandersnatch repository that you've set up using Docker Compose, follow these steps. Please be aware that this process will delete all the packages and configuration files you have downloaded or created. Ensure you have backups if necessary.
 
-1. **Stop the Docker Containers**: Before removing any files, it's important to stop the running Docker containers to prevent any file corruption or data loss. Use the command:
+- **Stop the Docker Containers**: Before removing any files, it's important to stop the running Docker containers to prevent any file corruption or data loss. Use the command:
 
 ```bash
 docker compose down
 ```
 
-2. **Remove the Packages and Configuration Files**: To delete all the downloaded packages and configuration files, run the following command. This will remove the `packages` and entire `config` directory directory inside your `config` folder, which contains all the mirrored Python packages.
+- **Remove the Packages and Configuration Files**: To delete all the downloaded packages and configuration files, run the following command. This will remove the `packages` and entire `config` directory directory inside your `config` folder, which contains all the mirrored Python packages.
 
 ```bash
 rm -rf ./data/
 rm -rf ./config/
 ```
 
-3. **Clean up Docker Artifacts**: Finally, to remove any Docker volumes, networks, or other artifacts that were created with the Docker Compose file, you can use the following command:
+- **Clean up Docker Artifacts**: Finally, to remove any Docker volumes, networks, or other artifacts that were created with the Docker Compose file, you can use the following command:
 
 ```bash
 docker system prune --volumes
