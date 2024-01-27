@@ -3,12 +3,19 @@
 # Table of Contents
 
 [Introduction](#introduction)
+
 [Preparation](#preparation)
+
 [Pull the Docker Image](#pull-the-docker-image)
+
 [Run with Docker Compose](#run-with-docker-compose-v2)
+
 [Watching Live Logs](#watching-live-logs)
+
 [(Optional) - Enabling HTTPS Support](#optional---enabling-https-support)
+
 [Removing the Repository](#removing-the-repository)
+
 [Caveats](#caveats)
 
 ## Introduction
