@@ -19,6 +19,14 @@ from tempfile import gettempdir
 
 from src.bandersnatch.utils import hash
 
+
+# Windows doesn't like / in paths, so we need to convert to \
+def convert_to_windows_path(path: Path) -> Path:
+    # If we're on Windows, convert to Windows path, and if we're not on Windows, just return the path.
+    if path.is_absolute() and path.drive:
+        return Path(path.drive + path.as_posix().replace("/", "\\"))
+    return path
+
 BANDERSNATCH_EXE = Path(
     which("bandersnatch") or which("bandersnatch.exe") or "bandersnatch"
 )
