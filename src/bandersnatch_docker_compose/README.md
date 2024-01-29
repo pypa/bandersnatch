@@ -117,7 +117,7 @@ Ensure that your Nginx server is correctly serving content over HTTPS and access
 - Run the following command:
 
   ```bash
-  curl -k https://pypi-repo-domain:44300
+  curl -vk https://pypi-repo-domain:44300
   ```
 
   - Replace `<your-server-domain-or-IP>` with your server's domain name or IP address.
