@@ -37,7 +37,9 @@ simple{0}cooper
 simple{0}cooper{0}index.html
 simple{0}unittest
 simple{0}unittest{0}index.html\
-""".format(os.sep)
+""".format(
+    os.sep
+)
 EXPECTED_WEB_AFTER_DELETION = """\
 json
 packages
@@ -45,7 +47,9 @@ packages{0}69
 packages{0}7b
 pypi
 simple\
-""".format(os.sep)
+""".format(
+    os.sep
+)
 MOCK_JSON_TEMPLATE = """{
     "releases": {
         "6.9": [
