@@ -225,8 +225,14 @@ packages
 simple
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir)
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+simple{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir
+    )
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -236,6 +242,7 @@ simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir)
   <body>
   </body>
 </html>"""
+    )
     assert open("status").read() == "0"
 
 
@@ -270,12 +277,16 @@ web{0}simple{0}foobar{0}index.v1_html
 web{0}simple{0}foobar{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
-web{0}simple{0}index.v1_json""".format(sep)
+web{0}simple{0}index.v1_json""".format(
+        sep
+    )
     if WINDOWS:
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
 
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -286,6 +297,7 @@ web{0}simple{0}index.v1_json""".format(sep)
     <a href="foobar/">foobar</a><br/>
   </body>
 </html>"""
+    )
     assert open("status").read() == "20"
 
 
@@ -305,7 +317,11 @@ packages{0}any{0}f{0}foo{0}foo.zip
 pypi{0}foo{0}json
 simple{0}foo{0}index.html
 simple{0}foo{0}index.v1_html
-simple{0}foo{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
+simple{0}foo{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir, dirs=False
+    )
     assert open("status", "rb").read() == b"1"
 
 
@@ -328,8 +344,14 @@ simple{0}foo{0}index.v1_html
 simple{0}foo{0}index.v1_json
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+simple{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir, dirs=False
+    )
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -340,6 +362,7 @@ simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
+    )
     assert open("status", "rb").read() == b"1"
 
 
@@ -362,11 +385,15 @@ web{0}simple{0}foo{0}index.v1_html
 web{0}simple{0}foo{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
-web{0}simple{0}index.v1_json""".format(sep)
+web{0}simple{0}index.v1_json""".format(
+        sep
+    )
     if WINDOWS:
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -377,6 +404,7 @@ web{0}simple{0}index.v1_json""".format(sep)
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
+    )
 
     assert open("todo").read() == "1\n"
 
@@ -408,7 +436,11 @@ generation
 todo
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
-web{0}simple{0}index.html""".format(sep) == utils.find(mirror.homedir, dirs=False)
+web{0}simple{0}index.html""".format(
+        sep
+    ) == utils.find(
+        mirror.homedir, dirs=False
+    )
     assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
 
@@ -431,10 +463,14 @@ simple{0}f{0}foo{0}index.v1_html
 simple{0}f{0}foo{0}index.v1_json
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(sep) == utils.find(
+simple{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
         mirror_hash_index.webdir, dirs=False
     )
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -445,6 +481,7 @@ simple{0}index.v1_json""".format(sep) == utils.find(
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
+    )
     assert open("status").read() == "1"
 
 
@@ -472,8 +509,14 @@ simple{0}foo{0}index.v1_html
 simple{0}foo{0}index.v1_json
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+simple{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir, dirs=False
+    )
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -484,6 +527,7 @@ simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
+    )
     assert open("status", "rb").read() == b"1"
 
 
@@ -510,8 +554,14 @@ simple{0}foo{0}index.v1_html
 simple{0}foo{0}index.v1_json
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
-    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
+simple{0}index.v1_json""".format(
+        sep
+    ) == utils.find(
+        mirror.webdir, dirs=False
+    )
+    assert (
+        open("web{0}simple{0}index.html".format(sep)).read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -522,6 +572,7 @@ simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
+    )
 
 
 @pytest.mark.asyncio
@@ -554,7 +605,9 @@ async def test_mirror_serial_current_no_sync_of_packages_and_index_page(
     await mirror.synchronize()
 
     assert """\
-last-modified""" == utils.find(mirror.webdir, dirs=False)
+last-modified""" == utils.find(
+        mirror.webdir, dirs=False
+    )
 
 
 def test_mirror_json_metadata(
@@ -662,7 +715,9 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
-    assert open("web/simple/foo/index.html").read() == """\
+    assert (
+        open("web/simple/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -675,7 +730,10 @@ async def test_package_sync_with_release_no_files_syncs_simple_page(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -686,7 +744,9 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
     await mirror_hash_index.sync_packages()
 
     assert not os.path.exists("web/simple/foo/index.html")
-    assert open("web/simple/f/foo/index.html").read() == """\
+    assert (
+        open("web/simple/f/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -699,7 +759,10 @@ async def test_package_sync_with_release_no_files_syncs_simple_page_with_hash(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -711,7 +774,9 @@ async def test_package_sync_with_canonical_simple_page(
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
-    assert open("web/simple/foo/index.html").read() == """\
+    assert (
+        open("web/simple/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -724,7 +789,10 @@ async def test_package_sync_with_canonical_simple_page(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -735,7 +803,9 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
     await mirror_hash_index.sync_packages()
 
     assert not os.path.exists("web/simple/foo/index.html")
-    assert open("web/simple/f/foo/index.html").read() == """\
+    assert (
+        open("web/simple/f/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -748,7 +818,10 @@ async def test_package_sync_with_canonical_simple_page_with_hash(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -759,7 +832,9 @@ async def test_package_sync_with_normalized_simple_page(
     await mirror.sync_packages()
 
     # PEP 503 normalization
-    assert open("web/simple/foo-bar-thing-other/index.html").read() == """\
+    assert (
+        open("web/simple/foo-bar-thing-other/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -772,7 +847,10 @@ async def test_package_sync_with_normalized_simple_page(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -790,7 +868,9 @@ async def test_package_sync_simple_page_root_uri(mirror: BandersnatchMirror) -> 
         + '">foo.zip</a><br/>'
     )
 
-    assert open("web/simple/foo/index.html").read() == """\
+    assert (
+        open("web/simple/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -803,7 +883,10 @@ async def test_package_sync_simple_page_root_uri(mirror: BandersnatchMirror) -> 
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(expected_root_uri_hrefs)
+""".format(
+            expected_root_uri_hrefs
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -812,7 +895,9 @@ async def test_package_sync_simple_page_with_files(mirror: BandersnatchMirror) -
     await mirror.sync_packages()
     assert not mirror.errors
 
-    assert open("web/simple/foo/index.html").read() == """\
+    assert (
+        open("web/simple/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -825,7 +910,10 @@ async def test_package_sync_simple_page_with_files(mirror: BandersnatchMirror) -
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -840,7 +928,9 @@ async def test_package_sync_simple_page_with_existing_dir(
 
     # Cross-check that simple directory hashing is disabled.
     assert not os.path.exists("web/simple/f/foo/index.html")
-    assert open("web/simple/foo/index.html").read() == """\
+    assert (
+        open("web/simple/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -853,7 +943,10 @@ async def test_package_sync_simple_page_with_existing_dir(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -866,7 +959,9 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(
     await mirror_hash_index.sync_packages()
 
     assert not os.path.exists("web/simple/foo/index.html")
-    assert open("web/simple/f/foo/index.html").read() == """\
+    assert (
+        open("web/simple/f/foo/index.html").read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -879,7 +974,10 @@ async def test_package_sync_simple_page_with_existing_dir_with_hash(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
 
 
 @pytest.mark.asyncio
@@ -1057,7 +1155,9 @@ async def test_survives_exceptions_from_record_finished_package(
 
     await mirror.sync_packages()
 
-    assert Path("web/simple/foo/index.html").open().read() == """\
+    assert (
+        Path("web/simple/foo/index.html").open().read()
+        == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -1070,7 +1170,10 @@ async def test_survives_exceptions_from_record_finished_package(
   </body>
 </html>
 <!--SERIAL 654321-->\
-""".format(EXPECTED_REL_HREFS)
+""".format(
+            EXPECTED_REL_HREFS
+        )
+    )
     assert mirror.errors
 
 
