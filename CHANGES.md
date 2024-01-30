@@ -1,3 +1,9 @@
+# Unreleased
+
+## New Features
+
+- Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
+
 # 6.5.0
 
 ## New Features
