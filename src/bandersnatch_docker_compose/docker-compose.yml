@@ -1,18 +1,48 @@
 services:
+  # The bandersnatch service configuration
   bandersnatch:
-    image: pypa/bandersnatch:latest
+    image: pypa/bandersnatch:latest  # Use the latest version of bandersnatch
     volumes:
-      - "./config:/conf"
-      - "./data:/srv/pypi/web"
+      - "./config:/conf"  # Mount the local configuration directory to the container
+      - "./data:/srv/pypi/web"  # Mount the local data directory where the mirror will be stored
+    # To run bandersnatch in mirror mode.
+    # It will mirror all the packages in the mirror list of the config file.
+    command: bandersnatch --config /conf/bandersnatch.conf mirror
+    # To run bandersnatch in --force mode, uncomment the following line.
+    # It will delete all packages that are not in the mirror list.
+    # command: bandersnatch --config /conf/bandersnatch.conf --force mirror
+    # To run bandersnatch in --debug mode, uncomment the following line.
+    # It will print out all the debug messages. This is useful for debugging.
+    # command: bandersnatch --config /conf/bandersnatch.conf --debug mirror
+    # To run bandersnatch in --verbose mode, uncomment the following line.
+    # It will print out all the verbose messages. This is useful for debugging.
+    # command: bandersnatch --config /conf/bandersnatch.conf --verbose mirror
+    # To run bandersnatch in verify mode, uncomment the following line.
+    # It will verify all the packages in the mirror list and delete the ones that are not in the list anymore.
+    # command: bandersnatch --config /conf/bandersnatch.conf verify
+    # To run bandersnatch in once mode, uncomment the following line.
+    # It will run bandersnatch once and exit. This is useful for testing.
+    # command: bandersnatch --config ./conf/bandersnatch.conf once
     networks:
-      - bandersnatch_net
+      - bandersnatch_net  # Connects the service to the custom bridge network
+
+  # The nginx service configuration for serving the mirror
   bandersnatch_nginx:
     image: bandersnatch_nginx
-    build: .
+    # If the image not built yet, it will be built from the nginx image from the Dockerfile in the current directory
+    build:
+      context: ../banderx
+      dockerfile: Dockerfile
     volumes:
-      - "./data:/data/pypi/web:ro"
+      - "./data:/data/pypi/web:ro"  # Mount the data directory as read-only for nginx for serving the downloaded repository
+      - "../banderx/nginx.conf:/config/nginx.conf:ro"  # Mount custom nginx.conf as recommended in ../banderx/README.md
+      # Uncomment for HTTPS support
+      #- "../banderx/certificate.crt:/etc/ssl/certs/nginx.crt:ro" # Uncomment for HTTPS support
+      #- "../banderx/private.key:/etc/ssl/private/nginx.key:ro" # Uncomment for HTTPS support
     ports:
-      - "40080:80"
+      - "40080:80"  # Map port 40080 on the host to port 80 in the container
+      # Uncomment for HTTPS support
+      #- "44300:443"  # Uncomment for expose port 44300 on the host and map it to port 443 in the container
     networks:
       - bandersnatch_net
 
