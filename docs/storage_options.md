@@ -6,6 +6,8 @@ Bandersnatch was originally developed for POSIX file system. Bandersnatch now su
 - [Amazon S3](https://aws.amazon.com/s3/)
 - [OpenStack Swift](https://docs.openstack.org/swift/latest/)
 
+(storage-backend-filesystem)=
+
 ## Filesystem Support
 
 This is the default mode for bandersnatch.
