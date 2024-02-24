@@ -15,7 +15,7 @@ The simplest configuration may only set an output folder:
 directory = /srv/pypi
 ```
 
-This will mirror index files and package release files from pypi.org. Add configuration for [mirror filtering plugins][filter-plugins] to control what packages are mirrored.
+This will mirror index files and package release files from pypi.org. Add configuration for [mirror filtering plugins][filter-plugins] to optionally filter what packages are mirrored in a variety of ways.
 
 ### More Options
 
@@ -336,7 +336,8 @@ The number of worker threads used for parallel downloads.
 
 Recommendations:
 
-- leave the default of 3 to avoid overloading the pypi master
+- leave the default of 3 to avoid overloading the pypi master and maybe even your own internet connection
+  - if you see timeouts and have a slow connection, try lowering this setting
 - official servers located in data centers could run up to 10 workers
 - anything beyond 10 is probably unreasonable and is disallowed
 
