@@ -55,7 +55,7 @@ master = https://pypi.org/
 download-mirror = https://pypi-mirror.example.com/
 ```
 
-This will download release files from `https://pypi-mirror.example.com` if possible and fall back to PyPI if a download fails. See [](./mirror_configuration.md#download-mirror). Add [](./mirror_configuration.md#download-mirror-no-fallback) to download release files exclusively from `download-mirror`.
+This will download release files from `https://pypi-mirror.example.com` if possible and fall back to PyPI if a download fails. See [](#download-mirror). Add [](#download-mirror-no-fallback) to download release files exclusively from `download-mirror`.
 
 ### Index Files Only
 
@@ -69,7 +69,7 @@ release-files = false
 root_uri = https://files.pythonhosted.org/
 ```
 
-This will mirror index files for projects and versions allowed by your [mirror filters][filter-plugins], but will not download any package release files. File URLs in index files will use the configured `root_uri`. See [](./mirror_configuration.md#release-files) and [](./mirror_configuration.md#root_uri).
+This will mirror index files for projects and versions allowed by your [mirror filters][filter-plugins], but will not download any package release files. File URLs in index files will use the configured `root_uri`. See [](#release-files) and [](#root_uri).
 
 ## Option Reference
 
@@ -84,7 +84,7 @@ The directory where mirrored files are stored. _This option is always required._
 :Type: folder path
 :Required: **yes**
 
-The exact interpretation of this value depends on the configured [storage backend](./mirror_configuration.md#storage-backend). For the default [filesystem](#storage-backend-filesystem) backend, the directory used should meet the following requirements:
+The exact interpretation of this value depends on the configured [storage backend](#storage-backend). For the default [filesystem](./storage_options.md#filesystem-support) backend, the directory used should meet the following requirements:
 
 - The filesystem must be case-sensitive.
 - The filesystem must support large numbers of sub-directories.
@@ -108,7 +108,7 @@ The formats to generate for project index files.
 :Type: one of `HTML`, `JSON`, or `ALL`
 :Default: `ALL`
 
-The [Simple Repository API][simple-repository-api] allows serving project indexes in either HTML format, JSON format, or both. Bandersnatch generates both formats by default. [](#file-structure-simple-format) describes the generated folder structure and file names.
+The [Simple Repository API][simple-repository-api] allows serving project indexes in either HTML format, JSON format, or both. Bandersnatch generates both formats by default. [](#simple-format-index-files) describes the generated folder structure and file names.
 
 ### `release-files`
 
@@ -117,10 +117,10 @@ Mirror package release files. Release files are the uploaded sdist and wheel fil
 :Type: boolean
 :Default: true
 
-Disabling this will mirror repository [index files](./mirror_configuration.md#simple-format) and/or [project metadata](./mirror_configuration.md#json) without downloading any associated package files. [](#file-structure-release-files) describes the folder structure for mirrored package release files.
+Disabling this will mirror repository [index files](#simple-format) and/or [project metadata](#json) without downloading any associated package files. [](#release-files-folder-structure) describes the folder structure for mirrored package release files.
 
 ```{note}
-If `release-files = false`, you should also specify the [](./mirror_configuration.md#root_uri) option.
+If `release-files = false`, you should also specify the [](#root_uri) option.
 ```
 
 ### `json`
@@ -130,9 +130,9 @@ Save copies of JSON project metadata downloaded from PyPI.
 :Type: boolean
 :Default: false
 
-When enabled, this saves copies of all JSON project metadata downloaded from the [PyPI JSON API](https://warehouse.pypa.io/api-reference/json.html). This does _not_ effect the generation of simple repository API index files in JSON format ([](./mirror_configuration.md#simple-format)). The project metadata can be consumed by other tools or used for debugging. Bandersnatch does not make additional use of these files.
+When enabled, this saves copies of all JSON project metadata downloaded from the [PyPI JSON API](https://warehouse.pypa.io/api-reference/json.html). This does _not_ effect the generation of simple repository API index files in JSON format ([](#simple-format)). The project metadata can be consumed by other tools or used for debugging. Bandersnatch does not make additional use of these files.
 
-[](#file-structure-json) describes the folder structure for saved JSON metadata files.
+[](#json-api-metadata-files) describes the folder structure for saved JSON metadata files.
 
 ### `root_uri`
 
@@ -143,7 +143,7 @@ A base URL to generate absolute URLs for package release files.
 
 Bandersnatch creates index files containing relative URLs by default. Setting this option generates index files with absolute URLs instead.
 
-If [](./mirror_configuration.md#release-files) is disabled _and_ this option is unset, Bandersnatch uses a default value of `https://files.pythonhosted.org/`.
+If [](#release-files) is disabled _and_ this option is unset, Bandersnatch uses a default value of `https://files.pythonhosted.org/`.
 
 ```{note}
 This is generally not necessary, but was added for the official internal PyPI mirror, which requires serving packages from `<https://files.pythonhosted.org>`.
@@ -160,7 +160,7 @@ This is useful when mirroring to an offline network where it is required to only
 
 If the specified path is a directory, Bandersnatch will use the file name "`mirrored-files`" within that directory.
 
-The file will be overwritten on each mirror operation unless [](./mirror_configuration.md#diff-append-epoch) is enabled.
+The file will be overwritten on each mirror operation unless [](#diff-append-epoch) is enabled.
 
 #### Example Usage
 
@@ -178,7 +178,7 @@ It can also be used with 7zip to create split archives for transfers:
 
 ### `diff-append-epoch`
 
-Appending the current epoch time to the file name for [](./mirror_configuration.md#diff-file).
+Appending the current epoch time to the file name for [](#diff-file).
 
 :Type: boolean
 :Default: false
@@ -192,7 +192,7 @@ diff-file = /srv/pypi/new-files
 diff-append-epoch = true
 ```
 
-Will generate diff files with names like `/srv/pypi/new-files-1568129735`. This can be used to track diffs over time by creating a new diff file each run. It is only used when [](./mirror_configuration.md#diff-file) is used.
+Will generate diff files with names like `/srv/pypi/new-files-1568129735`. This can be used to track diffs over time by creating a new diff file each run. It is only used when [](#diff-file) is used.
 
 ### `hash-index`
 
@@ -201,7 +201,7 @@ Group generated project index folders by the first letter of their normalized pr
 :Type: boolean
 :Default: false
 
-Enabling this changes the way generated index files are organized. Project folders are grouped into subfolders alphabetically as shown here: [](#file-structure-hash-index). This has the effect of splitting up a large `/web/simple` directory into smaller subfolders, each containing a subset of the index files. This can improve file system efficiency when mirroring a very large number of projects, but requires a web server capable of translating Simple Repository API URLs into file paths.
+Enabling this changes the way generated index files are organized. Project folders are grouped into subfolders alphabetically as shown here: [](#hash-index-index-files). This has the effect of splitting up a large `/web/simple` directory into smaller subfolders, each containing a subset of the index files. This can improve file system efficiency when mirroring a very large number of projects, but requires a web server capable of translating Simple Repository API URLs into file paths.
 
 ```{warning}
 It is recommended to leave this set to `false` for full pip/pypi compatibility.
@@ -248,7 +248,7 @@ Bandersnatch requests metadata for projects and packages from this repository se
 The URL _must_ use the `https:` protocol.
 
 ```{seealso}
-Bandersnatch can download package release files from an alternative source by configuring a [](./mirror_configuration.md#download-mirror).
+Bandersnatch can download package release files from an alternative source by configuring a [](#download-mirror).
 ```
 
 ### `proxy`
@@ -258,7 +258,7 @@ Use an HTTP proxy server.
 :Type: URL
 :Default: none
 
-The proxy server is used when sending requests to a repository server set by the [](./mirror_configuration.md#master) or [](./mirror_configuration.md#download-mirror) option.
+The proxy server is used when sending requests to a repository server set by the [](#master) or [](#download-mirror) option.
 
 ```{seealso}
 The proxy value will be passed to `aiohttp` as the "proxy" parameter, like `aiohttp.get(link, proxy=yourproxy)`. Check the aioproxy manual for more details: <https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support>
@@ -299,12 +299,12 @@ This is useful to sync most of the files from an existing, nearby mirror - for e
 
 ### `download-mirror-no-fallback`
 
-Disable the fallback behavior for [](./mirror_configuration.md#download-mirror).
+Disable the fallback behavior for [](#download-mirror).
 
 :Type: boolean
 :Default: false
 
-When set to `true`, Bandersnatch only downloads package distribution artifacts from the repository set in [](./mirror_configuration.md#download-mirror) and ignores file URLs received from the [](./mirror_configuration.md#master) server.
+When set to `true`, Bandersnatch only downloads package distribution artifacts from the repository set in [](#download-mirror) and ignores file URLs received from the [](#master) server.
 
 ```{warning}
 This could lead to more failures than expected and is not recommended for most scenarios.
@@ -364,12 +364,12 @@ The method used to compare existing files with upstream files.
 :Type: one of `hash`, `stat`
 :Default: `hash`
 
-- `hash`: compare by creating a checksums of a local file content. This is slower than `stat`, but more reliable. The hash algorithm is specified by [](./mirror_configuration.md#digest_name).
+- `hash`: compare by creating a checksums of a local file content. This is slower than `stat`, but more reliable. The hash algorithm is specified by [](#digest_name).
 - `stat`: compare by using file size and change time. This can reduce IO workload when frequently verifying a large number of files.
 
 ### `digest_name`
 
-The algorithm used to compute file hashes when [](./mirror_configuration.md#compare-method) is set to `hash`.
+The algorithm used to compute file hashes when [](#compare-method) is set to `hash`.
 
 :Type: one of `sha256`, `md5`
 :Default: `sha256`
@@ -438,11 +438,9 @@ args=('/repo/bandersnatch/banderlogfile.log', 'D', 1, 0)
 
 ## Folder Structures
 
-(file-structure-simple-format)=
-
 ### `simple-format` index files
 
-Folder structure of generated index files for [](./mirror_configuration.md#simple-format):
+Folder structure of generated index files for [](#simple-format):
 
 ```text
 <mirror directory>/
@@ -466,8 +464,6 @@ Folder structure of generated index files for [](./mirror_configuration.md#simpl
 This path structure is compatible with the [Simple Repository API][simple-repository-api].
 
 If `simple-format` is set to `HTML`, Bandersnatch will only create `index.html` and `index.v1_html`. If `simple-format` is set to `JSON`, it will only create `index.v1_json`.
-
-(file-structure-release-files)=
 
 ### `release-files` folder structure
 
@@ -504,11 +500,9 @@ Package release files are distributed into subdirectories based on their checksu
 
 By default, generated index files contain releative links into the `web/packages/` directory.
 
-(file-structure-json)=
-
 ### `json` API metadata files
 
-Folder structure of saved PyPI project metadata when [](./mirror_configuration.md#json) is enabled:
+Folder structure of saved PyPI project metadata when [](#json) is enabled:
 
 ```text
 <mirror directory>/
@@ -531,11 +525,9 @@ Folder structure of saved PyPI project metadata when [](./mirror_configuration.m
 
 The files `web/json/someproject` and `web/pypi/someproject/json` both contain the JSON metadata for a PyPI project with the normalized name "someproject".
 
-(file-structure-hash-index)=
-
 ### `hash-index` index files
 
-When [](./mirror_configuration.md#hash-index) is enabled, project index folders are grouped by the first letter of their name - for example:
+When [](#hash-index) is enabled, project index folders are grouped by the first letter of their name - for example:
 
 ```text
 <mirror directory>/
@@ -575,5 +567,5 @@ caption: Default configuration file from `src/bandersnatch/default.conf`
 ```
 
 [filter-plugins]: ./filtering_configuration.md
-[simple-repository-api]: https://packaging.python.org/en/latest/specifications/simple-repository-api/
 [storage-backends]: ./storage_options.md
+[simple-repository-api]: https://packaging.python.org/en/latest/specifications/simple-repository-api/
