@@ -54,7 +54,7 @@ It is possible to download metadata from one repository, but package release fil
 [mirror]
 directory = /srv/pypi
 ; Project and package metadata received from this repository
-master = https://pypi.org/
+master = https://pypi.org
 ; Package distribution artifacts downloaded from here if possible
 download-mirror = https://pypi-mirror.example.com/
 
@@ -75,6 +75,7 @@ It is possible to mirror just index files without downloading any package releas
 ```ini
 [mirror]
 directory = /srv/pypi-filtered
+master = https://pypi.org
 simple-format = ALL
 release-files = false
 root_uri = https://files.pythonhosted.org/
@@ -180,11 +181,13 @@ This is generally not necessary, but was added for the official internal PyPI mi
 
 ### `diff-file`
 
-Create a file containing the paths of all files downloaded during a mirror operation.
+File location to write a list of all new or changed files during a mirror operation.
 
 :Type: file or folder path
 :Required: no
-:Default: none (do not create a diff file)
+:Default: `<mirror directory>/mirrored-files`
+
+Bandersnatch creates a plain-text file at the specified location containing a list of all files created or updated during the last mirror/sync operation. The files are listed as absolute paths separated by blank lines.
 
 This is useful when mirroring to an offline network where it is required to only transfer new files to the downstream mirror. The diff file can be used to copy new files to an external drive, sync the list of files to an SSH destination such as a diode, or send the files through some other mechanism to an offline system.
 
@@ -208,7 +211,7 @@ It can also be used with 7zip to create split archives for transfers:
 
 ### `diff-append-epoch`
 
-Appending the current epoch time to the file name for [](#diff-file).
+Append the current epoch time to the file name for [](#diff-file).
 
 :Type: boolean
 :Required: no
@@ -223,7 +226,7 @@ diff-file = /srv/pypi/new-files
 diff-append-epoch = true
 ```
 
-Will generate diff files with names like `/srv/pypi/new-files-1568129735`. This can be used to track diffs over time by creating a new diff file each run. It is only used when [](#diff-file) is used.
+Will generate diff files with names like `/srv/pypi/new-files-1568129735`. This can be used to track diffs over time by creating a new diff file each time Bandersnatch runs.
 
 ### `hash-index`
 
