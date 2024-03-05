@@ -493,10 +493,12 @@ class BandersnatchMirror(Mirror):
         ]
         if self.json_save:
             logger.debug("Adding json directories to bootstrap")
-            paths.extend([
-                self.storage_backend.PATH_BACKEND("web/json"),
-                self.storage_backend.PATH_BACKEND("web/pypi"),
-            ])
+            paths.extend(
+                [
+                    self.storage_backend.PATH_BACKEND("web/json"),
+                    self.storage_backend.PATH_BACKEND("web/pypi"),
+                ]
+            )
         for path in paths:
             path = self.homedir / path
             if not path.exists():

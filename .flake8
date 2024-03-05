@@ -6,7 +6,7 @@ max_line_length = 88
 # E722 is a duplicate of B001.
 # P207 is a duplicate of B003.
 # W503 is against PEP8
-ignore = E203, E704, E722, P207, W503
+ignore = E203, E501, E704, E722, P207, W503
 max-complexity = 20
 exclude =
     build,
