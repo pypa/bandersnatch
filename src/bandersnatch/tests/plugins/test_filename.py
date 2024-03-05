@@ -143,11 +143,13 @@ platforms =
                         "flag": "DROP",
                     },
                 ],
-                "0.2": [{
-                    "packagetype": "bdist_egg",
-                    "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
-                    "flag": "DROP",
-                }],
+                "0.2": [
+                    {
+                        "packagetype": "bdist_egg",
+                        "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
+                        "flag": "DROP",
+                    }
+                ],
                 "0.3": [
                     {
                         "packagetype": "bdist_wheel",
