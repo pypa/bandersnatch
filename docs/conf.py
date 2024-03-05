@@ -103,7 +103,8 @@ pygments_style = "sphinx"
 
 # Enable certain MyST-Parser extensions
 # see also: https://myst-parser.readthedocs.io/en/latest/using/syntax-optional.html
-myst_enable_extensions = ["colon_fence"]
+myst_enable_extensions = ["colon_fence", "fieldlist"]
+myst_heading_anchors = 3
 
 # -- Options for HTML output ----------------------------------------------
 
