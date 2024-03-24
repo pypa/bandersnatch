@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from .config.diff_file_reference import eval_config_reference, has_config_reference
 from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
 
 logger = logging.getLogger("bandersnatch")
@@ -101,20 +102,17 @@ def validate_config_values(  # noqa: C901
         diff_file_path = config.get("mirror", "diff-file")
     except configparser.NoOptionError:
         diff_file_path = ""
-    if "{{" in diff_file_path and "}}" in diff_file_path:
-        diff_file_path = diff_file_path.replace("{{", "").replace("}}", "")
-        diff_ref_section, _, diff_ref_key = diff_file_path.partition("_")
+
+    if diff_file_path and has_config_reference(diff_file_path):
         try:
-            diff_file_path = config.get(diff_ref_section, diff_ref_key)
-        except (configparser.NoOptionError, configparser.NoSectionError):
+            diff_file_path = eval_config_reference(config, diff_file_path)
+        except ValueError as err:
             logger.error(
-                "Invalid section reference in `diff-file` key. "
-                "Please correct this error. Saving diff files in"
-                " base mirror directory."
+                "Invalid section reference in `diff-file` key: %s. Saving diff files in base mirror directory.",
+                str(err),
             )
-            diff_file_path = str(
-                Path(config.get("mirror", "directory")) / "mirrored-files"
-            )
+            mirror_dir = config.get("mirror", "directory")
+            diff_file_path = (Path(mirror_dir) / "mirrored-files").as_posix()
 
     try:
         diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")

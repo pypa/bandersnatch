@@ -9,6 +9,10 @@
 
 - Updated documentation for `[mirror]` configuration options `PR #1669`
 
+## Big Fixes
+
+- Fix config file value interpolation for the `diff-file` option `PR #1715`
+
 # 6.5.0
 
 ## New Features
