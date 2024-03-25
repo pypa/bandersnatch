@@ -15,6 +15,7 @@ import aiohttp
 
 from .filter import LoadedFilters
 from .master import Master
+from .package import Package
 from .storage import storage_backend_plugins
 from .utils import convert_url_to_path, find_all_files, hash, unlink_parent_dir
 
@@ -155,12 +156,15 @@ async def verify(
         return
 
     # apply releases filter plugins like class Package
-    for plugin in LoadedFilters().filter_release_plugins() or []:
-        plugin.filter(pkg)
+    pkg_c = Package(pkg["info"]["name"])
+    pkg_c._metadata = pkg
+    pkg = pkg_c
+    pkg.filter_all_releases_files(LoadedFilters().filter_release_file_plugins())
+    pkg.filter_all_releases(LoadedFilters().filter_release_plugins())
 
     deferred_exception = None
-    for release_version in pkg[releases_key]:
-        for jpkg in pkg[releases_key][release_version]:
+    for release_version in pkg.releases:
+        for jpkg in pkg.releases[release_version]:
             pkg_file = mirror_base_path / "web" / convert_url_to_path(jpkg["url"])
             if not pkg_file.exists():
                 if args.dry_run:
