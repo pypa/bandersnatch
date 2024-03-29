@@ -2,6 +2,7 @@ import os.path
 import sys
 import unittest.mock as mock
 from collections.abc import Iterator
+from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -14,6 +15,7 @@ from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
 from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
@@ -204,6 +206,70 @@ def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir: Path) -> No
     assert not os.path.exists(str(tmpdir / "todo"))
     assert not os.path.exists(str(tmpdir / "status"))
     assert open(str(tmpdir / "generation")).read().strip() == "5"
+
+
+# This is a test to check that a diff file is NOT created when 'diff-file' isn't set in
+# configuration. Obviously we can't exhaustively assert a negative - the regression
+# being checked for here is a diff file being created at a 'default' location
+# ($directory/mirrored-files) when diff-file isn't configured.
+@pytest.mark.asyncio
+async def test_mirror_subcommand_only_creates_diff_file_if_configured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    # Setup 1 - create a configuration for the 'mirror' subcommand
+    # (Configuration is passed as a parameter, so we don't need to fiddle with Singleton)
+    config = ConfigParser()
+    config.read_dict(
+        {
+            "mirror": {
+                "master": "https://pypi.org",
+                "directory": (tmp_path / "mirror").as_posix(),
+                "timeout": 15,
+                "stop-on-error": False,
+                "workers": 1,
+                "hash-index": False,
+            },
+            "plugins": {"enabled": ["allowlist_project"]},
+            "allowlist": {"packages": ["black", "ruff", "autopep8"]},
+        }
+    )
+
+    # Setup 2 - patch 'Mirror.synchronize' with a stub returning fixed data
+    # Normally it returns 'self.altered_packages', and those are what get written into
+    # the diff file. Non-empty fixed content here means a diff-file should exist and
+    # have content IF it is configured.
+    async def mock_synchronize(
+        self: Any,
+        specific_packages: list[str] | None = None,
+        sync_simple_index: bool = True,
+    ) -> dict[str, set[str]]:
+        return {
+            "ruff": {"fake/file/path/1", "fake/file/path/2"},
+            "black": {"fake/file/path/3"},
+        }
+
+    monkeypatch.setattr(BandersnatchMirror, "synchronize", mock_synchronize)
+
+    # Execute the 'mirror' subcommand. Because 'synchronize' is patched, this is pretty
+    # much running the body of the 'mirror' function, including creating Master and
+    # Mirror instances, but doesn't perform any actual package syncing at all.
+    await mirror_cmd(config=config)
+
+    # An 'info'-level message is always logged after 'synchronize' completes. It should
+    # be consistent with the static data returned from our mock method.
+    expected_message = "2 packages had changes"
+    assert any(
+        m == expected_message for m in caplog.messages
+    ), f"Logged '{expected_message}'"
+
+    # Because BandersnatchMirror's 'bootstrap' runs, this directory should exist;
+    # this is just sanity checking that some disk IO happened...
+    web_folder = tmp_path / "mirror" / "web"
+    assert web_folder.is_dir(), f"The folder '{web_folder}' was created"
+
+    # But there should NOT be a diff file:
+    absent_diff_file = tmp_path / "mirror" / "mirrored-files"
+    assert not absent_diff_file.exists(), f"there is no diff file at {absent_diff_file}"
 
 
 def test_mirror_with_same_homedir_needs_lock(
