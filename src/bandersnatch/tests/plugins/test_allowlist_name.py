@@ -6,10 +6,9 @@ from unittest import TestCase
 
 import bandersnatch.filter
 import bandersnatch.storage
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.plugins.util import make_test_mirror
 
 
 class TestAllowListProject(TestCase):
@@ -79,7 +78,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         mirror.packages_to_sync = {"foo": ""}
         mirror._filter_packages()
 
@@ -102,7 +101,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
@@ -126,7 +125,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
@@ -150,7 +149,7 @@ packages =
     bar~=3.0,<=1.5
 """
         )
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         mirror.packages_to_sync = {
             "foo": "",
             "bar": "",
@@ -177,7 +176,7 @@ packages =
 #    bar
 """
         )
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         mirror.packages_to_sync = {
             "foo": "",
             "bar": "",
@@ -251,7 +250,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -278,7 +277,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -305,7 +304,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -339,7 +338,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -429,7 +428,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -467,7 +466,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -504,7 +503,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         mirror.packages_to_sync = {
             "foo": "",
@@ -540,7 +539,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         mirror.packages_to_sync = {
             "foo": "",
@@ -592,7 +591,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         mirror.packages_to_sync = {
             "foo": "",
@@ -635,7 +634,7 @@ requirements =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         mirror.packages_to_sync = {
             "foo": "",

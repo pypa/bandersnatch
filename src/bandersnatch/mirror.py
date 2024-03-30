@@ -36,7 +36,7 @@ class Mirror:
     # We are required to leave a 'last changed' timestamp. I'd rather err
     # on the side of giving a timestamp that is too old so we keep track
     # of it when starting to sync.
-    now = None
+    now: datetime.datetime | None = None
 
     def __init__(self, master: Master, workers: int = 3):
         self.master = master
@@ -180,7 +180,7 @@ class BandersnatchMirror(Mirror):
         self,
         homedir: Path,
         master: Master,
-        storage_backend: str | None = None,
+        storage_backend: Storage,
         stop_on_error: bool = False,
         workers: int = 3,
         hash_index: bool = False,
@@ -203,10 +203,7 @@ class BandersnatchMirror(Mirror):
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
 
-        if storage_backend:
-            self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
-        else:
-            self.storage_backend = next(iter(storage_backend_plugins()))
+        self.storage_backend = storage_backend
         self.stop_on_error = stop_on_error
         self.loop = asyncio.get_event_loop()
         if isinstance(homedir, WindowsPath):
@@ -959,7 +956,9 @@ async def mirror(
     storage_plugin = next(
         iter(
             storage_backend_plugins(
-                config_values.storage_backend_name, config=config, clear_cache=True
+                config=config,
+                backend=config_values.storage_backend_name,
+                clear_cache=True,
             )
         )
     )
@@ -976,7 +975,6 @@ async def mirror(
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
     proxy = config.get("mirror", "proxy", fallback=None)
-    storage_backend = config_values.storage_backend_name
     homedir = Path(config.get("mirror", "directory"))
 
     # Always reference those classes here with the fully qualified name to
@@ -985,7 +983,7 @@ async def mirror(
         mirror = BandersnatchMirror(
             homedir,
             master,
-            storage_backend=storage_backend,
+            storage_backend=storage_plugin,
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
             hash_index=config.getboolean("mirror", "hash-index"),

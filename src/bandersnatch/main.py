@@ -165,7 +165,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         )
 
     if args.force_check:
-        storage_plugin = next(iter(storage_backend_plugins()))
+        storage_plugin = next(iter(storage_backend_plugins(config)))
         status_file = (
             storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
         )

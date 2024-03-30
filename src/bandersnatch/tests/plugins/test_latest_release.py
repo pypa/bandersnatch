@@ -1,13 +1,11 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.plugins.util import make_test_mirror
 from bandersnatch_filter_plugins import latest_name
 
 
@@ -56,7 +54,7 @@ keep = 2
     def test_latest_releases_keep_latest(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -77,7 +75,7 @@ keep = 2
     def test_latest_releases_keep_latest_time(self) -> None:
         mock_config(self.config_contents + "\nsort_by = time")
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -102,7 +100,7 @@ keep = 2
     def test_latest_releases_keep_stable(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},  # stable version
@@ -129,7 +127,7 @@ keep = 2
         """
         mock_config(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg1 = Package("foo", 1)
         pkg1._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -190,7 +188,7 @@ enabled =
     def test_latest_releases_uninitialized(self) -> None:
         mock_config(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},

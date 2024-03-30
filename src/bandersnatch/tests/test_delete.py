@@ -1,5 +1,6 @@
 import os
 from argparse import Namespace
+from collections.abc import Callable
 from configparser import ConfigParser
 from json import loads
 from pathlib import Path
@@ -14,6 +15,7 @@ from pytest import MonkeyPatch
 from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.storage import Storage
 from bandersnatch.utils import find
 
 EXPECTED_WEB_BEFORE_DELETION = """\
@@ -76,24 +78,25 @@ def _fake_config() -> ConfigParser:
 
 
 @pytest.mark.asyncio
-async def test_delete_path() -> None:
+async def test_delete_path(local_storage_factory: Callable[[Path], Storage]) -> None:
     with TemporaryDirectory() as td:
         td_path = Path(td)
+        storage_backend = local_storage_factory(td_path)
         fake_path = td_path / "unittest-file.tgz"
         with patch("bandersnatch.delete.logger.info") as mock_log:
-            assert await delete_path(fake_path, True) == 0
+            assert await delete_path(fake_path, storage_backend, True) == 0
             assert mock_log.call_count == 1
 
         with patch("bandersnatch.delete.logger.debug") as mock_log:
-            assert await delete_path(fake_path, False) == 0
+            assert await delete_path(fake_path, storage_backend, False) == 0
             assert mock_log.call_count == 1
 
         fake_path.touch()
         # Remove file
-        assert await delete_path(fake_path, False) == 0
+        assert await delete_path(fake_path, storage_backend, False) == 0
         # File should be gone - We should log that via debug
         with patch("bandersnatch.delete.logger.debug") as mock_log:
-            assert await delete_path(fake_path, False) == 0
+            assert await delete_path(fake_path, storage_backend, False) == 0
             assert mock_log.call_count == 1
 
 

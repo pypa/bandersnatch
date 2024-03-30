@@ -1,9 +1,11 @@
 # flake8: noqa
 import os
 import unittest.mock as mock
-from collections.abc import Iterator
+from collections.abc import Callable, Generator, Iterator
+from configparser import ConfigParser
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from threading import local
+from typing import TYPE_CHECKING, Any, Dict, TypeAlias
 
 import boto3
 import pytest
@@ -11,6 +13,8 @@ from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
 from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
+
+from bandersnatch.storage import Storage
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -90,6 +94,33 @@ def package_json() -> dict[str, Any]:
     }
 
 
+StorageFactory: TypeAlias = Callable[[Path], Storage]
+
+
+@pytest.fixture
+def local_storage_factory() -> StorageFactory:
+    from bandersnatch.storage import storage_backend_plugins
+
+    def _local_storage(location: Path) -> Storage:
+        cfg_data = {
+            "mirror": {
+                "storage-backend": "filesystem",
+                "directory": location.as_posix(),
+                "workers": 2,
+            }
+        }
+        cfg = ConfigParser()
+        cfg.read_dict(cfg_data)
+        return next(iter(storage_backend_plugins(cfg, backend="filesystem")))
+
+    return _local_storage
+
+
+@pytest.fixture
+def local_storage(tmp_path: Path, local_storage_factory: StorageFactory) -> Storage:
+    return local_storage_factory(tmp_path)
+
+
 @pytest.fixture
 def master(package_json: dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
@@ -130,22 +161,30 @@ def master(package_json: dict[str, Any]) -> "Master":
 
 @pytest.fixture
 def mirror(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+    tmp_path: Path,
+    master: "Master",
+    monkeypatch: MonkeyPatch,
+    local_storage_factory: StorageFactory,
 ) -> "BandersnatchMirror":
-    monkeypatch.chdir(tmpdir)
+    monkeypatch.chdir(tmp_path)
     from bandersnatch.mirror import BandersnatchMirror
 
-    return BandersnatchMirror(tmpdir, master)
+    return BandersnatchMirror(tmp_path, master, local_storage_factory(tmp_path))
 
 
 @pytest.fixture
 def mirror_hash_index(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+    tmp_path: Path,
+    master: "Master",
+    monkeypatch: MonkeyPatch,
+    local_storage_factory: StorageFactory,
 ) -> "BandersnatchMirror":
-    monkeypatch.chdir(tmpdir)
+    monkeypatch.chdir(tmp_path)
     from bandersnatch.mirror import BandersnatchMirror
 
-    return BandersnatchMirror(tmpdir, master, hash_index=True)
+    return BandersnatchMirror(
+        tmp_path, master, local_storage_factory(tmp_path), hash_index=True
+    )
 
 
 @pytest.fixture
@@ -187,7 +226,7 @@ def reset_configuration_cache() -> Iterator[None]:
 
 
 @pytest.fixture()
-def s3_mock(reset_configuration_cache: None) -> S3Path:
+def s3_mock(reset_configuration_cache: None) -> Generator[S3Path, None, None]:
     if os.environ.get("os") != "ubuntu-latest" and os.environ.get("CI"):
         pytest.skip("Skip s3 test on non-posix server in github action")
     register_configuration_parameter(

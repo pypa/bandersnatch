@@ -416,7 +416,7 @@ workers = 3
 
     def setUp_mirror(self) -> None:
         self.master = Master(url="https://foo.bar.com")
-        self.mirror = BandersnatchMirror(self.mirror_path, self.master, self.backend)
+        self.mirror = BandersnatchMirror(self.mirror_path, self.master, self.plugin)
         pkg = Package("foobar", serial=1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},
@@ -425,13 +425,14 @@ workers = 3
         self.pkgs.append(pkg)
 
     def setUp_plugin(self) -> None:
-        self.plugin = next(
-            iter(
-                bandersnatch.storage.storage_backend_plugins(
-                    self.backend, clear_cache=True
+        if self.backend is not None:
+            self.plugin = next(
+                iter(
+                    bandersnatch.storage.storage_backend_plugins(
+                        self.config_data.config, self.backend, clear_cache=True
+                    )
                 )
             )
-        )
 
     def setUp_mirrorDirs(self) -> None:
         pypi_dir = (

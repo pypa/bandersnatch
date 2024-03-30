@@ -1,14 +1,12 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.plugins.util import make_test_mirror
 from bandersnatch_filter_plugins.metadata_filter import SizeProjectMetadataFilter
 
 
@@ -60,7 +58,7 @@ max_package_size = 2K
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         # Test that under-sized project is allowed
         pkg = Package("foo", 1)
@@ -94,7 +92,7 @@ packages =
 """
         )
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
 
         # Test that under-sized, allowlisted project is allowed
         pkg = Package("foo", 1)

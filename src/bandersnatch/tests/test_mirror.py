@@ -1,12 +1,12 @@
 import os.path
 import sys
 import unittest.mock as mock
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, NoReturn
+from typing import Any, NoReturn, TypeAlias
 
 import pytest
 from freezegun import freeze_time
@@ -18,6 +18,7 @@ from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
+from bandersnatch.storage import Storage
 from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
 from bandersnatch.utils import WINDOWS, make_time_stamp
 
@@ -65,6 +66,16 @@ FAKE_RELEASE_DATA = JsonDict(
     }
 )
 
+MirrorFactory: TypeAlias = Callable[..., BandersnatchMirror]
+
+
+@pytest.fixture
+def mock_mirror_factory(tmp_path: Path, local_storage: Storage) -> MirrorFactory:
+    def _mock_mirror(**kwargs: Any) -> BandersnatchMirror:
+        return BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+
+    return _mock_mirror
+
 
 def touch_files(paths: list[Path]) -> None:
     for path in paths:
@@ -74,62 +85,63 @@ def touch_files(paths: list[Path]) -> None:
             pfp.close()
 
 
-def test_limit_workers() -> None:
+def test_limit_workers(local_storage_factory: Callable[[Path], Storage]) -> None:
     try:
-        BandersnatchMirror(Path("/tmp"), mock.Mock(), workers=11)
+        basedir = Path("/tmp")
+        BandersnatchMirror(
+            basedir, mock.Mock(), local_storage_factory(basedir), workers=11
+        )
     except ValueError:
         pass
 
 
-def test_mirror_loads_serial(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("5")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+def test_mirror_loads_serial(tmp_path: Path, local_storage: Storage) -> None:
+    (tmp_path / "generation").write_text("5")
+    (tmp_path / "status").write_text("1234")
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
     assert m.synced_serial == 1234
 
 
-def test_mirror_recovers_from_inconsistent_serial(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+def test_mirror_recovers_from_inconsistent_serial(
+    tmp_path: Path, local_storage: Storage
+) -> None:
+    (tmp_path / "generation").write_text("")
+    (tmp_path / "status").write_text("1234")
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
     assert m.synced_serial == 0
 
 
-def test_mirror_generation_3_resets_status_files(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("2")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    with open(str(tmpdir / "todo"), "w") as status:
-        status.write("asdf")
+def test_mirror_generation_3_resets_status_files(
+    tmp_path: Path, local_storage: Storage
+) -> None:
+    (tmp_path / "generation").write_text("2")
+    (tmp_path / "status").write_text("1234")
+    (tmp_path / "todo").write_text("asdf")
 
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+
     assert m.synced_serial == 0
-    assert not os.path.exists(str(tmpdir / "todo"))
-    assert not os.path.exists(str(tmpdir / "status"))
-    assert open(str(tmpdir / "generation")).read() == "5"
+    assert not (tmp_path / "todo").exists()
+    assert not (tmp_path / "status").exists()
+    assert (tmp_path / "generation").read_text() == "5"
 
 
-def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("4")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    with open(str(tmpdir / "todo"), "w") as status:
-        status.write("asdf")
+def test_mirror_generation_4_resets_status_files(
+    tmp_path: Path, local_storage: Storage
+) -> None:
+    (tmp_path / "generation").write_text("4")
+    (tmp_path / "status").write_text("1234")
+    (tmp_path / "todo").write_text("asdf")
 
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+
     assert m.synced_serial == 0
-    assert not os.path.exists(str(tmpdir / "todo"))
-    assert not os.path.exists(str(tmpdir / "status"))
-    assert open(str(tmpdir / "generation")).read() == "5"
+    assert not (tmp_path / "todo").exists()
+    assert not (tmp_path / "status").exists()
+    assert (tmp_path / "generation").read_text() == "5"
 
 
-def test_mirror_filter_packages_match(tmpdir: Path) -> None:
+def test_mirror_filter_packages_match(tmp_path: Path, local_storage: Storage) -> None:
     """
     Packages that exist in the blocklist should be removed from the list of
     packages to sync.
@@ -146,13 +158,15 @@ packages =
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
     BandersnatchConfig("test.conf")
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
     m.packages_to_sync = {"example1": "", "example2": ""}
     m._filter_packages()
     assert "example1" not in m.packages_to_sync.keys()
 
 
-def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
+def test_mirror_filter_packages_nomatch_package_with_spec(
+    tmp_path: Path, local_storage: Storage
+) -> None:
     """
     Package lines with a PEP440 spec on them should not be filtered from the
     list of packages.
@@ -169,43 +183,45 @@ packages =
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
     BandersnatchConfig("test.conf")
-    m = BandersnatchMirror(tmpdir, mock.Mock())
+    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
     m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()
     assert "example3" in m.packages_to_sync.keys()
 
 
-def test_mirror_removes_empty_todo_list(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("3")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    with open(str(tmpdir / "todo"), "w") as status:
-        status.write("")
-    BandersnatchMirror(tmpdir, mock.Mock())
-    assert not os.path.exists(str(tmpdir / "todo"))
+def test_mirror_removes_empty_todo_list(tmp_path: Path, local_storage: Storage) -> None:
+
+    (tmp_path / "generation").write_text("3")
+    (tmp_path / "status").write_text("1234")
+    (tmp_path / "todo").write_text("")
+
+    _ = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+    assert not (tmp_path / "todo").exists()
 
 
-def test_mirror_removes_broken_todo_list(tmpdir: Path) -> None:
-    with open(str(tmpdir / "generation"), "w") as generation:
-        generation.write("3")
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    with open(str(tmpdir / "todo"), "w") as status:
-        status.write("foo")
-    BandersnatchMirror(tmpdir, mock.Mock())
-    assert not os.path.exists(str(tmpdir / "todo"))
+def test_mirror_removes_broken_todo_list(
+    tmp_path: Path, local_storage: Storage
+) -> None:
+    (tmp_path / "generation").write_text("3")
+    (tmp_path / "status").write_text("1234")
+    (tmp_path / "todo").write_text("foo")
+
+    _ = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+
+    assert not os.path.exists(tmp_path / "todo")
 
 
-def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir: Path) -> None:
-    with open(str(tmpdir / "status"), "w") as status:
-        status.write("1234")
-    with open(str(tmpdir / "todo"), "w") as status:
-        status.write("foo")
-    BandersnatchMirror(tmpdir, mock.Mock())
-    assert not os.path.exists(str(tmpdir / "todo"))
-    assert not os.path.exists(str(tmpdir / "status"))
-    assert open(str(tmpdir / "generation")).read().strip() == "5"
+def test_mirror_removes_old_status_and_todo_inits_generation(
+    tmp_path: Path, local_storage: Storage
+) -> None:
+    (tmp_path / "status").write_text("1234")
+    (tmp_path / "todo").write_text("foo")
+
+    _ = BandersnatchMirror(tmp_path, mock.Mock(), local_storage)
+
+    assert not os.path.exists(tmp_path / "todo")
+    assert not os.path.exists(tmp_path / "status")
+    assert (tmp_path / "generation").read_text().strip() == "5"
 
 
 # This is a test to check that a diff file is NOT created when 'diff-file' isn't set in
@@ -273,13 +289,20 @@ async def test_mirror_subcommand_only_creates_diff_file_if_configured(
 
 
 def test_mirror_with_same_homedir_needs_lock(
-    mirror: BandersnatchMirror, tmpdir: Path
+    mirror: BandersnatchMirror,
+    local_storage_factory: Callable[[Path], Storage],
 ) -> None:
     try:
-        BandersnatchMirror(mirror.homedir, mirror.master)
+        BandersnatchMirror(
+            mirror.homedir, mirror.master, local_storage_factory(mirror.homedir)
+        )
     except RuntimeError:
         pass
-    BandersnatchMirror(mirror.homedir / "test", mirror.master)
+    BandersnatchMirror(
+        mirror.homedir / "test",
+        mirror.master,
+        local_storage_factory(mirror.homedir / "test"),
+    )
 
 
 @pytest.mark.asyncio
@@ -707,7 +730,9 @@ async def test_metadata_404_keeps_package_on_non_deleting_mirror(
         assert path.exists()
 
 
-def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> None:
+def test_find_package_indexes_in_dir_threaded(
+    mirror: BandersnatchMirror, local_storage_factory: Callable[[Path], Storage]
+) -> None:
     directories = (
         "web/simple/peerme",
         "web/simple/click",
@@ -726,7 +751,10 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         # Create local mirror first so we '_bootstrap'
         mirror_base = Path(td)
         local_mirror = BandersnatchMirror(
-            mirror_base, mirror.master, stop_on_error=True
+            mirror_base,
+            mirror.master,
+            local_storage_factory(mirror_base),
+            stop_on_error=True,
         )
         # Create fake file system objects
         for directory in directories:
@@ -759,12 +787,16 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         assert packages[0] == "click"  # Check sorted - click should be first
 
 
-def test_validate_todo(mirror: BandersnatchMirror) -> None:
+def test_validate_todo(
+    mirror: BandersnatchMirror, local_storage_factory: Callable[[Path], Storage]
+) -> None:
     valid_todo = "69\ncooper 69\ndan 1\n"
     invalid_todo = "cooper l33t\ndan n00b\n"
 
     with TemporaryDirectory() as td:
-        test_mirror = BandersnatchMirror(Path(td), mirror.master)
+        test_mirror = BandersnatchMirror(
+            Path(td), mirror.master, local_storage_factory(Path(td))
+        )
         for todo_data in (valid_todo, invalid_todo):
             with test_mirror.todolist.open("w") as tdfp:
                 tdfp.write(todo_data)
@@ -1124,9 +1156,12 @@ async def test_package_sync_replaces_mismatching_local_files(
 @pytest.mark.asyncio
 async def test_package_sync_handles_non_pep_503_in_packages_to_sync(
     master: Master,
+    local_storage_factory: Callable[[Path], Storage],
 ) -> None:
     with TemporaryDirectory() as td:
-        mirror = BandersnatchMirror(Path(td), master, stop_on_error=True)
+        mirror = BandersnatchMirror(
+            Path(td), master, local_storage_factory(Path(td)), stop_on_error=True
+        )
         mirror.packages_to_sync = {"Foo": 1}
         await mirror.sync_packages()
         assert not mirror.errors

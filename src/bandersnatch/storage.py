@@ -18,8 +18,6 @@ import filelock
 import pkg_resources
 from packaging.utils import canonicalize_name
 
-from .configuration import BandersnatchConfig
-
 PATH_TYPES = pathlib.Path | str
 
 # The API_REVISION is incremented if the plugin class is modified in a
@@ -58,16 +56,11 @@ class Storage:
     def __init__(
         self,
         *args: Any,
-        config: configparser.ConfigParser | None = None,
+        config: configparser.ConfigParser,
         **kwargs: Any,
     ) -> None:
         self.flock_path: PATH_TYPES = ".lock"
-        if config is not None:
-            if isinstance(config, BandersnatchConfig):
-                config = config.config
-            self.configuration = config
-        else:
-            self.configuration = BandersnatchConfig().config
+        self.configuration = config
         try:
             storage_backend = self.configuration["mirror"]["storage-backend"]
         except (KeyError, TypeError):
@@ -317,8 +310,8 @@ class StoragePlugin(Storage):
 
 def load_storage_plugins(
     entrypoint_group: str,
+    config: configparser.ConfigParser,
     enabled_plugin: str | None = None,
-    config: configparser.ConfigParser | None = None,
     clear_cache: bool = False,
 ) -> set[Storage]:
     """
@@ -328,10 +321,10 @@ def load_storage_plugins(
     ==========
     entrypoint_group: str
         The entrypoint group name to load plugins from
+    config: configparser.ConfigParser
+        The configparser instance to use
     enabled_plugin: str
         The optional enabled storage plugin to search for
-    config: configparser.ConfigParser
-        The optional configparser instance to pass in
     clear_cache: bool
         Whether to clear the plugin cache
 
@@ -341,8 +334,6 @@ def load_storage_plugins(
         A list of objects derived from the Storage class
     """
     global loaded_storage_plugins
-    if config is None:
-        config = BandersnatchConfig().config
     if not enabled_plugin:
         try:
             enabled_plugin = config["mirror"]["storage-backend"]
@@ -379,19 +370,19 @@ def load_storage_plugins(
 
 
 def storage_backend_plugins(
-    backend: str | None = "filesystem",
-    config: configparser.ConfigParser | None = None,
+    config: configparser.ConfigParser,
+    backend: str = "filesystem",
     clear_cache: bool = False,
 ) -> Iterable[Storage]:
     """
-    Load and return the release filtering plugin objects
+    Load and return the storage backend plugin objects
 
     Parameters
     ==========
+    config: configparser.ConfigParser
+        The configparser instance to use
     backend: str
         The optional enabled storage plugin to search for
-    config: configparser.ConfigParser
-        The optional configparser instance to pass in
     clear_cache: bool
         Whether to clear the plugin cache
 
@@ -402,7 +393,7 @@ def storage_backend_plugins(
     """
     return load_storage_plugins(
         STORAGE_PLUGIN_RESOURCE,
-        enabled_plugin=backend,
         config=config,
+        enabled_plugin=backend,
         clear_cache=clear_cache,
     )

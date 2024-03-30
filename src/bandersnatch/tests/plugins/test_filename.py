@@ -1,13 +1,11 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.plugins.util import make_test_mirror
 from bandersnatch_filter_plugins import filename_name
 
 
@@ -64,7 +62,7 @@ platforms =
         """
         mock_config(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = make_test_mirror()
         pkg = Package("foobar", 1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},

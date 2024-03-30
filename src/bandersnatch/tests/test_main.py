@@ -78,6 +78,18 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
     main(asyncio.new_event_loop())
     (homedir, master), kwargs = mirror_mock.call_args_list[0]
 
+    class MatchStorage:
+        def __init__(self, name: str, path: Path) -> None:
+            self.name = name
+            self.path = path
+
+        def __eq__(self, other: Any) -> bool:
+            return (
+                isinstance(other, bandersnatch.storage.Storage)
+                and other.name == self.name
+                and other.mirror_base_path == self.path
+            )
+
     assert Path("/srv/pypi") == homedir
     assert isinstance(master, bandersnatch.master.Master)
     assert {
@@ -89,7 +101,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "digest_name": "sha256",
         "keep_index_versions": 0,
         "release_files_save": True,
-        "storage_backend": "filesystem",
+        "storage_backend": MatchStorage("filesystem", homedir),
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
