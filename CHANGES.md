@@ -8,6 +8,11 @@
 
 - Updated documentation for `[mirror]` configuration options `PR #1669`
 
+## Bug Fixes
+
+- Don't write a diff file unless the 'diff-file' option is set in the configuration file `PR #1694`
+- Correctly interpret references with surrounding text when using custom reference syntax in 'diff-file' `PR #1694`
+
 # 6.5.0
 
 ## New Features
