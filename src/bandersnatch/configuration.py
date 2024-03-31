@@ -6,7 +6,7 @@ import configparser
 import importlib.resources
 import logging
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 from .config.diff_file_reference import eval_legacy_config_ref, has_legacy_config_ref
 from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
@@ -29,25 +29,13 @@ class SetConfigValues(NamedTuple):
     simple_format: SimpleFormat
 
 
-class Singleton(type):  # pragma: no cover
-    _instances: dict["Singleton", type] = {}
-
-    def __call__(cls, *args: Any, **kwargs: Any) -> type:
-        if cls not in cls._instances:
-            cls._instances[cls] = super().__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class BandersnatchConfig(metaclass=Singleton):
+class BandersnatchConfig:
     # Ensure we only show the deprecations once
     SHOWN_DEPRECATIONS = False
 
     def __init__(self, config_file: str | None = None) -> None:
         """
-        Bandersnatch configuration class singleton
-
-        This class is a singleton that parses the configuration once at the
-        start time.
+        Bandersnatch configuration management class.
 
         Parameters
         ==========

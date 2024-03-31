@@ -9,7 +9,6 @@ from bandersnatch.config.diff_file_reference import eval_legacy_config_ref
 from bandersnatch.configuration import (
     BandersnatchConfig,
     SetConfigValues,
-    Singleton,
     validate_config_values,
 )
 from bandersnatch.simple import SimpleFormat
@@ -27,9 +26,6 @@ class TestBandersnatchConf(TestCase):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
-        # Hack to ensure each test gets fresh instance if needed
-        # We have a dedicated test to ensure we're creating a singleton
-        Singleton._instances = {}
 
     def tearDown(self) -> None:
         if self.tempdir:
@@ -37,11 +33,6 @@ class TestBandersnatchConf(TestCase):
             os.chdir(self.cwd)
             self.tempdir.cleanup()
             self.tempdir = None
-
-    def test_is_singleton(self) -> None:
-        instance1 = BandersnatchConfig()
-        instance2 = BandersnatchConfig()
-        self.assertEqual(id(instance1), id(instance2))
 
     def test_single_config__default__all_sections_present(self) -> None:
         config_file = str(importlib.resources.files("bandersnatch") / "unittest.conf")
@@ -118,16 +109,6 @@ class TestBandersnatchConf(TestCase):
         instance.config_file = "test.conf"
         instance.load_configuration()
         self.assertEqual(instance.config["mirror"]["master"], "https://foo.bar.baz")
-
-    def test_multiple_instances_custom_setting_str(self) -> None:
-        with open("test.conf", "w") as testconfig_handle:
-            testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
-        instance1 = BandersnatchConfig()
-        instance1.config_file = "test.conf"
-        instance1.load_configuration()
-
-        instance2 = BandersnatchConfig()
-        self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(

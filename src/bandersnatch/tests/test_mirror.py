@@ -12,7 +12,7 @@ import pytest
 from freezegun import freeze_time
 
 from bandersnatch import utils
-from bandersnatch.configuration import BandersnatchConfig, Singleton
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.filter import LoadedFilters
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
@@ -155,7 +155,6 @@ enabled =
 packages =
     example1
 """
-    Singleton._instances = {}
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
     bc = BandersnatchConfig("test.conf")
@@ -182,11 +181,12 @@ enable =
 packages =
     example3>2.0.0
 """
-    Singleton._instances = {}
     with open("test.conf", "w") as testconfig_handle:
         testconfig_handle.write(test_configuration)
-    BandersnatchConfig("test.conf")
-    m = BandersnatchMirror(tmp_path, mock.Mock(), local_storage, empty_filters)
+    bc = BandersnatchConfig("test.conf")
+    m = BandersnatchMirror(
+        tmp_path, mock.Mock(), local_storage, LoadedFilters(config=bc.config)
+    )
     m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()
     assert "example3" in m.packages_to_sync.keys()
