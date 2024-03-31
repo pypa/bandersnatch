@@ -14,6 +14,7 @@ from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
 from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
 
+from bandersnatch.filter import LoadedFilters
 from bandersnatch.storage import Storage
 
 if TYPE_CHECKING:
@@ -122,6 +123,12 @@ def local_storage(tmp_path: Path, local_storage_factory: StorageFactory) -> Stor
 
 
 @pytest.fixture
+def empty_filters() -> LoadedFilters:
+    cfg = ConfigParser()
+    return LoadedFilters(cfg, load_all=True)
+
+
+@pytest.fixture
 def master(package_json: dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
 
@@ -164,12 +171,15 @@ def mirror(
     tmp_path: Path,
     master: "Master",
     monkeypatch: MonkeyPatch,
+    empty_filters: LoadedFilters,
     local_storage_factory: StorageFactory,
 ) -> "BandersnatchMirror":
     monkeypatch.chdir(tmp_path)
     from bandersnatch.mirror import BandersnatchMirror
 
-    return BandersnatchMirror(tmp_path, master, local_storage_factory(tmp_path))
+    return BandersnatchMirror(
+        tmp_path, master, local_storage_factory(tmp_path), empty_filters
+    )
 
 
 @pytest.fixture
@@ -177,13 +187,18 @@ def mirror_hash_index(
     tmp_path: Path,
     master: "Master",
     monkeypatch: MonkeyPatch,
+    empty_filters: LoadedFilters,
     local_storage_factory: StorageFactory,
 ) -> "BandersnatchMirror":
     monkeypatch.chdir(tmp_path)
     from bandersnatch.mirror import BandersnatchMirror
 
     return BandersnatchMirror(
-        tmp_path, master, local_storage_factory(tmp_path), hash_index=True
+        tmp_path,
+        master,
+        local_storage_factory(tmp_path),
+        empty_filters,
+        hash_index=True,
     )
 
 

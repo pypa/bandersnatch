@@ -11,15 +11,17 @@ import sys
 import tempfile
 import unittest
 from collections.abc import Iterator
+from configparser import ConfigParser
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest import TestCase, mock
 
 import bandersnatch.storage
+from bandersnatch.filter import LoadedFilters
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
-from bandersnatch.storage import PATH_TYPES
+from bandersnatch.storage import PATH_TYPES, Storage
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import filesystem, swift
 
@@ -416,7 +418,9 @@ workers = 3
 
     def setUp_mirror(self) -> None:
         self.master = Master(url="https://foo.bar.com")
-        self.mirror = BandersnatchMirror(self.mirror_path, self.master, self.plugin)
+        self.mirror = BandersnatchMirror(
+            self.mirror_path, self.master, self.plugin, LoadedFilters(ConfigParser())
+        )
         pkg = Package("foobar", serial=1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},
@@ -426,7 +430,7 @@ workers = 3
 
     def setUp_plugin(self) -> None:
         if self.backend is not None:
-            self.plugin = next(
+            self.plugin: Storage = next(
                 iter(
                     bandersnatch.storage.storage_backend_plugins(
                         self.config_data.config, self.backend, clear_cache=True

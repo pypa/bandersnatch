@@ -27,7 +27,7 @@ class TestSizeProjectMetadataFilter(TestCase):
             self.tempdir.cleanup()
 
     def test__size__plugin__loads__and__initializes(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
@@ -38,7 +38,7 @@ max_package_size = 1G
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_metadata_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_metadata_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["size_project_metadata"])
         self.assertEqual(len(plugins), 1)
@@ -47,7 +47,7 @@ max_package_size = 1G
         self.assertTrue(plugin.initialized)
 
     def test__filter__size__only(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
@@ -58,7 +58,7 @@ max_package_size = 2K
 """
         )
 
-        mirror = make_test_mirror()
+        mirror = make_test_mirror(config=bc.config)
 
         # Test that under-sized project is allowed
         pkg = Package("foo", 1)
@@ -77,7 +77,7 @@ max_package_size = 2K
         self.assertFalse(pkg.filter_metadata(mirror.filters.filter_metadata_plugins()))
 
     def test__filter__size__or__allowlist(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
@@ -92,7 +92,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror()
+        mirror = make_test_mirror(config=bc.config)
 
         # Test that under-sized, allowlisted project is allowed
         pkg = Package("foo", 1)

@@ -155,7 +155,7 @@ async def verify(
         return
 
     # apply releases filter plugins like class Package
-    for plugin in LoadedFilters().filter_release_plugins() or []:
+    for plugin in LoadedFilters(config).filter_release_plugins() or []:
         plugin.filter(pkg)
 
     deferred_exception = None

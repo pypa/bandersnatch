@@ -45,9 +45,11 @@ platforms =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(
+            bc.config
+        ).filter_release_file_plugins()
 
         assert any(
             type(plugin) is filename_name.ExcludePlatformFilter for plugin in plugins
@@ -60,9 +62,9 @@ platforms =
         freebsd and macos packages while only dropping linux-armv7l from
         linux packages
         """
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        mirror = make_test_mirror()
+        mirror = make_test_mirror(config=bc.config)
         pkg = Package("foobar", 1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},

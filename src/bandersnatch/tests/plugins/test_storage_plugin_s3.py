@@ -9,14 +9,6 @@ from bandersnatch_storage_plugins import s3
 _empty_cfg = ConfigParser()
 
 
-def s3_backend(bucket: S3Path) -> s3.S3Storage:
-    config = ConfigParser()
-    config.read_dict(
-        {"mirror": {"storage-backend": "s3", "directory": bucket.as_posix()}}
-    )
-    return s3.S3Storage(config=config)
-
-
 def test_rewrite(s3_mock: S3Path) -> None:
     backend = s3.S3Storage(config=_empty_cfg)
     with backend.rewrite(f"/{s3_mock.bucket}/test") as fp:

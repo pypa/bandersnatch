@@ -38,9 +38,9 @@ class Mirror:
     # of it when starting to sync.
     now: datetime.datetime | None = None
 
-    def __init__(self, master: Master, workers: int = 3):
+    def __init__(self, master: Master, filters: LoadedFilters, workers: int = 3):
         self.master = master
-        self.filters = LoadedFilters(load_all=True)
+        self.filters = filters
         self.workers = workers
         if self.workers > 10:
             raise ValueError("Downloading with more than 10 workers is not allowed")
@@ -181,6 +181,7 @@ class BandersnatchMirror(Mirror):
         homedir: Path,
         master: Master,
         storage_backend: Storage,
+        filters: LoadedFilters,
         stop_on_error: bool = False,
         workers: int = 3,
         hash_index: bool = False,
@@ -200,7 +201,7 @@ class BandersnatchMirror(Mirror):
         download_mirror_no_fallback: bool | None = False,
         simple_format: SimpleFormat | str = "ALL",
     ) -> None:
-        super().__init__(master=master, workers=workers)
+        super().__init__(master=master, filters=filters, workers=workers)
         self.cleanup = cleanup
 
         self.storage_backend = storage_backend
@@ -983,7 +984,8 @@ async def mirror(
         mirror = BandersnatchMirror(
             homedir,
             master,
-            storage_backend=storage_plugin,
+            storage_plugin,
+            LoadedFilters(config, load_all=True),
             stop_on_error=config.getboolean("mirror", "stop-on-error"),
             workers=config.getint("mirror", "workers"),
             hash_index=config.getboolean("mirror", "hash-index"),

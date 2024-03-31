@@ -1,5 +1,6 @@
 import os
 import re
+from configparser import ConfigParser
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
@@ -40,9 +41,9 @@ packages =
 """
 
     def test_plugin_includes_predefined_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
 
         assert any(
             type(plugin) is prerelease_name.PreReleaseFilter for plugin in plugins
@@ -57,8 +58,8 @@ packages =
         ]
         assert plugin.patterns == expected_patterns
 
-    def _check_filter(self, package: str) -> bool:
-        mirror = make_test_mirror()
+    def _check_filter(self, package: str, cfg: ConfigParser) -> bool:
+        mirror = make_test_mirror(config=cfg)
         pkg = Package(package, serial=1)
         pkg._metadata = {
             "info": {"name": package, "version": "1.2.0"},
@@ -78,11 +79,11 @@ packages =
         return bool(pkg.releases == {"1.2.0": {}})
 
     def test_plugin_filter_all(self) -> None:
-        mock_config(self.config_contents)
-        assert self._check_filter("foo") is True
-        assert self._check_filter("duckdb") is True
+        bc = mock_config(self.config_contents)
+        assert self._check_filter("foo", bc.config) is True
+        assert self._check_filter("duckdb", bc.config) is True
 
     def test_plugin_filter_packages(self) -> None:
-        mock_config(self.config_contents + self.config_match_package)
-        assert self._check_filter("foo") is False
-        assert self._check_filter("duckdb") is True
+        bc = mock_config(self.config_contents + self.config_match_package)
+        assert self._check_filter("foo", bc.config) is False
+        assert self._check_filter("duckdb", bc.config) is True
