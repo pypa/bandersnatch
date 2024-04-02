@@ -123,7 +123,7 @@ class S3Storage(StoragePlugin):
     PATH_BACKEND = S3Path
     resource = None
     UPLOAD_TIME_METADATA_KEY = "uploaded-at"
-    CONFIG_PREFIX = "config_param_"
+    BOTO_CONFIG_PREFIX = "config_param_"
     configuration_parameters: dict = {}
 
     def get_config_value(
@@ -150,9 +150,9 @@ class S3Storage(StoragePlugin):
         endpoint_url = self.get_config_value("endpoint_url")
         signature_version = self.get_config_value("signature_version")
         self.configuration_parameters = {
-            k.removeprefix(self.CONFIG_PREFIX): v
+            k.removeprefix(self.BOTO_CONFIG_PREFIX): v
             for k, v in self.configuration["s3"].items()
-            if k.startswith(self.CONFIG_PREFIX)
+            if k.startswith(self.BOTO_CONFIG_PREFIX)
         }
         try:
             mirror_base_path = PureS3Path(self.configuration.get("mirror", "directory"))
