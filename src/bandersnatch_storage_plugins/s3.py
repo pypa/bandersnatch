@@ -123,6 +123,8 @@ class S3Storage(StoragePlugin):
     PATH_BACKEND = S3Path
     resource = None
     UPLOAD_TIME_METADATA_KEY = "uploaded-at"
+    CONFIG_PREFIX = "config_param_"
+    configuration_parameters: dict = {}
 
     def get_config_value(
         self, config_key: str, *env_keys: Any, default: str | None = None
@@ -147,6 +149,11 @@ class S3Storage(StoragePlugin):
         aws_secret_access_key = self.get_config_value("aws_secret_access_key")
         endpoint_url = self.get_config_value("endpoint_url")
         signature_version = self.get_config_value("signature_version")
+        self.configuration_parameters = {
+            k.removeprefix(self.CONFIG_PREFIX): v
+            for k, v in self.configuration["s3"].items()
+            if k.startswith(self.CONFIG_PREFIX)
+        }
         try:
             mirror_base_path = PureS3Path(self.configuration.get("mirror", "directory"))
         except (configparser.NoOptionError, configparser.NoSectionError) as e:
@@ -166,7 +173,11 @@ class S3Storage(StoragePlugin):
         if signature_version:
             s3_args["config"] = Config(signature_version=signature_version)
         resource = boto3.resource("s3", **s3_args)
-        register_configuration_parameter(mirror_base_path, resource=resource)
+        register_configuration_parameter(
+            mirror_base_path,
+            resource=resource,
+            parameters=self.configuration_parameters,
+        )
 
     def get_lock(self, path: str | None = None) -> S3FileLock:
         if path is None:
@@ -255,6 +266,7 @@ class S3Storage(StoragePlugin):
             Key=dest.key,
             CopySource={"Bucket": source.bucket, "Key": source.key},
             Bucket=dest.bucket,
+            **self.configuration_parameters,
         )
         return
 
@@ -428,4 +440,5 @@ class S3Storage(StoragePlugin):
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata,
             MetadataDirective="REPLACE",
+            **self.configuration_parameters,
         )
