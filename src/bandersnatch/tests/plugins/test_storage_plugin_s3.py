@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytest
 from s3path import S3Path
 
 from bandersnatch.tests.mock_config import mock_config
@@ -196,6 +197,44 @@ endpoint_url = http://localhost:9090
     path = s3.S3Path("/tmp/pypi")
     resource, _ = path._accessor.configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
+
+
+def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
+    config_loader = mock_config(
+        """
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = swift
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+signature_version = s3v4
+config_param_ServerSideEncryption = AES256
+"""
+    )
+    backend = s3.S3Storage(config=config_loader.config)
+    backend.initialize_plugin()
+
+    assert backend.configuration_parameters["ServerSideEncryption"] == "AES256"
+
+    # Limitation of min.io, but tells us that the expected config param was used
+    with pytest.raises(ValueError) as execinfo:
+        backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+    assert "KMS not configured for a server side encrypted objects" in str(
+        execinfo.value
+    )
 
 
 def test_upload_time(s3_mock: S3Path) -> None:
