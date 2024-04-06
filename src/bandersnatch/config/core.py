@@ -1,15 +1,19 @@
+import sys
 from collections.abc import Mapping
 from configparser import ConfigParser, ExtendedInterpolation
 from pathlib import Path
 from typing import Protocol, TypeVar, cast
 
-from typing_extensions import Self
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    Self = TypeVar("Self", bound="ConfigModel")
 
 
 class ConfigModel(Protocol):
 
     @classmethod
-    def from_config_parser(cls, source: ConfigParser) -> Self: ...
+    def from_config_parser(cls: type[Self], source: ConfigParser) -> Self: ...
 
 
 _C = TypeVar("_C", bound=ConfigModel)
