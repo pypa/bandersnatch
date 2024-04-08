@@ -2,6 +2,7 @@
 
 ## New Features
 
+- Add arbitrary configuration option for S3 Storage Backend Boto3 calls (PR #1697)
 - Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
 
 ## Documentation
