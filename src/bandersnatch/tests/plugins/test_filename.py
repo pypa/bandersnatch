@@ -47,9 +47,7 @@ platforms =
     def test_plugin_compiles_patterns(self) -> None:
         bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters(
-            bc.config
-        ).filter_release_file_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_file_plugins()
 
         assert any(
             type(plugin) is filename_name.ExcludePlatformFilter for plugin in plugins
@@ -64,7 +62,7 @@ platforms =
         """
         bc = mock_config(self.config_contents)
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foobar", 1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},

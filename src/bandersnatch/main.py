@@ -4,16 +4,17 @@ import logging
 import logging.config
 import shutil
 import sys
-from configparser import ConfigParser
 from pathlib import Path
 from tempfile import gettempdir
 
-import bandersnatch.configuration
 import bandersnatch.delete
 import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.verify
+from bandersnatch.config import BandersnatchConfig
+from bandersnatch.config.core import write_default_config_file
+from bandersnatch.config.errors import ConfigurationError
 from bandersnatch.storage import storage_backend_plugins
 
 # See if we have uvloop and use if so
@@ -149,7 +150,7 @@ def _make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
+async def async_main(args: argparse.Namespace, config: BandersnatchConfig) -> int:
     if args.op.lower() == "delete":
         async with bandersnatch.master.Master(
             config.get("mirror", "master"),
@@ -203,22 +204,23 @@ def main(loop: asyncio.AbstractEventLoop | None = None) -> int:
     # Prepare default config file if needed.
     config_path = Path(args.config)
     if not config_path.exists():
-        logger.warning(f"Config file '{args.config}' missing, creating default config.")
+        logger.warning(f"Config file '{args.config}' missing; creating default config.")
         logger.warning("Please review the config file, then run 'bandersnatch' again.")
-
-        default_config_path = Path(__file__).parent / "default.conf"
         try:
-            shutil.copy(default_config_path, args.config)
+            write_default_config_file(config_path)
         except OSError as e:
-            logger.error(f"Could not create config file: {e}")
+            logger.error("Could not create config file: %s", e)
         return 1
 
-    config = bandersnatch.configuration.BandersnatchConfig(
-        config_file=args.config
-    ).config
+    try:
+        config = BandersnatchConfig.from_path(config_path)
+    except (ConfigurationError, OSError) as err:
+        logger.error("Error reading config file: %s", str(err))
+        logger.debug("Error reading config file; exception info:", exc_info=err)
+        return 1
 
     if config.has_option("mirror", "log-config"):
-        logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
+        logging.config.fileConfig(Path(config.get("mirror", "log-config")))
 
     if loop:
         loop.set_debug(args.debug)

@@ -43,7 +43,7 @@ packages =
     def test_plugin_includes_predefined_patterns(self) -> None:
         bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_plugins()
 
         assert any(
             type(plugin) is prerelease_name.PreReleaseFilter for plugin in plugins
@@ -80,10 +80,10 @@ packages =
 
     def test_plugin_filter_all(self) -> None:
         bc = mock_config(self.config_contents)
-        assert self._check_filter("foo", bc.config) is True
-        assert self._check_filter("duckdb", bc.config) is True
+        assert self._check_filter("foo", bc) is True
+        assert self._check_filter("duckdb", bc) is True
 
     def test_plugin_filter_packages(self) -> None:
         bc = mock_config(self.config_contents + self.config_match_package)
-        assert self._check_filter("foo", bc.config) is False
-        assert self._check_filter("duckdb", bc.config) is True
+        assert self._check_filter("foo", bc) is False
+        assert self._check_filter("duckdb", bc) is True

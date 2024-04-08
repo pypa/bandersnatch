@@ -2,7 +2,6 @@ import os.path
 import sys
 import unittest.mock as mock
 from collections.abc import Callable, Iterator
-from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -12,7 +11,7 @@ import pytest
 from freezegun import freeze_time
 
 from bandersnatch import utils
-from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.config import BandersnatchConfig
 from bandersnatch.filter import LoadedFilters
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
@@ -148,18 +147,19 @@ def test_mirror_filter_packages_match(
     packages to sync.
     """
     test_configuration = """\
-[plugins]
-enabled =
-    blocklist_project
-[blocklist]
-packages =
-    example1
-"""
-    with open("test.conf", "w") as testconfig_handle:
-        testconfig_handle.write(test_configuration)
-    bc = BandersnatchConfig("test.conf")
+    [plugins]
+    enabled =
+        blocklist_project
+    [blocklist]
+    packages =
+        example1
+    """
+
+    bc = BandersnatchConfig()
+    bc.read_string(test_configuration)
+
     m = BandersnatchMirror(
-        tmp_path, mock.Mock(), local_storage, LoadedFilters(bc.config, load_all=True)
+        tmp_path, mock.Mock(), local_storage, LoadedFilters(bc, load_all=True)
     )
     m.packages_to_sync = {"example1": "", "example2": ""}
     m._filter_packages()
@@ -174,18 +174,18 @@ def test_mirror_filter_packages_nomatch_package_with_spec(
     list of packages.
     """
     test_configuration = """\
-[plugins]
-enable =
-    blocklist_project
-[blocklist]
-packages =
-    example3>2.0.0
-"""
-    with open("test.conf", "w") as testconfig_handle:
-        testconfig_handle.write(test_configuration)
-    bc = BandersnatchConfig("test.conf")
+    [plugins]
+    enable =
+        blocklist_project
+    [blocklist]
+    packages =
+        example3>2.0.0
+    """
+    bc = BandersnatchConfig()
+    bc.read_string(test_configuration)
+
     m = BandersnatchMirror(
-        tmp_path, mock.Mock(), local_storage, LoadedFilters(config=bc.config)
+        tmp_path, mock.Mock(), local_storage, LoadedFilters(config=bc)
     )
     m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()
@@ -239,7 +239,7 @@ async def test_mirror_subcommand_only_creates_diff_file_if_configured(
 ) -> None:
     # Setup 1 - create a configuration for the 'mirror' subcommand
     # (Configuration is passed as a parameter, so we don't need to fiddle with Singleton)
-    config = ConfigParser()
+    config = BandersnatchConfig()
     config.read_dict(
         {
             "mirror": {

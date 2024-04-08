@@ -5,7 +5,7 @@ from configparser import ConfigParser
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.config import BandersnatchConfig
 from bandersnatch.tests.mock_config import mock_config
 
 from bandersnatch.filter import (  # isort:skip
@@ -51,7 +51,7 @@ enabled = all
             "allowlist_project",
         ]
 
-        plugins = LoadedFilters(bc.config).filter_project_plugins()
+        plugins = LoadedFilters(bc).filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
@@ -70,7 +70,7 @@ enabled = all
             "latest_release",
         ]
 
-        plugins = LoadedFilters(bc.config).filter_release_plugins()
+        plugins = LoadedFilters(bc).filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
@@ -83,10 +83,10 @@ enabled =
 """
         )
 
-        plugins = LoadedFilters(bc.config).filter_release_plugins()
+        plugins = LoadedFilters(bc).filter_release_plugins()
         self.assertEqual(len(plugins), 0)
 
-        plugins = LoadedFilters(bc.config).filter_project_plugins()
+        plugins = LoadedFilters(bc).filter_project_plugins()
         self.assertEqual(len(plugins), 0)
 
     def test__filter_base_clases(self) -> None:
@@ -125,12 +125,10 @@ enabled =
         self.assertFalse(error)
 
     def test_deprecated_keys(self) -> None:
-        with open("test.conf", "w") as f:
-            f.write("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
-        plugin = Filter(config=instance.config)
+        instance.read_string("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
+
+        plugin = Filter(config=instance)
         assert plugin.allowlist.name == "allowlist"
         assert plugin.blocklist.name == "blocklist"
 
@@ -155,8 +153,7 @@ packages =
         )
 
         plugins = {
-            plugin.name: plugin
-            for plugin in LoadedFilters(bc.config).filter_project_plugins()
+            plugin.name: plugin for plugin in LoadedFilters(bc).filter_project_plugins()
         }
 
         self.assertTrue(plugins["blocklist_project"].check_match(name="sampleproject"))

@@ -38,7 +38,7 @@ max_package_size = 1G
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_metadata_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_metadata_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["size_project_metadata"])
         self.assertEqual(len(plugins), 1)
@@ -58,7 +58,7 @@ max_package_size = 2K
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
 
         # Test that under-sized project is allowed
         pkg = Package("foo", 1)
@@ -92,7 +92,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
 
         # Test that under-sized, allowlisted project is allowed
         pkg = Package("foo", 1)

@@ -37,7 +37,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["blocklist_project"])
         self.assertEqual(len(plugins), 1)
@@ -51,7 +51,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blocklist_project", names)
 
@@ -62,7 +62,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blocklist_project", names)
 
@@ -78,7 +78,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         mirror.packages_to_sync = {"foo": ""}
         mirror._filter_packages()
 
@@ -95,7 +95,7 @@ packages =
         """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         mirror.packages_to_sync = {"foo2": ""}
         mirror._filter_packages()
 
@@ -117,7 +117,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         mirror.packages_to_sync = {"foo": "", "foo2": ""}
         mirror._filter_packages()
 
@@ -141,7 +141,7 @@ packages =
     snu
 """
         )
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         mirror.packages_to_sync = {
             "foo": "",
             "foo2": "",
@@ -182,7 +182,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["blocklist_release"])
         self.assertEqual(len(plugins), 1)
@@ -196,7 +196,7 @@ enabled =
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertNotIn("blocklist_release", names)
 
@@ -212,7 +212,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -235,7 +235,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},
@@ -265,7 +265,7 @@ packages =
 """
         )
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo"},

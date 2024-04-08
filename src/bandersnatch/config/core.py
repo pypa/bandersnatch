@@ -1,3 +1,5 @@
+import importlib.resources
+import shutil
 import sys
 from collections.abc import Mapping
 from configparser import ConfigParser, ExtendedInterpolation
@@ -44,3 +46,18 @@ class BandersnatchConfig(ConfigParser):
         if name not in self._validate_config_models:
             self._validate_config_models[name] = model.from_config_parser(self)
         return cast(_C, self._validate_config_models[name])
+
+    @classmethod
+    def from_path(
+        cls, source_file: Path, *, defaults: Mapping[str, str] | None = None
+    ) -> "BandersnatchConfig":
+        config = cls(defaults=defaults)
+        config.read_path(source_file)
+        return config
+
+
+def write_default_config_file(dest: Path) -> None:
+    with importlib.resources.path(
+        "bandersnatch", "default.conf"
+    ) as default_config_path:
+        shutil.copy(default_config_path, dest)

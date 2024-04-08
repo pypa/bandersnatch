@@ -39,7 +39,7 @@ keep = 2
     def test_plugin_compiles_patterns(self) -> None:
         bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_plugins()
 
         assert any(
             type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins
@@ -54,7 +54,7 @@ keep = 2
     def test_latest_releases_keep_latest(self) -> None:
         bc = mock_config(self.config_contents)
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -75,7 +75,7 @@ keep = 2
     def test_latest_releases_keep_latest_time(self) -> None:
         bc = mock_config(self.config_contents + "\nsort_by = time")
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -100,7 +100,7 @@ keep = 2
     def test_latest_releases_keep_stable(self) -> None:
         bc = mock_config(self.config_contents)
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},  # stable version
@@ -127,7 +127,7 @@ keep = 2
         """
         bc = mock_config(self.config_contents)
 
-        mirror = make_test_mirror(config=bc.config)
+        mirror = make_test_mirror(config=bc)
         pkg1 = Package("foo", 1)
         pkg1._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -173,7 +173,7 @@ enabled =
     def test_plugin_compiles_patterns(self) -> None:
         bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters(bc.config).filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(bc).filter_release_plugins()
 
         assert any(
             type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins

@@ -136,6 +136,25 @@ class MirrorOptions:
 
         return instance
 
+    @classmethod
+    def populate_defaults(cls, config: ConfigParser) -> None:
+        if not config.has_section("mirror"):
+            config.add_section("mirror")
+        section = config["mirror"]
+
+        option: attrs.Attribute
+        for option in attrs.fields(cls):
+            if option.default is attrs.NOTHING or option.default is None:
+                continue
+            option_name = option.alias or option.name
+            if isinstance(option.default, PurePath):
+                option_value = option.default.as_posix()
+            elif not isinstance(option.default, str):
+                option_value = str(option.default)
+            else:
+                option_value = option.default
+            section[option_name] = option_value
+
 
 def _check_legacy_reference(config: ConfigParser, value: str) -> str | None:
     if not has_legacy_config_ref(value):

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from bandersnatch import utils
-from bandersnatch.configuration import validate_config_values
+from bandersnatch.config import BandersnatchConfig, MirrorOptions
 from bandersnatch.package import Package
 from bandersnatch.simple import (
     InvalidDigestFormat,
@@ -46,11 +46,12 @@ def test_digest_valid(local_storage: Storage) -> None:
 
 
 def test_digest_config_default(local_storage: Storage) -> None:
-    c = ConfigParser()
-    c.add_section("mirror")
-    config = validate_config_values(c)
+    c = BandersnatchConfig()
+    c.read_dict({"mirror": {"directory": "/"}})
+
+    config = c.get_validated(MirrorOptions)
     s = SimpleAPI(local_storage, "ALL", [], config.digest_name, False, None)
-    assert config.digest_name.upper() in [v.name for v in SimpleDigest]
+    assert config.digest_name in [v for v in SimpleDigest]
     assert s.digest_name == SimpleDigest.SHA256
 
 
