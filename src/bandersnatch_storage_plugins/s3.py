@@ -123,6 +123,8 @@ class S3Storage(StoragePlugin):
     PATH_BACKEND = S3Path
     resource = None
     UPLOAD_TIME_METADATA_KEY = "uploaded-at"
+    BOTO_CONFIG_PREFIX = "config_param_"
+    configuration_parameters: dict = {}
 
     def get_config_value(
         self, config_key: str, *env_keys: Any, default: str | None = None
@@ -147,6 +149,11 @@ class S3Storage(StoragePlugin):
         aws_secret_access_key = self.get_config_value("aws_secret_access_key")
         endpoint_url = self.get_config_value("endpoint_url")
         signature_version = self.get_config_value("signature_version")
+        self.configuration_parameters = {
+            k.removeprefix(self.BOTO_CONFIG_PREFIX): v
+            for k, v in self.configuration["s3"].items()
+            if k.startswith(self.BOTO_CONFIG_PREFIX)
+        }
         try:
             mirror_base_path = PureS3Path(self.configuration.get("mirror", "directory"))
         except (configparser.NoOptionError, configparser.NoSectionError) as e:
@@ -166,7 +173,17 @@ class S3Storage(StoragePlugin):
         if signature_version:
             s3_args["config"] = Config(signature_version=signature_version)
         resource = boto3.resource("s3", **s3_args)
-        register_configuration_parameter(mirror_base_path, resource=resource)
+        register_configuration_parameter(
+            mirror_base_path,
+            resource=resource,
+            parameters=self.configuration_parameters,
+        )
+
+    def create_path_backend(self, path: PATH_TYPES) -> S3Path:
+        path = self.PATH_BACKEND(path)
+        register_configuration_parameter(path, parameters=self.configuration_parameters)
+
+        return path
 
     def get_lock(self, path: str | None = None) -> S3FileLock:
         if path is None:
@@ -175,7 +192,7 @@ class S3Storage(StoragePlugin):
 
     def walk(self, root: PATH_TYPES, dirs: bool = True) -> list[S3Path]:
         if not isinstance(root, self.PATH_BACKEND):
-            root = self.PATH_BACKEND(root)
+            root = self.create_path_backend(root)
 
         results: list[S3Path] = []
         for pth in root.iterdir():
@@ -203,7 +220,7 @@ class S3Storage(StoragePlugin):
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
-            filepath = self.PATH_BACKEND(filepath)
+            filepath = self.create_path_backend(filepath)
         with filepath.open(mode=mode, **kw) as fh:
             yield fh
 
@@ -255,6 +272,7 @@ class S3Storage(StoragePlugin):
             Key=dest.key,
             CopySource={"Bucket": source.bucket, "Key": source.key},
             Bucket=dest.bucket,
+            **self.configuration_parameters,
         )
         return
 
@@ -265,7 +283,7 @@ class S3Storage(StoragePlugin):
         encoding: str | None = None,
     ) -> None:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         if isinstance(contents, str):
             with path.open(mode="w", encoding=encoding) as fp:
                 fp.write(contents)
@@ -363,7 +381,7 @@ class S3Storage(StoragePlugin):
         If force is true, remove contents destructively.
         """
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         log_prefix = "[DRY RUN] " if dry_run else ""
         logger.info(f"{log_prefix}Removing file: {path!s}")
         if not dry_run:
@@ -372,22 +390,22 @@ class S3Storage(StoragePlugin):
 
     def exists(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         return bool(path.exists())
 
     def is_dir(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         return bool(path.is_dir())
 
     def is_file(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         return bool(path.is_file())
 
     def is_symlink(self, path: PATH_TYPES) -> bool:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         return bool(path.is_symlink())
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
@@ -403,12 +421,12 @@ class S3Storage(StoragePlugin):
 
     def get_file_size(self, path: PATH_TYPES) -> int:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         return int(path.stat().st_size)
 
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         resource, _ = path._accessor.configuration_map.get_configuration(path)
         s3object = resource.Object(path.bucket, str(path.key))
         ts = s3object.metadata.get(self.UPLOAD_TIME_METADATA_KEY, 0)
@@ -418,7 +436,7 @@ class S3Storage(StoragePlugin):
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         if not isinstance(path, self.PATH_BACKEND):
-            path = self.PATH_BACKEND(path)
+            path = self.create_path_backend(path)
         resource, _ = path._accessor.configuration_map.get_configuration(path)
         s3object = resource.Object(path.bucket, str(path.key))
         s3object.metadata.update({self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
@@ -428,4 +446,5 @@ class S3Storage(StoragePlugin):
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata,
             MetadataDirective="REPLACE",
+            **self.configuration_parameters,
         )
