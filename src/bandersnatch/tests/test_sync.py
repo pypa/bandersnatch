@@ -10,8 +10,7 @@ from bandersnatch.mirror import BandersnatchMirror
 @pytest.mark.asyncio
 async def test_sync_specific_packages(mirror: BandersnatchMirror) -> None:
     FAKE_SERIAL = b"112233"
-    with open("status", "wb") as f:
-        f.write(FAKE_SERIAL)
+    (mirror.homedir / "status").write_bytes(FAKE_SERIAL)
     # Package names should be normalized by synchronize()
     specific_packages = ["Foo"]
     mirror.master.all_packages = AsyncMock(return_value={"foo": 1})  # type: ignore

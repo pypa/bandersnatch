@@ -7,10 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 import pkg_resources
 
-from .configuration import BandersnatchConfig
-
 if TYPE_CHECKING:
-    from configparser import SectionProxy
+    from configparser import ConfigParser, SectionProxy
 
 
 # The API_REVISION is incremented if the plugin class is modified in a
@@ -36,8 +34,8 @@ class Filter:
     name = "filter"
     deprecated_name: str = ""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.configuration = BandersnatchConfig().config
+    def __init__(self, *args: Any, config: "ConfigParser", **kwargs: Any) -> None:
+        self.configuration = config
         if (
             "plugins" not in self.configuration
             or "enabled" not in self.configuration["plugins"]
@@ -152,11 +150,11 @@ class LoadedFilters:
         RELEASE_FILE_PLUGIN_RESOURCE,
     ]
 
-    def __init__(self, load_all: bool = False) -> None:
+    def __init__(self, config: "ConfigParser", load_all: bool = False) -> None:
         """
         Loads and stores all of specified filters from the config file
         """
-        self.config = BandersnatchConfig().config
+        self.config = config
         self.loaded_filter_plugins: dict[str, list["Filter"]] = defaultdict(list)
         self.enabled_plugins = self._load_enabled()
         if load_all:
@@ -189,7 +187,7 @@ class LoadedFilters:
             plugins = set()
             for entry_point in pkg_resources.iter_entry_points(group=group):
                 plugin_class = entry_point.load()
-                plugin_instance = plugin_class()
+                plugin_instance = plugin_class(config=self.config)
                 if (
                     "all" in self.enabled_plugins
                     or plugin_instance.name in self.enabled_plugins

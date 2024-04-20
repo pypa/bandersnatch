@@ -1,14 +1,11 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config, mock_mirror
 from bandersnatch_filter_plugins.metadata_filter import SizeProjectMetadataFilter
 
 
@@ -29,7 +26,7 @@ class TestSizeProjectMetadataFilter(TestCase):
             self.tempdir.cleanup()
 
     def test__size__plugin__loads__and__initializes(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
@@ -40,7 +37,7 @@ max_package_size = 1G
 """
         )
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_metadata_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(config=bc).filter_metadata_plugins()
         names = [plugin.name for plugin in plugins]
         self.assertListEqual(names, ["size_project_metadata"])
         self.assertEqual(len(plugins), 1)
@@ -49,7 +46,7 @@ max_package_size = 1G
         self.assertTrue(plugin.initialized)
 
     def test__filter__size__only(self) -> None:
-        mock_config(
+        mirror = mock_mirror(
             """\
 [plugins]
 enabled =
@@ -59,8 +56,6 @@ enabled =
 max_package_size = 2K
 """
         )
-
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
 
         # Test that under-sized project is allowed
         pkg = Package("foo", 1)
@@ -79,7 +74,7 @@ max_package_size = 2K
         self.assertFalse(pkg.filter_metadata(mirror.filters.filter_metadata_plugins()))
 
     def test__filter__size__or__allowlist(self) -> None:
-        mock_config(
+        mirror = mock_mirror(
             """\
 [plugins]
 enabled =
@@ -93,8 +88,6 @@ packages =
     foo
 """
         )
-
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
 
         # Test that under-sized, allowlisted project is allowed
         pkg = Package("foo", 1)

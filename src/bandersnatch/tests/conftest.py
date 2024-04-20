@@ -1,9 +1,10 @@
 # flake8: noqa
 import os
 import unittest.mock as mock
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from configparser import ConfigParser
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, TypeAlias
 
 import boto3
 import pytest
@@ -12,10 +13,13 @@ from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
 from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
 
-if TYPE_CHECKING:
-    from bandersnatch.master import Master
-    from bandersnatch.mirror import BandersnatchMirror
-    from bandersnatch.package import Package
+from bandersnatch.filter import LoadedFilters
+from bandersnatch.master import Master
+from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.package import Package
+from bandersnatch.storage import Storage
+
+from .types import MirrorFactory, StorageFactory
 
 
 @pytest.fixture(autouse=True)
@@ -129,23 +133,71 @@ def master(package_json: dict[str, Any]) -> "Master":
 
 
 @pytest.fixture
-def mirror(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
-) -> "BandersnatchMirror":
-    monkeypatch.chdir(tmpdir)
+def local_storage_factory() -> StorageFactory:
+    from bandersnatch.storage import storage_backend_plugins
+
+    def _local_storage(location: Path) -> Storage:
+        cfg_data = {
+            "mirror": {
+                "storage-backend": "filesystem",
+                "directory": location.as_posix(),
+                "workers": 2,
+            }
+        }
+        cfg = ConfigParser()
+        cfg.read_dict(cfg_data)
+        return next(iter(storage_backend_plugins(cfg, backend="filesystem")))
+
+    return _local_storage
+
+
+@pytest.fixture
+def local_tmp_storage(tmp_path: Path, local_storage_factory: StorageFactory) -> Storage:
+    return local_storage_factory(tmp_path)
+
+
+@pytest.fixture
+def mirror_factory(
+    tmp_path: Path, local_storage_factory: StorageFactory
+) -> MirrorFactory:
     from bandersnatch.mirror import BandersnatchMirror
 
-    return BandersnatchMirror(tmpdir, master)
+    def _make_mirror(
+        root: Path | None = None,
+        master: Master | None = None,
+        storage: Storage | None = None,
+        filters: LoadedFilters | None = None,
+        **mirror_kwargs: Any,
+    ) -> BandersnatchMirror:
+        root = root or tmp_path
+        master = master or mock.Mock()
+        filters = filters or LoadedFilters(config=ConfigParser())
+        storage = storage or local_storage_factory(tmp_path)
+        return BandersnatchMirror(root, master, storage, filters, **mirror_kwargs)
+
+    return _make_mirror
+
+
+@pytest.fixture
+def mirror(
+    tmp_path: Path,
+    master: "Master",
+    monkeypatch: MonkeyPatch,
+    mirror_factory: MirrorFactory,
+) -> "BandersnatchMirror":
+    monkeypatch.chdir(tmp_path)
+    return mirror_factory(root=tmp_path, master=master)
 
 
 @pytest.fixture
 def mirror_hash_index(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+    tmp_path: Path,
+    master: "Master",
+    monkeypatch: MonkeyPatch,
+    mirror_factory: MirrorFactory,
 ) -> "BandersnatchMirror":
-    monkeypatch.chdir(tmpdir)
-    from bandersnatch.mirror import BandersnatchMirror
-
-    return BandersnatchMirror(tmpdir, master, hash_index=True)
+    monkeypatch.chdir(tmp_path)
+    return mirror_factory(root=tmp_path, master=master, hash_index=True)
 
 
 @pytest.fixture

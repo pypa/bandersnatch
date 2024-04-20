@@ -1,11 +1,12 @@
 import os
 import sys
 import unittest
+from configparser import ConfigParser
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from bandersnatch.configuration import BandersnatchConfig
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config
 
 from bandersnatch.filter import (  # isort:skip
     Filter,
@@ -38,7 +39,7 @@ class TestBandersnatchFilter(TestCase):
             self.tempdir = None
 
     def test__filter_project_plugins__loads(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled = all
@@ -50,13 +51,13 @@ enabled = all
             "allowlist_project",
         ]
 
-        plugins = LoadedFilters().filter_project_plugins()
+        plugins = LoadedFilters(config=bc).filter_project_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
 
     def test__filter_release_plugins__loads(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled = all
@@ -69,31 +70,32 @@ enabled = all
             "latest_release",
         ]
 
-        plugins = LoadedFilters().filter_release_plugins()
+        plugins = LoadedFilters(config=bc).filter_release_plugins()
         names = [plugin.name for plugin in plugins]
         for name in builtin_plugin_names:
             self.assertIn(name, names)
 
     def test__filter_no_plugin(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
 """
         )
 
-        plugins = LoadedFilters().filter_release_plugins()
+        plugins = LoadedFilters(config=bc).filter_release_plugins()
         self.assertEqual(len(plugins), 0)
 
-        plugins = LoadedFilters().filter_project_plugins()
+        plugins = LoadedFilters(config=bc).filter_project_plugins()
         self.assertEqual(len(plugins), 0)
 
     def test__filter_base_clases(self) -> None:
         """
         Test the base filter classes
         """
+        empty_cfg = ConfigParser()
 
-        plugin = Filter()
+        plugin = Filter(config=empty_cfg)
         self.assertEqual(plugin.name, "filter")
         try:
             plugin.initialize_plugin()
@@ -102,7 +104,7 @@ enabled =
             error = True
         self.assertFalse(error)
 
-        plugin = FilterReleasePlugin()
+        plugin = FilterReleasePlugin(config=empty_cfg)
         self.assertIsInstance(plugin, Filter)
         self.assertEqual(plugin.name, "release_plugin")
         try:
@@ -112,7 +114,7 @@ enabled =
             error = True
         self.assertFalse(error)
 
-        plugin = FilterProjectPlugin()
+        plugin = FilterProjectPlugin(config=empty_cfg)
         self.assertIsInstance(plugin, Filter)
         self.assertEqual(plugin.name, "project_plugin")
         try:
@@ -126,15 +128,13 @@ enabled =
     def test_deprecated_keys(self) -> None:
         with open("test.conf", "w") as f:
             f.write("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
-        instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
-        plugin = Filter()
+        instance = BandersnatchConfig.from_path("test.conf", with_defaults=False)
+        plugin = Filter(config=instance)
         assert plugin.allowlist.name == "allowlist"
         assert plugin.blocklist.name == "blocklist"
 
     def test__filter_project_blocklist_allowlist__pep503_normalize(self) -> None:
-        mock_config(
+        bc = mock_config(
             """\
 [plugins]
 enabled =
@@ -154,7 +154,8 @@ packages =
         )
 
         plugins = {
-            plugin.name: plugin for plugin in LoadedFilters().filter_project_plugins()
+            plugin.name: plugin
+            for plugin in LoadedFilters(config=bc).filter_project_plugins()
         }
 
         self.assertTrue(plugins["blocklist_project"].check_match(name="sampleproject"))

@@ -25,37 +25,39 @@ from bandersnatch.tests.test_simple_fixtures import (
 from bandersnatch_storage_plugins.filesystem import FilesystemStorage
 
 
-def test_format_invalid() -> None:
+def test_format_invalid(local_tmp_storage: Storage) -> None:
     with pytest.raises(InvalidSimpleFormat):
-        SimpleAPI(Storage(), "l33t", [], "sha256", False, None)
+        SimpleAPI(local_tmp_storage, "l33t", [], "sha256", False, None)
 
 
-def test_format_valid() -> None:
-    s = SimpleAPI(Storage(), "ALL", [], "sha256", False, None)
+def test_format_valid(local_tmp_storage: Storage) -> None:
+    s = SimpleAPI(local_tmp_storage, "ALL", [], "sha256", False, None)
     assert s.format == SimpleFormat.ALL
 
 
-def test_digest_invalid() -> None:
+def test_digest_invalid(local_tmp_storage: Storage) -> None:
     with pytest.raises(InvalidDigestFormat):
-        SimpleAPI(Storage(), "ALL", [], "digest", False, None)
+        SimpleAPI(local_tmp_storage, "ALL", [], "digest", False, None)
 
 
-def test_digest_valid() -> None:
-    s = SimpleAPI(Storage(), "ALL", [], "md5", False, None)
+def test_digest_valid(local_tmp_storage: Storage) -> None:
+    s = SimpleAPI(local_tmp_storage, "ALL", [], "md5", False, None)
     assert s.digest_name == SimpleDigest.MD5
 
 
-def test_digest_config_default() -> None:
+def test_digest_config_default(local_tmp_storage: Storage) -> None:
     c = ConfigParser()
     c.add_section("mirror")
     config = validate_config_values(c)
-    s = SimpleAPI(Storage(), "ALL", [], config.digest_name, False, None)
+    s = SimpleAPI(local_tmp_storage, "ALL", [], config.digest_name, False, None)
     assert config.digest_name.upper() in [v.name for v in SimpleDigest]
     assert s.digest_name == SimpleDigest.SHA256
 
 
-def test_json_package_page() -> None:
-    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], SimpleDigest.SHA256, False, None)
+def test_json_package_page(local_tmp_storage: Storage) -> None:
+    s = SimpleAPI(
+        local_tmp_storage, SimpleFormat.JSON, [], SimpleDigest.SHA256, False, None
+    )
     p = Package("69")
     p._metadata = SIXTYNINE_METADATA
     assert EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1 == s.generate_json_simple_page(p)

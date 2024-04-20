@@ -12,7 +12,6 @@ from _pytest.logging import LogCaptureFixture
 
 import bandersnatch.mirror
 import bandersnatch.storage
-from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
 from bandersnatch.simple import SimpleFormat
 
@@ -22,11 +21,6 @@ if TYPE_CHECKING:
 
 async def empty_dict(*args: Any, **kwargs: Any) -> dict:
     return {}
-
-
-def setup() -> None:
-    """simple setup function to clear Singleton._instances before each test"""
-    Singleton._instances = {}
 
 
 def test_main_help(capfd: CaptureFixture) -> None:
@@ -76,7 +70,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
     sys.argv = ["bandersnatch", "-c", str(config_path), "mirror"]
     assert config_path.exists()
     main(asyncio.new_event_loop())
-    (homedir, master), kwargs = mirror_mock.call_args_list[0]
+    (homedir, master, _storage, _filters), kwargs = mirror_mock.call_args_list[0]
 
     assert Path("/srv/pypi") == homedir
     assert isinstance(master, bandersnatch.master.Master)
@@ -89,7 +83,6 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "digest_name": "sha256",
         "keep_index_versions": 0,
         "release_files_save": True,
-        "storage_backend": "filesystem",
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
@@ -103,7 +96,6 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
 def test_main_reads_custom_config_values(
     mirror_mock: "BandersnatchMirror", logging_mock: mock.MagicMock, customconfig: Path
 ) -> None:
-    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
     main(asyncio.new_event_loop())
@@ -114,7 +106,6 @@ def test_main_reads_custom_config_values(
 def test_main_throws_exception_on_unsupported_digest_name(
     customconfig: Path,
 ) -> None:
-    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     parser = configparser.ConfigParser()
     parser.read(conffile)

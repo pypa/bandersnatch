@@ -1,14 +1,11 @@
 import os
 import re
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config, mock_mirror
 from bandersnatch_filter_plugins import regex_name
 
 
@@ -42,9 +39,9 @@ releases =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(config=bc).filter_release_plugins()
 
         assert any(type(plugin) is regex_name.RegexReleaseFilter for plugin in plugins)
         plugin = next(
@@ -55,9 +52,8 @@ releases =
         assert plugin.patterns == [re.compile(r".+rc\d$"), re.compile(r".+alpha\d$")]
 
     def test_plugin_check_match(self) -> None:
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "foo-1.2.0"},
@@ -82,9 +78,9 @@ packages =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(config=bc).filter_project_plugins()
 
         assert any(type(plugin) is regex_name.RegexProjectFilter for plugin in plugins)
         plugin = next(
@@ -95,9 +91,8 @@ packages =
         assert plugin.patterns == [re.compile(r".+-evil$"), re.compile(r".+-neutral$")]
 
     def test_plugin_check_match(self) -> None:
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         mirror.packages_to_sync = {"foo-good": "", "foo-evil": "", "foo-neutral": ""}
         mirror._filter_packages()
 

@@ -1,13 +1,10 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config, mock_mirror
 from bandersnatch_filter_plugins import latest_name
 
 
@@ -39,9 +36,9 @@ keep = 2
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(config=bc).filter_release_plugins()
 
         assert any(
             type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins
@@ -54,9 +51,8 @@ keep = 2
         assert plugin.keep == 2
 
     def test_latest_releases_keep_latest(self) -> None:
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -75,9 +71,8 @@ keep = 2
         assert pkg.releases == {"1.1.3": {}, "2.0.0": {}}
 
     def test_latest_releases_keep_latest_time(self) -> None:
-        mock_config(self.config_contents + "\nsort_by = time")
+        mirror = mock_mirror(self.config_contents + "\nsort_by = time")
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -100,9 +95,8 @@ keep = 2
         }
 
     def test_latest_releases_keep_stable(self) -> None:
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},  # stable version
@@ -127,9 +121,8 @@ keep = 2
         Tests the filter multiple times to ensure no state is preserved and
         thus is reusable between packages
         """
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg1 = Package("foo", 1)
         pkg1._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},
@@ -173,9 +166,9 @@ enabled =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(config=bc).filter_release_plugins()
 
         assert any(
             type(plugin) is latest_name.LatestReleaseFilter for plugin in plugins
@@ -188,9 +181,8 @@ enabled =
         assert plugin.keep == 0
 
     def test_latest_releases_uninitialized(self) -> None:
-        mock_config(self.config_contents)
+        mirror = mock_mirror(self.config_contents)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
         pkg = Package("foo", 1)
         pkg._metadata = {
             "info": {"name": "foo", "version": "2.0.0"},

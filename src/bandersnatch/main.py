@@ -165,7 +165,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         )
 
     if args.force_check:
-        storage_plugin = next(iter(storage_backend_plugins()))
+        storage_plugin = next(iter(storage_backend_plugins(config=config)))
         status_file = (
             storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
         )
@@ -213,9 +213,9 @@ def main(loop: asyncio.AbstractEventLoop | None = None) -> int:
             logger.error(f"Could not create config file: {e}")
         return 1
 
-    config = bandersnatch.configuration.BandersnatchConfig(
-        config_file=args.config
-    ).config
+    config = bandersnatch.configuration.BandersnatchConfig.from_path(
+        config_path, with_defaults=True
+    )
 
     if config.has_option("mirror", "log-config"):
         logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))

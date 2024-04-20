@@ -16,11 +16,12 @@ from typing import TYPE_CHECKING, Any
 from unittest import TestCase, mock
 
 import bandersnatch.storage
+from bandersnatch.filter import LoadedFilters
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config
 from bandersnatch_storage_plugins import filesystem, swift
 
 if TYPE_CHECKING:
@@ -378,7 +379,7 @@ workers = 3
         self.tempdir = tempfile.TemporaryDirectory()
         self.pkgs: list[Package] = []
         self.container: str | None = None
-        self.config_data = mock_config(self.config_contents.format(self.backend))
+        self.config = mock_config(self.config_contents.format(self.backend))
         os.chdir(self.tempdir.name)
         self.setUp_backEnd()
         self.setUp_plugin()
@@ -415,8 +416,11 @@ workers = 3
             self.mirror_path = Path(self.mirror_base_path)
 
     def setUp_mirror(self) -> None:
+        filters = LoadedFilters(config=self.config)
         self.master = Master(url="https://foo.bar.com")
-        self.mirror = BandersnatchMirror(self.mirror_path, self.master, self.backend)
+        self.mirror = BandersnatchMirror(
+            self.mirror_path, self.master, self.plugin, filters
+        )
         pkg = Package("foobar", serial=1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},
@@ -428,7 +432,9 @@ workers = 3
         self.plugin = next(
             iter(
                 bandersnatch.storage.storage_backend_plugins(
-                    self.backend, clear_cache=True
+                    config=self.config,
+                    backend=self.backend,
+                    clear_cache=True,
                 )
             )
         )
@@ -614,7 +620,7 @@ web{0}simple{0}index.html""".format(
         self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
 
     def test_json_paths(self) -> None:
-        config = mock_config(self.config_contents).config
+        config = mock_config(self.config_contents)
         mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [

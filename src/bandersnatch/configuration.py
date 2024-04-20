@@ -5,8 +5,10 @@ Module containing classes to access the bandersnatch configuration file
 import configparser
 import importlib.resources
 import logging
+from collections.abc import Mapping
+from configparser import BasicInterpolation, ConfigParser
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 from .config.diff_file_reference import eval_legacy_config_ref, has_legacy_config_ref
 from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
@@ -29,60 +31,44 @@ class SetConfigValues(NamedTuple):
     simple_format: SimpleFormat
 
 
-class Singleton(type):  # pragma: no cover
-    _instances: dict["Singleton", type] = {}
+class BandersnatchConfig(ConfigParser):
 
-    def __call__(cls, *args: Any, **kwargs: Any) -> type:
-        if cls not in cls._instances:
-            cls._instances[cls] = super().__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class BandersnatchConfig(metaclass=Singleton):
-    # Ensure we only show the deprecations once
-    SHOWN_DEPRECATIONS = False
-
-    def __init__(self, config_file: str | None = None) -> None:
-        """
-        Bandersnatch configuration class singleton
-
-        This class is a singleton that parses the configuration once at the
-        start time.
-
-        Parameters
-        ==========
-        config_file: str, optional
-            Path to the configuration file to use
-        """
-        self.found_deprecations: list[str] = []
-        self.default_config_file = str(
-            importlib.resources.files("bandersnatch") / "default.conf"
+    def __init__(self, defaults: Mapping[str, str] | None = None) -> None:
+        super().__init__(
+            defaults=defaults,
+            delimiters=("=",),
+            strict=True,
+            interpolation=BasicInterpolation(),
         )
-        self.config_file = config_file
-        self.load_configuration()
-        # Keeping for future deprecations ... Commenting to save function call etc.
-        # self.check_for_deprecations()
 
-    def check_for_deprecations(self) -> None:
-        if self.SHOWN_DEPRECATIONS:
-            return
-        self.SHOWN_DEPRECATIONS = True
+    # This allows writing option names in the config file with either '_' or '-' as word separators
+    def optionxform(self, optionstr: str) -> str:
+        return optionstr.lower().replace("-", "_")
 
-    def load_configuration(self) -> None:
-        """
-        Read the configuration from a configuration file
-        """
-        config_file = self.default_config_file
-        if self.config_file:
-            config_file = self.config_file
-        self.config = configparser.ConfigParser(delimiters="=")
-        # mypy is unhappy with us assigning to a method - (monkeypatching?)
-        self.config.optionxform = lambda option: option  # type: ignore
-        self.config.read(config_file)
+    def read_defaults_file(self) -> None:
+        defaults_resource = importlib.resources.files("bandersnatch") / "default.conf"
+        with defaults_resource.open() as defaults_file:
+            self.read_file(defaults_file)
+
+    def read_path(self, file_path: Path | str) -> None:
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+        with file_path.open() as cfg_file:
+            self.read_file(cfg_file)
+
+    @classmethod
+    def from_path(
+        cls, config_path: Path | str, *, with_defaults: bool = True
+    ) -> "BandersnatchConfig":
+        config = cls()
+        if with_defaults:
+            config.read_defaults_file()
+        config.read_path(config_path)
+        return config
 
 
 def validate_config_values(  # noqa: C901
-    config: configparser.ConfigParser,
+    config: ConfigParser,
 ) -> SetConfigValues:
     try:
         json_save = config.getboolean("mirror", "json")

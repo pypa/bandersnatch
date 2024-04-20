@@ -9,7 +9,6 @@ from bandersnatch.config.diff_file_reference import eval_legacy_config_ref
 from bandersnatch.configuration import (
     BandersnatchConfig,
     SetConfigValues,
-    Singleton,
     validate_config_values,
 )
 from bandersnatch.simple import SimpleFormat
@@ -27,9 +26,6 @@ class TestBandersnatchConf(TestCase):
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
-        # Hack to ensure each test gets fresh instance if needed
-        # We have a dedicated test to ensure we're creating a singleton
-        Singleton._instances = {}
 
     def tearDown(self) -> None:
         if self.tempdir:
@@ -38,36 +34,35 @@ class TestBandersnatchConf(TestCase):
             self.tempdir.cleanup()
             self.tempdir = None
 
-    def test_is_singleton(self) -> None:
-        instance1 = BandersnatchConfig()
-        instance2 = BandersnatchConfig()
-        self.assertEqual(id(instance1), id(instance2))
-
     def test_single_config__default__all_sections_present(self) -> None:
-        config_file = str(importlib.resources.files("bandersnatch") / "unittest.conf")
-        instance = BandersnatchConfig(str(config_file))
+        config_content = (
+            importlib.resources.files("bandersnatch") / "unittest.conf"
+        ).read_text()
+        instance = BandersnatchConfig()
+        instance.read_string(config_content)
         # All default values should at least be present and be the write types
         for section in ["mirror", "plugins", "blocklist"]:
-            self.assertIn(section, instance.config.sections())
+            self.assertIn(section, instance.sections())
 
     def test_single_config__default__mirror__setting_attributes(self) -> None:
         instance = BandersnatchConfig()
-        options = [option for option in instance.config["mirror"]]
+        instance.read_defaults_file()
+        options = [option for option in instance["mirror"]]
         options.sort()
         self.assertListEqual(
             options,
             [
                 "cleanup",
-                "compare-method",
+                "compare_method",
                 "directory",
-                "global-timeout",
-                "hash-index",
+                "global_timeout",
+                "hash_index",
                 "json",
                 "master",
-                "release-files",
-                "simple-format",
-                "stop-on-error",
-                "storage-backend",
+                "release_files",
+                "simple_format",
+                "stop_on_error",
+                "storage_backend",
                 "timeout",
                 "verifiers",
                 "workers",
@@ -79,6 +74,7 @@ class TestBandersnatchConf(TestCase):
         Make sure all default mirror settings will cast to the correct types
         """
         instance = BandersnatchConfig()
+        instance.read_defaults_file()
         for option, option_type in [
             ("directory", str),
             ("hash-index", bool),
@@ -92,42 +88,26 @@ class TestBandersnatchConf(TestCase):
             ("compare-method", str),
         ]:
             self.assertIsInstance(
-                option_type(instance.config["mirror"].get(option)), option_type
+                option_type(instance["mirror"].get(option)), option_type
             )
 
     def test_single_config_custom_setting_boolean(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nhash-index=false\n")
-        instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
-        self.assertFalse(instance.config["mirror"].getboolean("hash-index"))
+        instance = BandersnatchConfig.from_path("test.conf", with_defaults=False)
+        self.assertFalse(instance["mirror"].getboolean("hash-index"))
 
     def test_single_config_custom_setting_int(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\ntimeout=999\n")
-        instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
-        self.assertEqual(int(instance.config["mirror"]["timeout"]), 999)
+        instance = BandersnatchConfig.from_path("test.conf", with_defaults=False)
+        self.assertEqual(int(instance["mirror"]["timeout"]), 999)
 
     def test_single_config_custom_setting_str(self) -> None:
         with open("test.conf", "w") as testconfig_handle:
             testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
-        instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
-        self.assertEqual(instance.config["mirror"]["master"], "https://foo.bar.baz")
-
-    def test_multiple_instances_custom_setting_str(self) -> None:
-        with open("test.conf", "w") as testconfig_handle:
-            testconfig_handle.write("[mirror]\nmaster=https://foo.bar.baz\n")
-        instance1 = BandersnatchConfig()
-        instance1.config_file = "test.conf"
-        instance1.load_configuration()
-
-        instance2 = BandersnatchConfig()
-        self.assertEqual(instance2.config["mirror"]["master"], "https://foo.bar.baz")
+        instance = BandersnatchConfig.from_path("test.conf", with_defaults=False)
+        self.assertEqual(instance["mirror"]["master"], "https://foo.bar.baz")
 
     def test_validate_config_values(self) -> None:
         default_values = SetConfigValues(

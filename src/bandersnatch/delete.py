@@ -14,14 +14,15 @@ from urllib.parse import urlparse
 from packaging.utils import canonicalize_name
 
 from .master import Master
-from .storage import storage_backend_plugins
+from .storage import Storage, storage_backend_plugins
 from .verify import get_latest_json
 
 logger = logging.getLogger(__name__)
 
 
-async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
-    storage_backend = next(iter(storage_backend_plugins()))
+async def delete_path(
+    storage_backend: Storage, blob_path: Path, dry_run: bool = False
+) -> int:
     if dry_run:
         logger.info(f" rm {blob_path}")
         return 0
@@ -131,7 +132,9 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 for blob in blobs:
                     url_parts = urlparse(blob["url"])
                     blob_path = web_base_path / url_parts.path[1:]
-                    delete_coros.append(delete_path(blob_path, args.dry_run))
+                    delete_coros.append(
+                        delete_path(storage_backend, blob_path, args.dry_run)
+                    )
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
@@ -160,7 +163,9 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
             if not package_path:
                 continue
 
-            delete_coros.append(delete_path(package_path, args.dry_run))
+            delete_coros.append(
+                delete_path(storage_backend, package_path, args.dry_run)
+            )
 
     if args.dry_run:
         logger.info("-- bandersnatch delete DRY RUN --")

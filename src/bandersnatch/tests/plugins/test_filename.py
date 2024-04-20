@@ -1,13 +1,10 @@
 import os
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 import bandersnatch.filter
-from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config, mock_mirror
 from bandersnatch_filter_plugins import filename_name
 
 
@@ -47,9 +44,11 @@ platforms =
 """
 
     def test_plugin_compiles_patterns(self) -> None:
-        mock_config(self.config_contents)
+        bc = mock_config(self.config_contents)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+        plugins = bandersnatch.filter.LoadedFilters(
+            config=bc
+        ).filter_release_file_plugins()
 
         assert any(
             type(plugin) is filename_name.ExcludePlatformFilter for plugin in plugins
@@ -62,9 +61,7 @@ platforms =
         freebsd and macos packages while only dropping linux-armv7l from
         linux packages
         """
-        mock_config(self.config_contents)
-
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        mirror = mock_mirror(self.config_contents)
         pkg = Package("foobar", 1)
         pkg._metadata = {
             "info": {"name": "foobar", "version": "1.0"},

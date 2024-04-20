@@ -1,20 +1,23 @@
+from configparser import ConfigParser
 from datetime import datetime
 
 from s3path import S3Path
 
-from bandersnatch.tests.mock_config import mock_config
+from bandersnatch.tests.unittest_factories import mock_config
 from bandersnatch_storage_plugins import s3
+
+_empty_config = ConfigParser()
 
 
 def test_rewrite(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     with backend.rewrite(f"/{s3_mock.bucket}/test") as fp:
         fp.write("testcontent\n")
     assert s3.S3Path("/test-bucket/test").read_text() == "testcontent\n"
 
 
 def test_update_safe(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     with backend.update_safe(
         f"/{s3_mock.bucket}/todo", mode="w+", encoding="utf-8"
     ) as fp:
@@ -46,7 +49,7 @@ def test_path_glob(s3_mock: S3Path) -> None:
 
 
 def test_lock(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
     with s3lock.acquire(timeout=30):
         assert s3lock.is_locked is True
@@ -54,7 +57,7 @@ def test_lock(s3_mock: S3Path) -> None:
 
 
 def test_compare_files(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.write_file(f"/{s3_mock.bucket}/file1", "test")
     backend.write_file(f"/{s3_mock.bucket}/file2", "test")
     assert (
@@ -64,14 +67,14 @@ def test_compare_files(s3_mock: S3Path) -> None:
 
 
 def test_read_write_file(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.write_file(f"/{s3_mock.bucket}/file1", "test")
 
     assert backend.read_file(f"/{s3_mock.bucket}/file1", text=True) == "test"
 
 
 def test_delete_file(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     sample_file = backend.PATH_BACKEND(f"/{s3_mock.bucket}/file1")
     sample_file.touch()
     assert sample_file.exists() is True
@@ -81,7 +84,7 @@ def test_delete_file(s3_mock: S3Path) -> None:
 
 
 def test_delete_path(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").touch()
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file2").touch()
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder2/file3").touch()
@@ -114,7 +117,7 @@ def test_delete_path(s3_mock: S3Path) -> None:
 
 
 def test_mkdir_rmdir(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.mkdir(f"/{s3_mock.bucket}/test_folder")
 
     assert backend.is_dir(f"/{s3_mock.bucket}/test_folder")
@@ -125,7 +128,7 @@ def test_mkdir_rmdir(s3_mock: S3Path) -> None:
 
 
 def test_scandir(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.mkdir(f"/{s3_mock.bucket}/test_folder")
     backend.mkdir(f"/{s3_mock.bucket}/test_folder/sub_dir")
     backend.write_file(f"/{s3_mock.bucket}/test_folder/sub_file", "test")
@@ -141,7 +144,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -164,14 +167,14 @@ endpoint_url = http://localhost:9090
 signature_version = s3v4
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
     resource, _ = path._accessor.configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -190,7 +193,7 @@ compare-method = hash
 endpoint_url = http://localhost:9090
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
@@ -199,7 +202,7 @@ endpoint_url = http://localhost:9090
 
 
 def test_upload_time(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.PATH_BACKEND(f"/{s3_mock.bucket}/folder1/file1").touch()
 
     assert backend.get_upload_time(f"/{s3_mock.bucket}/folder1/file1").second == 0
@@ -214,13 +217,13 @@ def test_upload_time(s3_mock: S3Path) -> None:
 
 
 def test_file_size(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.write_file(f"/{s3_mock.bucket}/file1", b"1234")
     assert backend.get_file_size(f"/{s3_mock.bucket}/file1") == 4
 
 
 def test_copy_file(s3_mock: S3Path) -> None:
-    backend = s3.S3Storage()
+    backend = s3.S3Storage(config=_empty_config)
     backend.write_file(f"/{s3_mock.bucket}/file1", b"1234")
 
     backend.copy_file(f"/{s3_mock.bucket}/file1", f"/{s3_mock.bucket}/file2")
