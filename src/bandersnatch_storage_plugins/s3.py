@@ -10,7 +10,7 @@ import pathlib
 import tempfile
 from collections.abc import Generator, Iterator
 from fnmatch import fnmatch
-from typing import IO, Any, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any
 
 import boto3
 import filelock
