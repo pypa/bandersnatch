@@ -10,7 +10,7 @@ import pathlib
 import tempfile
 from collections.abc import Generator, Iterator
 from fnmatch import fnmatch
-from typing import IO, Any
+from typing import IO, TYPE_CHECKING, Any
 
 import boto3
 import filelock
@@ -19,15 +19,10 @@ from s3path import PureS3Path
 from s3path import S3Path as _S3Path
 from s3path import register_configuration_parameter
 
+if TYPE_CHECKING:
+    from s3path.accessor import _S3DirEntry
+
 from bandersnatch.storage import PATH_TYPES, StoragePlugin
-
-try:
-    # For backwards compatibility
-    from s3path import S3DirEntry as _S3DirEntry
-except ImportError:
-    # for s3path>=0.5.0;
-    from s3path import _S3DirEntry
-
 
 logger = logging.getLogger("bandersnatch")
 
@@ -362,7 +357,7 @@ class S3Storage(StoragePlugin):
         """Read entries from the provided directory"""
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
-        for p in path._accessor.scandir(path):
+        for p in path.iterdir():
             if p.name == self.PATH_BACKEND.keep_file:
                 continue
             yield p

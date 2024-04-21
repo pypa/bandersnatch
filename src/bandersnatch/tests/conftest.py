@@ -10,7 +10,7 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
-from s3path import PureS3Path, S3Path, _s3_accessor, register_configuration_parameter
+from s3path import PureS3Path, S3Path, accessor, register_configuration_parameter
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -180,10 +180,10 @@ def logging_mock(request: FixtureRequest) -> mock.MagicMock:
 @pytest.fixture()
 def reset_configuration_cache() -> Iterator[None]:
     try:
-        _s3_accessor.configuration_map.get_configuration.cache_clear()
+        accessor.configuration_map.get_configuration.cache_clear()
         yield
     finally:
-        _s3_accessor.configuration_map.get_configuration.cache_clear()
+        accessor.configuration_map.get_configuration.cache_clear()
 
 
 @pytest.fixture()
