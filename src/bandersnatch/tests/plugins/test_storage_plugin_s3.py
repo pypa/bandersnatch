@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pytest
-from s3path import S3Path
+from s3path import S3Path, configuration_map
 
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import s3
@@ -172,7 +172,7 @@ signature_version = s3v4
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
-    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
     config_loader = mock_config(
@@ -198,7 +198,7 @@ endpoint_url = http://localhost:9090
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
-    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
 

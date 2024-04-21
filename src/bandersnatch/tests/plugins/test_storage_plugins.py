@@ -21,7 +21,11 @@ from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
 from bandersnatch.tests.mock_config import mock_config
-from bandersnatch_storage_plugins import filesystem, swift
+from bandersnatch_storage_plugins import filesystem
+
+if sys.version_info < (3, 12):
+    from bandersnatch_storage_plugins import swift
+
 
 if TYPE_CHECKING:
     import swiftclient
@@ -567,12 +571,16 @@ workers = 3
 class BaseStoragePluginTestCase(BasePluginTestCase):
     plugin_map = {
         "filesystem": filesystem.FilesystemStorage,
-        "swift": swift.SwiftStorage,
     }
+    # Both switch plugons somehow now cause typing error but bug was already there
+    # - Keeping due to dropping swift support in 7.0
+    if sys.version_info < (3, 12):
+        plugin_map["swift"] = swift.SwiftStorage  # type: ignore
     path_backends = {
         "filesystem": pathlib.Path,
-        "swift": swift.SwiftPath,
     }
+    if sys.version_info < (3, 12):
+        path_backends["swift"] = swift.SwiftPath  # type: ignore
 
     base_find_contents = r"""
 .lock
@@ -952,6 +960,7 @@ class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
     )
 
 
+@unittest.skipIf(sys.version_info >= (3, 12), "Dropping support for swift in 3.12")
 class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     backend = "swift"
     base_find_contents = BaseStoragePluginTestCase.base_find_contents.replace(
