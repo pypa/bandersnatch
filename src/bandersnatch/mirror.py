@@ -1,5 +1,4 @@
 import asyncio
-import configparser
 import datetime
 import hashlib
 import logging
@@ -8,7 +7,7 @@ import sys
 import time
 from collections.abc import Awaitable, Callable
 from json import dump
-from pathlib import Path, WindowsPath
+from pathlib import Path, PurePath, WindowsPath
 from threading import RLock
 from typing import Any, TypeVar
 from urllib.parse import unquote, urlparse
@@ -16,12 +15,13 @@ from urllib.parse import unquote, urlparse
 from filelock import Timeout
 
 from . import utils
-from .configuration import validate_config_values
+from .configuration import BandersnatchConfig
+from .configuration.mirror_options import FileCompareMethod
 from .errors import PackageNotFound
 from .filter import LoadedFilters
 from .master import Master
 from .package import Package
-from .simple import SimpleAPI, SimpleFormat, SimpleFormats
+from .simple import SimpleAPI, SimpleDigest, SimpleFormat, SimpleFormats
 from .storage import Storage, storage_backend_plugins
 
 LOG_PLUGINS = True
@@ -186,7 +186,7 @@ class BandersnatchMirror(Mirror):
         workers: int = 3,
         hash_index: bool = False,
         json_save: bool = False,
-        digest_name: str | None = None,
+        digest_name: SimpleDigest = SimpleDigest.SHA256,
         root_uri: str | None = None,
         keep_index_versions: int = 0,
         diff_append_epoch: bool = False,
@@ -196,10 +196,10 @@ class BandersnatchMirror(Mirror):
         *,
         cleanup: bool = False,
         release_files_save: bool = True,
-        compare_method: str | None = None,
+        compare_method: FileCompareMethod = FileCompareMethod.HASH,  # type: ignore[assignment] # mypy bug?
         download_mirror: str | None = None,
         download_mirror_no_fallback: bool | None = False,
-        simple_format: SimpleFormat | str = "ALL",
+        simple_format: SimpleFormat = SimpleFormat.ALL,
     ) -> None:
         super().__init__(master=master, filters=loaded_filters, workers=workers)
         self.cleanup = cleanup
@@ -229,8 +229,8 @@ class BandersnatchMirror(Mirror):
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
         self.keep_index_versions = keep_index_versions
-        self.digest_name = digest_name if digest_name else "sha256"
-        self.compare_method = compare_method if compare_method else "hash"
+        self.digest_name = digest_name
+        self.compare_method = compare_method
         self.download_mirror = download_mirror
         self.download_mirror_no_fallback = download_mirror_no_fallback
         self.workers = workers
@@ -920,7 +920,7 @@ async def _run_in_storage_executor(
 
 
 async def _setup_diff_file(
-    storage_plugin: Storage, configured_path: str, append_epoch: bool
+    storage_plugin: Storage, configured_path: PurePath, append_epoch: bool
 ) -> Path:
     # use the storage backend to convert an abstract path to a concrete one
     concrete_path = storage_plugin.PATH_BACKEND(configured_path)
@@ -947,63 +947,60 @@ async def _setup_diff_file(
 
 
 async def mirror(
-    config: configparser.ConfigParser,
+    config: BandersnatchConfig,
     specific_packages: list[str] | None = None,
     sync_simple_index: bool = True,
 ) -> int:
-    config_values = validate_config_values(config)
+    mirror_options = config.validate_core_options()
 
     storage_plugin = next(
         iter(
             storage_backend_plugins(
                 config=config,
-                backend=config_values.storage_backend_name,
+                backend=mirror_options["storage_backend"],
                 clear_cache=True,
             )
         )
     )
 
-    diff_full_path: Path | None = None
-    if config_values.diff_file_path:
-        diff_full_path = await _setup_diff_file(
+    diff_file_option = mirror_options["diff_file"]
+    diff_file_concrete: Path | None = None
+    if diff_file_option:
+        diff_file_concrete = await _setup_diff_file(
             storage_plugin,
-            config_values.diff_file_path,
-            config_values.diff_append_epoch,
+            diff_file_option,
+            mirror_options["diff_append_epoch"],
         )
 
-    mirror_url = config.get("mirror", "master")
-    timeout = config.getfloat("mirror", "timeout")
-    global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
-    proxy = config.get("mirror", "proxy", fallback=None)
-    homedir = Path(config.get("mirror", "directory"))
+    # options for Master/Upstream
+    mirror_url = mirror_options["master_url"]
+    timeout = mirror_options["timeout"]
+    global_timeout = mirror_options["global_timeout"]
+    proxy = mirror_options["proxy_url"]
 
-    loaded_filters = LoadedFilters(config=config, load_all=True)
-
-    # Always reference those classes here with the fully qualified name to
-    # allow them being patched by mock libraries!
     async with Master(mirror_url, timeout, global_timeout, proxy) as master:
+        homedir = storage_plugin.PATH_BACKEND(mirror_options["directory"])
+        loaded_filters = LoadedFilters(config=config, load_all=True)
         mirror = BandersnatchMirror(
             homedir,
             master,
             storage_plugin,
             loaded_filters,
-            stop_on_error=config.getboolean("mirror", "stop-on-error"),
-            workers=config.getint("mirror", "workers"),
-            hash_index=config.getboolean("mirror", "hash-index"),
-            json_save=config_values.json_save,
-            root_uri=config_values.root_uri,
-            digest_name=config_values.digest_name,
-            compare_method=config_values.compare_method,
-            keep_index_versions=config.getint(
-                "mirror", "keep_index_versions", fallback=0
-            ),
-            diff_append_epoch=config_values.diff_append_epoch,
-            diff_full_path=diff_full_path,
-            cleanup=config_values.cleanup,
-            release_files_save=config_values.release_files_save,
-            download_mirror=config_values.download_mirror,
-            download_mirror_no_fallback=config_values.download_mirror_no_fallback,
-            simple_format=config_values.simple_format,
+            stop_on_error=mirror_options["stop_on_error"],
+            workers=mirror_options["workers"],
+            hash_index=mirror_options["hash_index"],
+            json_save=mirror_options["save_json"],
+            root_uri=mirror_options["root_uri"],
+            digest_name=mirror_options["digest_name"],
+            compare_method=mirror_options["compare_method"],
+            keep_index_versions=mirror_options["keep_index_versions"],
+            diff_append_epoch=mirror_options["diff_append_epoch"],
+            diff_full_path=diff_file_concrete,
+            cleanup=mirror_options["cleanup"],
+            release_files_save=mirror_options["save_release_files"],
+            download_mirror=mirror_options["download_mirror_url"],
+            download_mirror_no_fallback=mirror_options["download_mirror_no_fallback"],
+            simple_format=mirror_options["simple_format"],
         )
         changed_packages = await mirror.synchronize(
             specific_packages, sync_simple_index=sync_simple_index
@@ -1018,13 +1015,13 @@ async def mirror(
         loggable_changes = [str(chg) for chg in package_changes]
         logger.debug(f"{package_name} added: {loggable_changes}")
 
-    if diff_full_path:
-        logger.info(f"Writing diff file to '{diff_full_path}'")
+    if diff_file_concrete:
+        logger.info(f"Writing diff file to '{diff_file_concrete}'")
         diff_text = f"{os.linesep}".join(
             [str(chg.absolute()) for chg in mirror.diff_file_list]
         )
         await _run_in_storage_executor(
-            storage_plugin, diff_full_path.write_text, diff_text
+            storage_plugin, diff_file_concrete.write_text, diff_text
         )
 
     return 0

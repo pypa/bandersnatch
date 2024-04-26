@@ -11,7 +11,9 @@ diff-file supports a "section reference" syntax for it's value:
 The portion of the diff-file value delimited with {{ and }} is replaced with the
 value from the specified option, which should be a string.
 
-The configparser module's ExtendedInterpolation feature is preferred to this custom syntax.
+The configparser module's interpolation features would be preferred to this custom syntax,
+but options that accept regular expressions as values clash with ExtendedInterpolation
+syntax, and BasicInterpolation can't reference options in other sections.
 """
 
 import re

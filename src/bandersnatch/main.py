@@ -4,7 +4,6 @@ import logging
 import logging.config
 import shutil
 import sys
-from configparser import ConfigParser
 from pathlib import Path
 from tempfile import gettempdir
 
@@ -14,6 +13,7 @@ import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.verify
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.storage import storage_backend_plugins
 
 # See if we have uvloop and use if so
@@ -149,7 +149,7 @@ def _make_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
+async def async_main(args: argparse.Namespace, config: BandersnatchConfig) -> int:
     if args.op.lower() == "delete":
         async with bandersnatch.master.Master(
             config.get("mirror", "master"),
@@ -203,22 +203,18 @@ def main(loop: asyncio.AbstractEventLoop | None = None) -> int:
     # Prepare default config file if needed.
     config_path = Path(args.config)
     if not config_path.exists():
-        logger.warning(f"Config file '{args.config}' missing, creating default config.")
-        logger.warning("Please review the config file, then run 'bandersnatch' again.")
-
-        default_config_path = Path(__file__).parent / "default.conf"
-        try:
-            shutil.copy(default_config_path, args.config)
-        except OSError as e:
-            logger.error(f"Could not create config file: {e}")
+        logger.error(f"Config file '{args.config}' missing!")
+        logger.warning(
+            "Creating example config. Please review the config file, then run 'bandersnatch' again."
+        )
+        bandersnatch.configuration.copy_example_config(config_path)
         return 1
 
-    config = bandersnatch.configuration.BandersnatchConfig.from_path(
-        config_path, with_defaults=True
-    )
+    config = BandersnatchConfig.from_path(config_path, with_defaults=True)
 
-    if config.has_option("mirror", "log-config"):
-        logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
+    user_log_config = config.get("mirror", "log-config", fallback=None)
+    if user_log_config:
+        logging.config.fileConfig(Path(user_log_config))
 
     if loop:
         loop.set_debug(args.debug)

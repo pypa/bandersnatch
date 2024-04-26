@@ -2,7 +2,6 @@ import os.path
 import sys
 import unittest.mock as mock
 from collections.abc import Iterator
-from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -251,16 +250,13 @@ async def test_mirror_subcommand_only_creates_diff_file_if_configured(
 ) -> None:
     # Setup 1 - create a configuration for the 'mirror' subcommand
     # (Configuration is passed as a parameter, so we don't need to fiddle with Singleton)
-    config = ConfigParser()
+    config = BandersnatchConfig()
+    config.read_defaults_file()
     config.read_dict(
         {
             "mirror": {
-                "master": "https://pypi.org",
                 "directory": (tmp_path / "mirror").as_posix(),
-                "timeout": 15,
-                "stop-on-error": False,
                 "workers": 1,
-                "hash-index": False,
             },
             "plugins": {"enabled": ["allowlist_project"]},
             "allowlist": {"packages": ["black", "ruff", "autopep8"]},
