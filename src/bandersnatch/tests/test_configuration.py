@@ -5,6 +5,7 @@ import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from bandersnatch.config.diff_file_reference import eval_config_reference
 from bandersnatch.configuration import (
     BandersnatchConfig,
     SetConfigValues,
@@ -194,6 +195,84 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(
             default_values, validate_config_values(release_files_false_configparser)
         )
+
+    def test_validate_config_diff_file_reference(self) -> None:
+        diff_file_test_cases = [
+            (
+                {
+                    "mirror": {
+                        "directory": "/test",
+                        "diff-file": r"{{mirror_directory}}",
+                    }
+                },
+                "/test",
+            ),
+            (
+                {
+                    "mirror": {
+                        "directory": "/test",
+                        "diff-file": r"{{ mirror_directory }}",
+                    }
+                },
+                "/test",
+            ),
+            (
+                {
+                    "mirror": {
+                        "directory": "/test",
+                        "diff-file": r"{{ mirror_directory }}/diffs/new-files",
+                    }
+                },
+                "/test/diffs/new-files",
+            ),
+            (
+                {
+                    "strings": {"test": "TESTING"},
+                    "mirror": {"diff-file": r"/var/log/{{ strings_test }}"},
+                },
+                "/var/log/TESTING",
+            ),
+            (
+                {
+                    "strings": {"test": "TESTING"},
+                    "mirror": {"diff-file": r"/var/log/{{ strings_test }}/diffs"},
+                },
+                "/var/log/TESTING/diffs",
+            ),
+        ]
+
+        for cfg_data, expected in diff_file_test_cases:
+            with self.subTest(
+                diff_file=cfg_data["mirror"]["diff-file"],
+                expected=expected,
+                cfg_data=cfg_data,
+            ):
+                cfg = configparser.ConfigParser()
+                cfg.read_dict(cfg_data)
+                config_values = validate_config_values(cfg)
+                self.assertIsInstance(config_values.diff_file_path, str)
+                self.assertEqual(config_values.diff_file_path, expected)
+
+    def test_invalid_diff_file_reference_throws_exception(self) -> None:
+        invalid_diff_file_cases = [
+            (
+                r"{{ missing.underscore }}/foo",
+                "Unable to parse config option reference",
+            ),
+            (r"/var/{{ mirror_woops }}/foo", "No option 'woops' in section: 'mirror'"),
+        ]
+
+        for diff_file_val, expected_error in invalid_diff_file_cases:
+            with self.subTest(diff_file=diff_file_val, expected_error=expected_error):
+                cfg = configparser.ConfigParser()
+                cfg.read_dict({"mirror": {"diff-file": diff_file_val}})
+                self.assertRaisesRegex(
+                    ValueError,
+                    expected_error,
+                    eval_config_reference,
+                    cfg,
+                    diff_file_val,
+                )
 
 
 if __name__ == "__main__":
