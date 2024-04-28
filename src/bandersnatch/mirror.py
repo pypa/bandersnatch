@@ -188,7 +188,6 @@ class BandersnatchMirror(Mirror):
         digest_name: str | None = None,
         root_uri: str | None = None,
         keep_index_versions: int = 0,
-        diff_file: Path | str | None = None,
         diff_append_epoch: bool = False,
         diff_full_path: Path | str | None = None,
         flock_timeout: int = 1,
@@ -230,7 +229,6 @@ class BandersnatchMirror(Mirror):
         # PyPI mirror, which requires serving packages from
         # https://files.pythonhosted.org
         self.root_uri = root_uri or ""
-        self.diff_file = diff_file
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
         self.keep_index_versions = keep_index_versions
@@ -975,7 +973,6 @@ async def mirror(
             keep_index_versions=config.getint(
                 "mirror", "keep_index_versions", fallback=0
             ),
-            diff_file=diff_file,
             diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path if diff_full_path else None,
             cleanup=config_values.cleanup,
