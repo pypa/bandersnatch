@@ -3,7 +3,6 @@ import configparser
 import datetime
 import hashlib
 import logging
-import os
 import sys
 import time
 from collections.abc import Awaitable, Callable
@@ -926,7 +925,7 @@ async def _setup_diff_file(
     # use the storage backend to convert an abstract path to a concrete one
     concrete_path = storage_plugin.PATH_BACKEND(configured_path)
 
-    # create parent directories if needed
+    # create parent directory if needed
     await storage_plugin_exec(
         lambda: concrete_path.parent.mkdir(exist_ok=True, parents=True)
     )
@@ -1017,9 +1016,8 @@ async def mirror(
 
     if diff_full_path:
         logger.info(f"Writing diff file to '{diff_full_path}'")
-        diff_text = f"{os.linesep}".join(
-            [str(chg.absolute()) for chg in mirror.diff_file_list]
-        )
+        # File is written in text mode; universal newlines will translate this to os.linesep
+        diff_text = "\n".join([str(chg.absolute()) for chg in mirror.diff_file_list])
         await storage_plugin.loop.run_in_executor(
             storage_plugin.executor, diff_full_path.write_text, diff_text
         )

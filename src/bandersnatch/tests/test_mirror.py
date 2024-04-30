@@ -1462,7 +1462,7 @@ async def test_mirror_subcommand_diff_file_dir_with_epoch(
     )
     assert expected_diff_file.is_file()
     lines = expected_diff_file.read_text().splitlines()
-    assert len(lines) > 0
+    assert len(lines) == 3
 
 
 if __name__ == "__main__":
