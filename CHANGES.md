@@ -12,6 +12,7 @@
 ## Big Fixes
 
 - Fix config file value interpolation for the `diff-file` option `PR #1715`
+- Fix diff-file being created when the option wasn't set `PR #1716`
 
 # 6.5.0
 

@@ -3,14 +3,13 @@ import configparser
 import datetime
 import hashlib
 import logging
-import os
 import sys
 import time
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from json import dump
 from pathlib import Path, WindowsPath
 from threading import RLock
-from typing import Any
+from typing import Any, TypeVar
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -22,7 +21,7 @@ from .filter import LoadedFilters
 from .master import Master
 from .package import Package
 from .simple import SimpleAPI, SimpleFormat, SimpleFormats
-from .storage import storage_backend_plugins
+from .storage import Storage, storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
@@ -188,7 +187,6 @@ class BandersnatchMirror(Mirror):
         digest_name: str | None = None,
         root_uri: str | None = None,
         keep_index_versions: int = 0,
-        diff_file: Path | str | None = None,
         diff_append_epoch: bool = False,
         diff_full_path: Path | str | None = None,
         flock_timeout: int = 1,
@@ -230,7 +228,6 @@ class BandersnatchMirror(Mirror):
         # PyPI mirror, which requires serving packages from
         # https://files.pythonhosted.org
         self.root_uri = root_uri or ""
-        self.diff_file = diff_file
         self.diff_append_epoch = diff_append_epoch
         self.diff_full_path = diff_full_path
         self.keep_index_versions = keep_index_versions
@@ -913,6 +910,42 @@ class BandersnatchMirror(Mirror):
         return path
 
 
+_T = TypeVar("_T")
+
+
+async def _setup_diff_file(
+    storage_plugin: Storage, configured_path: str, append_epoch: bool
+) -> Path:
+    # save some typing. maybe a method to add to Storage?
+    async def storage_plugin_exec(fn: Callable[..., _T], *args: Any) -> _T:
+        return await storage_plugin.loop.run_in_executor(
+            storage_plugin.executor, fn, *args
+        )
+
+    # use the storage backend to convert an abstract path to a concrete one
+    concrete_path = storage_plugin.PATH_BACKEND(configured_path)
+
+    # create parent directory if needed
+    await storage_plugin_exec(
+        lambda: concrete_path.parent.mkdir(exist_ok=True, parents=True)
+    )
+
+    # adjust the file/directory name if timestamps are enabled
+    if append_epoch:
+        epoch = int(time.time())
+        concrete_path = concrete_path.with_name(f"{concrete_path.name}-{epoch}")
+
+    # if the path is directory, adjust to write to a file inside it
+    if await storage_plugin_exec(concrete_path.is_dir):
+        concrete_path = concrete_path / "mirrored-files"
+
+    # if there is an existing file there then delete it
+    if await storage_plugin_exec(concrete_path.is_file):
+        concrete_path.unlink()
+
+    return concrete_path
+
+
 async def mirror(
     config: configparser.ConfigParser,
     specific_packages: list[str] | None = None,
@@ -928,28 +961,13 @@ async def mirror(
         )
     )
 
-    diff_file = storage_plugin.PATH_BACKEND(config_values.diff_file_path)
-    diff_full_path: Path | str
-    if diff_file:
-        diff_file.parent.mkdir(exist_ok=True, parents=True)
-        if config_values.diff_append_epoch:
-            diff_full_path = diff_file.with_name(f"{diff_file.name}-{int(time.time())}")
-        else:
-            diff_full_path = diff_file
-    else:
-        diff_full_path = ""
-
-    if diff_full_path:
-        if isinstance(diff_full_path, str):
-            diff_full_path = storage_plugin.PATH_BACKEND(diff_full_path)
-        if await storage_plugin.loop.run_in_executor(
-            storage_plugin.executor, diff_full_path.is_file
-        ):
-            diff_full_path.unlink()
-        elif await storage_plugin.loop.run_in_executor(
-            storage_plugin.executor, diff_full_path.is_dir
-        ):
-            diff_full_path = diff_full_path / "mirrored-files"
+    diff_full_path: Path | None = None
+    if config_values.diff_file_path:
+        diff_full_path = await _setup_diff_file(
+            storage_plugin,
+            config_values.diff_file_path,
+            config_values.diff_append_epoch,
+        )
 
     mirror_url = config.get("mirror", "master")
     timeout = config.getfloat("mirror", "timeout")
@@ -975,9 +993,8 @@ async def mirror(
             keep_index_versions=config.getint(
                 "mirror", "keep_index_versions", fallback=0
             ),
-            diff_file=diff_file,
             diff_append_epoch=config_values.diff_append_epoch,
-            diff_full_path=diff_full_path if diff_full_path else None,
+            diff_full_path=diff_full_path,
             cleanup=config_values.cleanup,
             release_files_save=config_values.release_files_save,
             download_mirror=config_values.download_mirror,
@@ -997,14 +1014,12 @@ async def mirror(
         loggable_changes = [str(chg) for chg in package_changes]
         logger.debug(f"{package_name} added: {loggable_changes}")
 
-    if mirror.diff_full_path:
-        logger.info(f"Writing diff file to {mirror.diff_full_path}")
-        diff_text = f"{os.linesep}".join(
-            [str(chg.absolute()) for chg in mirror.diff_file_list]
-        )
-        diff_file = mirror.storage_backend.PATH_BACKEND(mirror.diff_full_path)
+    if diff_full_path:
+        logger.info(f"Writing diff file to '{diff_full_path}'")
+        # File is written in text mode; universal newlines will translate this to os.linesep
+        diff_text = "\n".join([str(chg.absolute()) for chg in mirror.diff_file_list])
         await storage_plugin.loop.run_in_executor(
-            storage_plugin.executor, diff_file.write_text, diff_text
+            storage_plugin.executor, diff_full_path.write_text, diff_text
         )
 
     return 0

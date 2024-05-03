@@ -1,11 +1,13 @@
 import os.path
 import sys
+import time
 import unittest.mock as mock
-from collections.abc import Iterator
+from collections.abc import Awaitable, Callable, Iterator, Mapping
+from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, NoReturn
+from typing import Any, NoReturn, TypeAlias
 
 import pytest
 from freezegun import freeze_time
@@ -14,6 +16,7 @@ from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
 from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
@@ -1295,6 +1298,171 @@ def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
         mirror.write_simple_pages(package, json_content)
     # Expect .html, .v1_html and .v1_json ...
     assert 3 == len(mirror.diff_file_list)
+
+
+# Used to patch the `BandersnatchMirror.synchronize` method with a mock that returns a fixed value.
+# This is to test behaviors in the `bandersnatch.mirror.mirror` function without any actual mirroring.
+
+AlteredPackages: TypeAlias = Mapping[str, set[str]]
+
+
+def make_mock_synchronize(
+    retval: AlteredPackages,
+) -> Callable[..., Awaitable[AlteredPackages]]:
+
+    async def mock_synchronize(
+        self: Any,
+        specific_packages: list[str] | None = None,
+        sync_simple_index: bool = True,
+    ) -> AlteredPackages:
+        return retval
+
+    return mock_synchronize
+
+
+# This is a test to check that a diff file is NOT created when 'diff-file' isn't set in
+# configuration. We can't exhaustively assert a negative - the specific behavior being
+# checked here is a diff file being created at "./mirrored-files" when not configured.
+@pytest.mark.asyncio
+async def test_mirror_subcommand_only_creates_diff_file_if_configured(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # Setup: create a configuration for the 'mirror' subcommand
+    # Mirror section only contains required options and omits 'diff-file'
+    config = ConfigParser()
+    config.read_dict(
+        {
+            "mirror": {
+                "master": "https://pypi.org",
+                "directory": (tmp_path / "mirror").as_posix(),
+                "timeout": 15,
+                "stop-on-error": False,
+                "workers": 1,
+                "hash-index": False,
+                "release-files": True,
+                "json": False,
+            },
+            "plugins": {"enabled": ["allowlist_project"]},
+            "allowlist": {"packages": ["black", "ruff", "autopep8"]},
+        }
+    )
+
+    # Setup: patch 'Mirror.synchronize' with a stub returning fixed data.
+    # Normally it returns 'self.altered_packages', and those are what get written into
+    # the diff file. Non-empty fixed content here means a diff-file should exist and
+    # have content IF it is configured.
+    mock_synchronize = make_mock_synchronize(
+        {
+            "ruff": {"fake/file/path/1", "fake/file/path/2"},
+            "black": {"fake/file/path/3"},
+        }
+    )
+    monkeypatch.setattr(BandersnatchMirror, "synchronize", mock_synchronize)
+
+    # Setup: change the current working directory into tmp_path, because when failing
+    # the test will try to write into './mirrored-files'
+    monkeypatch.chdir(tmp_path)
+
+    # Execute the 'mirror' subcommand. Because 'synchronize' is patched, this is pretty
+    # much running the body of the 'mirror' function, including creating Master and
+    # Mirror instances, but doesn't perform any actual package syncing at all.
+    await mirror_cmd(config=config)
+
+    # An 'info'-level message is always logged after 'synchronize' completes. It should
+    # be consistent with the static data returned from our mock method.
+    expected_message = "2 packages had changes"
+    assert any(
+        m == expected_message for m in caplog.messages
+    ), f"Logged '{expected_message}'"
+
+    # Because BandersnatchMirror's 'bootstrap' runs, this directory should exist;
+    # this is just sanity checking that some disk IO happened...
+    web_folder = tmp_path / "mirror" / "web"
+    assert web_folder.is_dir(), f"The folder '{web_folder}' was created"
+
+    # But there should not be a diff file in the current working directory
+    absent_diff_file = Path.cwd() / "mirrored-files"
+    assert (
+        not absent_diff_file.exists()
+    ), f"there shouldn't be a diff file at {absent_diff_file}"
+
+    # sanity check - we used monkeypatch to change cwd,
+    assert Path.cwd() == tmp_path
+
+
+# This checks the path where the diff-file is created when:
+# 1) `diff-file` points to an existing directory
+# 2) `diff-append-epoch` is enabled
+# One might expect any of:
+# a) `.../{diff-file}/mirrored-files-{timestamp}`
+# b) `.../{diff-file}-{timestamp}/mirrored-files`
+# c) `.../{diff-file}-{timestamp}`
+# The existing behavior is (c). Though this ignores the existing directory, changes to
+# diff-file path handling behavior could break a user's existing automation/scripting.
+@pytest.mark.asyncio
+async def test_mirror_subcommand_diff_file_dir_with_epoch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+
+    mirror_dir = tmp_path / "mirror"
+    diff_files_dir = mirror_dir / "diff-files-dir"
+
+    # Setup: make sure the 'diff-file' directory is already created
+    diff_files_dir.mkdir(parents=True)
+
+    # Setup: create configuration for 'mirror' subcommand that includes both
+    # `diff-file` and `diff-append-epoch`
+    config = ConfigParser()
+    config.read_dict(
+        {
+            "mirror": {
+                "master": "https://pypi.org",
+                "directory": mirror_dir.as_posix(),
+                "timeout": 15,
+                "stop-on-error": False,
+                "workers": 1,
+                "hash-index": False,
+                "release-files": True,
+                "json": False,
+                "diff-file": diff_files_dir.as_posix(),
+                "diff-append-epoch": True,
+            },
+            "plugins": {"enabled": ["allowlist_project"]},
+            "allowlist": {"packages": ["black", "ruff", "autopep8"]},
+        }
+    )
+
+    # Setup: mock the 'synchronize' method on BandersnatchMirror to return fixed output.
+    # The output of the synchronize method is a mapping from package names to changed
+    # files, so the paths returned here should end up in diff-file.
+    mock_synchronize = make_mock_synchronize(
+        {
+            "black": {"AB/C1/ABC123/black-123-py3-non-any.whl"},
+            "ruff": {
+                "98/7D/987DEF/ruff-123.tar.gz",
+                "98/7D/987DEF/ruff-123-py3-none-any.whl",
+            },
+        }
+    )
+    monkeypatch.setattr(BandersnatchMirror, "synchronize", mock_synchronize)
+
+    # Setup: mock time.time so we can assert against the generated diff-file path
+    fixed_time = time.time()
+    monkeypatch.setattr(time, "time", lambda: fixed_time)
+
+    # Execute: run the 'mirror' subcommand
+    await mirror_cmd(config=config)
+
+    # Expectation: current behavior appends timestamp before checking if the directory exists,
+    # so the generated path will be `{diff-file}-{timestamp}`.
+    expected_diff_file = diff_files_dir.with_name(
+        f"{diff_files_dir.name}-{int(fixed_time)}"
+    )
+    assert expected_diff_file.is_file()
+    lines = expected_diff_file.read_text().splitlines()
+    assert len(lines) == 3
 
 
 if __name__ == "__main__":
