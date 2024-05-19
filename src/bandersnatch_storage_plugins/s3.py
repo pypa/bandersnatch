@@ -17,8 +17,7 @@ import filelock
 from botocore.client import Config
 from s3path import PureS3Path
 from s3path import S3Path as _S3Path
-from s3path import register_configuration_parameter
-from s3path.accessor import configuration_map
+from s3path import configuration_map, register_configuration_parameter
 
 if TYPE_CHECKING:
     from s3path.accessor import _S3DirEntry

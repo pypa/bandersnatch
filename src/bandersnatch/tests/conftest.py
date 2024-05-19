@@ -10,8 +10,13 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
-from s3path import PureS3Path, S3Path, accessor, register_configuration_parameter
-from s3path.accessor import configuration_map
+from s3path import (
+    PureS3Path,
+    S3Path,
+    accessor,
+    configuration_map,
+    register_configuration_parameter,
+)
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
