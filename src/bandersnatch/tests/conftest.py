@@ -10,7 +10,13 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
-from s3path import PureS3Path, S3Path, accessor, register_configuration_parameter
+from s3path import (
+    PureS3Path,
+    S3Path,
+    accessor,
+    configuration_map,
+    register_configuration_parameter,
+)
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -202,7 +208,7 @@ def s3_mock(reset_configuration_cache: None) -> S3Path:
     new_bucket = S3Path("/test-bucket")
     new_bucket.mkdir(exist_ok=True)
     yield new_bucket
-    resource, _ = new_bucket._accessor.configuration_map.get_configuration(new_bucket)
+    resource, _ = configuration_map.get_configuration(new_bucket)
     bucket = resource.Bucket(new_bucket.bucket)
     for key in bucket.objects.all():
         key.delete()
