@@ -1,5 +1,5 @@
 async-timeout>=4.0.0a3
-black==24.3.0
+black==24.4.2
 coverage==7.5.1
 flake8==7.0.0
 flake8-bugbear==24.2.6
