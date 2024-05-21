@@ -2,7 +2,7 @@ docutils==0.21.2
 pyparsing==3.1.1
 python-dateutil==2.9.0.post0
 packaging==23.2
-requests==2.31.0
+requests==2.32.0
 six==1.16.0
 sphinx==7.3.7
 MyST-Parser==3.0.1
