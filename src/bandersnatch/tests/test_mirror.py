@@ -1268,9 +1268,10 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
     mirror.cleanup = True
-    with mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink, mock.patch(
-        "bandersnatch.mirror.Path.rmdir"
-    ) as mocked_rmdir:
+    with (
+        mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink,
+        mock.patch("bandersnatch.mirror.Path.rmdir") as mocked_rmdir,
+    ):
         await mirror.cleanup_non_pep_503_paths(package)
         assert mocked_unlink.call_count == 1  # number you expect
         assert mocked_rmdir.call_count == 1  # Or number you expect here

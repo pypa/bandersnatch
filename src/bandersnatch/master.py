@@ -195,7 +195,7 @@ class Master:
             if serial:
                 return await method(serial)
             return await method()
-        except asyncio.TimeoutError as te:
+        except TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
 
     async def all_packages(self) -> Any:

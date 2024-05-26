@@ -1,8 +1,7 @@
 import html
 import json
 import logging
-import sys
-from enum import Enum, auto
+from enum import Enum, StrEnum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
@@ -11,11 +10,6 @@ from .package import Package
 
 if TYPE_CHECKING:
     from .storage import Storage
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from .utils import StrEnum
 
 
 class SimpleFormats(NamedTuple):

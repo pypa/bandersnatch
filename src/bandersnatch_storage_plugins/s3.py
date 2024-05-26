@@ -436,7 +436,7 @@ class S3Storage(StoragePlugin):
         ts = s3object.metadata.get(self.UPLOAD_TIME_METADATA_KEY, 0)
         if not isinstance(ts, int):
             ts = int(float(ts))
-        return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(ts, datetime.UTC)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         if not isinstance(path, self.PATH_BACKEND):

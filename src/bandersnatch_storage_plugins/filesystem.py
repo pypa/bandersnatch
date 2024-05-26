@@ -283,9 +283,7 @@ class FilesystemStorage(StoragePlugin):
     def get_upload_time(self, path: PATH_TYPES) -> datetime.datetime:
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
-        return datetime.datetime.fromtimestamp(
-            path.stat().st_mtime, datetime.timezone.utc
-        )
+        return datetime.datetime.fromtimestamp(path.stat().st_mtime, datetime.UTC)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         """Set the upload time of a given **path**"""
