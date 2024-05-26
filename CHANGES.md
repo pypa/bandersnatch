@@ -1,10 +1,12 @@
-# Unreleased
+# Unreleased - 6.6.0
 
 ## New Features
 
 - Add arbitrary configuration option for S3 Storage Backend Boto3 calls (PR #1697)
 - Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
 - Initial support for python 3.12 (PR #1728)
+- Move Docker images to 3.12 (PR #1733)
+  - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
 
 ## Documentation
 
