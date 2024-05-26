@@ -65,7 +65,7 @@ class Package:
             except PackageNotFound as e:
                 logger.info(str(e))
                 raise
-            except (StalePage, asyncio.TimeoutError) as e:
+            except (StalePage, TimeoutError) as e:
                 error_name, error_class = (
                     ("Stale serial", StaleMetadata)
                     if isinstance(e, StalePage)

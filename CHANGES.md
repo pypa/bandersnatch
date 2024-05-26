@@ -7,6 +7,7 @@
 - Initial support for python 3.12 (PR #1728)
 - Move Docker images to 3.12 (PR #1733)
   - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
+- Move black, mypy + pyupgrade to >= 3.11 codebase (PR #1734)
 
 ## Documentation
 

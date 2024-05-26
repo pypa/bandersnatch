@@ -107,14 +107,14 @@ def iter_dir(
 
 def get_swift_object_date(date: datetime.datetime) -> str:
     return (
-        date.astimezone(datetime.timezone.utc)
+        date.astimezone(datetime.UTC)
         .strftime("%a, %d %b %Y %H:%M:%S %Z")
         .replace("UTC", "GMT")
     )
 
 
 def get_swift_date(date: datetime.datetime) -> str:
-    return date.astimezone(datetime.timezone.utc).isoformat()
+    return date.astimezone(datetime.UTC).isoformat()
 
 
 class MockConnection:
