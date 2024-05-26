@@ -4,6 +4,7 @@
 
 - Add arbitrary configuration option for S3 Storage Backend Boto3 calls (PR #1697)
 - Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
+- Initial support for python 3.12 (PR #1728)
 
 ## Documentation
 
