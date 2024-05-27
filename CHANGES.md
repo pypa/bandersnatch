@@ -18,6 +18,10 @@
 - Fix config file value interpolation for the `diff-file` option `PR #1715`
 - Fix diff-file being created when the option wasn't set `PR #1716`
 
+## Deprecation
+
+- Move from pkg_resources to importlib_metadata for filter entry point usage (PR #1739)
+
 # 6.5.0
 
 ## New Features
