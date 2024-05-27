@@ -5,7 +5,7 @@ Blocklist management
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-import pkg_resources
+from importlib.metadata import entry_points
 
 from .configuration import BandersnatchConfig
 
@@ -185,9 +185,10 @@ class LoadedFilters:
         """
         Loads filters from the entry-point groups specified in groups
         """
+        eps = entry_points()
         for group in groups:
             plugins = set()
-            for entry_point in pkg_resources.iter_entry_points(group=group):
+            for entry_point in eps.select(group=group):
                 plugin_class = entry_point.load()
                 plugin_instance = plugin_class()
                 if (
