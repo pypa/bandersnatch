@@ -3,9 +3,8 @@ Blocklist management
 """
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
-
 from importlib.metadata import entry_points
+from typing import TYPE_CHECKING, Any
 
 from .configuration import BandersnatchConfig
 
