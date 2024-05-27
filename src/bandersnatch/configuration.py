@@ -2,16 +2,26 @@
 Module containing classes to access the bandersnatch configuration file
 """
 
+import abc
 import configparser
 import importlib.resources
 import logging
+import shutil
+from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, NamedTuple
 
 from .config.diff_file_reference import eval_config_reference, has_config_reference
+from .config.exceptions import ConfigError, ConfigFileNotFound
 from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
 
 logger = logging.getLogger("bandersnatch")
+
+# Filename of example configuration file inside the bandersnatch package
+_example_conf_file = "example.conf"
+
+# Filename of default values file inside the bandersnatch package
+_defaults_conf_file = "defaults.conf"
 
 
 class SetConfigValues(NamedTuple):
@@ -19,7 +29,7 @@ class SetConfigValues(NamedTuple):
     root_uri: str
     diff_file_path: str
     diff_append_epoch: bool
-    digest_name: str
+    digest_name: SimpleDigest
     storage_backend_name: str
     cleanup: bool
     release_files_save: bool
@@ -38,70 +48,108 @@ class Singleton(type):  # pragma: no cover
         return cls._instances[cls]
 
 
-class BandersnatchConfig(metaclass=Singleton):
+# ConfigParser's metaclass is abc.ABCMeta; we can't inherit from ConfigParser and
+# also use the Singleton metaclass unless we "manually" combine the metaclasses.
+class _SingletonABCMeta(Singleton, abc.ABCMeta):
+    pass
+
+
+class BandersnatchConfig(ConfigParser, metaclass=_SingletonABCMeta):
+    """Configuration singleton. Provides global access to loaded configuration
+    options as a ConfigParser subclass. Always reads default mirror options when
+    initialized. If given a file path, that file is loaded second so its values
+    overwrite corresponding defaults.
+    """
+
     # Ensure we only show the deprecations once
     SHOWN_DEPRECATIONS = False
 
-    def __init__(self, config_file: str | None = None) -> None:
-        """
-        Bandersnatch configuration class singleton
+    def __init__(
+        self, config_file: Path | None = None, load_defaults: bool = True
+    ) -> None:
+        """Create the singleton configuration object. Default configuration values are
+        read from a configuration file inside the package. If a file path is given, that
+        file is read after reading defaults such that it's values overwrite defaults.
 
-        This class is a singleton that parses the configuration once at the
-        start time.
-
-        Parameters
-        ==========
-        config_file: str, optional
-            Path to the configuration file to use
+        :param Path | None config_file: non-default configuration file to load, defaults to None
         """
+        super(ConfigParser, self).__init__(delimiters="=")
         self.found_deprecations: list[str] = []
-        self.default_config_file = str(
-            importlib.resources.files("bandersnatch") / "default.conf"
-        )
-        self.config_file = config_file
-        self.load_configuration()
-        # Keeping for future deprecations ... Commenting to save function call etc.
-        # self.check_for_deprecations()
+
+        # ConfigParser.read can process an iterable of file paths, but separate read
+        # calls are used on purpose to add more information to error messages.
+        if load_defaults:
+            self._read_defaults_file()
+        if config_file:
+            self._read_user_config_file(config_file)
+
+    def optionxform(self, optionstr: str) -> str:
+        return optionstr
 
     def check_for_deprecations(self) -> None:
         if self.SHOWN_DEPRECATIONS:
             return
         self.SHOWN_DEPRECATIONS = True
 
-    def load_configuration(self) -> None:
-        """
-        Read the configuration from a configuration file
-        """
-        config_file = self.default_config_file
-        if self.config_file:
-            config_file = self.config_file
-        self.config = configparser.ConfigParser(delimiters="=")
-        # mypy is unhappy with us assigning to a method - (monkeypatching?)
-        self.config.optionxform = lambda option: option  # type: ignore
-        self.config.read(config_file)
+    def _read_defaults_file(self) -> None:
+        try:
+            defaults_file = (
+                importlib.resources.files("bandersnatch") / _defaults_conf_file
+            )
+            self.read(str(defaults_file))
+            logger.debug("Read configuration defaults file.")
+        except OSError as err:
+            raise ConfigError("Error reading configuration defaults: %s", err) from err
+
+    def _read_user_config_file(self, config_file: Path) -> None:
+        # Check for this case explicitly instead of letting it fall under the OSError
+        # case, so we can use the exception type for control flow:
+        if not config_file.exists():
+            raise ConfigFileNotFound(
+                f"Specified configuration file doesn't exist: {config_file}"
+            )
+
+        # Standard configparser, but we want to add context information to an OSError
+        try:
+            self.read(config_file)
+            logger.info("Read configuration file '%s'", config_file)
+        except OSError as err:
+            raise ConfigError(
+                "Error reading configuration file '%s': %s", config_file, err
+            ) from err
+
+
+def create_example_config(dest: Path) -> None:
+    """Create an example configuration file at the specified location.
+
+    :param Path dest: destination path for the configuration file.
+    """
+    example_source = importlib.resources.files("bandersnatch") / _example_conf_file
+    try:
+        shutil.copy(str(example_source), dest)
+    except OSError as err:
+        logger.error("Could not create config file '%s': %s", dest, err)
 
 
 def validate_config_values(  # noqa: C901
     config: configparser.ConfigParser,
 ) -> SetConfigValues:
-    try:
-        json_save = config.getboolean("mirror", "json")
-    except configparser.NoOptionError:
-        logger.error(
-            "Please update your config to include a json "
-            + "boolean in the [mirror] section. Setting to False"
+
+    json_save = config.getboolean("mirror", "json")
+
+    root_uri = config.get("mirror", "root_uri")
+
+    release_files_save = config.getboolean("mirror", "release-files")
+
+    if not release_files_save and not root_uri:
+        root_uri = "https://files.pythonhosted.org"
+        logger.warning(
+            "Please update your config to include a root_uri in the [mirror] "
+            + "section when disabling release file sync. Setting to "
+            + root_uri
         )
-        json_save = False
 
-    try:
-        root_uri = config.get("mirror", "root_uri")
-    except configparser.NoOptionError:
-        root_uri = ""
-
-    try:
-        diff_file_path = config.get("mirror", "diff-file")
-    except configparser.NoOptionError:
-        diff_file_path = ""
+    diff_file_path = config.get("mirror", "diff-file")
 
     if diff_file_path and has_config_reference(diff_file_path):
         try:
@@ -114,27 +162,12 @@ def validate_config_values(  # noqa: C901
             mirror_dir = config.get("mirror", "directory")
             diff_file_path = (Path(mirror_dir) / "mirrored-files").as_posix()
 
-    try:
-        diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
-    except configparser.NoOptionError:
-        diff_append_epoch = False
+    diff_append_epoch = config.getboolean("mirror", "diff-append-epoch")
 
-    try:
-        logger.debug("Checking config for storage backend...")
-        storage_backend_name = config.get("mirror", "storage-backend")
-        logger.debug("Found storage backend in config!")
-    except configparser.NoOptionError:
-        storage_backend_name = "filesystem"
-        logger.debug(
-            "Failed to find storage backend in config, falling back to default!"
-        )
-    logger.info(f"Selected storage backend: {storage_backend_name}")
+    storage_backend_name = config.get("mirror", "storage-backend")
 
     try:
         digest_name = get_digest_value(config.get("mirror", "digest_name"))
-    except configparser.NoOptionError:
-        digest_name = SimpleDigest.SHA256
-        logger.debug(f"Using digest {digest_name} by default ...")
     except ValueError as e:
         logger.error(
             f"Supplied digest_name {config.get('mirror', 'digest_name')} is "
@@ -144,64 +177,38 @@ def validate_config_values(  # noqa: C901
         raise e
 
     try:
-        cleanup = config.getboolean("mirror", "cleanup")
-    except configparser.NoOptionError:
-        logger.debug(
-            "bandersnatch is not cleaning up non PEP 503 normalized Simple "
-            + "API directories"
-        )
-        cleanup = False
-
-    release_files_save = config.getboolean("mirror", "release-files", fallback=True)
-    if not release_files_save and not root_uri:
-        root_uri = "https://files.pythonhosted.org"
+        simple_format_raw = config.get("mirror", "simple-format")
+        simple_format = get_format_value(simple_format_raw)
+    except ValueError as e:
         logger.error(
-            "Please update your config to include a root_uri in the [mirror] "
-            + "section when disabling release file sync. Setting to "
-            + root_uri
+            f"Supplied simple-format {simple_format_raw} is not supported!"
+            + " Please updare the simple-format in the [mirror] section of"
+            + " your config to a supported value."
         )
+        raise e
 
-    try:
-        logger.debug("Checking config for compare method...")
-        compare_method = config.get("mirror", "compare-method")
-        logger.debug("Found compare method in config!")
-    except configparser.NoOptionError:
-        compare_method = "hash"
-        logger.debug(
-            "Failed to find compare method in config, falling back to default!"
-        )
+    compare_method = config.get("mirror", "compare-method")
     if compare_method not in ("hash", "stat"):
         raise ValueError(
             f"Supplied compare_method {compare_method} is not supported! Please "
             + "update compare_method to one of ('hash', 'stat') in the [mirror] "
             + "section."
         )
-    logger.info(f"Selected compare method: {compare_method}")
 
-    try:
-        logger.debug("Checking config for alternative download mirror...")
-        download_mirror = config.get("mirror", "download-mirror")
-        logger.info(f"Selected alternative download mirror {download_mirror}")
-    except configparser.NoOptionError:
-        download_mirror = ""
-        logger.debug("No alternative download mirror found in config.")
+    download_mirror = config.get("mirror", "download-mirror")
 
     if download_mirror:
-        try:
-            logger.debug(
-                "Checking config for only download from alternative download"
-                + "mirror..."
-            )
-            download_mirror_no_fallback = config.getboolean(
-                "mirror", "download-mirror-no-fallback"
-            )
-            if download_mirror_no_fallback:
-                logger.info("Setting to download from mirror without fallback")
-            else:
-                logger.debug("Setting to fallback to original if download mirror fails")
-        except configparser.NoOptionError:
-            download_mirror_no_fallback = False
-            logger.debug("No download mirror fallback setting found in config.")
+
+        logger.debug(
+            "Checking config for only download from alternative download" + "mirror..."
+        )
+        download_mirror_no_fallback = config.getboolean(
+            "mirror", "download-mirror-no-fallback"
+        )
+        if download_mirror_no_fallback:
+            logger.info("Setting to download from mirror without fallback")
+        else:
+            logger.debug("Setting to fallback to original if download mirror fails")
     else:
         download_mirror_no_fallback = False
         logger.debug(
@@ -209,11 +216,7 @@ def validate_config_values(  # noqa: C901
             + "is not set in config."
         )
 
-    try:
-        simple_format = get_format_value(config.get("mirror", "simple-format"))
-    except configparser.NoOptionError:
-        logger.debug("Storing all Simple Formats by default ...")
-        simple_format = SimpleFormat.ALL
+    cleanup = config.getboolean("mirror", "cleanup", fallback=False)
 
     return SetConfigValues(
         json_save,

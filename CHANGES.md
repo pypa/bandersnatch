@@ -17,6 +17,7 @@
 
 - Fix config file value interpolation for the `diff-file` option `PR #1715`
 - Fix diff-file being created when the option wasn't set `PR #1716`
+- Provide default values for most config options in the `[mirror]` section `PR #1740`
 
 ## Deprecation
 
