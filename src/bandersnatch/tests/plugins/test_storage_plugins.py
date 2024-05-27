@@ -21,7 +21,11 @@ from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
 from bandersnatch.tests.mock_config import mock_config
-from bandersnatch_storage_plugins import filesystem, swift
+from bandersnatch_storage_plugins import filesystem
+
+if sys.version_info < (3, 12):
+    from bandersnatch_storage_plugins import swift
+
 
 if TYPE_CHECKING:
     import swiftclient
@@ -103,14 +107,14 @@ def iter_dir(
 
 def get_swift_object_date(date: datetime.datetime) -> str:
     return (
-        date.astimezone(datetime.timezone.utc)
+        date.astimezone(datetime.UTC)
         .strftime("%a, %d %b %Y %H:%M:%S %Z")
         .replace("UTC", "GMT")
     )
 
 
 def get_swift_date(date: datetime.datetime) -> str:
-    return date.astimezone(datetime.timezone.utc).isoformat()
+    return date.astimezone(datetime.UTC).isoformat()
 
 
 class MockConnection:
@@ -567,12 +571,16 @@ workers = 3
 class BaseStoragePluginTestCase(BasePluginTestCase):
     plugin_map = {
         "filesystem": filesystem.FilesystemStorage,
-        "swift": swift.SwiftStorage,
     }
+    # Both switch plugons somehow now cause typing error but bug was already there
+    # - Keeping due to dropping swift support in 7.0
+    if sys.version_info < (3, 12):
+        plugin_map["swift"] = swift.SwiftStorage  # type: ignore
     path_backends = {
         "filesystem": pathlib.Path,
-        "swift": swift.SwiftPath,
     }
+    if sys.version_info < (3, 12):
+        path_backends["swift"] = swift.SwiftPath  # type: ignore
 
     base_find_contents = r"""
 .lock
@@ -942,13 +950,17 @@ web{0}simple{0}index.html""".format(
 
 class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
     backend = "filesystem"
-    base_find_contents = "\n".join([
-        line
-        for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
-        if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep) != line.strip()
-    ])
+    base_find_contents = "\n".join(
+        [
+            line
+            for line in BaseStoragePluginTestCase.base_find_contents.split("\n")
+            if "web{0}local-stats{0}days{0}.swiftkeep".format(os.path.sep)
+            != line.strip()
+        ]
+    )
 
 
+@unittest.skipIf(sys.version_info >= (3, 12), "Dropping support for swift in 3.12")
 class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     backend = "swift"
     base_find_contents = BaseStoragePluginTestCase.base_find_contents.replace(
