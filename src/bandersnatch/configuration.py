@@ -200,7 +200,7 @@ def validate_config_values(  # noqa: C901
     if download_mirror:
 
         logger.debug(
-            "Checking config for only download from alternative download" + "mirror..."
+            "Checking config for only download from alternative download mirror"
         )
         download_mirror_no_fallback = config.getboolean(
             "mirror", "download-mirror-no-fallback"
