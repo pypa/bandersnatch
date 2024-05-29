@@ -14,6 +14,7 @@ import bandersnatch.log
 import bandersnatch.master
 import bandersnatch.mirror
 import bandersnatch.verify
+from bandersnatch.config.exceptions import ConfigError, ConfigFileNotFound
 from bandersnatch.storage import storage_backend_plugins
 
 # See if we have uvloop and use if so
@@ -202,23 +203,22 @@ def main(loop: asyncio.AbstractEventLoop | None = None) -> int:
 
     # Prepare default config file if needed.
     config_path = Path(args.config)
-    if not config_path.exists():
+    try:
+        logger.info("Reading configuration file '%s'", config_path)
+        config = bandersnatch.configuration.BandersnatchConfig(config_path)
+    except ConfigFileNotFound:
         logger.warning(f"Config file '{args.config}' missing, creating default config.")
         logger.warning("Please review the config file, then run 'bandersnatch' again.")
-
-        default_config_path = Path(__file__).parent / "default.conf"
-        try:
-            shutil.copy(default_config_path, args.config)
-        except OSError as e:
-            logger.error(f"Could not create config file: {e}")
+        bandersnatch.configuration.create_example_config(config_path)
         return 1
+    except ConfigError as err:
+        logger.error("Unable to load configuration: %s", err)
+        logger.debug("Error details:", exc_info=err)
+        return 2
 
-    config = bandersnatch.configuration.BandersnatchConfig(
-        config_file=args.config
-    ).config
-
-    if config.has_option("mirror", "log-config"):
-        logging.config.fileConfig(str(Path(config.get("mirror", "log-config"))))
+    user_log_config = config.get("mirror", "log-config", fallback=None)
+    if user_log_config:
+        logging.config.fileConfig(Path(user_log_config))
 
     if loop:
         loop.set_debug(args.debug)

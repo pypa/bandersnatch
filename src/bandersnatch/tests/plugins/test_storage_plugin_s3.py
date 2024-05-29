@@ -145,7 +145,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -168,14 +168,14 @@ endpoint_url = http://localhost:9090
 signature_version = s3v4
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
     resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -194,7 +194,7 @@ compare-method = hash
 endpoint_url = http://localhost:9090
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
@@ -203,7 +203,7 @@ endpoint_url = http://localhost:9090
 
 
 def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -227,7 +227,7 @@ signature_version = s3v4
 config_param_ServerSideEncryption = AES256
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     assert backend.configuration_parameters["ServerSideEncryption"] == "AES256"

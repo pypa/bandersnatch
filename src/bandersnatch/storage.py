@@ -63,11 +63,9 @@ class Storage:
     ) -> None:
         self.flock_path: PATH_TYPES = ".lock"
         if config is not None:
-            if isinstance(config, BandersnatchConfig):
-                config = config.config
             self.configuration = config
         else:
-            self.configuration = BandersnatchConfig().config
+            self.configuration = BandersnatchConfig()
         try:
             storage_backend = self.configuration["mirror"]["storage-backend"]
         except (KeyError, TypeError):
@@ -342,7 +340,7 @@ def load_storage_plugins(
     """
     global loaded_storage_plugins
     if config is None:
-        config = BandersnatchConfig().config
+        config = BandersnatchConfig()
     if not enabled_plugin:
         try:
             enabled_plugin = config["mirror"]["storage-backend"]

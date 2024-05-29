@@ -3,7 +3,6 @@ import sys
 import time
 import unittest.mock as mock
 from collections.abc import Awaitable, Callable, Iterator, Mapping
-from configparser import ConfigParser
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -144,9 +143,9 @@ packages =
     example1
 """
     Singleton._instances = {}
-    with open("test.conf", "w") as testconfig_handle:
-        testconfig_handle.write(test_configuration)
-    BandersnatchConfig("test.conf")
+    test_conf = Path("test.conf")
+    test_conf.write_text(test_configuration)
+    BandersnatchConfig(config_file=test_conf)
     m = BandersnatchMirror(tmpdir, mock.Mock())
     m.packages_to_sync = {"example1": "", "example2": ""}
     m._filter_packages()
@@ -167,9 +166,9 @@ packages =
     example3>2.0.0
 """
     Singleton._instances = {}
-    with open("test.conf", "w") as testconfig_handle:
-        testconfig_handle.write(test_configuration)
-    BandersnatchConfig("test.conf")
+    test_conf = Path("test.conf")
+    test_conf.write_text(test_configuration)
+    BandersnatchConfig(config_file=test_conf)
     m = BandersnatchMirror(tmpdir, mock.Mock())
     m.packages_to_sync = {"example1": "", "example3": ""}
     m._filter_packages()
@@ -1332,7 +1331,7 @@ async def test_mirror_subcommand_only_creates_diff_file_if_configured(
 ) -> None:
     # Setup: create a configuration for the 'mirror' subcommand
     # Mirror section only contains required options and omits 'diff-file'
-    config = ConfigParser()
+    config = BandersnatchConfig(load_defaults=True)
     config.read_dict(
         {
             "mirror": {
@@ -1415,7 +1414,7 @@ async def test_mirror_subcommand_diff_file_dir_with_epoch(
 
     # Setup: create configuration for 'mirror' subcommand that includes both
     # `diff-file` and `diff-append-epoch`
-    config = ConfigParser()
+    config = BandersnatchConfig(load_defaults=True)
     config.read_dict(
         {
             "mirror": {

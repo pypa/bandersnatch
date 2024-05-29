@@ -36,7 +36,7 @@ class Filter:
     deprecated_name: str = ""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.configuration = BandersnatchConfig().config
+        self.configuration = BandersnatchConfig()
         if (
             "plugins" not in self.configuration
             or "enabled" not in self.configuration["plugins"]
@@ -155,7 +155,7 @@ class LoadedFilters:
         """
         Loads and stores all of specified filters from the config file
         """
-        self.config = BandersnatchConfig().config
+        self.config = BandersnatchConfig()
         self.loaded_filter_plugins: dict[str, list["Filter"]] = defaultdict(list)
         self.enabled_plugins = self._load_enabled()
         if load_all:
