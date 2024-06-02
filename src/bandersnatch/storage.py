@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import IO, Any, Protocol
 
 import filelock
-import pkg_resources
+from importlib.metadata import entry_points
 from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
@@ -320,7 +320,7 @@ def load_storage_plugins(
     clear_cache: bool = False,
 ) -> set[Storage]:
     """
-    Load all storage plugins that are registered with pkg_resources
+    Load all storage plugins that are registered with importlib
 
     Parameters
     ==========
@@ -361,8 +361,9 @@ def load_storage_plugins(
     if cached_plugins:
         return set(cached_plugins)
 
+    eps = entry_points()
     plugins = set()
-    for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
+    for entry_point in eps.select(group=entrypoint_group):
         if entry_point.name == enabled_plugin + "_plugin":
             try:
                 plugin_class = entry_point.load()
