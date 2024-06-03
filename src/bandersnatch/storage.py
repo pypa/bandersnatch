@@ -12,10 +12,10 @@ import pathlib
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from importlib.metadata import entry_points
 from typing import IO, Any, Protocol
 
 import filelock
-from importlib.metadata import entry_points
 from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
