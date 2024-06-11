@@ -33,10 +33,10 @@ TOX_EXE = Path(which("tox") or "tox")
 A_BLACK_WHL = (
     MIRROR_BASE
     / "packages"
-    / "20"
-    / "de"
-    / "eff8e3ccc22b5c2be1265a9e61f1006d03e194519a3ca2e83dd8483dbbb5"
-    / "black-23.1.0-cp38-cp38-macosx_10_16_x86_64.whl"
+    / "1b"
+    / "cf"
+    / "f1c3925f35a63bede25a17ecfed4529bf12e14fdf592917b36c17caf0b30"
+    / "black-24.4.1-cp312-cp312-macosx_11_0_arm64.whl"
 )
 
 
