@@ -45,11 +45,6 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.force_check == "true":
-        force_check = "--force-check"
-    else:
-        force_check = ""
-
     print(f"Running bandersnatch every {args.interval}s", file=sys.stderr)
     try:
         while True:
@@ -64,8 +59,11 @@ def main() -> int:
                         "--config",
                         args.config,
                         "mirror",
-                        force_check,
                     ]
+
+                    if args.force_check == "true":
+                        cmd.append("--force-check")
+
                     run(cmd, check=True)
                 except CalledProcessError as cpe:
                     return cpe.returncode
