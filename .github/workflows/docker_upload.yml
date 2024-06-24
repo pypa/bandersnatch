@@ -33,7 +33,7 @@ jobs:
           latest_non_release)" >> $GITHUB_ENV
 
       - name: Build and push filesystem image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         env:
           PY_VERSION: '3.12'
         with:
@@ -47,7 +47,7 @@ jobs:
         run: echo ${{ steps.docker_build.outputs.digest }}
 
       - name: Build and push s3 image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         env:
           PY_VERSION: '3.12'
           WITH_S3: yes
