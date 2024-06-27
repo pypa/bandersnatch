@@ -52,6 +52,18 @@ download-mirror = https://pypi-mirror.example.com/
 
 This will download release files from `https://pypi-mirror.example.com` if possible and fall back to PyPI if a download fails. See [](#download-mirror). Add [](#download-mirror-no-fallback) to download release files exclusively from `download-mirror`.
 
+If you are using a download source that does not have HTTPS support, you can supply this configuration:
+
+```ini
+[mirror]
+...
+allow-non-https = true
+...
+```
+
+**Note**: It is not recommended to use this option in production environments as it may expose you to security vulnerabilities.
+Always ensure your PyPI server is running over `https://` in production.
+
 ### Index Files Only
 
 It is possible to mirror just index files without downloading any package release files:
