@@ -12,6 +12,7 @@
 ## Documentation
 
 - Updated documentation for `[mirror]` configuration options `PR #1669`
+- Updated documentation `PR #1760`
 
 ## Big Fixes
 
