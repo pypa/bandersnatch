@@ -164,6 +164,8 @@ cd bandersnatch
 /path/to/venv/bin/bandersnatch -c src/bandersnatch/default.conf mirror
 ```
 
+Alternately, copy the config to `test.conf` which is ignored from git and use that name instead.
+
 ## Running Unit Tests
 
 We use tox to run tests. `tox.ini` has the options needed, so running tests is very easy.
