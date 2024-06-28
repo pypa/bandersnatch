@@ -16,7 +16,7 @@ Bandersnatch is developed using the [GitHub Flow](https://docs.github.com/en/get
 
 Please make sure you system has the following:
 
-- Python 3.8.0 or greater
+- Python 3.10.0 or greater
 - git client
 - docker
   - *Optional* but needed to run S3 Tests
@@ -104,8 +104,29 @@ docker run \
   -p 9000:9000 \
   -p 9001:9001 \
   --name minio \
-  -v /Users/cooper/tmp/minio:/data \
+  -v ~/tmp/minio:/data \
   minio/minio server /data --console-address ":9001"
+```
+
+Exit the container with <kbd>Ctrl+C</kbd>
+
+If you've run and exited the container once, running the same command again will
+emit this error:
+
+```console
+docker: Error response from daemon: Conflict. The container name "/minio" is already in use by container "...". You have to remove (or rename) that container to be able to reuse that name.
+```
+
+Instead of removing and starting again, you can start the container with:
+
+```bash
+docker start minio --attach
+```
+
+You can remove the container with:
+
+```console
+docker rm minio
 ```
 
 ## Creating a Pull Request
@@ -143,13 +164,15 @@ cd bandersnatch
 /path/to/venv/bin/bandersnatch -c src/bandersnatch/default.conf mirror
 ```
 
+Alternately, copy the config to `test.conf` which is ignored from git and use that name instead.
+
 ## Running Unit Tests
 
 We use tox to run tests. `tox.ini` has the options needed, so running tests is very easy.
 
 ```console
 cd bandersnatch
-/path/to/venv/bin/tox [-vv] [-e py3|docs]
+/path/to/venv/bin/tox [-vv] [-e py3|doc_build]
 ```
 
 Example output:
