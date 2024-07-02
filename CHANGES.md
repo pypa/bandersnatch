@@ -9,13 +9,14 @@
 - Move Docker images to 3.12 (PR #1733)
   - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
 - Move black, mypy + pyupgrade to >= 3.11 codebase (PR #1734)
+- Allow non-HTTPS-enabled mirrors (PR #1765)
 
 ## Documentation
 
 - Updated documentation for `[mirror]` configuration options `PR #1669`
 - Updated documentation `PR #1760`
 
-## Big Fixes
+## Bug Fixes
 
 - Fix config file value interpolation for the `diff-file` option `PR #1715`
 - Fix diff-file being created when the option wasn't set `PR #1716`
