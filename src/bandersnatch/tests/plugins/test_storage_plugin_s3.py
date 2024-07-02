@@ -6,6 +6,8 @@ from s3path import S3Path, configuration_map
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import s3
 
+pytestmark = pytest.mark.s3
+
 
 def test_rewrite(s3_mock: S3Path) -> None:
     backend = s3.S3Storage()

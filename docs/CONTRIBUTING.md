@@ -95,6 +95,14 @@ S3 unittests are more integration tests. They depend on [minio](https://docs.min
 - You will either need to skip them or install mino
 - Install options: <https://docs.min.io/docs/>
 
+To skip the tests, run:
+
+```bash
+/path/to/venv/bin/tox -e py3 -- -k "not s3"
+```
+
+This will affect overall coverage numbers locally.
+
 #### Docker Install
 
 Docker is an easy way to get minio to run for tests to pass.
