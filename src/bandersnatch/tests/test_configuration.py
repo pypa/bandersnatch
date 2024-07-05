@@ -59,6 +59,7 @@ class TestBandersnatchConf(TestCase):
         self.assertSetEqual(
             options,
             {
+                "allow-non-https",
                 "cleanup",
                 "compare-method",
                 "diff-append-epoch",
