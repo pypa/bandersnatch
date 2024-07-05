@@ -41,7 +41,7 @@ class Master:
         timeout: float = 10.0,
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
-        allow_non_https: bool | None = False,
+        allow_non_https: bool = False,
     ) -> None:
         self.proxy = proxy
         self.loop = asyncio.get_event_loop()

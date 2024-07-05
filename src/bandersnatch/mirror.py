@@ -970,7 +970,7 @@ async def mirror(
         )
 
     mirror_url = config.get("mirror", "master")
-    allow_non_https = config.getboolean("mirror", "allow-non-https", fallback=None)
+    allow_non_https = config.getboolean("mirror", "allow-non-https")
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
     proxy = config.get("mirror", "proxy", fallback=None)
