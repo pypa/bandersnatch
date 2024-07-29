@@ -220,7 +220,7 @@ class S3Storage(StoragePlugin):
     @contextlib.contextmanager
     def rewrite(
         self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
-    ) -> Generator[IO, None, None]:
+    ) -> Generator[IO]:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
@@ -229,7 +229,7 @@ class S3Storage(StoragePlugin):
             yield fh
 
     @contextlib.contextmanager
-    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
+    def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO]:
         """Rewrite a file atomically.
 
         Clients are allowed to delete the tmpfile to signal that they don't
@@ -299,7 +299,7 @@ class S3Storage(StoragePlugin):
     @contextlib.contextmanager
     def open_file(
         self, path: PATH_TYPES, text: bool = True, encoding: str = "utf-8"
-    ) -> Generator[IO, None, None]:
+    ) -> Generator[IO]:
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
         mode = "r" if text else "rb"
@@ -362,7 +362,7 @@ class S3Storage(StoragePlugin):
             path = self.PATH_BACKEND(path)
         path.joinpath(self.PATH_BACKEND.keep_file).touch()
 
-    def scandir(self, path: PATH_TYPES) -> Generator[_S3DirEntry, None, None]:
+    def scandir(self, path: PATH_TYPES) -> Generator[_S3DirEntry]:
         """Read entries from the provided directory"""
         if not isinstance(path, self.PATH_BACKEND):
             path = self.PATH_BACKEND(path)
