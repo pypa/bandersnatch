@@ -622,7 +622,7 @@ web{0}simple{0}index.html""".format(
         self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
 
     def test_json_paths(self) -> None:
-        config = mock_config(self.config_contents).config
+        config = mock_config(self.config_contents)
         mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [

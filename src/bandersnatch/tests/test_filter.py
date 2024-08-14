@@ -124,11 +124,9 @@ enabled =
         self.assertFalse(error)
 
     def test_deprecated_keys(self) -> None:
-        with open("test.conf", "w") as f:
-            f.write("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
         instance = BandersnatchConfig()
-        instance.config_file = "test.conf"
-        instance.load_configuration()
+        instance.read_string("[allowlist]\npackages=foo\n[blocklist]\npackages=bar\n")
+
         plugin = Filter()
         assert plugin.allowlist.name == "allowlist"
         assert plugin.blocklist.name == "blocklist"

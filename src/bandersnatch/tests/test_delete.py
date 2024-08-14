@@ -11,6 +11,7 @@ import pytest
 from aiohttp import ClientResponseError
 from pytest import MonkeyPatch
 
+from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.delete import delete_packages, delete_path, delete_simple_page
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
@@ -77,6 +78,7 @@ def _fake_config() -> ConfigParser:
 
 @pytest.mark.asyncio
 async def test_delete_path() -> None:
+    BandersnatchConfig().read_dict(_fake_config())
     with TemporaryDirectory() as td:
         td_path = Path(td)
         fake_path = td_path / "unittest-file.tgz"
