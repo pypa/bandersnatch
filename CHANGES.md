@@ -10,6 +10,7 @@
   - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
 - Move black, mypy + pyupgrade to >= 3.11 codebase (PR #1734)
 - Allow non-HTTPS-enabled mirrors (PR #1765)
+- Correct example config (PR #1807)
 
 ## Documentation
 
