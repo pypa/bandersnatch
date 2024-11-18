@@ -3,7 +3,7 @@ botocore==1.35.49
 jmespath==1.0.1
 python-dateutil==2.9.0.post0
 s3path==0.5.7
-s3transfer==0.10.2
+s3transfer==0.10.3
 six==1.16.0
 smart-open==7.0.4
 urllib3==2.0.7
