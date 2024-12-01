@@ -22,10 +22,11 @@ logger = logging.getLogger(__name__)
 
 async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
     storage_backend = next(iter(storage_backend_plugins()))
+    loop = asyncio.get_event_loop()
     if dry_run:
         logger.info(f" rm {blob_path}")
         return 0
-    blob_exists = await storage_backend.loop.run_in_executor(
+    blob_exists = await loop.run_in_executor(
         storage_backend.executor, storage_backend.exists, blob_path
     )
     if not blob_exists:
@@ -33,9 +34,7 @@ async def delete_path(blob_path: Path, dry_run: bool = False) -> int:
         return 0
     try:
         del_partial = partial(storage_backend.delete, blob_path, dry_run=dry_run)
-        await storage_backend.loop.run_in_executor(
-            storage_backend.executor, del_partial
-        )
+        await loop.run_in_executor(storage_backend.executor, del_partial)
     except FileNotFoundError:
         # Due to using threads in executors we sometimes have a
         # race condition if canonicalize_name == passed in name
