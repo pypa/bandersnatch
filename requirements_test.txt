@@ -10,6 +10,6 @@ pytest==7.4.4
 pytest-asyncio==0.23.8
 pytest-timeout==2.3.1
 setuptools==72.2.0
-tox==4.18.0
+tox==4.23.2
 types-filelock==3.2.7
 types-freezegun==1.1.10
