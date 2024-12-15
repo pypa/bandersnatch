@@ -30,7 +30,7 @@ if sys.version_info < (3, 12):
 if TYPE_CHECKING:
     import swiftclient
 
-
+SAMPLE_FILE_CONTENT = "I am a sample!\n"
 BASE_SAMPLE_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample"
 )
@@ -412,7 +412,9 @@ workers = 3
             target_sample_file = f"{self.container}/{target_sample_file}"
         assert self.tempdir
         self.sample_file = os.path.join(self.tempdir.name, target_sample_file)
-        shutil.copy(BASE_SAMPLE_FILE, self.sample_file)
+        with open(self.sample_file, mode="w") as sample_file:
+            sample_file.write(SAMPLE_FILE_CONTENT)
+
         if self.backend == "swift":
             self.mirror_path = Path(mirror_path)
         else:
