@@ -1,4 +1,3 @@
-import asyncio
 import concurrent.futures
 from pathlib import Path
 from tempfile import gettempdir
@@ -74,7 +73,6 @@ async def test_master_doesnt_raise_if_serial_equal(master: Master) -> None:
 @pytest.mark.asyncio
 async def test_master_url_fetch(master: Master) -> None:
     fetch_path = Path(gettempdir()) / "unittest_url_fetch"
-    master.loop = asyncio.get_running_loop()
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as thread_pool:
         await master.url_fetch("https://unittest.org/asdf", fetch_path, thread_pool)
     assert master.session.get.called

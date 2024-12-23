@@ -1,6 +1,8 @@
 # flake8: noqa
 import os
 import unittest.mock as mock
+from asyncio import AbstractEventLoop
+from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
@@ -17,6 +19,8 @@ from s3path import (
     configuration_map,
     register_configuration_parameter,
 )
+
+import bandersnatch.storage
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -48,6 +52,18 @@ def never_sleep(request: FixtureRequest) -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
+
+
+# Recreate storage plugins between test modules to prevent later tests
+# from re-using storage plugins initialized by earlier ones.
+def _reset_storage_plugins() -> None:
+    bandersnatch.storage.loaded_storage_plugins = defaultdict(list)
+
+
+reset_storage_plugins = pytest.fixture(_reset_storage_plugins)
+reset_storage_plugins_per_module = pytest.fixture(
+    _reset_storage_plugins, scope="module", autouse=True
+)
 
 
 @pytest.fixture
@@ -96,8 +112,11 @@ def package_json() -> dict[str, Any]:
     }
 
 
+# This requests the 'event_loop' fixture from pytest-asyncio because the initializer for
+# 'Master' uses `asyncio.get_event_loop()`, and in some contexts a loop won't already
+# exist when the fixture is initialized.
 @pytest.fixture
-def master(package_json: dict[str, Any]) -> "Master":
+def master(package_json: dict[str, Any], event_loop: AbstractEventLoop) -> "Master":
     from bandersnatch.master import Master
 
     class FakeReader:
@@ -196,13 +215,14 @@ def reset_configuration_cache() -> Iterator[None]:
 def s3_mock(reset_configuration_cache: None) -> S3Path:
     if os.environ.get("os") != "ubuntu-latest" and os.environ.get("CI"):
         pytest.skip("Skip s3 test on non-posix server in github action")
+    endpoint = os.environ.get("BANDERSNATCH_S3_ENDPOINT_URL", "http://localhost:9000")
     register_configuration_parameter(
         PureS3Path("/"),
         resource=boto3.resource(
             "s3",
             aws_access_key_id="minioadmin",
             aws_secret_access_key="minioadmin",
-            endpoint_url="http://localhost:9000",
+            endpoint_url=endpoint,
         ),
     )
     new_bucket = S3Path("/test-bucket")
