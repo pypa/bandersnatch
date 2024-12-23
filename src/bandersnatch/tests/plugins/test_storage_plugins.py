@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest import TestCase, mock
 
+import pytest
+
 import bandersnatch.storage
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
@@ -37,6 +39,10 @@ BASE_SAMPLE_FILE = os.path.join(
 SWIFT_CONTAINER_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "swift_container.json"
 )
+
+
+# Swift and FileSystem storage plugins use asyncio.get_event_loop in their initializers
+pytestmark = pytest.mark.asyncio(loop_scope="class")
 
 
 def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> dict[str, Any]:
