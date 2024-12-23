@@ -2,6 +2,7 @@
 import os
 import unittest.mock as mock
 from asyncio import AbstractEventLoop
+from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
@@ -18,6 +19,8 @@ from s3path import (
     configuration_map,
     register_configuration_parameter,
 )
+
+import bandersnatch.storage
 
 if TYPE_CHECKING:
     from bandersnatch.master import Master
@@ -49,6 +52,18 @@ def never_sleep(request: FixtureRequest) -> None:
         patcher.stop()
 
     request.addfinalizer(tearDown)
+
+
+# Recreate storage plugins between test modules to prevent later tests
+# from re-using storage plugins initialized by earlier ones.
+def _reset_storage_plugins() -> None:
+    bandersnatch.storage.loaded_storage_plugins = defaultdict(list)
+
+
+reset_storage_plugins = pytest.fixture(_reset_storage_plugins)
+reset_storage_plugins_per_module = pytest.fixture(
+    _reset_storage_plugins, scope="module", autouse=True
+)
 
 
 @pytest.fixture

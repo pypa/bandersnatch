@@ -77,7 +77,12 @@ def _fake_config() -> ConfigParser:
 
 
 @pytest.mark.asyncio
-async def test_delete_path() -> None:
+async def test_delete_path(reset_storage_plugins: None) -> None:
+    # 'delete_path' is one of the few places 'storage_backend_plugins' is used without the 'clear_cache' option.
+    # For interactive use this is not relevant, but when running tests there can be an order-dependent error
+    # caused by 'delete_path' trying to use the event loop from a previous test. The storage plugin initializer
+    # gets the current event loop and saves it in an attribute, but test event loops are scoped, so if a plugin
+    # is created in one event loop scope and used in another the stored loop will be closed.
     BandersnatchConfig().read_dict(_fake_config())
     with TemporaryDirectory() as td:
         td_path = Path(td)
