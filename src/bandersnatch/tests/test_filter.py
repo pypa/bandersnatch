@@ -4,6 +4,8 @@ import unittest
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import pytest
+
 from bandersnatch.configuration import BandersnatchConfig
 from bandersnatch.tests.mock_config import mock_config
 
@@ -13,6 +15,8 @@ from bandersnatch.filter import (  # isort:skip
     FilterReleasePlugin,
     LoadedFilters,
 )
+
+pytestmark = pytest.mark.asyncio(loop_scope="class")
 
 
 class TestBandersnatchFilter(TestCase):
