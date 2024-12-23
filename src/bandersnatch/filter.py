@@ -3,9 +3,8 @@ Blocklist management
 """
 
 from collections import defaultdict
+from importlib.metadata import entry_points
 from typing import TYPE_CHECKING, Any
-
-import pkg_resources
 
 from .configuration import BandersnatchConfig
 
@@ -37,7 +36,7 @@ class Filter:
     deprecated_name: str = ""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.configuration = BandersnatchConfig().config
+        self.configuration = BandersnatchConfig()
         if (
             "plugins" not in self.configuration
             or "enabled" not in self.configuration["plugins"]
@@ -156,7 +155,7 @@ class LoadedFilters:
         """
         Loads and stores all of specified filters from the config file
         """
-        self.config = BandersnatchConfig().config
+        self.config = BandersnatchConfig()
         self.loaded_filter_plugins: dict[str, list["Filter"]] = defaultdict(list)
         self.enabled_plugins = self._load_enabled()
         if load_all:
@@ -185,9 +184,10 @@ class LoadedFilters:
         """
         Loads filters from the entry-point groups specified in groups
         """
+        eps = entry_points()
         for group in groups:
             plugins = set()
-            for entry_point in pkg_resources.iter_entry_points(group=group):
+            for entry_point in eps.select(group=group):
                 plugin_class = entry_point.load()
                 plugin_instance = plugin_class()
                 if (

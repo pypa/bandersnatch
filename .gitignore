@@ -45,6 +45,7 @@ coverage.xml
 *,cover
 .hypothesis/
 test.conf
+local.conf
 
 # Translations
 *.mo

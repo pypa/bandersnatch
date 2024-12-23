@@ -24,9 +24,14 @@ async def empty_dict(*args: Any, **kwargs: Any) -> dict:
     return {}
 
 
-def setup() -> None:
-    """simple setup function to clear Singleton._instances before each test"""
+@pytest.fixture
+def reset_config_singleton() -> None:
+    """Reset the singleton BandersnatchConfig instance"""
     Singleton._instances = {}
+
+
+# Use the above fixture for every test function in the current module
+pytestmark = pytest.mark.usefixtures("reset_config_singleton")
 
 
 def test_main_help(capfd: CaptureFixture) -> None:
@@ -90,7 +95,6 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "keep_index_versions": 0,
         "release_files_save": True,
         "storage_backend": "filesystem",
-        "diff_file": diff_file,
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
@@ -104,18 +108,16 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
 def test_main_reads_custom_config_values(
     mirror_mock: "BandersnatchMirror", logging_mock: mock.MagicMock, customconfig: Path
 ) -> None:
-    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
     main(asyncio.new_event_loop())
     (log_config, _kwargs) = logging_mock.call_args_list[0]
-    assert log_config == (str(customconfig / "bandersnatch-log.conf"),)
+    assert log_config == ((customconfig / "bandersnatch-log.conf"),)
 
 
 def test_main_throws_exception_on_unsupported_digest_name(
     customconfig: Path,
 ) -> None:
-    setup()
     conffile = str(customconfig / "bandersnatch.conf")
     parser = configparser.ConfigParser()
     parser.read(conffile)

@@ -986,7 +986,7 @@ class SwiftStorage(StoragePlugin):
                 str(path),
             )
             ts = int(headers.get("x-object-meta-upload", "0"))
-            return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+            return datetime.datetime.fromtimestamp(ts, datetime.UTC)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         """Set the upload time of a given **path**"""

@@ -3,12 +3,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+import pytest
+
 import bandersnatch.filter
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_filter_plugins import filename_name
+
+pytestmark = pytest.mark.asyncio(loop_scope="class")
 
 
 class BasePluginTestCase(TestCase):
@@ -143,11 +147,13 @@ platforms =
                         "flag": "DROP",
                     },
                 ],
-                "0.2": [{
-                    "packagetype": "bdist_egg",
-                    "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
-                    "flag": "DROP",
-                }],
+                "0.2": [
+                    {
+                        "packagetype": "bdist_egg",
+                        "filename": "foobar-0.1-freebsd-6.0-RELEASE-i386.egg",
+                        "flag": "DROP",
+                    }
+                ],
                 "0.3": [
                     {
                         "packagetype": "bdist_wheel",

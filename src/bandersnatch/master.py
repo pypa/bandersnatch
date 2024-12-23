@@ -41,13 +41,15 @@ class Master:
         timeout: float = 10.0,
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
+        allow_non_https: bool = False,
     ) -> None:
         self.proxy = proxy
         self.loop = asyncio.get_event_loop()
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
         self.url = url
-        if self.url.startswith("http://"):
+        self.allow_non_https = allow_non_https
+        if self.url.startswith("http://") and not self.allow_non_https:
             err = f"Master URL {url} is not https scheme"
             logger.error(err)
             raise ValueError(err)
@@ -195,7 +197,7 @@ class Master:
             if serial:
                 return await method(serial)
             return await method()
-        except asyncio.TimeoutError as te:
+        except TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
 
     async def all_packages(self) -> Any:

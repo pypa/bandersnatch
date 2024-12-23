@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 from bandersnatch import utils
-from bandersnatch.configuration import validate_config_values
+from bandersnatch.configuration import BandersnatchConfig, validate_config_values
 from bandersnatch.package import Package
 from bandersnatch.simple import (
     InvalidDigestFormat,
@@ -46,8 +46,7 @@ def test_digest_valid() -> None:
 
 
 def test_digest_config_default() -> None:
-    c = ConfigParser()
-    c.add_section("mirror")
+    c = BandersnatchConfig(load_defaults=True)
     config = validate_config_values(c)
     s = SimpleAPI(Storage(), "ALL", [], config.digest_name, False, None)
     assert config.digest_name.upper() in [v.name for v in SimpleDigest]

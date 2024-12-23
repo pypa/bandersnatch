@@ -1,8 +1,7 @@
 import html
 import json
 import logging
-import sys
-from enum import Enum, auto
+from enum import Enum, StrEnum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
@@ -11,11 +10,6 @@ from .package import Package
 
 if TYPE_CHECKING:
     from .storage import Storage
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from .utils import StrEnum
 
 
 class SimpleFormats(NamedTuple):
@@ -115,9 +109,13 @@ class SimpleAPI:
         """Given a directory that contains simple packages indexes, return
         a sorted list of normalized package names.  This presumes every
         directory within is a simple package index directory."""
-        return sorted({
-            str(x.name) for x in self.storage_backend.scandir(simple_dir) if x.is_dir()
-        })
+        return sorted(
+            {
+                str(x.name)
+                for x in self.storage_backend.scandir(simple_dir)
+                if x.is_dir()
+            }
+        )
 
     def gen_html_file_tags(self, release: dict) -> str:
         file_tags = ""
@@ -183,16 +181,18 @@ class SimpleAPI:
 
         digest_name = self.digest_name
 
-        simple_page_content += "\n".join([
-            '    <a href="{}#{}={}"{}>{}</a><br/>'.format(
-                self._file_url_to_local_url(r["url"]),
-                digest_name,
-                r["digests"][digest_name],
-                self.gen_html_file_tags(r),
-                r["filename"],
-            )
-            for r in release_files
-        ])
+        simple_page_content += "\n".join(
+            [
+                '    <a href="{}#{}={}"{}>{}</a><br/>'.format(
+                    self._file_url_to_local_url(r["url"]),
+                    digest_name,
+                    r["digests"][digest_name],
+                    self.gen_html_file_tags(r),
+                    r["filename"],
+                )
+                for r in release_files
+            ]
+        )
 
         simple_page_content += (
             f"\n  </body>\n</html>\n<!--SERIAL {package.last_serial}-->"
@@ -219,17 +219,19 @@ class SimpleAPI:
 
         # Add release files into the JSON dict
         for r in release_files:
-            package_json["files"].append({
-                "filename": r["filename"],
-                "hashes": {
-                    self.digest_name: r["digests"][self.digest_name],
-                },
-                "requires-python": r.get("requires_python", ""),
-                "size": r["size"],
-                "upload-time": r.get("upload_time_iso_8601", ""),
-                "url": self._file_url_to_local_url(r["url"]),
-                "yanked": r.get("yanked", False),
-            })
+            package_json["files"].append(
+                {
+                    "filename": r["filename"],
+                    "hashes": {
+                        self.digest_name: r["digests"][self.digest_name],
+                    },
+                    "requires-python": r.get("requires_python", ""),
+                    "size": r["size"],
+                    "upload-time": r.get("upload_time_iso_8601", ""),
+                    "url": self._file_url_to_local_url(r["url"]),
+                    "yanked": r.get("yanked", False),
+                }
+            )
 
         if pretty:
             return json.dumps(package_json, indent=4)

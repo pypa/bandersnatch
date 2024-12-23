@@ -3,7 +3,7 @@
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.8.0`
+- bandersnatch **requires** `>= Python 3.10.0`
 
 ## pip
 
