@@ -29,7 +29,7 @@
 
 ## Deprecation
 
-- Move from pkg_resources to importlib_metadata for filter entry point usage (PR #1739)
+- Move from pkg_resources to importlib_metadata for filter entry point usage `PR #1739`
 
 # 6.5.0
 
