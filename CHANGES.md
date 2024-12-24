@@ -248,10 +248,10 @@ Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work
 
 ## Internal API Changes
 
-- Old Mirror class has been renamed to BandersnatchMirror.  Performs same functionality with use of new Mirror API.
+- Old Mirror class has been renamed to BandersnatchMirror. Performs same functionality with use of new Mirror API.
 - BandersnatchMirror now performs all filesystem operations throughout the sync process including the ones previously
   in Package.
-- Package no longer performs filesystem operations.  Properties `json_file`, `json_pypi_symlink`, `simple_directory`
+- Package no longer performs filesystem operations. Properties `json_file`, `json_pypi_symlink`, `simple_directory`
   and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_python`, `generate_simple_page`,
   `sync_simple_page`, `_save_simple_page_version`, `_prepare_versions_path`, `_file_url_to_local_url`,
   `_file_url_to_local_path`, `download_file` have all been moved into BandersnatchMirror. Package's `sync` has been
@@ -369,7 +369,7 @@ Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work
 # 3.3.0 (2019-04-11)
 
 - Add latest version and specific platform plugins - `Fixes #49` - Thanks **@rene-d**
-- Generate data-requires-python attributes in index.html  - `Fixes #68` - Thanks **@z4yx**
+- Generate data-requires-python attributes in index.html - `Fixes #68` - Thanks **@z4yx**
 - Make package filtering logging less noisy when disabled - `Fixes #146`
 - Many pyup.io dependency upgrades
 

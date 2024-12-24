@@ -779,7 +779,7 @@ class SwiftStorage(StoragePlugin):
         """Yield a file context to iterate over. If text is false, open the file with
         'rb' mode specified."""
         wrapper = io.StringIO if text else io.BytesIO
-        content: IO = wrapper(self.read_file(path, text=text))
+        content: IO = wrapper(self.read_file(path, text=text))  # type: ignore
         yield content
 
     def read_file(

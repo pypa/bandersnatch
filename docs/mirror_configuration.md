@@ -1,6 +1,6 @@
 # Mirror Configuration
 
-The **\[mirror\]** section of the configuration file contains general options for how Bandersnatch should operate. This includes settings like the source repository to mirror, how to store mirrored files, and the kinds of files to include in the mirror.
+The **[mirror]** section of the configuration file contains general options for how Bandersnatch should operate. This includes settings like the source repository to mirror, how to store mirrored files, and the kinds of files to include in the mirror.
 
 The following options are currently _required_:
 
