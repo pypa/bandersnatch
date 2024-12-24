@@ -157,6 +157,7 @@ async def verify(
 
     # apply releases filter plugins like class Package
     pkg_c = Package(pkg["info"]["name"])
+    # TODO: Maybe make a load_metadata method in Package
     pkg_c._metadata = pkg
     pkg = pkg_c
     pkg.filter_all_releases_files(LoadedFilters().filter_release_file_plugins())

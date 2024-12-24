@@ -1,16 +1,16 @@
-# Unreleased - 6.6.0
+# 6.6.0
 
 ## New Features
 
-- Add arbitrary configuration option for S3 Storage Backend Boto3 calls (PR #1697)
-- Add pytest marker to allow skipping of S3 tests (PR #1766)
-- Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
-- Initial support for python 3.12 (PR #1728)
-- Move Docker images to 3.12 (PR #1733)
-  - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
-- Move black, mypy + pyupgrade to >= 3.11 codebase (PR #1734)
-- Allow non-HTTPS-enabled mirrors (PR #1765)
-- Correct example config (PR #1807)
+- Add arbitrary configuration option for S3 Storage Backend Boto3 calls `PR #1697`
+- Add pytest marker to allow skipping of S3 tests `PR #1766`
+- Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md `PR #1653`
+- Initial support for python 3.12 `PR #1728`
+- Move Docker images to 3.12 `PR #1733`
+  - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintain
+- Move black, mypy + pyupgrade to >= 3.11 codebase `PR #1734`
+- Allow non-HTTPS-enabled mirrors `PR #1765`
+- Correct example config `PR #1807`
 
 ## Documentation
 
@@ -19,6 +19,9 @@
 
 ## Bug Fixes
 
+- Fix event loop usage and test setup to move to latest test deps `PR #1829`
+- Fix filtering for verify to fix deletion `PR #1690`
+- Drop `types-pkg_resources` `PR #1793`
 - Fix config file value interpolation for the `diff-file` option `PR #1715`
 - Fix diff-file being created when the option wasn't set `PR #1716`
 - Provide default values for most config options in the `[mirror]` section `PR #1740`
