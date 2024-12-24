@@ -12,10 +12,10 @@ import pathlib
 from collections import defaultdict
 from collections.abc import Generator, Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from importlib.metadata import entry_points
 from typing import IO, Any, Protocol
 
 import filelock
-import pkg_resources
 from packaging.utils import canonicalize_name
 
 from .configuration import BandersnatchConfig
@@ -63,11 +63,9 @@ class Storage:
     ) -> None:
         self.flock_path: PATH_TYPES = ".lock"
         if config is not None:
-            if isinstance(config, BandersnatchConfig):
-                config = config.config
             self.configuration = config
         else:
-            self.configuration = BandersnatchConfig().config
+            self.configuration = BandersnatchConfig()
         try:
             storage_backend = self.configuration["mirror"]["storage-backend"]
         except (KeyError, TypeError):
@@ -322,7 +320,7 @@ def load_storage_plugins(
     clear_cache: bool = False,
 ) -> set[Storage]:
     """
-    Load all storage plugins that are registered with pkg_resources
+    Load all storage plugins that are registered with importlib
 
     Parameters
     ==========
@@ -342,7 +340,7 @@ def load_storage_plugins(
     """
     global loaded_storage_plugins
     if config is None:
-        config = BandersnatchConfig().config
+        config = BandersnatchConfig()
     if not enabled_plugin:
         try:
             enabled_plugin = config["mirror"]["storage-backend"]
@@ -363,8 +361,9 @@ def load_storage_plugins(
     if cached_plugins:
         return set(cached_plugins)
 
+    eps = entry_points()
     plugins = set()
-    for entry_point in pkg_resources.iter_entry_points(group=entrypoint_group):
+    for entry_point in eps.select(group=entrypoint_group):
         if entry_point.name == enabled_plugin + "_plugin":
             try:
                 plugin_class = entry_point.load()

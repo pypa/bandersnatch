@@ -26,7 +26,7 @@ this project.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.8.0`
+- bandersnatch **requires** `>= Python 3.10.0`
 
 ## Docker
 
@@ -159,7 +159,7 @@ limitation of 32k sub-directories.
 
 #### Client Compatibility
 
-A bandersnatch static mirror is compatible only to the "static",  cacheable
+A bandersnatch static mirror is compatible only to the "static", cacheable
 parts of PyPI that are needed to support package installation. It does not
 support more dynamic APIs of PyPI that maybe be used by various clients for
 other purposes.

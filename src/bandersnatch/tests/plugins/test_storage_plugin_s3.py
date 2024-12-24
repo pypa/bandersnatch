@@ -1,9 +1,12 @@
 from datetime import datetime
 
-from s3path import S3Path
+import pytest
+from s3path import S3Path, configuration_map
 
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import s3
+
+pytestmark = pytest.mark.s3
 
 
 def test_rewrite(s3_mock: S3Path) -> None:
@@ -129,11 +132,14 @@ def test_scandir(s3_mock: S3Path) -> None:
     backend.mkdir(f"/{s3_mock.bucket}/test_folder")
     backend.mkdir(f"/{s3_mock.bucket}/test_folder/sub_dir")
     backend.write_file(f"/{s3_mock.bucket}/test_folder/sub_file", "test")
-    for ent in backend.scandir(f"/{s3_mock.bucket}/test_folder"):
+    for ent in S3Path(f"/{s3_mock.bucket}/test_folder").iterdir():
         if ent.name == "sub_dir":
             assert ent.is_dir()
         elif ent.name == "sub_file":
             assert ent.is_file()
+        # we now make .s3keep files to pass params so is expected
+        elif ent.name == ".s3keep":
+            continue
         # no symlink for S3
         else:
             raise ValueError(f"unexpected dir entry {str(ent.name)}")
@@ -141,7 +147,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -164,14 +170,14 @@ endpoint_url = http://localhost:9090
 signature_version = s3v4
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
-    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config_loader = mock_config(
+    config = mock_config(
         """
 [mirror]
 directory = /tmp/pypi
@@ -190,12 +196,50 @@ compare-method = hash
 endpoint_url = http://localhost:9090
 """
     )
-    backend = s3.S3Storage(config=config_loader.config)
+    backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
     path = s3.S3Path("/tmp/pypi")
-    resource, _ = path._accessor.configuration_map.get_configuration(path)
+    resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
+
+
+def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
+    config = mock_config(
+        """
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = swift
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+signature_version = s3v4
+config_param_ServerSideEncryption = AES256
+"""
+    )
+    backend = s3.S3Storage(config=config)
+    backend.initialize_plugin()
+
+    assert backend.configuration_parameters["ServerSideEncryption"] == "AES256"
+
+    # Limitation of min.io, but tells us that the expected config param was used
+    with pytest.raises(ValueError) as execinfo:
+        backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+    assert "KMS not configured for a server side encrypted objects" in str(
+        execinfo.value
+    )
 
 
 def test_upload_time(s3_mock: S3Path) -> None:

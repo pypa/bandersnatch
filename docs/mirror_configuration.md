@@ -1,16 +1,10 @@
 # Mirror Configuration
 
-The **\[mirror\]** section of the configuration file contains general options for how Bandersnatch should operate. This includes settings like the source repository to mirror, how to store mirrored files, and the kinds of files to include in the mirror.
+The **[mirror]** section of the configuration file contains general options for how Bandersnatch should operate. This includes settings like the source repository to mirror, how to store mirrored files, and the kinds of files to include in the mirror.
 
 The following options are currently _required_:
 
 - [](#directory)
-- [](#master)
-- [](#workers)
-- [](#timeout)
-- [](#global-timeout)
-- [](#stop-on-error)
-- [](#hash-index)
 
 ## Examples
 
@@ -18,7 +12,7 @@ These examples only show `[mirror]` options; a complete configuration may includ
 
 ### Minmal
 
-A basic configuration with reasonable defaults for the required options:
+A basic configuration showing some of the more common options:
 
 ```ini
 [mirror]
@@ -39,9 +33,6 @@ global-timeout = 18000
 
 ; continue syncing when an error occurs
 stop-on-error = false
-
-; use PyPI-compatible folder structure for index files
-hash-index = false
 ```
 
 This will mirror index files and package release files from PyPI and store the mirror in `/srv/pypi`. Add configuration for [mirror filtering plugins][filter-plugins] to optionally filter what packages are mirrored in a variety of ways.
@@ -57,16 +48,21 @@ directory = /srv/pypi
 master = https://pypi.org
 ; Package distribution artifacts downloaded from here if possible
 download-mirror = https://pypi-mirror.example.com/
-
-; required options from basic config
-workers = 3
-timeout = 15
-global-timeout = 18000
-stop-on-error = false
-hash-index = false
 ```
 
 This will download release files from `https://pypi-mirror.example.com` if possible and fall back to PyPI if a download fails. See [](#download-mirror). Add [](#download-mirror-no-fallback) to download release files exclusively from `download-mirror`.
+
+If you are using a download source that does not have HTTPS support, you can supply this configuration:
+
+```ini
+[mirror]
+...
+allow-non-https = true
+...
+```
+
+**Note**: It is not recommended to use this option in production environments as it may expose you to security vulnerabilities.
+Always ensure your PyPI server is running over `https://` in production.
 
 ### Index Files Only
 
@@ -79,13 +75,6 @@ master = https://pypi.org
 simple-format = ALL
 release-files = false
 root_uri = https://files.pythonhosted.org/
-
-; required options from basic config
-workers = 3
-timeout = 15
-global-timeout = 18000
-stop-on-error = false
-hash-index = false
 ```
 
 This will mirror index files for projects and versions allowed by your [mirror filters][filter-plugins], but will not download any package release files. File URLs in index files will use the configured `root_uri`. See [](#release-files) and [](#root_uri).
@@ -169,9 +158,9 @@ A base URL to generate absolute URLs for package release files.
 
 :Type: URL
 :Required: no
-:Default: `https://files.pythonhosted.org/`
+:Default: dynamic; see description
 
-Bandersnatch creates index files containing relative URLs by default. Setting this option generates index files with absolute URLs instead.
+Bandersnatch creates index files containing relative URLs by default. Setting this option generates index files with absolute URLs instead, using the specified string for the base URL.
 
 If [](#release-files) is disabled _and_ this option is unset, Bandersnatch uses a default value of `https://files.pythonhosted.org/`.
 
@@ -185,9 +174,9 @@ File location to write a list of all new or changed files during a mirror operat
 
 :Type: file or folder path
 :Required: no
-:Default: `<mirror directory>/mirrored-files`
+:Default: none
 
-Bandersnatch creates a plain-text file at the specified location containing a list of all files created or updated during the last mirror/sync operation. The files are listed as absolute paths separated by blank lines.
+If set, Bandersnatch creates a plain-text file at the specified location containing a list of all files created or updated during the last mirror/sync operation. The files are listed as absolute paths, one per line.
 
 This is useful when mirroring to an offline network where it is required to only transfer new files to the downstream mirror. The diff file can be used to copy new files to an external drive, sync the list of files to an SSH destination such as a diode, or send the files through some other mechanism to an offline system.
 
@@ -233,7 +222,8 @@ Will generate diff files with names like `/srv/pypi/new-files-1568129735`. This 
 Group generated project index folders by the first letter of their normalized project name.
 
 :Type: boolean
-:Required: **yes**
+:Required: no
+:Default: false
 
 Enabling this changes the way generated index files are organized. Project folders are grouped into subfolders alphabetically as shown here: [](#hash-index-index-files). This has the effect of splitting up a large `/web/simple` directory into smaller subfolders, each containing a subset of the index files. This can improve file system efficiency when mirroring a very large number of projects, but requires a web server capable of translating Simple Repository API URLs into file paths.
 
@@ -275,13 +265,16 @@ rewrite ^/simple/([^/])([^/]*)/([^/]+)$/ /simple/$1/$1$2/$3 last;
 The URL of the Python package repository server to mirror.
 
 :Type: URL
-:Required: **yes**
+:Required: no
+:Default: `https://pypi.org`
 
-Bandersnatch requests metadata for projects and packages from this repository server, and downloads package release files from the URLs specified in the received metadata.
-
-To mirror packages from PyPI, set this to `https://pypi.org`.
+Bandersnatch requests metadata for projects and packages from this repository server, and downloads package release files from the URLs specified in the received metadata. The default value mirrors packages from PyPI.
 
 The URL _must_ use the `https:` protocol.
+
+```{note}
+The specified server must support [PyPI's JSON API](https://warehouse.pypa.io/api-reference/json.html) for Bandersnatch to mirror any projects.
+```
 
 ```{seealso}
 Bandersnatch can download package release files from an alternative source by configuring a [](#download-mirror).
@@ -312,7 +305,8 @@ SOCKS proxies are not currently supported via the `mirror.proxy` config option.
 The network request timeout to use for all connections, in seconds. This is the maximum allowed time for individual web requests.
 
 :Type: number, in seconds
-:Required: **yes**
+:Required: no
+:Default: 10
 
 ```{note}
 It is recommended to set this to a relatively low value, e.g. 10 - 30 seconds. This is so temporary problems will fail quickly and allow retrying, instead of having a process hang infinitely and leave TCP unable to catch up for a long time.
@@ -323,7 +317,8 @@ It is recommended to set this to a relatively low value, e.g. 10 - 30 seconds. T
 The maximum runtime of individual aiohttp coroutines, in seconds.
 
 :Type: number, in seconds
-:Required: **yes**
+:Required: no
+:Default: 1800
 
 ```{note}
 It is recommended to set this to a relatively high value, e.g. 3,600 - 18,000 (1 - 5 hours). This supports coroutines mirroring large package files on slow connections.
@@ -378,7 +373,8 @@ Bandersnatch versions prior to 4.0 used directories with non-normalized package 
 The number of worker threads used for parallel downloads.
 
 :Type: number, 1 ≤ N ≤ 10
-:Required: **yes**
+:Required: no
+:Default: 3
 
 Use **1 - 3** workers to avoid overloading the PyPI master (and maybe your own internet connection). If you see timeouts and have a slow connection, try lowering this setting.
 
@@ -401,7 +397,8 @@ This option is used by the <project:#bandersnatch-verify> subcommand.
 Stop mirror/sync operations immediately when an error occurs.
 
 :Type: boolean
-:Required: **yes**
+:Required: no
+:Default: false
 
 When disabled (`stop-on-error = false`), Bandersnatch continues syncing after an error occurs, but will mark the sync as unsuccessful. When enabled, Bandersnatch will stop all syncing as soon as possible if an error occurs. This can be helpful when debugging the cause of an unsuccessful sync.
 
@@ -421,6 +418,7 @@ The method used to compare existing files with upstream files.
 The algorithm used to compute file hashes when [](#compare-method) is set to `hash`.
 
 :Type: one of `sha256`, `md5`
+:Required: no
 :Default: `sha256`
 
 ### `keep_index_versions`
@@ -607,13 +605,23 @@ The content of the index files themselves is unchanged.
 
 ## Default Configuration File
 
-Bandersnatch loads default values from a configuration file inside the package. You can use this file as a reference or as the basis for your own configuration.
+Bandersnatch loads default values from a configuration file inside the package.
 
-```{literalinclude} ../src/bandersnatch/default.conf
+```{literalinclude} ../src/bandersnatch/defaults.conf
 ---
-name: default.conf
+name: defaults.conf
 language: ini
-caption: Default configuration file from `src/bandersnatch/default.conf`
+caption: Default configuration file from `src/bandersnatch/defaults.conf`
+---
+```
+
+An annotated example configuration is also included. You can use this file as a reference or as the basis for your own configuration.
+
+```{literalinclude} ../src/bandersnatch/example.conf
+---
+name: example.conf
+language: ini
+caption: Example configuration file from `src/bandersnatch/example.conf`
 ---
 ```
 

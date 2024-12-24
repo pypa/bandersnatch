@@ -15,24 +15,34 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest import TestCase, mock
 
+import pytest
+
 import bandersnatch.storage
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.storage import PATH_TYPES
 from bandersnatch.tests.mock_config import mock_config
-from bandersnatch_storage_plugins import filesystem, swift
+from bandersnatch_storage_plugins import filesystem
+
+if sys.version_info < (3, 12):
+    from bandersnatch_storage_plugins import swift
+
 
 if TYPE_CHECKING:
     import swiftclient
 
-
+SAMPLE_FILE_CONTENT = "I am a sample!\n"
 BASE_SAMPLE_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sample"
 )
 SWIFT_CONTAINER_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "swift_container.json"
 )
+
+
+# Swift and FileSystem storage plugins use asyncio.get_event_loop in their initializers
+pytestmark = pytest.mark.asyncio(loop_scope="class")
 
 
 def get_swift_file_attrs(path: Path, base: Path, container: str = "") -> dict[str, Any]:
@@ -103,14 +113,14 @@ def iter_dir(
 
 def get_swift_object_date(date: datetime.datetime) -> str:
     return (
-        date.astimezone(datetime.timezone.utc)
+        date.astimezone(datetime.UTC)
         .strftime("%a, %d %b %Y %H:%M:%S %Z")
         .replace("UTC", "GMT")
     )
 
 
 def get_swift_date(date: datetime.datetime) -> str:
-    return date.astimezone(datetime.timezone.utc).isoformat()
+    return date.astimezone(datetime.UTC).isoformat()
 
 
 class MockConnection:
@@ -408,7 +418,9 @@ workers = 3
             target_sample_file = f"{self.container}/{target_sample_file}"
         assert self.tempdir
         self.sample_file = os.path.join(self.tempdir.name, target_sample_file)
-        shutil.copy(BASE_SAMPLE_FILE, self.sample_file)
+        with open(self.sample_file, mode="w") as sample_file:
+            sample_file.write(SAMPLE_FILE_CONTENT)
+
         if self.backend == "swift":
             self.mirror_path = Path(mirror_path)
         else:
@@ -567,12 +579,16 @@ workers = 3
 class BaseStoragePluginTestCase(BasePluginTestCase):
     plugin_map = {
         "filesystem": filesystem.FilesystemStorage,
-        "swift": swift.SwiftStorage,
     }
+    # Both switch plugons somehow now cause typing error but bug was already there
+    # - Keeping due to dropping swift support in 7.0
+    if sys.version_info < (3, 12):
+        plugin_map["swift"] = swift.SwiftStorage  # type: ignore
     path_backends = {
         "filesystem": pathlib.Path,
-        "swift": swift.SwiftPath,
     }
+    if sys.version_info < (3, 12):
+        path_backends["swift"] = swift.SwiftPath  # type: ignore
 
     base_find_contents = r"""
 .lock
@@ -614,7 +630,7 @@ web{0}simple{0}index.html""".format(
         self.assertTrue(self.plugin.PATH_BACKEND is self.path_backends[self.backend])
 
     def test_json_paths(self) -> None:
-        config = mock_config(self.config_contents).config
+        config = mock_config(self.config_contents)
         mirror_dir = self.plugin.PATH_BACKEND(config.get("mirror", "directory"))
         packages = {
             "bandersnatch": [
@@ -952,6 +968,7 @@ class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
     )
 
 
+@unittest.skipIf(sys.version_info >= (3, 12), "Dropping support for swift in 3.12")
 class TestSwiftStoragePlugin(BaseStoragePluginTestCase):
     backend = "swift"
     base_find_contents = BaseStoragePluginTestCase.base_find_contents.replace(

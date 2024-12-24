@@ -1,12 +1,32 @@
-# Unreleased
+# Unreleased - 6.6.0
 
 ## New Features
 
+- Add arbitrary configuration option for S3 Storage Backend Boto3 calls (PR #1697)
+- Add pytest marker to allow skipping of S3 tests (PR #1766)
 - Added HTTPS support in Docker Compose + Enabled bind-mount volume for Nginx config + add documentation in README.md (PR #1653)
+- Initial support for python 3.12 (PR #1728)
+- Move Docker images to 3.12 (PR #1733)
+  - Removing swift builds due to lack or assistance - Happy to bring back if you're willing to help maintian
+- Move black, mypy + pyupgrade to >= 3.11 codebase (PR #1734)
+- Allow non-HTTPS-enabled mirrors (PR #1765)
+- Correct example config (PR #1807)
 
 ## Documentation
 
 - Updated documentation for `[mirror]` configuration options `PR #1669`
+- Updated documentation `PR #1760`
+
+## Bug Fixes
+
+- Fix config file value interpolation for the `diff-file` option `PR #1715`
+- Fix diff-file being created when the option wasn't set `PR #1716`
+- Provide default values for most config options in the `[mirror]` section `PR #1740`
+- Fix command execution by `runner.py` - `PR #1753`
+
+## Deprecation
+
+- Move from pkg_resources to importlib_metadata for filter entry point usage (PR #1739)
 
 # 6.5.0
 
@@ -228,10 +248,10 @@ Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work
 
 ## Internal API Changes
 
-- Old Mirror class has been renamed to BandersnatchMirror.  Performs same functionality with use of new Mirror API.
+- Old Mirror class has been renamed to BandersnatchMirror. Performs same functionality with use of new Mirror API.
 - BandersnatchMirror now performs all filesystem operations throughout the sync process including the ones previously
   in Package.
-- Package no longer performs filesystem operations.  Properties `json_file`, `json_pypi_symlink`, `simple_directory`
+- Package no longer performs filesystem operations. Properties `json_file`, `json_pypi_symlink`, `simple_directory`
   and methods `save_json_metadata`, `sync_release_files`, `gen_data_requires_python`, `generate_simple_page`,
   `sync_simple_page`, `_save_simple_page_version`, `_prepare_versions_path`, `_file_url_to_local_url`,
   `_file_url_to_local_path`, `download_file` have all been moved into BandersnatchMirror. Package's `sync` has been
@@ -349,7 +369,7 @@ Thanks to RedHat engineers **@dalley** + **@gerrod3** for all this refactor work
 # 3.3.0 (2019-04-11)
 
 - Add latest version and specific platform plugins - `Fixes #49` - Thanks **@rene-d**
-- Generate data-requires-python attributes in index.html  - `Fixes #68` - Thanks **@z4yx**
+- Generate data-requires-python attributes in index.html - `Fixes #68` - Thanks **@z4yx**
 - Make package filtering logging less noisy when disabled - `Fixes #146`
 - Many pyup.io dependency upgrades
 

@@ -779,7 +779,7 @@ class SwiftStorage(StoragePlugin):
         """Yield a file context to iterate over. If text is false, open the file with
         'rb' mode specified."""
         wrapper = io.StringIO if text else io.BytesIO
-        content: IO = wrapper(self.read_file(path, text=text))
+        content: IO = wrapper(self.read_file(path, text=text))  # type: ignore
         yield content
 
     def read_file(
@@ -986,7 +986,7 @@ class SwiftStorage(StoragePlugin):
                 str(path),
             )
             ts = int(headers.get("x-object-meta-upload", "0"))
-            return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
+            return datetime.datetime.fromtimestamp(ts, datetime.UTC)
 
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         """Set the upload time of a given **path**"""
