@@ -55,7 +55,7 @@ class Mirror:
         sync_simple_index: bool = True,
     ) -> dict[str, set[str]]:
         logger.info(f"Syncing with {self.master.url}.")
-        self.now = datetime.datetime.utcnow()
+        self.now = datetime.datetime.now(datetime.UTC)
         # Lets ensure we get a new dict each run
         # - others importing may not reset this like our main.py
         self.altered_packages = {}
