@@ -9,7 +9,7 @@ humanfriendly==10.0
 idna==3.10
 importlib_metadata==8.5.0
 lxml==5.3.0
-multidict==6.0.5
+multidict==6.1.0
 packaging==24.1
 pyparsing==3.1.4
 setuptools==72.2.0
