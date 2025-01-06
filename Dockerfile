@@ -1,8 +1,8 @@
-ARG PY_VERSION=3.12
+ARG PY_VERSION=3.13
 
-FROM python:${PY_VERSION} as base
+FROM python:${PY_VERSION} AS base
 
-FROM base as builder
+FROM base AS builder
 ARG PY_VERSION
 ARG WITH_S3
 
@@ -24,8 +24,8 @@ RUN if [ ! -z "$WITH_S3" ] \
 
 
 FROM python:${PY_VERSION}-slim
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 ARG PY_VERSION
 ARG WITH_S3

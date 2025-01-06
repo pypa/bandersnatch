@@ -1,3 +1,9 @@
+# 6.7.0 (Unreleased)
+
+## New Features
+
+- Declare support for python 3.13 `PR #1848`
+
 # 6.6.0
 
 ## New Features
