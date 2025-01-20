@@ -4,5 +4,5 @@ jmespath==1.0.1
 python-dateutil==2.9.0.post0
 s3path==0.6.0
 s3transfer==0.10.4
-smart-open==7.0.4
+smart-open==7.1.0
 urllib3==2.3.0
