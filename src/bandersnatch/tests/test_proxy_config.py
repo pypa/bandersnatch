@@ -10,6 +10,7 @@ from bandersnatch.master import Master
 
 @pytest.mark.parametrize(
     ("mock_env", "expected_result"),
+    # The IP values here don't matter for the test and could be any sentinel value
     [
         # No environment variables => no configuration
         ({}, None),
@@ -53,7 +54,17 @@ def test_get_aiohttp_proxy_kwargs__unsupported_arguments(
 
 
 @pytest.mark.parametrize(
-    "arg", ["http://192.0.2.111", "https://192.0.2.112", "HTTPS://192.0.2.112"]
+    "arg",
+    [
+        # testing schemes
+        "http://192.0.2.111",
+        "https://192.0.2.112",
+        "HTTPS://192.0.2.112",
+        # testing host addresses
+        "http://192.0.2.111:8080/",
+        "http://[2001:db8::1234]",
+        "http://[2001:0db8:0:0:0:0:0:1234]:8080",
+    ],
 )
 def test_get_aiohttp_proxy_kwargs__http_urls(arg: str) -> None:
     assert get_aiohttp_proxy_kwargs(arg) == {"proxy": arg, "trust_env": True}
@@ -73,8 +84,10 @@ def test_get_aiohttp_proxy_kwargs__http_urls(arg: str) -> None:
     "arg",
     [
         "socks4://198.51.100.111:1080",
-        "socks5://198.51.100.112:1080",
+        "socks5://198.51.100.112:1080/",
         "SOCKS5://198.51.100.112:1080",
+        "socks4://[2001:db8:f1::1234]:1080",
+        "socks5://[2001:0db8:00f1:0000:0000:0000:0000:1234]:1080/",
     ],
 )
 async def test_get_aiohttp_proxy_kwargs__socks_urls(arg: str) -> None:
@@ -99,7 +112,9 @@ async def test_get_aiohttp_proxy_kwargs__socks_urls(arg: str) -> None:
         (None, {}),
         ("", {}),
         ("http://192.0.2.111", {"proxy": str}),
+        ("https://[2001:db8:f1::1234]", {"proxy": str}),
         ("socks4://198.51.100.111:1080", {"connector": ProxyConnector}),
+        ("socks5://[2001:db8:f1::1234]:1080", {"connector": ProxyConnector}),
     ],
 )
 async def test_master_init__with_proxy_kwarg(

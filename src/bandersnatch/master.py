@@ -47,6 +47,10 @@ class Master:
 
         proxy_url = proxy if proxy else proxy_address_from_env()
         self.proxy_kwargs = get_aiohttp_proxy_kwargs(proxy_url) if proxy_url else {}
+        # testing self.proxy_kwargs b/c even if there is a proxy_url, get_aiohttp_proxy_kwargs may
+        # still return {} if the url is invalid somehow
+        if self.proxy_kwargs:
+            logging.info("Using proxy URL %s", proxy_url)
 
         self.allow_non_https = allow_non_https
         if self.url.startswith("http://") and not self.allow_non_https:

@@ -46,7 +46,7 @@ def proxy_address_from_env() -> str | None:
     for proto in _supported_protocols:
         if proto in proxies_in_env:
             address = proxies_in_env[proto]
-            logger.debug("found %s proxy address in environment: %s", proto, address)
+            logger.debug("Found %s proxy address in environment: %s", proto, address)
             return address
     return None
 
@@ -74,11 +74,11 @@ def get_aiohttp_proxy_kwargs(proxy_url: str) -> Mapping[str, Any]:
     """
     lowered = proxy_url.lower()
     if lowered.startswith("socks"):
-        logger.debug("using SOCKS ProxyConnector for %s", proxy_url)
+        logger.debug("Using SOCKS ProxyConnector for %s", proxy_url)
         return {"connector": ProxyConnector.from_url(proxy_url)}
 
     if lowered.startswith("http"):
-        logger.debug("using HTTP proxy address %s", proxy_url)
+        logger.debug("Using HTTP proxy address %s", proxy_url)
         return {"proxy": proxy_url, "trust_env": True}
 
     return {}
