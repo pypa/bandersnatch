@@ -282,22 +282,20 @@ Bandersnatch can download package release files from an alternative source by co
 
 ### `proxy`
 
-Use an HTTP proxy server.
+Use an HTTP or SOCKS proxy server.
 
 :Type: URL
 :Required: no
 :Default: none
 
-The proxy server is used when sending requests to a repository server set by the [](#master) or [](#download-mirror) option.
+The proxy server is used when sending requests to a repository server set by the [](#master) or [](#download-mirror) option. The URL scheme must be one of `http`, `https`, `socks4`, or `socks5`.
+
+If this configuration option is not set, Bandersnatch will also use the first URL found in the following environment variables in order: `SOCKS5_PROXY`, `SOCKS4_PROXY`, `SOCKS_PROXY`, `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`.
 
 ```{seealso}
-HTTP proxies are supported through the `aiohttp` library. See the aiohttp manual for details on what connection types are supported: <https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support>
-```
+HTTP proxies are supported through the `aiohttp` library. The aiohttp manual has more details on what connection types are supported: <https://docs.aiohttp.org/en/stable/client_advanced.html#proxy-support>
 
-```{note}
-Alternatively, you can specify a proxy URL by setting one of the environment variables `HTTPS_PROXY`, `HTTP_PROXY`, or `ALL_PROXY`. _This method supports both HTTP and SOCKS proxies._ Support for `socks4`/`socks5` uses the [aiohttp-socks](https://github.com/romis2012/aiohttp-socks) library.
-
-SOCKS proxies are not currently supported via the `mirror.proxy` config option.
+SOCKS proxies are supported through the `aiohttp_socks` library: [aiohttp-socks](https://github.com/romis2012/aiohttp-socks).
 ```
 
 ### `timeout`
