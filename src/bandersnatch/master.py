@@ -1,19 +1,17 @@
 import asyncio
 import logging
-import re
 import sys
 from collections.abc import AsyncGenerator
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
-from os import environ
 from pathlib import Path
 from typing import Any
 
 import aiohttp
-from aiohttp_socks import ProxyConnector
 from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
+from bandersnatch.config.proxy import get_aiohttp_proxy_kwargs, proxy_address_from_env
 
 from .errors import PackageNotFound
 from .utils import USER_AGENT
@@ -43,40 +41,24 @@ class Master:
         proxy: str | None = None,
         allow_non_https: bool = False,
     ) -> None:
-        self.proxy = proxy
-        self.loop = asyncio.get_event_loop()
+        self.url = url
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
-        self.url = url
+
+        proxy_url = proxy if proxy else proxy_address_from_env()
+        self.proxy_kwargs = get_aiohttp_proxy_kwargs(proxy_url) if proxy_url else {}
+        # testing self.proxy_kwargs b/c even if there is a proxy_url, get_aiohttp_proxy_kwargs may
+        # still return {} if the url is invalid somehow
+        if self.proxy_kwargs:
+            logging.info("Using proxy URL %s", proxy_url)
+
         self.allow_non_https = allow_non_https
         if self.url.startswith("http://") and not self.allow_non_https:
             err = f"Master URL {url} is not https scheme"
             logger.error(err)
             raise ValueError(err)
 
-    def _check_for_socks_proxy(self) -> ProxyConnector | None:
-        """Check env for a SOCKS proxy URL and return a connector if found"""
-        proxy_vars = (
-            "https_proxy",
-            "http_proxy",
-            "all_proxy",
-        )
-        socks_proxy_re = re.compile(r"^socks[45]h?:\/\/.+")
-
-        proxy_url = None
-        for proxy_var in proxy_vars:
-            for pv in (proxy_var, proxy_var.upper()):
-                proxy_url = environ.get(pv)
-                if proxy_url:
-                    break
-            if proxy_url:
-                break
-
-        if not proxy_url or not socks_proxy_re.match(proxy_url):
-            return None
-
-        logger.debug(f"Creating a SOCKS ProxyConnector to use {proxy_url}")
-        return ProxyConnector.from_url(proxy_url)
+        self.loop = asyncio.get_event_loop()
 
     async def __aenter__(self) -> "Master":
         logger.debug("Initializing Master's aiohttp ClientSession")
@@ -87,14 +69,12 @@ class Master:
             sock_connect=self.timeout,
             sock_read=self.timeout,
         )
-        socks_connector = self._check_for_socks_proxy()
         self.session = aiohttp.ClientSession(
-            connector=socks_connector,
             headers=custom_headers,
             skip_auto_headers=skip_headers,
             timeout=aiohttp_timeout,
-            trust_env=True if not socks_connector else False,
             raise_for_status=True,
+            **self.proxy_kwargs,
         )
         return self
 
@@ -129,9 +109,6 @@ class Master:
         logger.debug(f"Getting {path} (serial {required_serial})")
         if not path.startswith(("https://", "http://")):
             path = self.url + path
-        if not kw.get("proxy") and self.proxy:
-            kw["proxy"] = self.proxy
-            logger.debug(f"Using proxy set in configuration: {self.proxy}")
         async with self.session.get(path, **kw) as r:
             got_serial = (
                 int(r.headers[PYPI_SERIAL_HEADER])

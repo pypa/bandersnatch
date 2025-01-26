@@ -4,6 +4,10 @@
 
 - Declare support for python 3.13 `PR #1848`
 
+## Big Fixes
+
+- Support reading HTTP proxy URLs from environment variables, and SOCKS proxy URLs from the 'mirror.proxy' config option `PR #1861`
+
 # 6.6.0
 
 ## New Features

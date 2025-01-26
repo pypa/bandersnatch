@@ -91,18 +91,3 @@ async def test_session_raise_for_status(master: Master) -> None:
             pass
         assert len(create_session.call_args_list) == 1
         assert create_session.call_args_list[0][1]["raise_for_status"]
-
-
-@pytest.mark.asyncio
-async def test_check_for_socks_proxy(master: Master) -> None:
-    assert master._check_for_socks_proxy() is None
-
-    from os import environ
-
-    from aiohttp_socks import ProxyConnector
-
-    try:
-        environ["https_proxy"] = "socks5://localhost:6969"
-        assert isinstance(master._check_for_socks_proxy(), ProxyConnector)
-    finally:
-        del environ["https_proxy"]
