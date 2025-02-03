@@ -93,22 +93,34 @@ class FakeMirror:
                 "bandersnatch-0.6.9": {
                     "filename": "bandersnatch-0.6.9.tar.gz",
                     "contents": "69",
-                    "sha256": "b35e87b5838011a3637be660e4238af9a55e4edc74404c990f7a558e7f416658",  # noqa: E501
-                    "url": "https://test.pypi.org/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz",  # noqa: E501
+                    "sha256": (
+                        "b35e87b5838011a3637be660e4238af9a55e4edc74404c990f7a558e7f416658"
+                    ),  # noqa: E501
+                    "url": (
+                        "https://test.pypi.org/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz"
+                    ),  # noqa: E501
                 }
             },
             "black": {
                 "black-2018.6.9": {
                     "filename": "black-2018.6.9.tar.gz",
                     "contents": "69",
-                    "sha256": "b35e87b5838011a3637be660e4238af9a55e4edc74404c990f7a558e7f416658",  # noqa: E501
-                    "url": "https://test.pypi.org/packages/8f/1a/6969/black-2018.6.9.tar.gz",  # noqa: E501
+                    "sha256": (
+                        "b35e87b5838011a3637be660e4238af9a55e4edc74404c990f7a558e7f416658"
+                    ),  # noqa: E501
+                    "url": (
+                        "https://test.pypi.org/packages/8f/1a/6969/black-2018.6.9.tar.gz"
+                    ),  # noqa: E501
                 },
                 "black-2019.6.9": {
                     "filename": "black-2019.6.9.tar.gz",
                     "contents": "1469",
-                    "sha256": "c896470f5975bd5dc7d173871faca19848855b01bacf3171e9424b8a993b528b",  # noqa: E501
-                    "url": "https://test.pypi.org/packages/8f/1a/1aa0/black-2019.6.9.tar.gz",  # noqa: E501
+                    "sha256": (
+                        "c896470f5975bd5dc7d173871faca19848855b01bacf3171e9424b8a993b528b"
+                    ),  # noqa: E501
+                    "url": (
+                        "https://test.pypi.org/packages/8f/1a/1aa0/black-2019.6.9.tar.gz"
+                    ),  # noqa: E501
                 },
             },
         }

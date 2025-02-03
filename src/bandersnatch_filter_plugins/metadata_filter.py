@@ -13,7 +13,6 @@ from bandersnatch.filter import Filter  # isort:skip
 from bandersnatch.filter import FilterMetadataPlugin  # isort:skip
 from bandersnatch.filter import FilterReleaseFilePlugin  # isort:skip
 
-
 logger = logging.getLogger("bandersnatch")
 
 
