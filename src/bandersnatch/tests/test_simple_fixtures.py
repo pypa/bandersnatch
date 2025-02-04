@@ -55,7 +55,9 @@ SIXTYNINE_METADATA = {
                 "size": 1078,
                 "upload_time": "2018-05-17T03:37:19",
                 "upload_time_iso_8601": "2018-05-17T03:37:19.330556Z",
-                "url": "https://files.pythonhosted.org/packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz",
+                "url": (
+                    "https://files.pythonhosted.org/packages/d3/cc/95dc5434362bd333a1fec275231775d748315b26edf1e7e568e6f8660238/69-0.69.tar.gz"
+                ),
                 "yanked": False,
                 "yanked_reason": None,
             }
@@ -79,7 +81,9 @@ SIXTYNINE_METADATA = {
                 "size": 1077,
                 "upload_time": "2018-05-17T03:47:45",
                 "upload_time_iso_8601": "2018-05-17T03:47:45.953704Z",
-                "url": "https://files.pythonhosted.org/packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz",
+                "url": (
+                    "https://files.pythonhosted.org/packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz"
+                ),
                 "yanked": False,
                 "yanked_reason": None,
             }
@@ -104,7 +108,9 @@ SIXTYNINE_METADATA = {
             "size": 1077,
             "upload_time": "2018-05-17T03:47:45",
             "upload_time_iso_8601": "2018-05-17T03:47:45.953704Z",
-            "url": "https://files.pythonhosted.org/packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz",
+            "url": (
+                "https://files.pythonhosted.org/packages/7b/6e/7c4ce77c6ca092e94e19b78282b459e7f8270362da655cbc6a75eeb9cdd7/69-6.9.tar.gz"
+            ),
             "yanked": False,
             "yanked_reason": None,
         }
