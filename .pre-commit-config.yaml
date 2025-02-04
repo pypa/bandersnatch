@@ -10,7 +10,7 @@ repos:
         exclude: ^docs/conf.py$
 
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 25.1.0
     hooks:
       - id: black
         args: [--target-version, py311, --preview]
@@ -22,7 +22,7 @@ repos:
         args: [--py311-plus]
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: 6.0.0
     hooks:
       - id: isort
 
@@ -40,7 +40,7 @@ repos:
         additional_dependencies: [flake8-bugbear]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.21
+    rev: 0.7.22
     hooks:
       - id: mdformat
         additional_dependencies:
