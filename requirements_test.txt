@@ -4,7 +4,7 @@ coverage==7.6.11
 flake8==7.1.1
 flake8-bugbear==24.12.12
 freezegun==1.5.1
-mypy==1.14.1
+mypy==1.15.0
 pre_commit==4.1.0
 pytest==8.3.4
 pytest-asyncio==0.25.0
