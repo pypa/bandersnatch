@@ -7,7 +7,7 @@ freezegun==1.5.1
 mypy==1.14.1
 pre_commit==4.1.0
 pytest==8.3.4
-pytest-asyncio==0.25.0
+pytest-asyncio==0.25.3
 pytest-timeout==2.3.1
 setuptools==75.8.0
 tox==4.24.1
