@@ -74,14 +74,16 @@ def touch_files(paths: list[Path]) -> None:
             pfp.close()
 
 
-def test_limit_workers() -> None:
+@pytest.mark.asyncio
+async def test_limit_workers() -> None:
     try:
         BandersnatchMirror(Path("/tmp"), mock.Mock(), workers=11)
     except ValueError:
         pass
 
 
-def test_mirror_loads_serial(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_loads_serial(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("5")
     with open(str(tmpdir / "status"), "w") as status:
@@ -90,7 +92,8 @@ def test_mirror_loads_serial(tmpdir: Path) -> None:
     assert m.synced_serial == 1234
 
 
-def test_mirror_recovers_from_inconsistent_serial(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_recovers_from_inconsistent_serial(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("")
     with open(str(tmpdir / "status"), "w") as status:
@@ -99,7 +102,8 @@ def test_mirror_recovers_from_inconsistent_serial(tmpdir: Path) -> None:
     assert m.synced_serial == 0
 
 
-def test_mirror_generation_3_resets_status_files(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_generation_3_resets_status_files(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("2")
     with open(str(tmpdir / "status"), "w") as status:
@@ -114,7 +118,8 @@ def test_mirror_generation_3_resets_status_files(tmpdir: Path) -> None:
     assert open(str(tmpdir / "generation")).read() == "5"
 
 
-def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("4")
     with open(str(tmpdir / "status"), "w") as status:
@@ -129,7 +134,8 @@ def test_mirror_generation_4_resets_status_files(tmpdir: Path) -> None:
     assert open(str(tmpdir / "generation")).read() == "5"
 
 
-def test_mirror_filter_packages_match(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_filter_packages_match(tmpdir: Path) -> None:
     """
     Packages that exist in the blocklist should be removed from the list of
     packages to sync.
@@ -152,7 +158,8 @@ packages =
     assert "example1" not in m.packages_to_sync.keys()
 
 
-def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_filter_packages_nomatch_package_with_spec(tmpdir: Path) -> None:
     """
     Package lines with a PEP440 spec on them should not be filtered from the
     list of packages.
@@ -175,7 +182,8 @@ packages =
     assert "example3" in m.packages_to_sync.keys()
 
 
-def test_mirror_removes_empty_todo_list(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_removes_empty_todo_list(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("3")
     with open(str(tmpdir / "status"), "w") as status:
@@ -186,7 +194,8 @@ def test_mirror_removes_empty_todo_list(tmpdir: Path) -> None:
     assert not os.path.exists(str(tmpdir / "todo"))
 
 
-def test_mirror_removes_broken_todo_list(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_removes_broken_todo_list(tmpdir: Path) -> None:
     with open(str(tmpdir / "generation"), "w") as generation:
         generation.write("3")
     with open(str(tmpdir / "status"), "w") as status:
@@ -197,7 +206,10 @@ def test_mirror_removes_broken_todo_list(tmpdir: Path) -> None:
     assert not os.path.exists(str(tmpdir / "todo"))
 
 
-def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir: Path) -> None:
+@pytest.mark.asyncio
+async def test_mirror_removes_old_status_and_todo_inits_generation(
+    tmpdir: Path,
+) -> None:
     with open(str(tmpdir / "status"), "w") as status:
         status.write("1234")
     with open(str(tmpdir / "todo"), "w") as status:
@@ -208,7 +220,8 @@ def test_mirror_removes_old_status_and_todo_inits_generation(tmpdir: Path) -> No
     assert open(str(tmpdir / "generation")).read().strip() == "5"
 
 
-def test_mirror_with_same_homedir_needs_lock(
+@pytest.mark.asyncio
+async def test_mirror_with_same_homedir_needs_lock(
     mirror: BandersnatchMirror, tmpdir: Path
 ) -> None:
     try:
@@ -616,7 +629,8 @@ last-modified""" == utils.find(
     )
 
 
-def test_mirror_json_metadata(
+@pytest.mark.asyncio
+async def test_mirror_json_metadata(
     mirror: BandersnatchMirror, package_json: dict[str, Any]
 ) -> None:
     package = Package("foo", serial=11)
@@ -643,7 +657,8 @@ async def test_metadata_404_keeps_package_on_non_deleting_mirror(
         assert path.exists()
 
 
-def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> None:
+@pytest.mark.asyncio
+async def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> None:
     directories = (
         "web/simple/peerme",
         "web/simple/click",
@@ -695,7 +710,8 @@ def test_find_package_indexes_in_dir_threaded(mirror: BandersnatchMirror) -> Non
         assert packages[0] == "click"  # Check sorted - click should be first
 
 
-def test_validate_todo(mirror: BandersnatchMirror) -> None:
+@pytest.mark.asyncio
+async def test_validate_todo(mirror: BandersnatchMirror) -> None:
     valid_todo = "69\ncooper 69\ndan 1\n"
     invalid_todo = "cooper l33t\ndan n00b\n"
 
@@ -1093,7 +1109,8 @@ async def test_package_sync_does_not_touch_existing_local_file(
     assert old_stat.st_ctime == Path(pkg_file_path_str).stat().st_ctime
 
 
-def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
+@pytest.mark.asyncio
+async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
     fake_no_release: dict[str, str] = {}
 
     # only requires_python
@@ -1276,14 +1293,16 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
         assert mocked_rmdir.call_count == 1  # Or number you expect here
 
 
-def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
+@pytest.mark.asyncio
+async def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
     mirror.synced_serial = 24
     mirror.packages_to_sync = {"black": 69, "foobar": 47, "barfoo": 68}
     target_serial = mirror.find_target_serial()
     assert target_serial == 69
 
 
-def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
+@pytest.mark.asyncio
+async def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
     html_content = SimpleFormats(html="html", json="")
     json_content = SimpleFormats(html="", json="json")
     package = Package("69")
