@@ -64,7 +64,8 @@ def test_json_package_page() -> None:
     )
 
 
-def test_json_index_page() -> None:
+@pytest.mark.asyncio
+async def test_json_index_page() -> None:
     c = ConfigParser()
     c.add_section("mirror")
     c["mirror"]["workers"] = "1"
