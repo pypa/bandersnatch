@@ -34,7 +34,7 @@ repos:
         additional_dependencies: ["types-filelock", "types-freezegun"]
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+    rev: 7.1.2
     hooks:
       - id: flake8
         additional_dependencies: [flake8-bugbear]
