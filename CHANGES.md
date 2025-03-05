@@ -7,6 +7,7 @@
 ## Big Fixes
 
 - Support reading HTTP proxy URLs from environment variables, and SOCKS proxy URLs from the 'mirror.proxy' config option `PR #1861`
+- Drop support for Pypi XMLPRC API and use instead the new Index API to get all packages `PR #1898`
 
 # 6.6.0
 

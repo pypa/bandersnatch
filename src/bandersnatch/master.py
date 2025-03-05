@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-from aiohttp_xmlrpc.client import ServerProxy
 
 import bandersnatch
 from bandersnatch.config.proxy import get_aiohttp_proxy_kwargs, proxy_address_from_env
@@ -26,10 +25,6 @@ PYPI_SERIAL_HEADER = "X-PYPI-LAST-SERIAL"
 
 class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
-
-
-class XmlRpcError(aiohttp.ClientError):
-    """Issue getting package listing from PyPI Repository"""
 
 
 class Master:
@@ -141,58 +136,47 @@ class Master:
                     fd.write(chunk)
 
     @property
-    def xmlrpc_url(self) -> str:
-        return f"{self.url}/pypi"
+    def simple_url(self) -> str:
+        return f"{self.url}/simple/"
 
-    # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
-    async def _gen_custom_headers(self) -> dict[str, str]:
-        # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
-        dummy_client = ServerProxy(self.xmlrpc_url, loop=self.loop)
-        custom_headers = {
-            "User-Agent": (
-                f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
-            )
+    # TODO: Potentially make USER_AGENT more accessible from aiohttp
+    @property
+    def _custom_headers(self) -> dict[str, str]:
+        return {
+            "User-Agent": f"bandersnatch {bandersnatch.__version__}",
+            # the simple API use headers to return JSON
+            "Accept": "application/vnd.pypi.simple.v1+json",
         }
-        await dummy_client.close()
-        return custom_headers
 
-    async def _gen_xmlrpc_client(self) -> ServerProxy:
-        custom_headers = await self._gen_custom_headers()
-        client = ServerProxy(
-            self.xmlrpc_url,
-            client=self.session,
-            loop=self.loop,
-            headers=custom_headers,
-        )
-        return client
-
-    # TODO: Add an async context manager to aiohttp-xmlrpc to replace this function
-    async def rpc(self, method_name: str, serial: int = 0) -> Any:
-        try:
-            client = await self._gen_xmlrpc_client()
-            method = getattr(client, method_name)
-            if serial:
-                return await method(serial)
-            return await method()
-        except TimeoutError as te:
-            logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
+    async def fetch_simple_index(self) -> Any:
+        """Return a mapping of all project data from the PyPI Index API"""
+        logger.debug(f"Fetching simple JSON index from {self.simple_url}")
+        async with self.session.get(
+            self.simple_url, headers=self._custom_headers
+        ) as response:
+            simple_index = await response.json()
+        return simple_index
 
     async def all_packages(self) -> Any:
-        all_packages_with_serial = await self.rpc("list_packages_with_serial")
-        if not all_packages_with_serial:
-            raise XmlRpcError("Unable to get full list of packages")
-        return all_packages_with_serial
+        """Return a mapping of all project names as {name: last_serial}"""
+        simple_index = await self.fetch_simple_index()
+        if not simple_index:
+            return {}
+        all_packages = {
+            project["name"]: project["_last-serial"]
+            for project in simple_index["projects"]
+        }
+        logger.debug(f"Fetched #{len(all_packages)} from simple JSON index")
+        return all_packages
 
     async def changed_packages(self, last_serial: int) -> dict[str, int]:
-        changelog = await self.rpc("changelog_since_serial", last_serial)
-        if changelog is None:
-            changelog = []
-
-        packages: dict[str, int] = {}
-        for package, _version, _time, _action, serial in changelog:
-            if serial > packages.get(package, 0):
-                packages[package] = serial
-        return packages
+        """Return a mapping of all project names changed since last serial as {name: last_serial}"""
+        all_packages = await self.all_packages()
+        changed_packages = {
+            pkg: ser for pkg, ser in all_packages.items() if ser > last_serial
+        }
+        logger.debug(f"Fetched #{len(changed_packages)} changed packages")
+        return changed_packages
 
     async def get_package_metadata(self, package_name: str, serial: int = 0) -> Any:
         try:

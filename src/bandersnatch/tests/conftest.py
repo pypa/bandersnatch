@@ -150,7 +150,6 @@ def master(package_json: dict[str, Any], event_loop: AbstractEventLoop) -> "Mast
             return FakeAiohttpClient()
 
     master = Master("https://pypi.example.com")
-    master.rpc = mock.Mock()  # type: ignore
     master.session = mock.MagicMock()
     master.session.get.side_effect = session_side_effect
     master.session.request.side_effect = session_side_effect
