@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 import bandersnatch
-from bandersnatch.master import Master, StalePage, XmlRpcError
+from bandersnatch.master import Master, StalePage
 
 
 @pytest.mark.asyncio
@@ -16,45 +16,44 @@ async def test_disallow_http() -> None:
 
 
 @pytest.mark.asyncio
-async def test_rpc_url(master: Master) -> None:
-    assert master.xmlrpc_url == "https://pypi.example.com/pypi"
+async def test_self_simple_url(master: Master) -> None:
+    assert master.simple_url == "https://pypi.example.com/simple/"
 
 
 @pytest.mark.asyncio
 async def test_all_packages(master: Master) -> None:
-    expected = [["aiohttp", "", "", "", "69"]]
-    master.rpc = AsyncMock(return_value=expected)  # type: ignore
+    simple_index = {
+        "meta": {"_last-serial": 22, "api-version": "1.1"},
+        "projects": [
+            {"_last-serial": 20, "name": "foobar"},
+            {"_last-serial": 18, "name": "baz"},
+        ],
+    }
+
+    master.fetch_simple_index = AsyncMock(return_value=simple_index)  # type: ignore
     packages = await master.all_packages()
-    assert expected == packages
-
-
-@pytest.mark.asyncio
-async def test_all_packages_raises(master: Master) -> None:
-    master.rpc = AsyncMock(return_value=[])  # type: ignore
-    with pytest.raises(XmlRpcError):
-        await master.all_packages()
+    assert packages == {"foobar": 20, "baz": 18}
 
 
 @pytest.mark.asyncio
 async def test_changed_packages_no_changes(master: Master) -> None:
-    master.rpc = AsyncMock(return_value=None)  # type: ignore
+    master.fetch_simple_index = AsyncMock(return_value=None)  # type: ignore
     changes = await master.changed_packages(4)
     assert changes == {}
 
 
 @pytest.mark.asyncio
 async def test_changed_packages_with_changes(master: Master) -> None:
-    list_of_package_changes = [
-        ("foobar", "1", 0, "added", 17),
-        ("baz", "2", 1, "updated", 18),
-        ("foobar", "1", 0, "changed", 20),
-        # The server usually just hands out monotonous serials in the
-        # changelog. This verifies that we don't fail even with garbage input.
-        ("foobar", "1", 0, "changed", 19),
-    ]
-    master.rpc = AsyncMock(return_value=list_of_package_changes)  # type: ignore
+    simple_index = {
+        "meta": {"_last-serial": 22, "api-version": "1.1"},
+        "projects": [
+            {"_last-serial": 20, "name": "foobar"},
+            {"_last-serial": 18, "name": "baz"},
+        ],
+    }
+    master.fetch_simple_index = AsyncMock(return_value=simple_index)  # type: ignore
     changes = await master.changed_packages(4)
-    assert changes == {"baz": 18, "foobar": 20}
+    assert changes == {"foobar": 20, "baz": 18}
 
 
 @pytest.mark.asyncio
@@ -79,9 +78,9 @@ async def test_master_url_fetch(master: Master) -> None:
 
 
 @pytest.mark.asyncio
-async def test_xmlrpc_user_agent(master: Master) -> None:
-    client = await master._gen_xmlrpc_client()
-    assert f"bandersnatch {bandersnatch.__version__}" in client.headers["User-Agent"]
+async def test__simple_index_user_agent(master: Master) -> None:
+    headers = master._custom_headers
+    assert f"bandersnatch {bandersnatch.__version__}" in headers["User-Agent"]
 
 
 @pytest.mark.asyncio
