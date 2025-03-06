@@ -157,7 +157,7 @@ class Master:
             simple_index = await response.json()
         return simple_index
 
-    async def all_packages(self) -> Any:
+    async def all_packages(self) -> dict[str, int]:
         """Return a mapping of all project names as {name: last_serial}"""
         simple_index = await self.fetch_simple_index()
         if not simple_index:

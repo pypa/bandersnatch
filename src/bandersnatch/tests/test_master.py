@@ -78,7 +78,7 @@ async def test_master_url_fetch(master: Master) -> None:
 
 
 @pytest.mark.asyncio
-async def test__simple_index_user_agent(master: Master) -> None:
+async def test_simple_index_user_agent(master: Master) -> None:
     headers = master._custom_headers
     assert f"bandersnatch {bandersnatch.__version__}" in headers["User-Agent"]
 
