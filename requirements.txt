@@ -1,4 +1,4 @@
-aiohttp==3.11.12
+aiohttp==3.11.13
 aiohttp-socks==0.10.1
 aiohttp-xmlrpc==1.5.0
 async-timeout==5.0.1
