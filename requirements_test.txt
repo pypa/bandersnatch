@@ -1,6 +1,6 @@
 async-timeout==5.0.1
 black==25.1.0
-coverage==7.6.12
+coverage==7.7.0
 flake8==7.1.2
 flake8-bugbear==24.12.12
 freezegun==1.5.1
