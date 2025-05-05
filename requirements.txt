@@ -10,7 +10,7 @@ idna==3.10
 importlib_metadata==8.6.1
 lxml==5.4.0
 multidict==6.4.3
-packaging==24.2
+packaging==25.0
 pyparsing==3.2.3
 setuptools==78.1.0
 yarl==1.20.0
