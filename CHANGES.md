@@ -8,7 +8,9 @@
 
 - Support reading HTTP proxy URLs from environment variables, and SOCKS proxy URLs from the 'mirror.proxy' config option `PR #1861`
 
-# 6.6.0
+## CI
+
+- Dependabot `reviewers` configuration option being replaced by code owners `PR #1943`
 
 ## New Features
 
