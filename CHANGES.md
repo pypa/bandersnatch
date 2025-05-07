@@ -12,6 +12,8 @@
 
 - Dependabot `reviewers` configuration option being replaced by code owners `PR #1943`
 
+# 6.6.0
+
 ## New Features
 
 - Add arbitrary configuration option for S3 Storage Backend Boto3 calls `PR #1697`
