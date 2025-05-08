@@ -7,7 +7,7 @@ chardet==5.2.0
 filelock==3.18.0
 humanfriendly==10.0
 idna==3.10
-importlib_metadata==8.6.1
+importlib_metadata==8.7.0
 lxml==5.4.0
 multidict==6.4.3
 packaging==25.0
