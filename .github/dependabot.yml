@@ -8,11 +8,9 @@ updates:
     schedule:
       interval: "weekly"
     labels: ["skip news"]
-    reviewers: ["cooperlees"]
 
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
     labels: ["skip news"]
-    reviewers: ["cooperlees"]
