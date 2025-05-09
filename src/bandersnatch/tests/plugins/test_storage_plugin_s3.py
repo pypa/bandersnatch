@@ -27,8 +27,10 @@ def test_update_safe(s3_mock: S3Path) -> None:
 
 def test_path_mkdir(s3_mock: S3Path) -> None:
     new_folder = s3.S3Path(f"/{s3_mock.bucket}/test_folder")
+    assert not new_folder.is_dir()
     new_folder.mkdir()
-    assert new_folder.is_dir()
+    new_folder2 = s3.S3Path(f"/{s3_mock.bucket}/test_folder")
+    assert new_folder2.is_dir()
 
 
 def test_path_glob(s3_mock: S3Path) -> None:
