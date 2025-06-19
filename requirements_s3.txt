@@ -5,4 +5,4 @@ python-dateutil==2.9.0.post0
 s3path==0.6.3
 s3transfer==0.13.0
 smart-open==7.1.0
-urllib3==2.4.0
+urllib3==2.5.0
