@@ -8,7 +8,7 @@ filelock==3.18.0
 humanfriendly==10.0
 idna==3.10
 importlib_metadata==8.7.0
-lxml==5.4.0
+lxml==6.0.0
 multidict==6.4.4
 packaging==25.0
 pyparsing==3.2.3
