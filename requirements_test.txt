@@ -6,10 +6,10 @@ flake8-bugbear==24.12.12
 freezegun==1.5.2
 mypy==1.16.0
 pre_commit==4.2.0
-pytest==8.4.0
+pytest==8.4.1
 pytest-asyncio==0.26.0
 pytest-timeout==2.4.0
 setuptools==80.9.0
-tox==4.26.0
+tox==4.27.0
 types-filelock==3.2.7
 types-freezegun==1.1.10

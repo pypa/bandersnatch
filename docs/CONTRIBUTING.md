@@ -93,7 +93,7 @@ Congrats, now you have a bandersnatch development environment ready to go! Just 
 S3 unittests are more integration tests. They depend on [minio](https://docs.min.io/) to work.
 
 - You will either need to skip them or install mino
-- Install options: <https://docs.min.io/docs/>
+- Install options: <https://docs.min.io/>
 
 To skip the tests, run:
 
