@@ -3,7 +3,7 @@ black==25.1.0
 coverage==7.9.2
 flake8==7.3.0
 flake8-bugbear==24.12.12
-freezegun==1.5.2
+freezegun==1.5.3
 mypy==1.16.1
 pre_commit==4.2.0
 pytest==8.4.1
