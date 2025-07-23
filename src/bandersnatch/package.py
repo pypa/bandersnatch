@@ -20,6 +20,7 @@ class Package:
         self.name: str = canonicalize_name(name)
         self.raw_name = name
         self.serial = serial
+        self._upstream_serial: int | None = None
 
         self._metadata: dict | None = None
 
@@ -66,6 +67,29 @@ class Package:
                 logger.info(str(e))
                 raise
             except (StalePage, TimeoutError) as e:
+                # 如果是 StalePage 异常且启用了上游串行号兼容，尝试使用上游决定的串行号
+                if isinstance(e, StalePage) and master.allow_upstream_serial_mismatch:
+                    logger.warning(
+                        f"Stale serial for package {self.name} (expected {self.serial}) - "
+                        f"trying with upstream serial due to allow-upstream-serial-mismatch setting"
+                    )
+                    try:
+                        # 不指定 serial，让上游决定
+                        self._metadata = await master.get_package_metadata(self.name, serial=0)
+                        # 更新本地 serial 为上游的 serial
+                        if self._metadata and "last_serial" in self._metadata:
+                            upstream_serial = int(self._metadata["last_serial"])
+                            logger.info(
+                                f"Package {self.name} serial updated from {self.serial} "
+                                f"to upstream serial {upstream_serial}"
+                            )
+                            self.serial = upstream_serial
+                            self._upstream_serial = upstream_serial
+                        return
+                    except Exception as retry_e:
+                        logger.debug(f"Retry with upstream serial failed: {retry_e}")
+                        # 继续原有的重试逻辑
+                
                 error_name, error_class = (
                     ("Stale serial", StaleMetadata)
                     if isinstance(e, StalePage)

@@ -40,10 +40,12 @@ class Master:
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
         allow_non_https: bool = False,
+        allow_upstream_serial_mismatch: bool = False,
     ) -> None:
         self.url = url
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
+        self.allow_upstream_serial_mismatch = allow_upstream_serial_mismatch
 
         proxy_url = proxy if proxy else proxy_address_from_env()
         self.proxy_kwargs = get_aiohttp_proxy_kwargs(proxy_url) if proxy_url else {}

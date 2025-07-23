@@ -152,10 +152,12 @@ def _make_parser() -> argparse.ArgumentParser:
 
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     if args.op.lower() == "delete":
+        allow_upstream_serial_mismatch = config.getboolean("mirror", "allow-upstream-serial-mismatch", fallback=False)
         async with bandersnatch.master.Master(
             config.get("mirror", "master"),
             config.getfloat("mirror", "timeout"),
             config.getfloat("mirror", "global-timeout", fallback=None),
+            allow_upstream_serial_mismatch=allow_upstream_serial_mismatch,
         ) as master:
             return await bandersnatch.delete.delete_packages(config, args, master)
     elif args.op.lower() == "verify":

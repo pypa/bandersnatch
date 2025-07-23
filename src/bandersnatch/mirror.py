@@ -971,6 +971,7 @@ async def mirror(
 
     mirror_url = config.get("mirror", "master")
     allow_non_https = config.getboolean("mirror", "allow-non-https")
+    allow_upstream_serial_mismatch = config.getboolean("mirror", "allow-upstream-serial-mismatch", fallback=False)
     timeout = config.getfloat("mirror", "timeout")
     global_timeout = config.getfloat("mirror", "global-timeout", fallback=None)
     proxy = config.get("mirror", "proxy", fallback=None)
@@ -980,7 +981,7 @@ async def mirror(
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
-        mirror_url, timeout, global_timeout, proxy, allow_non_https
+        mirror_url, timeout, global_timeout, proxy, allow_non_https, allow_upstream_serial_mismatch
     ) as master:
         mirror = BandersnatchMirror(
             homedir,
