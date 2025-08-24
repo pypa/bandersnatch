@@ -109,6 +109,7 @@ Docker is an easy way to get minio to run for tests to pass.
 
 ```console
 docker run \
+  --rm \
   -p 9000:9000 \
   -p 9001:9001 \
   --name minio \
