@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict
 
 import boto3
 import pytest
+import pytest_asyncio
 from _pytest.capture import CaptureFixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
@@ -119,8 +120,8 @@ def package_json() -> dict[str, Any]:
 # This requests the 'event_loop' fixture from pytest-asyncio because the initializer for
 # 'Master' uses `asyncio.get_event_loop()`, and in some contexts a loop won't already
 # exist when the fixture is initialized.
-@pytest.fixture
-def master(package_json: dict[str, Any], event_loop: AbstractEventLoop) -> "Master":
+@pytest_asyncio.fixture
+async def master(package_json: dict[str, Any]) -> "Master":
     from bandersnatch.master import Master
 
     class FakeReader:
