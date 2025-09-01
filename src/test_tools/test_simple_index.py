@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Quick tool to test xmlrpc queries from bandersnatch
+Quick tool to test PyPI Index API queries from bandersnatch
 """
 
 import asyncio
@@ -12,7 +12,7 @@ from bandersnatch.master import Master
 async def main() -> int:
     async with Master("https://pypi.org") as master:
         all_packages = await master.all_packages()
-    print(f"PyPI returned {len(all_packages)} PyPI packages via xmlrpc")
+    print(f"PyPI returned {len(all_packages)} PyPI packages via Index API")
     return 0
 
 
