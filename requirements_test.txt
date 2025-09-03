@@ -1,6 +1,6 @@
 async-timeout==5.0.1
 black==25.1.0
-coverage==7.10.5
+coverage==7.10.6
 flake8==7.3.0
 flake8-bugbear==24.12.12
 freezegun==1.5.5
@@ -10,6 +10,6 @@ pytest==8.4.1
 pytest-asyncio==1.1.0
 pytest-timeout==2.4.0
 setuptools==80.9.0
-tox==4.28.4
+tox==4.29.0
 types-filelock==3.2.7
 types-freezegun==1.1.10
