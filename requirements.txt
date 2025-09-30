@@ -11,6 +11,6 @@ importlib_metadata==8.7.0
 lxml==6.0.2
 multidict==6.6.4
 packaging==25.0
-pyparsing==3.2.4
+pyparsing==3.2.5
 setuptools==80.9.0
 yarl==1.20.1
