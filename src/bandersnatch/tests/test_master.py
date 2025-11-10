@@ -154,8 +154,6 @@ async def test_all_packages_xmlrpc_api() -> None:
 @pytest.mark.asyncio
 async def test_changed_packages_simple_api() -> None:
     """Test fetching changed packages using Simple (PEP 691 v1) API."""
-    from typing import Any
-
     master = Master("https://pypi.example.com", api_method="simple")
 
     # Mock fetch_simple_index to return Simple API response with different serials
@@ -181,8 +179,6 @@ async def test_changed_packages_simple_api() -> None:
 @pytest.mark.asyncio
 async def test_changed_packages_simple_api_no_changes() -> None:
     """Test Simple API when no changes occurred (current serial <= last serial)."""
-    from typing import Any
-
     master = Master("https://pypi.example.com", api_method="simple")
 
     # Mock fetch_simple_index to return packages with lower serials

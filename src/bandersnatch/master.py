@@ -28,10 +28,6 @@ class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
-class SimpleRpcError(aiohttp.ClientError):
-    """Issue getting package listing from PyPI Repository"""
-
-
 class XmlRpcError(aiohttp.ClientError):
     """Issue getting package listing from PyPI Repository"""
 
