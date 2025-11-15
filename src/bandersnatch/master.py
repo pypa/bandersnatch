@@ -218,10 +218,14 @@ class Master:
         simple_index = await self.fetch_simple_index()
         if not simple_index:
             return {}
-        all_packages = {
-            project["name"]: project["_last-serial"]
-            for project in simple_index["projects"]
-        }
+        all_packages = {}
+        for project in simple_index.get("projects", []):
+            name = project.get("name")
+            serial = project.get("_last-serial")
+            if name is not None and serial is not None:
+                all_packages[name] = serial
+            else:
+                logger.warning(f"Skipping malformed project entry in simple index: {project}")
         logger.debug(f"Fetched #{len(all_packages)} from simple JSON index")
         return all_packages
 
