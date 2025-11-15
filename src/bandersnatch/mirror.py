@@ -980,7 +980,12 @@ async def mirror(
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
-        mirror_url, timeout, global_timeout, proxy, allow_non_https
+        mirror_url,
+        timeout,
+        global_timeout,
+        proxy,
+        allow_non_https,
+        config_values.api_method,
     ) as master:
         mirror = BandersnatchMirror(
             homedir,

@@ -60,6 +60,7 @@ class TestBandersnatchConf(TestCase):
             options,
             {
                 "allow-non-https",
+                "api-method",
                 "cleanup",
                 "compare-method",
                 "diff-append-epoch",
@@ -101,6 +102,7 @@ class TestBandersnatchConf(TestCase):
             ("global-timeout", int),
             ("workers", int),
             ("compare-method", str),
+            ("api-method", str),
         ]:
             self.assertIsInstance(
                 option_type(instance["mirror"].get(option)), option_type
@@ -146,6 +148,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
+            "xmlrpc",
         )
         no_options_configparser = BandersnatchConfig(load_defaults=True)
         self.assertEqual(
@@ -166,6 +169,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
+            "xmlrpc",
         )
         release_files_false_configparser = BandersnatchConfig(load_defaults=True)
         release_files_false_configparser["mirror"].update({"release-files": "false"})
@@ -189,6 +193,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
+            "xmlrpc",
         )
         release_files_false_configparser = BandersnatchConfig(load_defaults=True)
         release_files_false_configparser["mirror"].update(
@@ -199,6 +204,66 @@ class TestBandersnatchConf(TestCase):
         self.assertEqual(
             default_values, validate_config_values(release_files_false_configparser)
         )
+
+    def test_validate_config_values_api_method_simple(self) -> None:
+        """Test that api_method='simple' is accepted and validated."""
+        simple_api_values = SetConfigValues(
+            False,
+            "",
+            "",
+            False,
+            SimpleDigest.SHA256,
+            "filesystem",
+            False,
+            True,
+            "hash",
+            "",
+            False,
+            SimpleFormat.ALL,
+            "simple",
+        )
+        simple_api_config = BandersnatchConfig(load_defaults=True)
+        simple_api_config["mirror"].update({"api-method": "simple"})
+        self.assertEqual(simple_api_values, validate_config_values(simple_api_config))
+
+    def test_validate_config_values_api_method_xmlrpc(self) -> None:
+        """Test that api_method='xmlrpc' is accepted and validated."""
+        xmlrpc_api_values = SetConfigValues(
+            False,
+            "",
+            "",
+            False,
+            SimpleDigest.SHA256,
+            "filesystem",
+            False,
+            True,
+            "hash",
+            "",
+            False,
+            SimpleFormat.ALL,
+            "xmlrpc",
+        )
+        xmlrpc_api_config = BandersnatchConfig(load_defaults=True)
+        xmlrpc_api_config["mirror"].update({"api-method": "xmlrpc"})
+        self.assertEqual(xmlrpc_api_values, validate_config_values(xmlrpc_api_config))
+
+    def test_validate_config_values_api_method_invalid(self) -> None:
+        """Test that invalid api_method raises ValueError."""
+        invalid_api_config = BandersnatchConfig(load_defaults=True)
+        invalid_api_config["mirror"].update({"api-method": "invalid"})
+        with self.assertRaises(ValueError) as context:
+            validate_config_values(invalid_api_config)
+        self.assertIn("api-method invalid is not supported", str(context.exception))
+        self.assertIn("('xmlrpc', 'simple')", str(context.exception))
+
+    def test_validate_config_values_api_method_defaults_to_xmlrpc(self) -> None:
+        """Test that api_method defaults to 'xmlrpc' when not specified."""
+        config = BandersnatchConfig(load_defaults=True)
+        # Remove the api-method config if it exists
+        if config.has_option("mirror", "api-method"):
+            config.remove_option("mirror", "api-method")
+        result = validate_config_values(config)
+        self.assertEqual(result.api_method, "xmlrpc")
 
     def test_validate_config_diff_file_reference(self) -> None:
         diff_file_test_cases = [
