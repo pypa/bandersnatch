@@ -148,8 +148,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -169,8 +168,7 @@ aws_access_key_id = 123456
 aws_secret_access_key = 123456
 endpoint_url = http://localhost:9090
 signature_version = s3v4
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
@@ -178,8 +176,7 @@ signature_version = s3v4
     resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -195,8 +192,7 @@ keep_index_versions = 2
 compare-method = hash
 [s3]
 endpoint_url = http://localhost:9090
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
@@ -206,8 +202,7 @@ endpoint_url = http://localhost:9090
 
 
 def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -228,8 +223,7 @@ aws_secret_access_key = 123456
 endpoint_url = http://localhost:9090
 signature_version = s3v4
 config_param_ServerSideEncryption = AES256
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 

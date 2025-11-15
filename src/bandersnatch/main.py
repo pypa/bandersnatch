@@ -152,10 +152,12 @@ def _make_parser() -> argparse.ArgumentParser:
 
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     if args.op.lower() == "delete":
+        config_values = bandersnatch.configuration.validate_config_values(config)
         async with bandersnatch.master.Master(
             config.get("mirror", "master"),
             config.getfloat("mirror", "timeout"),
             config.getfloat("mirror", "global-timeout", fallback=None),
+            api_method=config_values.api_method,
         ) as master:
             return await bandersnatch.delete.delete_packages(config, args, master)
     elif args.op.lower() == "verify":

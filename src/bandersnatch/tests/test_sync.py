@@ -30,15 +30,9 @@ simple{0}foo{0}index.v1_html
 simple{0}foo{0}index.v1_json
 simple{0}index.html
 simple{0}index.v1_html
-simple{0}index.v1_json""".format(
-        sep
-    ) == utils.find(
-        mirror.webdir, dirs=False
-    )
+simple{0}index.v1_json""".format(sep) == utils.find(mirror.webdir, dirs=False)
 
-    assert (
-        open("web{0}simple{0}index.html".format(sep)).read()
-        == """\
+    assert open("web{0}simple{0}index.html".format(sep)).read() == """\
 <!DOCTYPE html>
 <html>
   <head>
@@ -49,6 +43,5 @@ simple{0}index.v1_json""".format(
     <a href="foo/">foo</a><br/>
   </body>
 </html>"""
-    )
     # The "sync" method shouldn't update the serial
     assert open("status", "rb").read() == FAKE_SERIAL

@@ -40,10 +40,12 @@ class Master:
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
         allow_non_https: bool = False,
+        api_method: str = "xmlrpc",
     ) -> None:
         self.url = url
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
+        self.api_method = api_method
 
         proxy_url = proxy if proxy else proxy_address_from_env()
         self.proxy_kwargs = get_aiohttp_proxy_kwargs(proxy_url) if proxy_url else {}
@@ -144,6 +146,10 @@ class Master:
     def xmlrpc_url(self) -> str:
         return f"{self.url}/pypi"
 
+    @property
+    def simple_url(self) -> str:
+        return f"{self.url}/simple"
+
     # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
     async def _gen_custom_headers(self) -> dict[str, str]:
         # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
@@ -177,13 +183,61 @@ class Master:
         except TimeoutError as te:
             logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
 
+    async def fetch_simple_index(self) -> Any:
+        """Return a mapping of all project data from the PyPI Index API"""
+        custom_headers = await self._gen_custom_headers()
+        custom_headers["Accept"] = "application/vnd.pypi.simple.v1+json"
+        logger.debug(
+            f"Fetching simple JSON index from {self.simple_url} "
+            f"w/headers {custom_headers}"
+        )
+        async with self.session.get(
+            self.simple_url, headers=custom_headers
+        ) as response:
+            simple_index = await response.json()
+        return simple_index
+
     async def all_packages(self) -> Any:
+        if self.api_method == "simple":
+            return await self._all_packages_simple()
+        else:
+            return await self._all_packages_xmlrpc()
+
+    async def _all_packages_xmlrpc(self) -> Any:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
         if not all_packages_with_serial:
             raise XmlRpcError("Unable to get full list of packages")
         return all_packages_with_serial
 
+    async def _all_packages_simple(self) -> dict[str, int]:
+        """
+        Fetch all packages using the PEP 691 Simple API JSON endpoint.
+        Returns a dict mapping package names to their serial numbers.
+        """
+        logger.info("Fetching all packages via Simple (PEP 691 v1) API")
+        simple_index = await self.fetch_simple_index()
+        if not simple_index:
+            return {}
+        all_packages = {}
+        for project in simple_index.get("projects", []):
+            name = project.get("name")
+            serial = project.get("_last-serial")
+            if name is not None and serial is not None:
+                all_packages[name] = serial
+            else:
+                logger.warning(
+                    f"Skipping malformed project entry in simple index: {project}"
+                )
+        logger.debug(f"Fetched #{len(all_packages)} from simple JSON index")
+        return all_packages
+
     async def changed_packages(self, last_serial: int) -> dict[str, int]:
+        if self.api_method == "simple":
+            return await self._changed_packages_simple(last_serial)
+        else:
+            return await self._changed_packages_xmlrpc(last_serial)
+
+    async def _changed_packages_xmlrpc(self, last_serial: int) -> dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)
         if changelog is None:
             changelog = []
@@ -193,6 +247,26 @@ class Master:
             if serial > packages.get(package, 0):
                 packages[package] = serial
         return packages
+
+    async def _changed_packages_simple(self, last_serial: int) -> dict[str, int]:
+        """
+        For the Simple (PEP 691 v1) API, we need to fetch all packages and compare serials.
+        The Simple API doesn't have a direct "changelog since serial" equivalent,
+        so we fetch all packages and return those with serial > last_serial.
+
+        Note: This is less efficient than XML-RPC changelog, but works with Simple API.
+        """
+        logger.info(
+            f"Fetching changed packages since serial {last_serial} via Simple (PEP 691 v1) API"
+        )
+
+        # Get all packages with current serial
+        all_packages = await self._all_packages_simple()
+        changed_packages = {
+            pkg: ser for pkg, ser in all_packages.items() if ser > last_serial
+        }
+        logger.debug(f"Fetched #{len(changed_packages)} changed packages")
+        return changed_packages
 
     async def get_package_metadata(self, package_name: str, serial: int = 0) -> Any:
         try:
