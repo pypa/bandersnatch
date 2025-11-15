@@ -22,8 +22,8 @@ from src.bandersnatch.utils import hash
 BANDERSNATCH_EXE = Path(
     which("bandersnatch") or which("bandersnatch.exe") or "bandersnatch"
 )
-CI_CONFIG = Path("src/bandersnatch/tests/ci.conf")
 EOP = "[CI ERROR]:"
+METADATA_TO_USE = environ.get("METADATA", "")
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "b6114554fb312f9b0bdeaf6a7498f7da05fc17b9250c0449ed796fac9ab663e2"
@@ -123,13 +123,12 @@ def do_ci(conf: Path, suppress_errors: bool = False) -> int:
     return check_ci(suppress_errors)
 
 
-def platform_config() -> Path:
+def platform_config(ci_config: Path) -> Path:
     """Ensure the CI_CONFIG is correct for the platform we're running on"""
-    platform_ci_conf = MIRROR_ROOT / "ci.conf"
+    platform_ci_conf = MIRROR_ROOT / ci_config.name
     cp = ConfigParser()
-    cp.read(str(CI_CONFIG))
-
-    print(f"Setting CI directory={MIRROR_ROOT}")
+    cp.read(str(ci_config))
+    print(f"Setting CI directory={MIRROR_ROOT} in {platform_ci_conf}")
     cp["mirror"]["directory"] = str(MIRROR_ROOT)
 
     with platform_ci_conf.open("w") as pccfp:
@@ -154,9 +153,13 @@ def main() -> int:
             return returncode
         return 0
     else:
-        print("Running Ingtegration tests due to TOXENV set to INTEGRATION")
+        ci_config = Path("src/bandersnatch/tests/ci.conf")
+        if METADATA_TO_USE == "simple":
+            print("Running Integration tests with Simple API metadata")
+            ci_config = Path("src/bandersnatch/tests/ci_simple.conf")
+        print("Running Integration tests due to TOXENV set to INTEGRATION")
         MIRROR_ROOT.mkdir(exist_ok=True)
-        return do_ci(platform_config(), suppress_errors)
+        return do_ci(platform_config(ci_config), suppress_errors)
 
 
 if __name__ == "__main__":
