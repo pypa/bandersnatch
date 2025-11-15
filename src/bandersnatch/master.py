@@ -225,7 +225,9 @@ class Master:
             if name is not None and serial is not None:
                 all_packages[name] = serial
             else:
-                logger.warning(f"Skipping malformed project entry in simple index: {project}")
+                logger.warning(
+                    f"Skipping malformed project entry in simple index: {project}"
+                )
         logger.debug(f"Fetched #{len(all_packages)} from simple JSON index")
         return all_packages
 
