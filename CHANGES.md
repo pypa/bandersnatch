@@ -3,8 +3,9 @@
 ## New Features
 
 - Declare support for python 3.13 `PR #1848`
+- Allow moving to PEP691 simple API for package metadata `PR #2075`
 
-## Big Fixes
+## Bug Fixes
 
 - Support reading HTTP proxy URLs from environment variables, and SOCKS proxy URLs from the 'mirror.proxy' config option `PR #1861`
 
