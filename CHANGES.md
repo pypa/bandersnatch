@@ -1,3 +1,9 @@
+# 6.8.0 (unreleased)
+
+## New Features
+
+- Declare support for python 3.14 `PR #2079`
+
 # 6.7.0
 
 ## New Features

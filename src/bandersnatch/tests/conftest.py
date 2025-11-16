@@ -2,7 +2,6 @@
 import asyncio
 import os
 import unittest.mock as mock
-from asyncio import AbstractEventLoop
 from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
