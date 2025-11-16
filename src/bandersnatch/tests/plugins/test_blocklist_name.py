@@ -3,15 +3,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-import pytest
-
 import bandersnatch.filter
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
-
-pytestmark = pytest.mark.asyncio(loop_scope="class")
 
 
 class TestBlockListProject(TestCase):
