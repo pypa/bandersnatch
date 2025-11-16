@@ -3,6 +3,7 @@
 ## New Features
 
 - Declare support for python 3.14 `PR #2079`
+  - Move Docker to 3.14 too `PR #2080`
 
 # 6.7.0
 
