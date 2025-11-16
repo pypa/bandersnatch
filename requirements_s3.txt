@@ -1,8 +1,8 @@
-boto3==1.40.25
-botocore==1.40.25
+boto3==1.40.59
+botocore==1.40.59
 jmespath==1.0.1
 python-dateutil==2.9.0.post0
 s3path==0.6.4
-s3transfer==0.13.1
+s3transfer==0.14.0
 smart-open==7.3.1
 urllib3==2.5.0

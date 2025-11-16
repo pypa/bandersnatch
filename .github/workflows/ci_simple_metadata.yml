@@ -1,0 +1,46 @@
+name: bandersnatch_ci_simple
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: bandersnatch simple metadata CI python ${{ matrix.python-version }} on ${{matrix.os}}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        python-version: ["3.13", "3.14"]
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install latest pip, setuptools + tox
+      run: |
+        python -m pip install --upgrade pip setuptools tox
+
+    - name: Install base bandersnatch requirements
+      run: |
+        python -m pip install -r requirements.txt
+
+    - name: Run Integration Test
+      env:
+       TOXENV: INTEGRATION
+       METADATA: simple
+      run: |
+        python -m pip install .
+        python test_runner.py
