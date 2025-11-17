@@ -1,4 +1,4 @@
-# 6.8.0 (unreleased)
+# 6.8.0
 
 ## New Features
 
