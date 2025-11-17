@@ -369,6 +369,8 @@ class SwiftPath(pathlib.Path):
         return self.backend.is_symlink(str(self))
 
     def exists(self, *, follow_symlinks: bool = True) -> bool:
+        # The follow_symlinks parameter is present to match pathlib.Path.exists()'s signature,
+        # but is ignored because Swift does not support follow_symlinks
         return self.backend.exists(str(self))
 
     def mkdir(

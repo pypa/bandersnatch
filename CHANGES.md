@@ -1,3 +1,9 @@
+# 7.0.0
+
+## New Features / big changes
+
+- Remove py3.11 support `PR #2082`
+
 # 6.8.0
 
 ## New Features
