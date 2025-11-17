@@ -26,11 +26,11 @@ class FilesystemStorage(StoragePlugin):
 
     def get_lock(self, path: str | None = None) -> filelock.FileLock:
         """
-        Retrieve the appropriate `FileLock` backend for this storage plugin
+            Retrieve the appropriate `FileLock` backend for this storage plugin
 
-        :param str path: The path to use for locking
-        :return: A `FileLock` backend for obtaining locks
-        :rtype: SwiftFileLock
+            :param str path: The path to use for locking
+            :return: A `FileLock` backend for obtaining locks
+        :rtype: filelock.FileLock
         """
         if path is None:
             path = self.mirror_base_path.joinpath(self.flock_path).as_posix()

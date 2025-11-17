@@ -128,6 +128,15 @@ class S3Storage(StoragePlugin):
     BOTO_CONFIG_PREFIX = "config_param_"
     configuration_parameters: dict = {}
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Track whether an explicit config was provided to this instance to
+        # avoid leaking global singleton config parameters into unrelated ops.
+        self._explicit_config = bool(kwargs.get("config"))
+        # Ensure per-instance parameter dict (avoid class-level mutation leaks)
+        self.configuration_parameters = {}
+        # Run base initializer (calls initialize_plugin only if active backend)
+        super().__init__(*args, **kwargs)
+
     def get_config_value(
         self, config_key: str, *env_keys: Any, default: str | None = None
     ) -> str | None:
@@ -175,15 +184,25 @@ class S3Storage(StoragePlugin):
         if signature_version:
             s3_args["config"] = Config(signature_version=signature_version)
         resource = boto3.resource("s3", **s3_args)
+        # Register the S3 resource for the configured path, but do not register
+        # per-request parameters globally to avoid leaking settings (like SSE)
+        # into unrelated paths/tests. Parameters are registered per-path later
+        # in create_path_backend when this backend actually operates on a path.
         register_configuration_parameter(
             mirror_base_path,
             resource=resource,
-            parameters=self.configuration_parameters,
+            parameters={},
         )
 
     def create_path_backend(self, path: PATH_TYPES) -> S3Path:
         path = self.PATH_BACKEND(path)
-        register_configuration_parameter(path, parameters=self.configuration_parameters)
+        # Only register per-path parameters (e.g., SSE) when this backend was
+        # constructed with an explicit config. This prevents params from a
+        # previously loaded global config from affecting unrelated tests/paths.
+        if self._explicit_config and self.configuration_parameters:
+            register_configuration_parameter(
+                path, parameters=self.configuration_parameters
+            )
 
         return path
 
@@ -246,7 +265,7 @@ class S3Storage(StoragePlugin):
         local_filename_tmp.unlink()
 
     def copy_local_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
-        """Copy the contents of a local file to a destination in swift"""
+        """Copy the contents of a local file to a destination in S3"""
         with open(source, "rb") as fh:
             self.write_file(str(dest), fh.read())
         return
@@ -270,11 +289,15 @@ class S3Storage(StoragePlugin):
             raise FileNotFoundError(source)
         resource, _ = configuration_map.get_configuration(source)
         client = resource.meta.client
+        kwargs: dict[str, Any] = {}
+        # Apply request kwargs only for explicitly-configured instances
+        if self._explicit_config and self.configuration_parameters:
+            kwargs.update(self.configuration_parameters)
         client.copy_object(
             Key=dest.key,
             CopySource={"Bucket": source.bucket, "Key": source.key},
             Bucket=dest.bucket,
-            **self.configuration_parameters,
+            **kwargs,
         )
         return
 
@@ -350,7 +373,8 @@ class S3Storage(StoragePlugin):
         """
         Create the provided directory
 
-        This operation is a no-op on swift.
+        This operation is effectively a no-op on S3; we create a keep file to
+        emulate directory semantics.
         """
         logger.warning(
             "Creating directory in object storage: "
@@ -444,9 +468,13 @@ class S3Storage(StoragePlugin):
         s3object.metadata.update({self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
         # s3 does not support editing metadata after upload, it can be done better.
         # by setting metadata before uploading.
+        kwargs: dict[str, Any] = {}
+        # Apply request kwargs only for explicitly-configured instances
+        if self._explicit_config and self.configuration_parameters:
+            kwargs.update(self.configuration_parameters)
         s3object.copy_from(
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata,
             MetadataDirective="REPLACE",
-            **self.configuration_parameters,
+            **kwargs,
         )
