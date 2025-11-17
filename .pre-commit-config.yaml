@@ -13,13 +13,13 @@ repos:
     rev: 25.11.0
     hooks:
       - id: black
-        args: [--target-version, py311, --preview]
+        args: [--target-version, py312, --preview]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
       - id: pyupgrade
-        args: [--py311-plus]
+        args: [--py312-plus]
 
   - repo: https://github.com/PyCQA/isort
     rev: 7.0.0

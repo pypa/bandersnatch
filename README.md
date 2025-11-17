@@ -30,7 +30,9 @@ this project.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.11.0`
+- bandersnatch **requires** `>= Python 3.12.0`
+  - It may work, but we only test >= 3.12
+    (and may have syntax in use for that min version)
 
 ## Docker
 
