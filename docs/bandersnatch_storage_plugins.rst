@@ -19,11 +19,3 @@ bandersnatch_storage_plugins.filesystem module
    :members:
    :undoc-members:
    :show-inheritance:
-
-bandersnatch_storage_plugins.swift module
------------------------------------------
-
-.. automodule:: bandersnatch_storage_plugins.swift
-   :members:
-   :undoc-members:
-   :show-inheritance:
