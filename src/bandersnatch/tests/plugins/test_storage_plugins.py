@@ -23,10 +23,6 @@ from bandersnatch.storage import PATH_TYPES
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import filesystem
 
-if sys.version_info < (3, 12):
-    from bandersnatch_storage_plugins import swift
-
-
 if TYPE_CHECKING:
     import swiftclient
 
@@ -574,15 +570,9 @@ class BaseStoragePluginTestCase(BasePluginTestCase):
     plugin_map = {
         "filesystem": filesystem.FilesystemStorage,
     }
-    # Both switch plugons somehow now cause typing error but bug was already there
-    # - Keeping due to dropping swift support in 7.0
-    if sys.version_info < (3, 12):
-        plugin_map["swift"] = swift.SwiftStorage  # type: ignore
     path_backends = {
         "filesystem": pathlib.Path,
     }
-    if sys.version_info < (3, 12):
-        path_backends["swift"] = swift.SwiftPath  # type: ignore
 
     base_find_contents = r"""
 .lock

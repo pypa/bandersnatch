@@ -13,7 +13,7 @@ import shutil
 import sys
 import tempfile
 from collections.abc import Generator, Sequence
-from typing import IO, Any, NoReturn, Optional
+from typing import IO, Any, NoReturn
 
 import filelock
 import keystoneauth1
@@ -40,11 +40,11 @@ class SwiftFileLock(filelock.BaseFileLock):
         self,
         lock_file: str,
         timeout: int = -1,
-        backend: Optional["SwiftStorage"] = None,
+        backend: "SwiftStorage | None" = None,
     ) -> None:
         # The path to the lock file.
-        self.backend: Optional["SwiftStorage"] = backend
-        self._lock_file_fd: Optional["SwiftPath"]
+        self.backend: "SwiftStorage | None" = backend
+        self._lock_file_fd: "SwiftPath | None"
         super().__init__(lock_file, timeout=timeout)
 
     @property
@@ -368,7 +368,7 @@ class SwiftPath(pathlib.Path):
     def is_symlink(self) -> bool:
         return self.backend.is_symlink(str(self))
 
-    def exists(self) -> bool:
+    def exists(self, *, follow_symlinks: bool = True) -> bool:
         return self.backend.exists(str(self))
 
     def mkdir(
