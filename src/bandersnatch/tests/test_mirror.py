@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable, Iterator, Mapping
 from os import sep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, NoReturn, TypeAlias
+from typing import Any, NoReturn
 
 import pytest
 from freezegun import freeze_time
@@ -1219,7 +1219,7 @@ async def test_write_simple_pages(mirror: BandersnatchMirror) -> None:
 # Used to patch the `BandersnatchMirror.synchronize` method with a mock that returns a fixed value.
 # This is to test behaviors in the `bandersnatch.mirror.mirror` function without any actual mirroring.
 
-AlteredPackages: TypeAlias = Mapping[str, set[str]]
+type AlteredPackages = Mapping[str, set[str]]
 
 
 def make_mock_synchronize(
