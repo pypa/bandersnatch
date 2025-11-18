@@ -227,7 +227,8 @@ _swift_accessor: type[_SwiftAccessor]
 
 
 class SwiftPath(pathlib.Path):
-    _flavour = getattr(pathlib, "_posix_flavour")  # noqa
+    # Python 3.12+ changed _flavour implementation - use PurePosixPath's _flavour
+    _flavour = pathlib.PurePosixPath._flavour
     BACKEND: "SwiftStorage"
 
     __slots__ = (
@@ -299,9 +300,11 @@ class SwiftPath(pathlib.Path):
                     f"object returning str, not {type(a)}"
                 )
         # Modification to prevent us from starting swift paths with "/"
-        if parts[0].startswith("/"):
-            parts[0] = parts[0].lstrip("/")
-        return cls._flavour.parse_parts(parts)  # type: ignore
+        path_str = "/".join(parts)
+        if path_str.startswith("/"):
+            path_str = path_str.lstrip("/")
+        # Python 3.12+ uses _parse_path instead of _flavour.parse_parts
+        return cls._parse_path(path_str)  # type: ignore
 
     @classmethod
     def _from_parts(cls, args: Sequence[str], init: bool = True) -> "SwiftPath":
