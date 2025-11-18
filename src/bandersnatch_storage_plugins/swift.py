@@ -228,7 +228,7 @@ _swift_accessor: type[_SwiftAccessor]
 
 class SwiftPath(pathlib.Path):
     # Python 3.12+ changed _flavour implementation - use PurePosixPath's _flavour
-    _flavour = pathlib.PurePosixPath._flavour
+    _flavour = pathlib.PurePosixPath._flavour  # type: ignore
     BACKEND: "SwiftStorage"
 
     __slots__ = (
