@@ -2,6 +2,9 @@
 
 ## New Features / big changes
 
+- Default to simple API for api-method for package listing `PR #2089`
+  - Replaces xmlrpc on PyPI and paves the way for it to be deprecated
+    - It also allows mirrors to mirror from other mirrors
 - Remove py3.11 support `PR #2082`
 - Remove swift support `PR #2081`
 
