@@ -40,7 +40,7 @@ class Master:
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
         allow_non_https: bool = False,
-        api_method: str = "xmlrpc",
+        api_method: str = "simple",
     ) -> None:
         self.url = url
         self.timeout = timeout

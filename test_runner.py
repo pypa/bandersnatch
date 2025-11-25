@@ -154,9 +154,9 @@ def main() -> int:
         return 0
     else:
         ci_config = Path("src/bandersnatch/tests/ci.conf")
-        if METADATA_TO_USE == "simple":
-            print("Running Integration tests with Simple API metadata")
-            ci_config = Path("src/bandersnatch/tests/ci_simple.conf")
+        if METADATA_TO_USE == "xmlrpc":
+            print("Running Integration tests with xmlrpc API metadata")
+            ci_config = Path("src/bandersnatch/tests/ci_xmlrpc.conf")
         print("Running Integration tests due to TOXENV set to INTEGRATION")
         MIRROR_ROOT.mkdir(exist_ok=True)
         return do_ci(platform_config(ci_config), suppress_errors)
