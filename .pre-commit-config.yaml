@@ -10,16 +10,16 @@ repos:
         exclude: ^docs/conf.py$
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.9.0
+    rev: 25.11.0
     hooks:
       - id: black
-        args: [--target-version, py311, --preview]
+        args: [--target-version, py312, --preview]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.0
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
-        args: [--py311-plus]
+        args: [--py312-plus]
 
   - repo: https://github.com/PyCQA/isort
     rev: 7.0.0
@@ -40,7 +40,7 @@ repos:
         additional_dependencies: [flake8-bugbear]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.22
+    rev: 1.0.0
     hooks:
       - id: mdformat
         additional_dependencies:

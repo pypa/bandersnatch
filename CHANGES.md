@@ -1,12 +1,29 @@
-# 6.7.0 (Unreleased)
+# 7.0.0
+
+## New Features / big changes
+
+- Remove py3.11 support `PR #2082`
+- Remove swift support `PR #2081`
+
+# 6.8.0
+
+## New Features
+
+- Declare support for python 3.14 `PR #2079`
+  - Move Docker to 3.14 too `PR #2080`
+
+# 6.7.0
 
 ## New Features
 
 - Declare support for python 3.13 `PR #1848`
+- Add support PEP691 simple API for package metadata (off by default till 7.0) `PR #2075`
 
-## Big Fixes
+## Bug Fixes
 
 - Support reading HTTP proxy URLs from environment variables, and SOCKS proxy URLs from the 'mirror.proxy' config option `PR #1861`
+- Remove usage of deprecated datetime.datetime.utcnow()
+- Make our custom Exceptions pass B042 (#2074)
 
 ## CI
 

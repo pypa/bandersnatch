@@ -9,9 +9,13 @@ ______________________________________________________________________
 This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
 <http://www.python.org/dev/peps/pep-0381/>.
 
-- bandersnatch >=6.0 implements PEP691
-- bandersnatch >=4.0 supports *Linux*, *MacOSX* + *Windows*
+- bandersnatch >=6.7 offers using PEP691 Simple API vs legacy deprecated xmlrpc
+  for pulling what packages to sync
+  - Will make this default >= 7.0
+- bandersnatch >=6.0 implements PEP691 Simple metadata mirroring
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
+
+Bandersnatch is supported (and tested) on Linux, Mac and Windows.
 
 **bandersnatch maintainers** are looking for more **help**! Please refer to our
 [MAINTAINER](https://github.com/pypa/bandersnatch/blob/master/MAINTAINERS.md)
@@ -26,7 +30,9 @@ this project.
 The following instructions will place the bandersnatch executable in a
 virtualenv under `bandersnatch/bin/bandersnatch`.
 
-- bandersnatch **requires** `>= Python 3.11.0`
+- bandersnatch **requires** `>= Python 3.12.0`
+  - It may work, but we only test >= 3.12
+    (and may have syntax in use for that min version)
 
 ## Docker
 
@@ -157,6 +163,18 @@ per directory can run into a problem like this:
 Specifically we recommend to avoid using ext3. Ext4 and newer does not have the
 limitation of 32k sub-directories.
 
+#### Using simple API for metadata
+
+If you set `api-method = simple` there us a caveat that PyPI caches it. So you can only be
+as recent as 1 hour (as of 202511).
+
+The advantages of using is:
+
+- xmlrpc is deprecated
+- CDN cached
+  - So more performant
+- Could now potentially use mirrors to mirror
+
 #### Client Compatibility
 
 A bandersnatch static mirror is compatible only to the "static", cacheable
@@ -165,6 +183,9 @@ support more dynamic APIs of PyPI that maybe be used by various clients for
 other purposes.
 
 An example of an unsupported API is [PyPI's XML-RPC interface](https://warehouse.readthedocs.io/api-reference/xml-rpc/), which is used when running `pip search`.
+
+*Note:* This is changing with the introduction of the PEP691 Simple API metadata fetching
+providing you return JSON for your Simple API endpoints.
 
 ### Bandersnatch Mission
 

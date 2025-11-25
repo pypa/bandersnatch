@@ -4,13 +4,12 @@ Bandersnatch was originally developed for POSIX file system. Bandersnatch now su
 
 - POSIX / Windows filesystem (transparently via pathlib)
 - [Amazon S3](https://aws.amazon.com/s3/)
-- [OpenStack Swift](https://docs.openstack.org/swift/latest/)
 
 ## Filesystem Support
 
 This is the default mode for bandersnatch.
 
-### Config Example
+### S3 configuration
 
 ```ini
 [mirror]
@@ -21,7 +20,7 @@ storage-backend = filesystem
 hash-index = true
 ```
 
-### Serving your Mirror
+### Serving with S3
 
 Simple html is stored within the file system structure. Please use your
 favorite http server such as Apache or NGINX. Refer to [Serving](serving.md) documentation about a NGINX Docker container option.
@@ -97,31 +96,4 @@ But there are two main disadvantages:
 
 It is strongly recommended to set redirect or url rewrite for CDN. Please contact your service assistant for detailed instructions.
 
-## OpenStack Swift
-
-To enable Swift support the optional `swift` install must be done:
-
-- `pip install bandersnatch[swift]`
-- Add a `[swift]` section in the bandersnatch config file
-
-### Config Example
-
-```ini
-[mirror]
-directory = /prefix
-storage-backend = swift
-
-[swift]
-default_container = bandersnatch
-```
-
-### Serving your Mirror
-
-Requires that the cluster has [staticweb](https://docs.openstack.org/swift/latest/middleware.html#staticweb) enabled.
-
-```shell
-# Check that staticweb is enabled
-swift capabilities | grep staticweb
-# Make the container world-readable and enable pseudo-directory translation
-swift post bandersnatch -r '.r:*' -m 'web-index: index.html'
-```
+<!-- Swift storage backend has been removed. -->

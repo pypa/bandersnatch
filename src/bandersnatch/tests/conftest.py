@@ -1,7 +1,7 @@
 # flake8: noqa
+import asyncio
 import os
 import unittest.mock as mock
-from asyncio import AbstractEventLoop
 from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
@@ -27,6 +27,31 @@ if TYPE_CHECKING:
     from bandersnatch.master import Master
     from bandersnatch.mirror import BandersnatchMirror
     from bandersnatch.package import Package
+
+
+@pytest.fixture(scope="function", autouse=True)
+def event_loop() -> Iterator[asyncio.AbstractEventLoop]:
+    """
+    Create an event loop for each test.
+
+    This is needed for Python 3.14+ where asyncio.get_event_loop() no longer
+    automatically creates an event loop. Many bandersnatch classes (Master, Mirror,
+    StoragePlugin) call asyncio.get_event_loop() in their __init__ methods, so we
+    need to ensure an event loop exists even for non-async tests.
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    yield loop
+    try:
+        # Cancel all running tasks
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        # Run the loop until all tasks are cancelled
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    finally:
+        loop.close()
 
 
 @pytest.fixture(autouse=True)
@@ -117,9 +142,7 @@ def package_json() -> dict[str, Any]:
     }
 
 
-# This requests the 'event_loop' fixture from pytest-asyncio because the initializer for
-# 'Master' uses `asyncio.get_event_loop()`, and in some contexts a loop won't already
-# exist when the fixture is initialized.
+# The master fixture is an async fixture that returns a Master instance for testing.
 @pytest_asyncio.fixture
 async def master(package_json: dict[str, Any]) -> "Master":
     from bandersnatch.master import Master

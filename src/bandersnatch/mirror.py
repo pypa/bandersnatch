@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable
 from json import dump
 from pathlib import Path, WindowsPath
 from threading import RLock
-from typing import Any, TypeVar
+from typing import Any
 from urllib.parse import unquote, urlparse
 
 from filelock import Timeout
@@ -910,14 +910,11 @@ class BandersnatchMirror(Mirror):
         return path
 
 
-_T = TypeVar("_T")
-
-
 async def _setup_diff_file(
     storage_plugin: Storage, configured_path: str, append_epoch: bool
 ) -> Path:
     # save some typing. maybe a method to add to Storage?
-    async def storage_plugin_exec(fn: Callable[..., _T], *args: Any) -> _T:
+    async def storage_plugin_exec[T](fn: Callable[..., T], *args: Any) -> T:
         return await storage_plugin.loop.run_in_executor(
             storage_plugin.executor, fn, *args
         )
@@ -980,7 +977,12 @@ async def mirror(
     # Always reference those classes here with the fully qualified name to
     # allow them being patched by mock libraries!
     async with Master(
-        mirror_url, timeout, global_timeout, proxy, allow_non_https
+        mirror_url,
+        timeout,
+        global_timeout,
+        proxy,
+        allow_non_https,
+        config_values.api_method,
     ) as master:
         mirror = BandersnatchMirror(
             homedir,

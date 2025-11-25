@@ -148,8 +148,7 @@ def test_scandir(s3_mock: S3Path) -> None:
 
 
 def test_plugin_init(s3_mock: S3Path) -> None:
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -159,7 +158,7 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
@@ -169,8 +168,7 @@ aws_access_key_id = 123456
 aws_secret_access_key = 123456
 endpoint_url = http://localhost:9090
 signature_version = s3v4
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
@@ -178,8 +176,7 @@ signature_version = s3v4
     resource, _ = configuration_map.get_configuration(path)
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -189,14 +186,13 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
 [s3]
 endpoint_url = http://localhost:9090
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
@@ -206,8 +202,7 @@ endpoint_url = http://localhost:9090
 
 
 def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
-    config = mock_config(
-        """
+    config = mock_config("""
 [mirror]
 directory = /tmp/pypi
 json = true
@@ -217,7 +212,7 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
@@ -228,8 +223,7 @@ aws_secret_access_key = 123456
 endpoint_url = http://localhost:9090
 signature_version = s3v4
 config_param_ServerSideEncryption = AES256
-"""
-    )
+""")
     backend = s3.S3Storage(config=config)
     backend.initialize_plugin()
 
@@ -237,7 +231,9 @@ config_param_ServerSideEncryption = AES256
 
     # Limitation of min.io, but tells us that the expected config param was used
     with pytest.raises(ValueError) as execinfo:
-        backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+        # Use a unique object name so SSE parameters registered in this test
+        # don’t affect other tests that also use 'file1'
+        backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
     assert "KMS not configured for a server side encrypted objects" in str(
         execinfo.value
     )
