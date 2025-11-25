@@ -30,7 +30,7 @@ class FilesystemStorage(StoragePlugin):
 
         :param str path: The path to use for locking
         :return: A `FileLock` backend for obtaining locks
-        :rtype: SwiftFileLock
+        :rtype: filelock.FileLock
         """
         if path is None:
             path = self.mirror_base_path.joinpath(self.flock_path).as_posix()

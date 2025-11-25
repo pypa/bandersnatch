@@ -1,3 +1,0 @@
-keystoneauth1==5.12.0
-openstackclient==4.0.0
-python-swiftclient==4.8.0

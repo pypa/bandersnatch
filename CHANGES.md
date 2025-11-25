@@ -1,3 +1,9 @@
+# 7.0.0
+
+## New Features / big changes
+
+- Remove swift support `PR #2081`
+
 # 6.8.0
 
 ## New Features
