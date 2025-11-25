@@ -7,7 +7,6 @@ import hashlib
 import logging
 import os
 import pathlib
-import sys
 import tempfile
 from collections.abc import Generator, Iterator
 from fnmatch import fnmatch
@@ -19,9 +18,7 @@ from botocore.client import Config
 from s3path import PureS3Path
 from s3path import S3Path as _S3Path
 from s3path import configuration_map, register_configuration_parameter
-
-if sys.version_info >= (3, 12):
-    from s3path.accessor import _generate_prefix
+from s3path.accessor import _generate_prefix
 
 if TYPE_CHECKING:
     from s3path.accessor import _S3DirEntry
@@ -44,10 +41,7 @@ class S3Path(_S3Path):
         resource, _ = configuration_map.get_configuration(self)
         bucket = resource.Bucket(bucket_name)
 
-        if sys.version_info >= (3, 12):
-            prefix = _generate_prefix(self)
-        else:
-            prefix = self._accessor.generate_prefix(self)
+        prefix = _generate_prefix(self)
 
         kwargs = {
             "Bucket": bucket_name,
