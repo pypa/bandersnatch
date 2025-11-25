@@ -9,6 +9,6 @@ xmlrpc2==0.3.1
 sphinx-argparse-cli==1.20.1
 
 git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
-python-docs-theme==2025.2
+python-docs-theme==2025.10
 
 # Note: Optional storage backends are documented without importing their deps.
