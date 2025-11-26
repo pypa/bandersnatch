@@ -177,7 +177,7 @@ The advantages of using is:
   - So more performant
 - Could now potentially use mirrors to mirror
 
-THe disadvantage:
+The disadvantage:
 
 - Limited by CDN caching / TTLs
   - As of 202511 this is 1 hour
