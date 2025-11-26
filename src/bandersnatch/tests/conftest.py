@@ -173,7 +173,7 @@ async def master(package_json: dict[str, Any]) -> "Master":
         else:
             return FakeAiohttpClient()
 
-    master = Master("https://pypi.example.com")
+    master = Master("https://pypi.example.com", api_method="simple")
     master.rpc = mock.Mock()  # type: ignore
     master.session = mock.MagicMock()
     master.session.get.side_effect = session_side_effect

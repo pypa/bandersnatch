@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 import bandersnatch
-from bandersnatch.master import Master, StalePage, XmlRpcError
+from bandersnatch.master import Master, StalePage
 
 
 @pytest.mark.asyncio
@@ -23,37 +23,60 @@ async def test_rpc_url(master: Master) -> None:
 
 @pytest.mark.asyncio
 async def test_all_packages(master: Master) -> None:
-    expected = [["aiohttp", "", "", "", "69"]]
-    master.rpc = AsyncMock(return_value=expected)  # type: ignore
+    # Mock fetch_simple_index for simple API
+    async def mock_fetch_simple_index() -> dict[str, Any]:
+        return {
+            "meta": {"api-version": "1.0"},
+            "projects": [{"name": "aiohttp", "_last-serial": 69}],
+        }
+
+    master.fetch_simple_index = mock_fetch_simple_index  # type: ignore
     packages = await master.all_packages()
-    assert expected == packages
+    assert packages == {"aiohttp": 69}
 
 
 @pytest.mark.asyncio
 async def test_all_packages_raises(master: Master) -> None:
-    master.rpc = AsyncMock(return_value=[])  # type: ignore
-    with pytest.raises(XmlRpcError):
-        await master.all_packages()
+    # Simple API returns empty dict when no packages, doesn't raise
+    async def mock_fetch_simple_index() -> dict[str, Any]:
+        return {"meta": {"api-version": "1.0"}, "projects": []}
+
+    master.fetch_simple_index = mock_fetch_simple_index  # type: ignore
+    packages = await master.all_packages()
+    assert packages == {}
 
 
 @pytest.mark.asyncio
 async def test_changed_packages_no_changes(master: Master) -> None:
-    master.rpc = AsyncMock(return_value=None)  # type: ignore
+    # Mock fetch_simple_index to return packages with serials <= 4
+    async def mock_fetch_simple_index() -> dict[str, Any]:
+        return {
+            "meta": {"api-version": "1.0"},
+            "projects": [
+                {"name": "aiohttp", "_last-serial": 3},
+                {"name": "requests", "_last-serial": 4},
+            ],
+        }
+
+    master.fetch_simple_index = mock_fetch_simple_index  # type: ignore
     changes = await master.changed_packages(4)
     assert changes == {}
 
 
 @pytest.mark.asyncio
 async def test_changed_packages_with_changes(master: Master) -> None:
-    list_of_package_changes = [
-        ("foobar", "1", 0, "added", 17),
-        ("baz", "2", 1, "updated", 18),
-        ("foobar", "1", 0, "changed", 20),
-        # The server usually just hands out monotonous serials in the
-        # changelog. This verifies that we don't fail even with garbage input.
-        ("foobar", "1", 0, "changed", 19),
-    ]
-    master.rpc = AsyncMock(return_value=list_of_package_changes)  # type: ignore
+    # Mock fetch_simple_index to return packages with serials > 4
+    async def mock_fetch_simple_index() -> dict[str, Any]:
+        return {
+            "meta": {"api-version": "1.0"},
+            "projects": [
+                {"name": "foobar", "_last-serial": 20},
+                {"name": "baz", "_last-serial": 18},
+                {"name": "old-package", "_last-serial": 3},
+            ],
+        }
+
+    master.fetch_simple_index = mock_fetch_simple_index  # type: ignore
     changes = await master.changed_packages(4)
     assert changes == {"baz": 18, "foobar": 20}
 
@@ -218,10 +241,10 @@ async def test_changed_packages_xmlrpc_api() -> None:
 
 
 @pytest.mark.asyncio
-async def test_master_defaults_to_xmlrpc() -> None:
-    """Test that Master defaults to xmlrpc when api_method is not specified."""
+async def test_master_defaults_to_simple() -> None:
+    """Test that Master defaults to simple when api_method is not specified."""
     master = Master("https://pypi.example.com")
-    assert master.api_method == "xmlrpc"
+    assert master.api_method == "simple"
 
 
 @pytest.mark.asyncio
