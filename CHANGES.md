@@ -8,6 +8,12 @@
 - Remove py3.11 support `PR #2082`
 - Remove swift support `PR #2081`
 
+## CI / test
+
+- Move all main CI integration tests to simple API
+  - One dedicated 3.14 xmlrpc test left until deletion
+- Unittests only test simple API
+
 # 6.8.0
 
 ## New Features
