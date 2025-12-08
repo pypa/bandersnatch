@@ -111,7 +111,7 @@ def test_main_reads_custom_config_values(
     conffile = str(customconfig / "bandersnatch.conf")
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
     main(asyncio.new_event_loop())
-    (log_config, _kwargs) = logging_mock.call_args_list[0]
+    log_config, _kwargs = logging_mock.call_args_list[0]
     assert log_config == ((customconfig / "bandersnatch-log.conf"),)
 
 
