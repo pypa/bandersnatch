@@ -1,3 +1,9 @@
+# Unreleased
+
+## New Features
+
+- Add musllinux platform tag to list of excludable Linux platforms `PR #2109`
+
 # 7.0.0
 
 ## New Features / big changes

@@ -57,6 +57,7 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         "manylinux2014_ppc64",  # PEP 599
         "manylinux2014_ppc64le",  # PEP 599
         "manylinux2014_s390x",  # PEP 599
+        "musllinux",  # PEP 656
     ]
 
     def initialize_plugin(self) -> None:
