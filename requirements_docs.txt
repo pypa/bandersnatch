@@ -1,5 +1,5 @@
 docutils==0.21.2
-furo==2025.9.25
+furo==2025.12.19
 pyparsing==3.2.5
 python-dateutil==2.9.0.post0
 packaging==25.0
