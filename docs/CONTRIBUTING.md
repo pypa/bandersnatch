@@ -90,10 +90,11 @@ Congrats, now you have a bandersnatch development environment ready to go! Just 
 
 ### S3 Unit Tests
 
-S3 unittests are more integration tests. They depend on [minio](https://docs.min.io/enterprise/aistor-object-store/) to work.
+S3 unittests are more integration tests. They depend on [minio server](https://hub.docker.com/r/minio/minio) to work.
+We recommend using the OSS docker container image like bandersatch CI.
 
-- You will either need to skip them or install mino
-- Install options: <https://docs.min.io/enterprise/aistor-object-store/>
+- You will either need to skip them or run minio
+- Other install options: <https://docs.min.io/enterprise/aistor-object-store/>
 
 To skip the tests, run:
 
