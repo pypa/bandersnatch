@@ -4,7 +4,7 @@ pyparsing==3.3.1
 python-dateutil==2.9.0.post0
 packaging==25.0
 requests==2.32.5
-sphinx==8.2.3
+sphinx==9.1.0
 MyST-Parser==5.0.0
 xmlrpc2==0.3.1
 sphinx-argparse-cli==1.20.1
