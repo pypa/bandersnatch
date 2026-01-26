@@ -6,7 +6,7 @@ packages directory that the HTML links to.
 
 ## BanderX
 
-`banderx` is a very simple [NGINX](https://www.nginx.com/) docker image with a
+`banderx` is a very simple [NGINX](https://www.f5.com/products/nginx) docker image with a
 sample config included. The example only does HTTP and expects you to do your
 own HTTPS/TLS elsewhere.
 

@@ -33,7 +33,7 @@ To enable S3 support the optional `s3` install must be done:
 - Add a `[s3]` section in the bandersnatch config file
 - Prefix keys with `config_param_` to add the key and its value as parameters to the underlying Boto3 S3 calls
 
-You will need an [AWS account](https://aws.amazon.com/console/) and an [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html)
+You will need an [AWS account](https://aws.amazon.com/console/) and an [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/GetStartedWithS3.html#creating-bucket)
 
 ### Config Example
 
