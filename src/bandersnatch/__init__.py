@@ -19,9 +19,9 @@ class _VersionInfo(NamedTuple):
 
 
 __version_info__ = _VersionInfo(
-    major=6,
-    minor=7,
-    micro=0,
+    major=7,
+    minor=0,
+    micro=1,
     releaselevel="",
     serial=0,  # Not currently in use with Bandersnatch versioning
 )

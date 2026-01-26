@@ -10,16 +10,16 @@ repos:
         exclude: ^docs/conf.py$
 
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.11.0
+    rev: 26.1.0
     hooks:
       - id: black
-        args: [--target-version, py311, --preview]
+        args: [--target-version, py312, --preview]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.1
+    rev: v3.21.2
     hooks:
       - id: pyupgrade
-        args: [--py311-plus]
+        args: [--py312-plus]
 
   - repo: https://github.com/PyCQA/isort
     rev: 7.0.0
@@ -27,7 +27,7 @@ repos:
       - id: isort
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v1.19.1
     hooks:
       - id: mypy
         exclude: (docs/.*)

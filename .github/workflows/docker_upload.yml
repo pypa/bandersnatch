@@ -13,7 +13,7 @@ jobs:
     if: github.repository == 'pypa/bandersnatch'
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -35,13 +35,13 @@ jobs:
       - name: Build and push filesystem image
         uses: docker/build-push-action@v6
         env:
-          PY_VERSION: '3.13'
+          PY_VERSION: '3.14'
         with:
           build-args: PY_VERSION
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: pypa/bandersnatch:latest,pypa/bandersnatch:${{ env.GIT_TAG }},pypa/bandersnatch:3,pypa/bandersnatch:3.13
+          tags: pypa/bandersnatch:latest,pypa/bandersnatch:${{ env.GIT_TAG }},pypa/bandersnatch:3,pypa/bandersnatch:3.14
 
       - name: Filesystem Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
@@ -49,7 +49,7 @@ jobs:
       - name: Build and push s3 image
         uses: docker/build-push-action@v6
         env:
-          PY_VERSION: '3.13'
+          PY_VERSION: '3.14'
           WITH_S3: yes
         with:
           build-args: |
@@ -58,7 +58,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: pypa/bandersnatch:s3-latest,pypa/bandersnatch:s3-${{ env.GIT_TAG }},pypa/bandersnatch:s3-3,pypa/bandersnatch:s3-3.13
+          tags: pypa/bandersnatch:s3-latest,pypa/bandersnatch:s3-${{ env.GIT_TAG }},pypa/bandersnatch:s3-3,pypa/bandersnatch:s3-3.14
 
       - name: S3 Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

@@ -1,8 +1,31 @@
-# 6.8.0 (unreleased)
+# 7.0.1
+
+## New Features
+
+- Add musllinux platform tag to list of excludable Linux platforms `PR #2109`
+
+# 7.0.0
+
+## New Features / big changes
+
+- Default to simple API for api-method for package listing `PR #2089`
+  - Replaces xmlrpc on PyPI and paves the way for it to be deprecated
+    - It also allows mirrors to mirror from other mirrors
+- Remove py3.11 support `PR #2082`
+- Remove swift support `PR #2081`
+
+## CI / test
+
+- Move all main CI integration tests to simple API
+  - One dedicated 3.14 xmlrpc test left until deletion
+- Unittests only test simple API
+
+# 6.8.0
 
 ## New Features
 
 - Declare support for python 3.14 `PR #2079`
+  - Move Docker to 3.14 too `PR #2080`
 
 # 6.7.0
 

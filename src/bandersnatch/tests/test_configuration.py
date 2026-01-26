@@ -148,7 +148,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
-            "xmlrpc",
+            "simple",
         )
         no_options_configparser = BandersnatchConfig(load_defaults=True)
         self.assertEqual(
@@ -169,7 +169,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
-            "xmlrpc",
+            "simple",
         )
         release_files_false_configparser = BandersnatchConfig(load_defaults=True)
         release_files_false_configparser["mirror"].update({"release-files": "false"})
@@ -193,7 +193,7 @@ class TestBandersnatchConf(TestCase):
             "",
             False,
             SimpleFormat.ALL,
-            "xmlrpc",
+            "simple",
         )
         release_files_false_configparser = BandersnatchConfig(load_defaults=True)
         release_files_false_configparser["mirror"].update(
@@ -254,16 +254,16 @@ class TestBandersnatchConf(TestCase):
         with self.assertRaises(ValueError) as context:
             validate_config_values(invalid_api_config)
         self.assertIn("api-method invalid is not supported", str(context.exception))
-        self.assertIn("('xmlrpc', 'simple')", str(context.exception))
+        self.assertIn("('simple', 'xmlrpc')", str(context.exception))
 
-    def test_validate_config_values_api_method_defaults_to_xmlrpc(self) -> None:
-        """Test that api_method defaults to 'xmlrpc' when not specified."""
+    def test_validate_config_values_api_method_defaults_to_simple(self) -> None:
+        """Test that api_method defaults to 'simple' when not specified."""
         config = BandersnatchConfig(load_defaults=True)
         # Remove the api-method config if it exists
         if config.has_option("mirror", "api-method"):
             config.remove_option("mirror", "api-method")
         result = validate_config_values(config)
-        self.assertEqual(result.api_method, "xmlrpc")
+        self.assertEqual(result.api_method, "simple")
 
     def test_validate_config_diff_file_reference(self) -> None:
         diff_file_test_cases = [

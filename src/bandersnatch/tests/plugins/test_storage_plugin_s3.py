@@ -158,7 +158,7 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
@@ -186,7 +186,7 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
@@ -212,7 +212,7 @@ global-timeout = 18000
 workers = 3
 hash-index = true
 stop-on-error = true
-storage-backend = swift
+storage-backend = s3
 verifiers = 3
 keep_index_versions = 2
 compare-method = hash
@@ -231,7 +231,9 @@ config_param_ServerSideEncryption = AES256
 
     # Limitation of min.io, but tells us that the expected config param was used
     with pytest.raises(ValueError) as execinfo:
-        backend.write_file(f"/{s3_mock.bucket}/file1", "test")
+        # Use a unique object name so SSE parameters registered in this test
+        # don’t affect other tests that also use 'file1'
+        backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
     assert "KMS not configured for a server side encrypted objects" in str(
         execinfo.value
     )

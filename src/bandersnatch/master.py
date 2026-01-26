@@ -40,7 +40,7 @@ class Master:
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
         allow_non_https: bool = False,
-        api_method: str = "xmlrpc",
+        api_method: str = "simple",
     ) -> None:
         self.url = url
         self.timeout = timeout
@@ -198,10 +198,11 @@ class Master:
         return simple_index
 
     async def all_packages(self) -> Any:
-        if self.api_method == "simple":
-            return await self._all_packages_simple()
-        else:
-            return await self._all_packages_xmlrpc()
+        match self.api_method:
+            case "simple":
+                return await self._all_packages_simple()
+            case _:
+                return await self._all_packages_xmlrpc()
 
     async def _all_packages_xmlrpc(self) -> Any:
         all_packages_with_serial = await self.rpc("list_packages_with_serial")
@@ -232,10 +233,11 @@ class Master:
         return all_packages
 
     async def changed_packages(self, last_serial: int) -> dict[str, int]:
-        if self.api_method == "simple":
-            return await self._changed_packages_simple(last_serial)
-        else:
-            return await self._changed_packages_xmlrpc(last_serial)
+        match self.api_method:
+            case "simple":
+                return await self._changed_packages_simple(last_serial)
+            case _:
+                return await self._changed_packages_xmlrpc(last_serial)
 
     async def _changed_packages_xmlrpc(self, last_serial: int) -> dict[str, int]:
         changelog = await self.rpc("changelog_since_serial", last_serial)
