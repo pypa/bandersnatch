@@ -8,7 +8,7 @@ filelock==3.20.3
 humanfriendly==10.0
 idna==3.11
 lxml==6.0.2
-multidict==6.7.0
+multidict==6.7.1
 packaging==25.0
 pyparsing==3.3.1
 setuptools==80.9.0
