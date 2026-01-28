@@ -80,6 +80,7 @@ class TestBandersnatchConf(TestCase):
                 "simple-format",
                 "stop-on-error",
                 "storage-backend",
+                "storage-filesystem-manage-permissions",
                 "timeout",
                 "verifiers",
                 "workers",
