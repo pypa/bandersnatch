@@ -69,6 +69,7 @@ async def test_json_index_page() -> None:
     c = ConfigParser()
     c.add_section("mirror")
     c["mirror"]["workers"] = "1"
+    c["mirror"]["storage-filesystem-manage-permissions"] = "true"
     s = SimpleAPI(
         FilesystemStorage(config=c), SimpleFormat.ALL, [], "sha256", False, None
     )

@@ -68,6 +68,7 @@ def _fake_config() -> ConfigParser:
     cp["mirror"]["directory"] = "/tmp/unittest"
     cp["mirror"]["workers"] = "1"
     cp["mirror"]["storage-backend"] = "filesystem"
+    cp["mirror"]["storage-filesystem-manage-permissions"] = "true"
     cp["mirror"]["hash-index"] = "true"
     return cp
 
