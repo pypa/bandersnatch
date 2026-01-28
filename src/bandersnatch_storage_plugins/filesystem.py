@@ -23,6 +23,8 @@ class FilesystemStorage(StoragePlugin):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+
+    def initialize_plugin(self) -> None:
         self.manage_permissions = self.configuration.getboolean(
             "mirror", "storage-filesystem-manage-permissions"
         )

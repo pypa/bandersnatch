@@ -409,16 +409,30 @@ web{0}simple{0}index.html""".format(os.sep).strip()
 
     def test_copy_file(self) -> None:
         file_content = "this is some data"
-        dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tf:
             atexit.register(os.unlink, tf.name)
             tf.write(file_content)
             tf.flush()
+
+        dest_file = os.path.join(self.mirror_base_path, "temp_file.txt")
+        # Set permissions on the tmp file explicitly to avoid false-positives
+        # caused by umask.
+        os.chmod(tf.name, 0o700)
         self.plugin.copy_file(tf.name, dest_file)
         with open(dest_file) as fh:
             copied_content = fh.read()
-        os.unlink(dest_file)
+            self.assertEqual(os.stat(tf.name).st_mode, os.stat(dest_file).st_mode)
         self.assertEqual(copied_content, file_content)
+        os.unlink(dest_file)
+
+        dest_file2 = os.path.join(self.mirror_base_path, "temp_file2.txt")
+        self.plugin.manage_permissions = False
+        os.chmod(tf.name, 0o777)
+        self.plugin.copy_file(tf.name, dest_file2)
+        with open(dest_file2) as fh:
+            self.assertNotEqual(os.stat(tf.name).st_mode, os.stat(dest_file2).st_mode)
+
+        os.unlink(dest_file2)
 
     def test_mkdir(self) -> None:
         self.plugin.mkdir(os.path.join(self.mirror_base_path, "test_dir"))
