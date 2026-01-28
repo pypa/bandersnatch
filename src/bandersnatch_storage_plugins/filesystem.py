@@ -23,6 +23,9 @@ class FilesystemStorage(StoragePlugin):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.manage_permissions = self.configuration.getboolean(
+            "mirror", "storage-filesystem-manage-permissions"
+        )
 
     def get_lock(self, path: str | None = None) -> filelock.FileLock:
         """
@@ -131,7 +134,10 @@ class FilesystemStorage(StoragePlugin):
         """Copy a file from **source** to **dest**"""
         if not self.exists(source):
             raise FileNotFoundError(source)
-        shutil.copy(source, dest)
+        if self.manage_permissions:
+            shutil.copy(source, dest)
+        else:
+            shutil.copyfile(source, dest)
         return
 
     def move_file(self, source: PATH_TYPES, dest: PATH_TYPES) -> None:
