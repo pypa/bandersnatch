@@ -430,7 +430,12 @@ web{0}simple{0}index.html""".format(os.sep).strip()
         os.chmod(tf.name, 0o777)
         self.plugin.copy_file(tf.name, dest_file2)
         with open(dest_file2) as fh:
-            self.assertNotEqual(os.stat(tf.name).st_mode, os.stat(dest_file2).st_mode)
+            if sys.platform == "win32":
+                self.assertEqual(os.stat(tf.name).st_mode, os.stat(dest_file2).st_mode)
+            else:
+                self.assertNotEqual(
+                    os.stat(tf.name).st_mode, os.stat(dest_file2).st_mode
+                )
 
         os.unlink(dest_file2)
 
