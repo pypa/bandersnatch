@@ -26,7 +26,7 @@ class FilesystemStorage(StoragePlugin):
 
     def initialize_plugin(self) -> None:
         self.manage_permissions = self.configuration.getboolean(
-            "mirror", "storage-filesystem-manage-permissions"
+            "mirror", "storage-filesystem-manage-permissions", fallback=True
         )
 
     def get_lock(self, path: str | None = None) -> filelock.FileLock:

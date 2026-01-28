@@ -426,7 +426,7 @@ web{0}simple{0}index.html""".format(os.sep).strip()
         os.unlink(dest_file)
 
         dest_file2 = os.path.join(self.mirror_base_path, "temp_file2.txt")
-        self.plugin.manage_permissions = False
+        self.plugin.manage_permissions = False  # type: ignore[attr-defined]
         os.chmod(tf.name, 0o777)
         self.plugin.copy_file(tf.name, dest_file2)
         with open(dest_file2) as fh:
