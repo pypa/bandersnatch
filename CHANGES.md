@@ -1,3 +1,7 @@
+# 7.1.0
+
+## New Features
+
 - Make filesystem permissions management configurable `PR #2137`
 
 # 7.0.1
