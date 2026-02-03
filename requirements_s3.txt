@@ -1,6 +1,6 @@
 boto3==1.42.40
 botocore==1.42.40
-jmespath==1.0.1
+jmespath==1.1.0
 python-dateutil==2.9.0.post0
 s3path==0.6.4
 s3transfer==0.16.0
