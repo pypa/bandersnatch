@@ -1,5 +1,7 @@
 # 7.1.0
+
 ### Documentation
+
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
 
 ## New Features
