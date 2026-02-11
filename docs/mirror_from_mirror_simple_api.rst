@@ -2,27 +2,50 @@ Mirror from a mirror (Simple API)
 =================================
 
 Bandersnatch can mirror packages from another Python package index that
-implements the Simple Repository API (PEP 503). This allows you to create
-a secondary mirror from an existing mirror instead of directly from PyPI.
+implements the Simple Repository API (PEP 503 + PEP 691). This allows you
+to create a secondary mirror from an existing mirror instead of directly
+from PyPI.
 
 Configuration
 -------------
 
-Set the ``master`` option in your bandersnatch configuration to the base
-URL of the upstream mirror.
+Set the ``master`` option in your bandersnatch configuration to the **base
+URL** of the upstream mirror.
 
 Example::
 
     [mirror]
-    master = https://example-mirror.org/simple/
+    master = https://example-mirror.org
+
+Bandersnatch automatically appends ``/simple`` to the configured
+``master`` URL.
+
+Requirements
+------------
+
+The upstream mirror must support:
+
+- The Simple Repository API with **PEP 691 JSON responses**
+  (``Accept: application/vnd.pypi.simple.v1+json``)
+- The PyPI JSON metadata endpoint:
+  ``/pypi/<project>/json``
+
+Bandersnatch requires JSON responses for correct mirroring.
 
 Notes
 -----
 
-- The upstream mirror must implement the Simple Repository API (PEP 503).
-- Ensure the URL ends with ``/simple/``.
 - Some mirrors may have partial content or different filtering rules.
 - Synchronization speed depends on the upstream mirror performance.
+
+JSON vs HTML behavior
+---------------------
+
+Bandersnatch **only supports the JSON Simple API (PEP 691)**.
+
+If the upstream mirror serves only HTML (PEP 503) and does not provide
+JSON responses, bandersnatch will **fail fast** instead of falling back
+to HTML parsing.
 
 Use cases
 ---------
@@ -30,6 +53,7 @@ Use cases
 - Creating an internal mirror from an organizational mirror
 - Reducing load on PyPI by chaining mirrors
 - Regional or offline mirror setups
+
 Troubleshooting
 ---------------
 
@@ -41,19 +65,12 @@ bandersnatch may fail with errors such as:
 aiohttp.client_exceptions.ContentTypeError:
 Attempt to decode JSON with unexpected mimetype: text/html
 
-This happens when the upstream mirror does not correctly support the
-Simple API JSON endpoint.
-
 To verify JSON support, check:
 
-- The `/simple/` endpoint responds with JSON when requested with:
+- The ``/simple/`` endpoint responds with JSON when requested with:
 
   Accept: application/vnd.pypi.simple.v1+json
 
-- The response `Content-Type` is:
+- The response ``Content-Type`` is:
 
   application/vnd.pypi.simple.v1+json
-
-Currently, bandersnatch does not automatically fall back to the HTML
-Simple API when JSON is unavailable. Ensure the upstream mirror is
-configured correctly for JSON responses when chaining mirrors.
