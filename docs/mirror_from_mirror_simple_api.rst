@@ -2,7 +2,7 @@ Mirror from a mirror (Simple API)
 =================================
 
 Bandersnatch can mirror packages from another Python package index that
-implements the Simple Repository API (PEP 503 + PEP 691). This allows you
+implements the Simple Repository API (PEP 503 + 691). This allows you
 to create a secondary mirror from an existing mirror instead of directly
 from PyPI.
 
@@ -37,6 +37,8 @@ Notes
 
 - Some mirrors may have partial content or different filtering rules.
 - Synchronization speed depends on the upstream mirror performance.
+- If the upstream serves only HTML Simple API (PEP 503) and not JSON, mirroring will fail (no automatic fallback).
+
 
 JSON vs HTML behavior
 ---------------------
