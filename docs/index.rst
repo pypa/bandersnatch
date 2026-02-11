@@ -44,4 +44,3 @@ Contents
     CONTRIBUTING
     modules
     mirror_from_mirror_simple_api
-
