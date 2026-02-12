@@ -1,9 +1,11 @@
 # Unreleased
+
 ## Documentation
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
 
 # 7.1.0
+
 ## New Features
 
 - Make filesystem permissions management configurable `PR #2137`
