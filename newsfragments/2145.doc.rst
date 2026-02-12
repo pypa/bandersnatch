@@ -1,1 +1,0 @@
-Improve mirror-from-mirror Simple API documentation, clarify PEP 691 JSON requirements, and add troubleshooting for JSON vs HTML behavior.
