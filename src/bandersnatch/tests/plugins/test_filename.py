@@ -16,6 +16,8 @@ class BasePluginTestCase(TestCase):
     cwd = None
 
     def setUp(self) -> None:
+        filename_name.ExcludePlatformFilter._patterns = []
+        filename_name.ExcludePlatformFilter._packagetypes = []
         self.cwd = os.getcwd()
         self.tempdir = TemporaryDirectory()
         os.chdir(self.tempdir.name)
@@ -193,3 +195,66 @@ platforms =
 
         # the release "0.2" should have been deleted since there is no more file in it
         assert len(pkg.releases.keys()) == 3
+
+
+class TestExcludePlatformFilterLinuxPep600(BasePluginTestCase):
+    config_contents = """\
+[plugins]
+enabled =
+    exclude_platform
+
+[blocklist]
+platforms =
+    linux
+"""
+
+    def test_exclude_linux_platform_tags(self) -> None:
+        """
+        When excluding linux, ensure PEP 600 manylinux tags are excluded too.
+        """
+        mock_config(self.config_contents)
+
+        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+        pkg = Package("foobar", 1)
+        pkg._metadata = {
+            "info": {"name": "foobar", "version": "1.0"},
+            "releases": {
+                "1.0": [
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-py3-none-any.whl",
+                        "flag": "KEEP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-cp312-cp312-manylinux_2_17_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-cp312-cp312-manylinux2014_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "foobar-1.0-cp312-cp312-musllinux_1_1_x86_64.whl",
+                        "flag": "DROP",
+                    },
+                    {
+                        "packagetype": "bdist_wheel",
+                        "filename": "manylinux_foo-1.0-py3-none-any.whl",
+                        "flag": "KEEP",
+                    },
+                ]
+            },
+        }
+
+        # count the files we should keep
+        rv = pkg.releases.values()
+        keep_count = sum(f["flag"] == "KEEP" for r in rv for f in r)
+
+        pkg.filter_all_releases_files(mirror.filters.filter_release_file_plugins())
+
+        rv = pkg.releases.values()
+        assert sum(f["flag"] == "KEEP" for r in rv for f in r) == keep_count
+        assert sum(f["flag"] == "DROP" for r in rv for f in r) == 0
