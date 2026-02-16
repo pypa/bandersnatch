@@ -192,7 +192,8 @@ web{0}simple
 web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(os.sep).strip()
-    if sys.platform == "win32":
+    if sys.platform != "win32":
+        # filelock 3.21.0+ deletes lock file on release on Unix systems
         base_find_contents = base_find_contents.replace(".lock\n", "")
 
     def test_plugin_type(self) -> None:
