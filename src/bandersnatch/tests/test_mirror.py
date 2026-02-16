@@ -290,7 +290,8 @@ web{0}simple{0}foobar{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    if WINDOWS:
+    if not WINDOWS:
+        # filelock 3.21.0+ deletes lock file on release on Unix systems
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
 
@@ -382,7 +383,8 @@ web{0}simple{0}foo{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    if WINDOWS:
+    if not WINDOWS:
+        # filelock 3.21.0+ deletes lock file on release on Unix systems
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
@@ -421,13 +423,17 @@ async def mirror_sync_package_error_early_exit(mirror: BandersnatchMirror) -> No
     with pytest.raises(SystemExit):
         await mirror.synchronize()
 
-    assert """\
+    expected = """\
 .lock
 generation
 todo
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
-web{0}simple{0}index.html""".format(sep) == utils.find(mirror.homedir, dirs=False)
+web{0}simple{0}index.html""".format(sep)
+    if not WINDOWS:
+        # filelock 3.21.0+ deletes lock file on release on Unix systems
+        expected = expected.replace(".lock\n", "")
+    assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
 
