@@ -4,6 +4,10 @@
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
 
+## Bug Fixes
+
+- Exclude PEP 600 `manylinux_2_*` wheel tags when `exclude_platform = linux` is configured `PR #2151`
+
 # 7.1.0
 
 ## New Features

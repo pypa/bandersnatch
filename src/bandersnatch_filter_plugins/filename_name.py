@@ -57,6 +57,7 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         "manylinux2014_ppc64",  # PEP 599
         "manylinux2014_ppc64le",  # PEP 599
         "manylinux2014_s390x",  # PEP 599
+        "-manylinux_",  # PEP 600 (manylinux_<glibc-major>_<glibc-minor>_<arch>)
         "musllinux",  # PEP 656
     ]
 
