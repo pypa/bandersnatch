@@ -227,7 +227,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
                         "; except packages in the allowlist: "
                         + f"{self.allowlist_package_names}"
                     )
-                logger.debug(log_msg)
+                logger.info(log_msg)
 
             self.initialized = True
 
@@ -280,7 +280,7 @@ class VersionRangeFilter(Filter):
                     self.specifiers[k] = [
                         parse(ver) for ver in config[k].split("\n") if ver
                     ]
-                logger.debug(
+                logger.info(
                     f"Initialized version_range_release_file_metadata plugin with {self.specifiers}"  # noqa: E501
                 )
                 self.initialized = True

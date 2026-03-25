@@ -24,7 +24,7 @@ class BlockListProject(FilterProjectPlugin):
         # operation doesn't end up in the fastpath.
         if not self.blocklist_package_names:
             self.blocklist_package_names = self._determine_filtered_package_names()
-            logger.debug(
+            logger.info(
                 f"Initialized project plugin {self.name}, filtering "
                 + f"{self.blocklist_package_names}"
             )
@@ -107,7 +107,7 @@ class BlockListRelease(FilterReleasePlugin):
             self.blocklist_release_requirements = (
                 self._determine_filtered_package_requirements()
             )
-            logger.debug(
+            logger.info(
                 f"Initialized release plugin {self.name}, filtering "
                 + f"{self.blocklist_release_requirements}"
             )

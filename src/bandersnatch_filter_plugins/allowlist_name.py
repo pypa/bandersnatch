@@ -31,7 +31,7 @@ class AllowListProject(FilterProjectPlugin):
         # operation doesn't end up in the fastpath.
         if not self.allowlist_package_names:
             self.allowlist_package_names = self._determine_unfiltered_package_names()
-            logger.debug(
+            logger.info(
                 f"Initialized project plugin {self.name}, filtering "
                 + f"{self.allowlist_package_names}"
             )
@@ -178,7 +178,7 @@ class AllowListRelease(FilterReleasePlugin):
             self.allowlist_release_requirements = (
                 self._determine_filtered_package_requirements()
             )
-            logger.debug(
+            logger.info(
                 f"Initialized release plugin {self.name}, filtering "
                 + f"{self.allowlist_release_requirements}"
             )
