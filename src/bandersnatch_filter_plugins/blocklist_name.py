@@ -86,7 +86,7 @@ class BlockListProject(FilterProjectPlugin):
             return False
 
         if canonicalize_name(name) in self.blocklist_package_names:
-            logger.info(f"Package {name!r} is blocklisted")
+            logger.debug(f"Package {name!r} is blocklisted")
             return True
         return False
 
