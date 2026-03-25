@@ -31,7 +31,7 @@ class AllowListProject(FilterProjectPlugin):
         # operation doesn't end up in the fastpath.
         if not self.allowlist_package_names:
             self.allowlist_package_names = self._determine_unfiltered_package_names()
-            logger.info(
+            logger.debug(
                 f"Initialized project plugin {self.name}, filtering "
                 + f"{self.allowlist_package_names}"
             )
@@ -88,7 +88,7 @@ class AllowListProject(FilterProjectPlugin):
             return False
 
         if canonicalize_name(name) in self.allowlist_package_names:
-            logger.info(f"Package {name!r} is allowlisted")
+            logger.debug(f"Package {name!r} is allowlisted")
             return False
         return True
 
@@ -114,11 +114,11 @@ def get_requirement_files(allowlist: "SectionProxy") -> Iterator[Path]:
             files = sorted(requirements_path.glob(requirement_line.strip()))
             for file in files:
                 requirement = file.name
-                logger.info("considering %s", requirements_path / requirement)
+                logger.debug("considering %s", requirements_path / requirement)
                 yield requirements_path / requirement
         else:
             requirement = requirement_line.strip()
-            logger.info("considering %s", requirements_path / requirement)
+            logger.debug("considering %s", requirements_path / requirement)
             yield requirements_path / requirement
 
 
@@ -178,7 +178,7 @@ class AllowListRelease(FilterReleasePlugin):
             self.allowlist_release_requirements = (
                 self._determine_filtered_package_requirements()
             )
-            logger.info(
+            logger.debug(
                 f"Initialized release plugin {self.name}, filtering "
                 + f"{self.allowlist_release_requirements}"
             )

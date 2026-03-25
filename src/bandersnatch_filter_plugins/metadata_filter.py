@@ -227,7 +227,7 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
                         "; except packages in the allowlist: "
                         + f"{self.allowlist_package_names}"
                     )
-                logger.info(log_msg)
+                logger.debug(log_msg)
 
             self.initialized = True
 
@@ -280,7 +280,7 @@ class VersionRangeFilter(Filter):
                     self.specifiers[k] = [
                         parse(ver) for ver in config[k].split("\n") if ver
                     ]
-                logger.info(
+                logger.debug(
                     f"Initialized version_range_release_file_metadata plugin with {self.specifiers}"  # noqa: E501
                 )
                 self.initialized = True
@@ -341,7 +341,7 @@ class VersionRangeFilter(Filter):
         if any(ospecs.contains(ispec, prereleases=True) for ispec in ispecs):
             return True
         # Otherwise, fail
-        logger.info(
+        logger.debug(
             f"Failed check for {key}='{ospecs}' against '{ispecs}'"  # noqa: E501
         )
         return False

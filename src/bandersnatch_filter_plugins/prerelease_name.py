@@ -45,7 +45,7 @@ class PreReleaseFilter(FilterReleasePlugin):
                 ]
             except KeyError:
                 pass
-            logger.info(
+            logger.debug(
                 f"Initialized prerelease plugin {self.name}, filtering "
                 + f"{self.package_names if self.package_names else 'all packages'}"
             )

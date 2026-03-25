@@ -24,7 +24,7 @@ class BlockListProject(FilterProjectPlugin):
         # operation doesn't end up in the fastpath.
         if not self.blocklist_package_names:
             self.blocklist_package_names = self._determine_filtered_package_names()
-            logger.info(
+            logger.debug(
                 f"Initialized project plugin {self.name}, filtering "
                 + f"{self.blocklist_package_names}"
             )
@@ -86,7 +86,7 @@ class BlockListProject(FilterProjectPlugin):
             return False
 
         if canonicalize_name(name) in self.blocklist_package_names:
-            logger.info(f"Package {name!r} is blocklisted")
+            logger.debug(f"Package {name!r} is blocklisted")
             return True
         return False
 
@@ -107,7 +107,7 @@ class BlockListRelease(FilterReleasePlugin):
             self.blocklist_release_requirements = (
                 self._determine_filtered_package_requirements()
             )
-            logger.info(
+            logger.debug(
                 f"Initialized release plugin {self.name}, filtering "
                 + f"{self.blocklist_release_requirements}"
             )

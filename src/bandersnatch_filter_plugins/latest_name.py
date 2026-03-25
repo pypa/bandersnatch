@@ -44,7 +44,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
                         sort_by
                     )
                 )
-            logger.info(
+            logger.debug(
                 f"Initialized latest releases plugin with sort_by={self.sort_by}"
             )
         except KeyError:
