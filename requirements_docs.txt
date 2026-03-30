@@ -7,6 +7,6 @@ requests==2.33.0
 sphinx==9.1.0
 MyST-Parser==5.0.0
 xmlrpc2==0.3.1
-sphinx-argparse-cli==1.21.1
+sphinx-argparse-cli==1.21.3
 
 # Note: Optional storage backends are documented without importing their deps.

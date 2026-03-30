@@ -1,6 +1,6 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![Actions Status](https://github.com/pypa/bandersnatch/workflows/bandersnatch_ci/badge.svg)](https://github.com/pypa/bandersnatch/actions)
-[![codecov.io](https://codecov.io/github/pypa/bandersnatch/coverage.svg?branch=master)](https://codecov.io/github/pypa/bandersnatch)
+[![codecov.io](https://codecov.io/github/pypa/bandersnatch/coverage.svg?branch=main)](https://codecov.io/github/pypa/bandersnatch)
 [![Documentation Status](https://readthedocs.org/projects/bandersnatch/badge/?version=latest)](http://bandersnatch.readthedocs.io/en/latest/?badge=latest)
 [![Downloads](https://pepy.tech/badge/bandersnatch)](https://pepy.tech/project/bandersnatch)
 
