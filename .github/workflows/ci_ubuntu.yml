@@ -66,6 +66,8 @@ jobs:
         PYTHON: ${{ matrix.python-version }}
       with:
         env_vars: OS,PYTHON
+        files: coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run Integration Test
       env:
