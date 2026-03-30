@@ -54,6 +54,7 @@ jobs:
       with:
         env_vars: OS,PYTHON
         files: coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Run Integration Test
       env:
