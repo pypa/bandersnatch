@@ -6,6 +6,7 @@
 
 ## Bug Fixes
 
+- Demote per-package filter matching logs from INFO to DEBUG to reduce noise during mirror and verify runs `PR #2193`
 - Exclude PEP 600 `manylinux_2_*` wheel tags when `exclude_platform = linux` is configured `PR #2151`
 
 # 7.1.0
