@@ -37,7 +37,7 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         "py3.11",
         "py3.12",
         "py3.13",
-        "py3.14"
+        "py3.14",
     ]
 
     _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
