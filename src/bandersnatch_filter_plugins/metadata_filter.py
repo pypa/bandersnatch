@@ -341,7 +341,7 @@ class VersionRangeFilter(Filter):
         if any(ospecs.contains(ispec, prereleases=True) for ispec in ispecs):
             return True
         # Otherwise, fail
-        logger.info(
+        logger.debug(
             f"Failed check for {key}='{ospecs}' against '{ispecs}'"  # noqa: E501
         )
         return False
