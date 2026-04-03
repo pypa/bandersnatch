@@ -40,7 +40,14 @@ class ExcludePlatformFilter(FilterReleaseFilePlugin):
         "py3.14",
     ]
 
-    _windowsPlatformTypes = [".win32", "-win32", "win_amd64", "win-amd64"]
+    _windowsPlatformTypes = [
+        ".win32",
+        "-win32",
+        "win_amd64",
+        "win-amd64",
+        "win_arm64",
+        "win-arm64",
+    ]
 
     _linuxPlatformTypes = [
         "linux-i686",  # PEP 425
