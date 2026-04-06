@@ -19,7 +19,7 @@ from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
 from bandersnatch.tests.test_simple_fixtures import SIXTYNINE_METADATA
-from bandersnatch.utils import WINDOWS, make_time_stamp
+from bandersnatch.utils import make_time_stamp
 
 EXPECTED_REL_HREFS = (
     '<a href="../../packages/2.7/f/foo/foo.whl#sha256=e3b0c44298fc1c149afbf4c8996fb924'
@@ -266,7 +266,6 @@ async def test_mirror_empty_resume_from_todo_list(mirror: BandersnatchMirror) ->
     await mirror.synchronize()
 
     expected = """\
-.lock
 generation
 status
 web
@@ -290,9 +289,7 @@ web{0}simple{0}foobar{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    if not WINDOWS:
-        # filelock 3.21.0+ deletes lock file on release on Unix systems
-        expected = expected.replace(".lock\n", "")
+    # filelock 3.25.1+ deletes lock file on release on all platforms
     assert expected == utils.find(mirror.homedir)
 
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
@@ -372,7 +369,6 @@ async def test_mirror_sync_package_error_no_early_exit(
     changed_packages = await mirror.synchronize()
 
     expected = """\
-.lock
 generation
 todo
 web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
@@ -383,9 +379,7 @@ web{0}simple{0}foo{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    if not WINDOWS:
-        # filelock 3.21.0+ deletes lock file on release on Unix systems
-        expected = expected.replace(".lock\n", "")
+    # filelock 3.25.1+ deletes lock file on release on all platforms
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
 <!DOCTYPE html>
@@ -424,15 +418,12 @@ async def mirror_sync_package_error_early_exit(mirror: BandersnatchMirror) -> No
         await mirror.synchronize()
 
     expected = """\
-.lock
 generation
 todo
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
 web{0}simple{0}index.html""".format(sep)
-    if not WINDOWS:
-        # filelock 3.21.0+ deletes lock file on release on Unix systems
-        expected = expected.replace(".lock\n", "")
+    # filelock 3.25.1+ deletes lock file on release on all platforms
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
