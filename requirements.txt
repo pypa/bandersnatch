@@ -7,7 +7,7 @@ chardet==7.2.0
 filelock==3.25.2
 humanfriendly==10.0
 idna==3.11
-lxml==6.0.2
+lxml==6.0.4
 multidict==6.7.1
 packaging==26.0
 pyparsing==3.3.2
