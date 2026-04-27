@@ -9,7 +9,7 @@ humanfriendly==10.0
 idna==3.11
 lxml==6.1.0
 multidict==6.7.1
-packaging==26.1
+packaging==26.2
 pyparsing==3.3.2
 setuptools==82.0.1
 yarl==1.23.0
