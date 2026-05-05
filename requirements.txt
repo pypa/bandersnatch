@@ -6,7 +6,7 @@ attrs==26.1.0
 chardet==7.4.3
 filelock==3.29.0
 humanfriendly==10.0
-idna==3.11
+idna==3.13
 lxml==6.1.0
 multidict==6.7.1
 packaging==26.2
