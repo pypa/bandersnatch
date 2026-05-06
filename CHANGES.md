@@ -3,6 +3,7 @@
 ## Documentation
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
+- Docs: list all supported python versions for `exclude_platform` in filtering configuration `PR #2232`
 
 ## Bug Fixes
 
