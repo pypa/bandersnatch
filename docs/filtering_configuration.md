@@ -227,8 +227,13 @@ Available platforms are:
 
 Available python versions are:
 
-- `py2.4` ~ `py2.7`
-- `py3.1` ~ `py3.10`
+- `py2`, `py2.4` ~ `py2.7`
+- `py3`, `py3.0` ~ `py3.14`
+
+The bare `py2` / `py3` filter values match wheels that target a major version
+without specifying a minor (e.g. `py3-none-any.whl`). These are tracked
+alongside the version-specific filters in the `exclude_platform` plugin's
+supported set.
 
 ## Keep only latest releases
 
