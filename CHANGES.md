@@ -8,6 +8,7 @@
 
 ## CI / test
 
+- Add Python 3.15 to CI matrix and supported versions `PR #2239`
 - Declare workflow-level `permissions: contents: read` on the 8 remaining workflows (CVE-2025-30066 hardening) `PR #2241`
 - Skip base class tests in test runs `PR #2263`
 - Transitioned from unittest.TestCase to pytest fixtures (`PR #2265`, `PR #2273`, `PR #2274`)
@@ -17,6 +18,7 @@
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
 - Docs: list all supported python versions for `exclude_platform` in filtering configuration `PR #2232`
+- Docs: document running the full test suite against a specific Python version via Docker
 
 ## Bug Fixes
 
