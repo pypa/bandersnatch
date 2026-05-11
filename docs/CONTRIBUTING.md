@@ -139,6 +139,41 @@ You can remove the container with:
 docker rm minio
 ```
 
+### Running the Full Test Suite Against a Specific Python via Docker
+
+If you don't have a given Python version installed locally (e.g. a pre-release
+like 3.15), you can run the whole test suite inside an official `python:<ver>`
+Docker image. Pair it with the minio container above so the S3 tests have an
+endpoint to talk to.
+
+First start minio on the default bridge with port 9000 published (as shown in
+the previous section). Then run the tests:
+
+```bash
+docker run --rm --network host \
+  -e BANDERSNATCH_S3_ENDPOINT_URL=http://localhost:9000 \
+  -e AWS_ACCESS_KEY_ID=minioadmin \
+  -e AWS_SECRET_ACCESS_KEY=minioadmin \
+  -e AWS_EC2_METADATA_DISABLED=true \
+  -v "$PWD":/app -w /app \
+  python:3.15-rc bash -c '
+    pip install --upgrade pip setuptools tox &&
+    pip install -r requirements.txt -r requirements_test.txt -r requirements_s3.txt &&
+    pip install -e . &&
+    TOXENV=py3 python test_runner.py
+  '
+```
+
+Swap `python:3.15-rc` for any tag on
+[Docker Hub `python`](https://hub.docker.com/_/python) (e.g. `python:3.14`,
+`python:3.13`). Use `TOXENV=INTEGRATION` instead of `TOXENV=py3` to run the
+integration test.
+
+`--network host` lets the container reach minio on `localhost:9000` and is
+Linux-only. On macOS / Windows use `host.docker.internal:9000` for the endpoint
+URL, or put both containers on a shared docker network and reference minio by
+container name.
+
 ## Creating a Pull Request
 
 ### Changelog entry
