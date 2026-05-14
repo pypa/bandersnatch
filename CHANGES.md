@@ -1,5 +1,9 @@
 # Unreleased
 
+## CI
+
+- Declare workflow-level `permissions: contents: read` on the 8 remaining workflows (CVE-2025-30066 hardening) `PR #2241`
+
 ## Documentation
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
