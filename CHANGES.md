@@ -19,6 +19,7 @@
 ## New Features
 
 - Make filesystem permissions management configurable `PR #2137`
+- Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 
 # 7.0.1
 
