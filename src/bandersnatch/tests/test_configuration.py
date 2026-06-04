@@ -13,7 +13,7 @@ from bandersnatch.configuration import (
     Singleton,
     validate_config_values,
 )
-from bandersnatch.simple import SimpleDigest, SimpleFormat
+from bandersnatch.simple import SimpleFormat
 
 
 class TestBandersnatchConf(TestCase):
@@ -141,7 +141,7 @@ class TestBandersnatchConf(TestCase):
             "",
             "",
             False,
-            SimpleDigest.SHA256,
+            "sha256",
             "filesystem",
             False,
             True,
@@ -162,7 +162,7 @@ class TestBandersnatchConf(TestCase):
             "https://files.pythonhosted.org",
             "",
             False,
-            SimpleDigest.SHA256,
+            "sha256",
             "filesystem",
             False,
             False,
@@ -186,7 +186,7 @@ class TestBandersnatchConf(TestCase):
             "",
             "",
             False,
-            SimpleDigest.SHA256,
+            "sha256",
             "filesystem",
             False,
             True,
@@ -213,7 +213,7 @@ class TestBandersnatchConf(TestCase):
             "",
             "",
             False,
-            SimpleDigest.SHA256,
+            "sha256",
             "filesystem",
             False,
             True,
@@ -234,7 +234,7 @@ class TestBandersnatchConf(TestCase):
             "",
             "",
             False,
-            SimpleDigest.SHA256,
+            "sha256",
             "filesystem",
             False,
             True,

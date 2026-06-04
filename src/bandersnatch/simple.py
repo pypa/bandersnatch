@@ -1,7 +1,8 @@
+import hashlib
 import html
 import json
 import logging
-from enum import Enum, StrEnum, auto
+from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
@@ -23,16 +24,6 @@ class SimpleFormat(Enum):
     JSON = auto()
 
 
-class SimpleDigests(NamedTuple):
-    sha256: str
-    md5: str
-
-
-class SimpleDigest(StrEnum):
-    SHA256 = "sha256"
-    MD5 = "md5"
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +33,7 @@ class InvalidSimpleFormat(KeyError):
     pass
 
 
-class InvalidDigestFormat(ValueError):
+class InvalidDigestFormat(Exception):
     """We don't have a valid digest choice from configuration"""
 
     pass
@@ -59,15 +50,13 @@ def get_format_value(format: str) -> SimpleFormat:
         )
 
 
-def get_digest_value(digest: str) -> SimpleDigest:
-    try:
-        return SimpleDigest[digest.upper()]
-    except KeyError:
-        valid_digests = sorted([v.name for v in SimpleDigest])
-        raise InvalidDigestFormat(
-            f"{digest} is not a valid Simple API file hash digest. "
-            + f"Valid Options: {valid_digests}"
-        )
+def get_digest_value(digest: str) -> str:
+    if digest in hashlib.algorithms_available:
+        return digest
+    raise InvalidDigestFormat(
+        f"{digest} is not a valid Simple API file hash digest. "
+        + f"Valid Options: {sorted(hashlib.algorithms_available)}"
+    )
 
 
 class SimpleAPI:
@@ -84,16 +73,12 @@ class SimpleAPI:
         storage_backend: "Storage",
         format: SimpleFormat | str,
         diff_file_list: list[Path],
-        digest_name: SimpleDigest | str,
+        digest_name: str,
         hash_index: bool,
         root_uri: str | None,
     ) -> None:
         self.diff_file_list = diff_file_list
-        self.digest_name = (
-            get_digest_value(digest_name)
-            if isinstance(digest_name, str)
-            else digest_name
-        )
+        self.digest_name = get_digest_value(digest_name)
         self.format = get_format_value(format) if isinstance(format, str) else format
         self.hash_index = hash_index
         self.root_uri = root_uri
@@ -160,6 +145,20 @@ class SimpleAPI:
             raise RuntimeError(f"Got invalid download URL: {url}")
         prefix = self.root_uri if self.root_uri else "../.."
         return prefix + parsed.path
+
+    def validate_digest_availability(self, package: Package) -> None:
+        for f in package.release_files:
+            if self.digest_name not in f["digests"]:
+                configurable = sorted(
+                    k
+                    for k in f["digests"].keys()
+                    if k in hashlib.algorithms_available
+                )
+                raise InvalidDigestFormat(
+                    f"Configured digest {self.digest_name!r} is not provided for "
+                    f"{f['filename']} in {package.name}. "
+                    f"Valid configurable digests for this source: {configurable}. "
+                )
 
     def generate_html_simple_page(self, package: Package) -> str:
         # Generate the header of our simple page.
