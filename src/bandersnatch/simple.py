@@ -51,8 +51,9 @@ def get_format_value(format: str) -> SimpleFormat:
 
 
 def get_digest_value(digest: str) -> str:
-    if digest in hashlib.algorithms_available:
-        return digest
+    normalized = digest.strip().lower() # pep452 guarantees all hashlib digest keys will be lowercase
+    if normalized in hashlib.algorithms_available:
+        return normalized
     raise InvalidDigestFormat(
         f"{digest} is not a valid Simple API file hash digest. "
         + f"Valid Options: {sorted(hashlib.algorithms_available)}"
@@ -150,9 +151,7 @@ class SimpleAPI:
         for f in package.release_files:
             if self.digest_name not in f["digests"]:
                 configurable = sorted(
-                    k
-                    for k in f["digests"].keys()
-                    if k in hashlib.algorithms_available
+                    k for k in f["digests"].keys() if k in hashlib.algorithms_available
                 )
                 raise InvalidDigestFormat(
                     f"Configured digest {self.digest_name!r} is not provided for "

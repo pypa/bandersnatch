@@ -13,7 +13,12 @@ from typing import Any, NamedTuple
 
 from .config.diff_file_reference import eval_config_reference, has_config_reference
 from .config.exceptions import ConfigError, ConfigFileNotFound
-from .simple import InvalidDigestFormat, SimpleFormat, get_digest_value, get_format_value
+from .simple import (
+    InvalidDigestFormat,
+    SimpleFormat,
+    get_digest_value,
+    get_format_value,
+)
 
 logger = logging.getLogger("bandersnatch")
 
