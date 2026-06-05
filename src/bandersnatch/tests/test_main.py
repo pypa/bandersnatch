@@ -14,7 +14,7 @@ import bandersnatch.mirror
 import bandersnatch.storage
 from bandersnatch.configuration import Singleton
 from bandersnatch.main import main
-from bandersnatch.simple import SimpleFormat
+from bandersnatch.simple import InvalidDigestFormat, SimpleFormat
 
 if TYPE_CHECKING:
     from bandersnatch.mirror import BandersnatchMirror
@@ -127,7 +127,7 @@ def test_main_throws_exception_on_unsupported_digest_name(
         parser.write(fp)
     sys.argv = ["bandersnatch", "-c", conffile, "mirror"]
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(InvalidDigestFormat) as e:
         main(asyncio.new_event_loop())
 
     assert "foobar is not a valid" in str(e.value)

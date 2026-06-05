@@ -331,6 +331,9 @@ class BandersnatchMirror(Mirror):
         package.filter_all_releases_files(self.filters.filter_release_file_plugins())
         package.filter_all_releases(self.filters.filter_release_plugins())
 
+        # digests are validated at runtime based on the index metadata
+        self.simple_api.validate_digest_availability(package)
+
         if self.release_files_save:
             await self.sync_release_files(package)
 
