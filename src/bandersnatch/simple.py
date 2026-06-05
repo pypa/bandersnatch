@@ -51,7 +51,9 @@ def get_format_value(format: str) -> SimpleFormat:
 
 
 def get_digest_value(digest: str) -> str:
-    normalized = digest.strip().lower() # pep452 guarantees all hashlib digest keys will be lowercase
+    normalized = (
+        digest.strip().lower()
+    )  # pep452 guarantees all hashlib digest keys will be lowercase
     if normalized in hashlib.algorithms_available:
         return normalized
     raise InvalidDigestFormat(
