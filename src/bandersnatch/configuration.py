@@ -13,7 +13,12 @@ from typing import Any, NamedTuple
 
 from .config.diff_file_reference import eval_config_reference, has_config_reference
 from .config.exceptions import ConfigError, ConfigFileNotFound
-from .simple import SimpleDigest, SimpleFormat, get_digest_value, get_format_value
+from .simple import (
+    InvalidDigestFormat,
+    SimpleFormat,
+    get_digest_value,
+    get_format_value,
+)
 
 logger = logging.getLogger("bandersnatch")
 
@@ -29,7 +34,7 @@ class SetConfigValues(NamedTuple):
     root_uri: str
     diff_file_path: str
     diff_append_epoch: bool
-    digest_name: SimpleDigest
+    digest_name: str
     storage_backend_name: str
     cleanup: bool
     release_files_save: bool
@@ -169,7 +174,7 @@ def validate_config_values(  # noqa: C901
 
     try:
         digest_name = get_digest_value(config.get("mirror", "digest_name"))
-    except ValueError as e:
+    except InvalidDigestFormat as e:
         logger.error(
             f"Supplied digest_name {config.get('mirror', 'digest_name')} is "
             + "not supported! Please update the digest_name in the [mirror] "

@@ -1,3 +1,4 @@
+import hashlib
 from configparser import ConfigParser
 from os import sep
 from pathlib import Path
@@ -12,7 +13,6 @@ from bandersnatch.simple import (
     InvalidDigestFormat,
     InvalidSimpleFormat,
     SimpleAPI,
-    SimpleDigest,
     SimpleFormat,
 )
 from bandersnatch.storage import Storage
@@ -42,19 +42,27 @@ def test_digest_invalid() -> None:
 
 def test_digest_valid() -> None:
     s = SimpleAPI(Storage(), "ALL", [], "md5", False, None)
-    assert s.digest_name == SimpleDigest.MD5
+    assert s.digest_name == "md5"
+
+
+def test_digest_not_provided_by_source() -> None:
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha512", False, None)
+    p = Package("69")
+    p._metadata = SIXTYNINE_METADATA  # only has md5 and sha256
+    with pytest.raises(InvalidDigestFormat, match="sha512.*not provided"):
+        s.validate_digest_availability(p)
 
 
 def test_digest_config_default() -> None:
     c = BandersnatchConfig(load_defaults=True)
     config = validate_config_values(c)
     s = SimpleAPI(Storage(), "ALL", [], config.digest_name, False, None)
-    assert config.digest_name.upper() in [v.name for v in SimpleDigest]
-    assert s.digest_name == SimpleDigest.SHA256
+    assert config.digest_name in hashlib.algorithms_available
+    assert s.digest_name == "sha256"
 
 
 def test_json_package_page() -> None:
-    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], SimpleDigest.SHA256, False, None)
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None)
     p = Package("69")
     p._metadata = SIXTYNINE_METADATA
     assert EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1 == s.generate_json_simple_page(p)
