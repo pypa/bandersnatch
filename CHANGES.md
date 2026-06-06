@@ -21,6 +21,10 @@
 - Make filesystem permissions management configurable `PR #2137`
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 
+## CI / test
+
+- Skip base class tests in test runs `PR #2263`
+
 # 7.0.1
 
 ## New Features
