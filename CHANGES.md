@@ -1,8 +1,13 @@
 # Unreleased
 
-## CI
+## New Features
+
+- Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
+
+## CI / test
 
 - Declare workflow-level `permissions: contents: read` on the 8 remaining workflows (CVE-2025-30066 hardening) `PR #2241`
+- Skip base class tests in test runs `PR #2263`
 
 ## Documentation
 
@@ -19,7 +24,6 @@
 ## New Features
 
 - Make filesystem permissions management configurable `PR #2137`
-- Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 
 # 7.0.1
 

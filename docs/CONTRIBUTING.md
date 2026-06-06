@@ -56,13 +56,13 @@ Successfully installed pip-10.0.1
 - Then install the dependencies to the venv:
 
 ```console
-/path/to/venv/bin/pip install -r requirements.txt -r test-requirements.txt
+/path/to/venv/bin/pip install -r requirements.txt -r requirements_test.txt
 ```
 
 For example:
 
 ```console
-$ bandersnatchvenv/bin/pip install -r requirements.txt -r test-requirements.txt
+$ bandersnatchvenv/bin/pip install -r requirements.txt -r requirements_test.txt
 ...
 Collecting pyparsing==2.1.10 (from -r requirements.txt (line 3))
   Downloading https://files.pythonhosted.org/packages/2b/f7/e5a178fc3ea4118a0edce2a8d51fc14e680c745cf4162e4285b437c43c94/pyparsing-2.1.10-py2.py3-none-any.whl (56kB)
@@ -191,7 +191,7 @@ Example output:
 $ tox
 GLOB sdist-make: /Users/dhubbard/PycharmProjects/bandersnatch/setup.py
 py36 create: /Users/dhubbard/PycharmProjects/bandersnatch/.tox/py36
-py36 installdeps: -rtest-requirements.txt
+py36 installdeps: -rrequirements_test.txt
 py36 inst: /Users/dhubbard/PycharmProjects/bandersnatch/.tox/dist/bandersnatch-2.2.1.zip
 py36 installed: apipkg==1.4,attrs==18.1.0,bandersnatch==2.2.1,certifi==2018.4.16,chardet==3.0.4,coverage==4.5.1,execnet==1.5.0,flake8==3.5.0,idna==2.6,mccabe==0.6.1,more-itertools==4.1.0,packaging==17.1,pep8==1.7.1,pluggy==0.6.0,py==1.5.3,pycodestyle==2.3.1,pyflakes==1.6.0,pyparsing==2.2.0,pytest==3.5.1,pytest-cache==1.0,pytest-codecheckers==0.2,pytest-cov==2.5.1,pytest-timeout==1.2.1,python-dateutil==2.7.3,requests==2.18.4,six==1.11.0,tox==3.0.0,urllib3==1.22,virtualenv==15.2.0,xmlrpc2==0.3.1
 py36 runtests: PYTHONHASHSEED='42669967'
