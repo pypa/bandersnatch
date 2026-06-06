@@ -15,8 +15,11 @@ from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_storage_plugins import filesystem
 
-if TYPE_CHECKING:
-    pass
+# Only true for static analyzers in IDE
+if TYPE_CHECKING:  # pragma: no cover
+    _Base = TestCase
+else:  # pragma: no cover
+    _Base = object
 
 SAMPLE_FILE_CONTENT = "I am a sample!\n"
 BASE_SAMPLE_FILE = os.path.join(
@@ -24,7 +27,7 @@ BASE_SAMPLE_FILE = os.path.join(
 )
 
 
-class BasePluginTestCase(TestCase):
+class BasePluginTestCase(_Base):
     tempdir = None
     cwd = None
     backend: str | None = None
@@ -544,7 +547,7 @@ web{0}simple{0}index.html""".format(os.sep).strip()
                 self.assertEqual(self.plugin.get_hash(path, function=fn), hash_val)
 
 
-class TestFilesystemStoragePlugin(BaseStoragePluginTestCase):
+class TestFilesystemStoragePlugin(BaseStoragePluginTestCase, TestCase):
     backend = "filesystem"
 
 
