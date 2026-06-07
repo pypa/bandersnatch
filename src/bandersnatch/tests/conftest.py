@@ -5,25 +5,17 @@ import unittest.mock as mock
 from collections import defaultdict
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
-import boto3
 import pytest
 import pytest_asyncio
-from _pytest.capture import CaptureFixture
-from _pytest.fixtures import FixtureRequest
-from _pytest.monkeypatch import MonkeyPatch
-from s3path import (
-    PureS3Path,
-    S3Path,
-    accessor,
-    configuration_map,
-    register_configuration_parameter,
-)
+from pytest_mock import MockerFixture
 
 import bandersnatch.storage
 
 if TYPE_CHECKING:
+    from s3path import S3Path
+
     from bandersnatch.master import Master
     from bandersnatch.mirror import BandersnatchMirror
     from bandersnatch.package import Package
@@ -55,14 +47,8 @@ def event_loop() -> Iterator[asyncio.AbstractEventLoop]:
 
 
 @pytest.fixture(autouse=True)
-def stop_std_logging(request: FixtureRequest, capfd: CaptureFixture) -> None:
-    patcher = mock.patch("bandersnatch.log.setup_logging")
-    patcher.start()
-
-    def tearDown() -> None:
-        patcher.stop()
-
-    request.addfinalizer(tearDown)
+def stop_std_logging(mocker: MockerFixture) -> None:
+    mocker.patch("bandersnatch.log.setup_logging")
 
 
 async def _nosleep(*args: Any) -> None:
@@ -70,14 +56,8 @@ async def _nosleep(*args: Any) -> None:
 
 
 @pytest.fixture(autouse=True)
-def never_sleep(request: FixtureRequest) -> None:
-    patcher = mock.patch("asyncio.sleep", _nosleep)
-    patcher.start()
-
-    def tearDown() -> None:
-        patcher.stop()
-
-    request.addfinalizer(tearDown)
+def never_sleep(mocker: MockerFixture) -> None:
+    mocker.patch("asyncio.sleep", _nosleep)
 
 
 # Recreate storage plugins between test modules to prevent later tests
@@ -183,7 +163,7 @@ async def master(package_json: dict[str, Any]) -> "Master":
 
 @pytest.fixture
 def mirror(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+    tmpdir: Path, master: "Master", monkeypatch: pytest.MonkeyPatch
 ) -> "BandersnatchMirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import BandersnatchMirror
@@ -193,7 +173,7 @@ def mirror(
 
 @pytest.fixture
 def mirror_hash_index(
-    tmpdir: Path, master: "Master", monkeypatch: MonkeyPatch
+    tmpdir: Path, master: "Master", monkeypatch: pytest.MonkeyPatch
 ) -> "BandersnatchMirror":
     monkeypatch.chdir(tmpdir)
     from bandersnatch.mirror import BandersnatchMirror
@@ -202,36 +182,30 @@ def mirror_hash_index(
 
 
 @pytest.fixture
-def mirror_mock(request: FixtureRequest) -> mock.MagicMock:
-    patcher = mock.patch("bandersnatch.mirror.BandersnatchMirror")
-    mirror: mock.MagicMock = patcher.start()
+def mirror_mock(mocker: MockerFixture) -> mock.MagicMock:
+    mirror: mock.MagicMock = mocker.patch("bandersnatch.mirror.BandersnatchMirror")
 
     # Mock the synchronize method too to avoid TypeError exceptions since methods are
     # by default replaced by MagicMock instances when AsyncMock is necessary.
     instance = mirror.return_value
     instance.synchronize = mock.AsyncMock(return_value={})
 
-    def tearDown() -> None:
-        patcher.stop()
-
-    request.addfinalizer(tearDown)
     return mirror
 
 
 @pytest.fixture
-def logging_mock(request: FixtureRequest) -> mock.MagicMock:
-    patcher = mock.patch("logging.config.fileConfig")
-    logger: mock.MagicMock = patcher.start()
-
-    def tearDown() -> None:
-        patcher.stop()
-
-    request.addfinalizer(tearDown)
-    return logger
+def logging_mock(mocker: MockerFixture) -> Any:
+    return mocker.patch("logging.config.fileConfig")
 
 
 @pytest.fixture()
 def reset_configuration_cache() -> Iterator[None]:
+    try:
+        from s3path import accessor
+    except ImportError:
+        yield
+        return
+
     try:
         accessor.configuration_map.get_configuration.cache_clear()
         yield
@@ -241,6 +215,14 @@ def reset_configuration_cache() -> Iterator[None]:
 
 @pytest.fixture()
 def s3_mock(reset_configuration_cache: None) -> S3Path:
+    # makes sure other tests are not skipped if s3 deps are missing
+    boto3 = pytest.importorskip("boto3", reason="s3path/boto3 not installed")
+    s3path_mod = pytest.importorskip("s3path", reason="s3path not installed")
+    PureS3Path = s3path_mod.PureS3Path
+    S3Path = s3path_mod.S3Path
+    register_configuration_parameter = s3path_mod.register_configuration_parameter
+    configuration_map = s3path_mod.configuration_map
+
     if os.environ.get("os") != "ubuntu-latest" and os.environ.get("CI"):
         pytest.skip("Skip s3 test on non-posix server in github action")
     endpoint = os.environ.get("BANDERSNATCH_S3_ENDPOINT_URL", "http://localhost:9000")

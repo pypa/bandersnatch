@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from _pytest.capture import CaptureFixture
-from _pytest.logging import LogCaptureFixture
 
 import bandersnatch.mirror
 import bandersnatch.storage
@@ -34,7 +32,7 @@ def reset_config_singleton() -> None:
 pytestmark = pytest.mark.usefixtures("reset_config_singleton")
 
 
-def test_main_help(capfd: CaptureFixture) -> None:
+def test_main_help(capfd: pytest.CaptureFixture[str]) -> None:
     sys.argv = ["bandersnatch", "--help"]
     with pytest.raises(SystemExit):
         main(asyncio.new_event_loop())
@@ -43,7 +41,7 @@ def test_main_help(capfd: CaptureFixture) -> None:
     assert "" == err
 
 
-def test_main_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
+def test_main_create_config(caplog: pytest.LogCaptureFixture, tmpdir: Path) -> None:
     sys.argv = ["bandersnatch", "-c", str(tmpdir / "bandersnatch.conf"), "mirror"]
     assert main(asyncio.new_event_loop()) == 1
     assert "creating default config" in caplog.text
@@ -51,7 +49,9 @@ def test_main_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
     assert conf_path.exists()
 
 
-def test_main_cant_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
+def test_main_cant_create_config(
+    caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
     sys.argv = [
         "bandersnatch",
         "-c",

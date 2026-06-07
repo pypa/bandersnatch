@@ -6,7 +6,6 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory, gettempdir
 
 import aiohttp
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 
 from bandersnatch.utils import (  # isort:skip
     bandersnatch_safe_name,
@@ -68,7 +67,7 @@ def test_find_files() -> None:
         assert found_files == expected_found_files
 
 
-def test_rewrite(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
@@ -81,7 +80,7 @@ def test_rewrite(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
         assert oct(mode) == "0o100644"
 
 
-def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite_fails(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
@@ -91,7 +90,9 @@ def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
     assert open("sample").read() == "bsdf"
 
 
-def test_rewrite_nonexisting_file(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite_nonexisting_file(
+    tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmpdir)
     with rewrite("sample", "w") as f:
         f.write("csdf")

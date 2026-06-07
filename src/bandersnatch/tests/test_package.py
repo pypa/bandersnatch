@@ -2,7 +2,6 @@ from asyncio import TimeoutError
 from unittest.mock import AsyncMock
 
 import pytest
-from _pytest.capture import CaptureFixture
 
 from bandersnatch.errors import ConnectionTimeout, PackageNotFound, StaleMetadata
 from bandersnatch.master import Master, StalePage
@@ -21,7 +20,7 @@ def test_package_accessors(package: Package) -> None:
 
 @pytest.mark.asyncio
 async def test_package_update_metadata_gives_up_after_3_stale_responses(
-    caplog: CaptureFixture, master: Master
+    caplog: pytest.LogCaptureFixture, master: Master
 ) -> None:
     master.get_package_metadata = AsyncMock(side_effect=StalePage)  # type: ignore
     package = Package("foo", serial=11)
@@ -33,7 +32,9 @@ async def test_package_update_metadata_gives_up_after_3_stale_responses(
 
 
 @pytest.mark.asyncio
-async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None:
+async def test_package_not_found(
+    caplog: pytest.LogCaptureFixture, master: Master
+) -> None:
     pkg_name = "foo"
     master.get_package_metadata = AsyncMock(  # type: ignore
         side_effect=PackageNotFound(pkg_name)
@@ -47,7 +48,7 @@ async def test_package_not_found(caplog: CaptureFixture, master: Master) -> None
 
 @pytest.mark.asyncio
 async def test_package_update_metadata_gives_up_after_3_timeouts(
-    caplog: CaptureFixture, master: Master
+    caplog: pytest.LogCaptureFixture, master: Master
 ) -> None:
     master.get_package_metadata = AsyncMock(side_effect=TimeoutError)  # type: ignore
     package = Package("foo", serial=11)
