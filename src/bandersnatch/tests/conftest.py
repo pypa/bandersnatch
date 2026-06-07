@@ -214,7 +214,7 @@ def reset_configuration_cache() -> Iterator[None]:
 
 
 @pytest.fixture()
-def s3_mock(reset_configuration_cache: None) -> S3Path:
+def s3_mock(reset_configuration_cache: None) -> "S3Path":
     # makes sure other tests are not skipped if s3 deps are missing
     boto3 = pytest.importorskip("boto3", reason="s3path/boto3 not installed")
     s3path_mod = pytest.importorskip("s3path", reason="s3path not installed")
