@@ -1,8 +1,9 @@
-import bandersnatch
 from collections import defaultdict
 from pathlib import Path
 
 import pytest
+
+import bandersnatch.storage
 
 
 @pytest.fixture(autouse=True)
