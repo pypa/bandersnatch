@@ -10,7 +10,6 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
 
 import bandersnatch
@@ -159,7 +158,7 @@ class FakeMirror:
 
 
 @pytest.mark.asyncio
-async def test_verify_producer(monkeypatch: MonkeyPatch) -> None:
+async def test_verify_producer(monkeypatch: pytest.MonkeyPatch) -> None:
     fm = FakeMirror("test_async_verify")
     fc = configparser.ConfigParser()
     fc["mirror"] = {}
@@ -216,7 +215,7 @@ async def test_delete_unowned_files() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
+async def test_get_latest_json(monkeypatch: pytest.MonkeyPatch) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     json_path = Path(gettempdir()) / f"unittest_{os.getpid()}.json"
     master = Master("https://unittest.org")
@@ -226,7 +225,7 @@ async def test_get_latest_json(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
+async def test_metadata_verify(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeArgs:
         delete = True
         dry_run = True
@@ -242,7 +241,7 @@ async def test_metadata_verify(monkeypatch: MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_get_latest_json_timeout(
-    tmp_path: Path, monkeypatch: MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class FakeArgs:
         delete = True
@@ -271,7 +270,9 @@ async def test_get_latest_json_timeout(
 
 
 @pytest.mark.asyncio
-async def test_get_latest_json_404(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+async def test_get_latest_json_404(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
@@ -301,7 +302,9 @@ async def test_get_latest_json_404(tmp_path: Path, monkeypatch: MonkeyPatch) -> 
 
 
 @pytest.mark.asyncio
-async def test_verify_url_exception(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+async def test_verify_url_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     class FakeArgs:
         delete = True
         dry_run = False
