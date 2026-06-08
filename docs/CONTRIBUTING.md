@@ -18,8 +18,6 @@ Please make sure you system has the following:
 
 - Python 3.10.0 or greater
 - git client
-- docker
-  - *Optional* but needed to run S3 Tests
 
 ### Checkout `bandersnatch`
 
@@ -90,54 +88,9 @@ Congrats, now you have a bandersnatch development environment ready to go! Just 
 
 ### S3 Unit Tests
 
-S3 unittests are more integration tests. They depend on [minio server](https://hub.docker.com/r/minio/minio) to work.
-We recommend using the OSS docker container image like bandersatch CI.
-
-- You will either need to skip them or run minio
-- Other install options: <https://docs.min.io/enterprise/aistor-object-store/>
-
-To skip the tests, run:
-
-```bash
-/path/to/venv/bin/tox -e py3 -- -k "not s3"
-```
-
-This will affect overall coverage numbers locally.
-
-#### Docker Install
-
-Docker is an easy way to get minio to run for tests to pass.
-
-```console
-docker run \
-  --rm \
-  -p 9000:9000 \
-  -p 9001:9001 \
-  --name minio \
-  -v ~/tmp/minio:/data \
-  minio/minio server /data --console-address ":9001"
-```
-
-Exit the container with <kbd>Ctrl+C</kbd>
-
-If you've run and exited the container once, running the same command again will
-emit this error:
-
-```console
-docker: Error response from daemon: Conflict. The container name "/minio" is already in use by container "...". You have to remove (or rename) that container to be able to reuse that name.
-```
-
-Instead of removing and starting again, you can start the container with:
-
-```bash
-docker start minio --attach
-```
-
-You can remove the container with:
-
-```console
-docker rm minio
-```
+S3 unit tests use [moto](https://github.com/getmoto/moto) for an in-memory AWS mock — no external
+services or Docker containers required. The `moto[s3]` package is included in `requirements_test.txt`
+and tests will run automatically as part of the standard test suite on all platforms.
 
 ## Creating a Pull Request
 
