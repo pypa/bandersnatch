@@ -229,14 +229,9 @@ config_param_ServerSideEncryption = AES256
 
     assert backend.configuration_parameters["ServerSideEncryption"] == "AES256"
 
-    # Limitation of min.io, but tells us that the expected config param was used
-    with pytest.raises(ValueError) as execinfo:
-        # Use a unique object name so SSE parameters registered in this test
-        # don’t affect other tests that also use 'file1'
-        backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
-    assert "KMS not configured for a server side encrypted objects" in str(
-        execinfo.value
-    )
+    # Verify that write with SSE AES256 succeeds and data is readable
+    backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
+    assert backend.read_file(f"/{s3_mock.bucket}/sse_test_file") == "test"
 
 
 def test_upload_time(s3_mock: S3Path) -> None:
