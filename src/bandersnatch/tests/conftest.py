@@ -1,6 +1,5 @@
 # flake8: noqa
 import asyncio
-import os
 import unittest.mock as mock
 from collections import defaultdict
 from collections.abc import Iterator
@@ -214,32 +213,30 @@ def reset_configuration_cache() -> Iterator[None]:
 
 
 @pytest.fixture()
-def s3_mock(reset_configuration_cache: None) -> "S3Path":
+def s3_mock(
+    reset_configuration_cache: None, monkeypatch: pytest.MonkeyPatch
+) -> Iterator["S3Path"]:
     # makes sure other tests are not skipped if s3 deps are missing
     boto3 = pytest.importorskip("boto3", reason="s3path/boto3 not installed")
     s3path_mod = pytest.importorskip("s3path", reason="s3path not installed")
+    mock_aws = pytest.importorskip("moto", reason="moto not installed").mock_aws
+
     PureS3Path = s3path_mod.PureS3Path
     S3Path = s3path_mod.S3Path
     register_configuration_parameter = s3path_mod.register_configuration_parameter
-    configuration_map = s3path_mod.configuration_map
 
-    if os.environ.get("os") != "ubuntu-latest" and os.environ.get("CI"):
-        pytest.skip("Skip s3 test on non-posix server in github action")
-    endpoint = os.environ.get("BANDERSNATCH_S3_ENDPOINT_URL", "http://localhost:9000")
-    register_configuration_parameter(
-        PureS3Path("/"),
-        resource=boto3.resource(
-            "s3",
-            aws_access_key_id="minioadmin",
-            aws_secret_access_key="minioadmin",
-            endpoint_url=endpoint,
-        ),
-    )
-    new_bucket = S3Path("/test-bucket")
-    new_bucket.mkdir(exist_ok=True)
-    yield new_bucket
-    resource, _ = configuration_map.get_configuration(new_bucket)
-    bucket = resource.Bucket(new_bucket.bucket)
-    for key in bucket.objects.all():
-        key.delete()
-    bucket.delete()
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+
+    with mock_aws():
+        resource = boto3.resource("s3", region_name="us-east-1")
+        resource.create_bucket(Bucket="test-bucket")
+        register_configuration_parameter(
+            PureS3Path("/"),
+            resource=resource,
+        )
+        new_bucket = S3Path("/test-bucket")
+        yield new_bucket
