@@ -10,7 +10,7 @@ https://peps.python.org/pep-0381/.
 
 Bandersnatch uses the PEP 691 Simple API of pypi.org to fetch package serial
 metadata, then uses the JSON API of PyPI to get shasums and release file paths
-to download and workout where
+to download and work out where
 to layout the package files on a POSIX file system.
 
 As of 6.0:
