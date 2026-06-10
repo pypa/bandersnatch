@@ -42,7 +42,6 @@ class SetConfigValues(NamedTuple):
     download_mirror: str
     download_mirror_no_fallback: bool
     simple_format: SimpleFormat
-    api_method: str
 
 
 class Singleton(type):  # pragma: no cover
@@ -224,14 +223,6 @@ def validate_config_values(  # noqa: C901
 
     cleanup = config.getboolean("mirror", "cleanup", fallback=False)
 
-    api_method = config.get("mirror", "api-method", fallback="simple")
-    if api_method not in ("simple", "xmlrpc"):
-        raise ValueError(
-            f"Supplied api-method {api_method} is not supported! Please "
-            + "update api-method to one of ('simple', 'xmlrpc') in the [mirror] "
-            + "section."
-        )
-
     return SetConfigValues(
         json_save,
         root_uri,
@@ -245,5 +236,4 @@ def validate_config_values(  # noqa: C901
         download_mirror,
         download_mirror_no_fallback,
         simple_format,
-        api_method,
     )

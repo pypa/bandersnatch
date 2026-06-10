@@ -23,7 +23,6 @@ BANDERSNATCH_EXE = Path(
     which("bandersnatch") or which("bandersnatch.exe") or "bandersnatch"
 )
 EOP = "[CI ERROR]:"
-METADATA_TO_USE = environ.get("METADATA", "")
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "b6114554fb312f9b0bdeaf6a7498f7da05fc17b9250c0449ed796fac9ab663e2"
@@ -154,9 +153,6 @@ def main() -> int:
         return 0
     else:
         ci_config = Path("src/bandersnatch/tests/ci.conf")
-        if METADATA_TO_USE == "xmlrpc":
-            print("Running Integration tests with xmlrpc API metadata")
-            ci_config = Path("src/bandersnatch/tests/ci_xmlrpc.conf")
         print("Running Integration tests due to TOXENV set to INTEGRATION")
         MIRROR_ROOT.mkdir(exist_ok=True)
         return do_ci(platform_config(ci_config), suppress_errors)

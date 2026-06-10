@@ -55,7 +55,6 @@ def test_single_config__default__mirror__setting_attributes() -> None:
     options = {option for option in instance["mirror"]}
     assert options == {
         "allow-non-https",
-        "api-method",
         "cleanup",
         "compare-method",
         "diff-append-epoch",
@@ -98,7 +97,6 @@ def test_single_config__default__mirror__setting__types() -> None:
         ("global-timeout", int),
         ("workers", int),
         ("compare-method", str),
-        ("api-method", str),
     ]:
         assert isinstance(option_type(instance["mirror"].get(option)), option_type)
 
@@ -145,7 +143,6 @@ def test_validate_config_values() -> None:
         "",
         False,
         SimpleFormat.ALL,
-        "simple",
     )
     no_options_configparser = BandersnatchConfig(load_defaults=True)
     assert default_values == validate_config_values(no_options_configparser)
@@ -165,7 +162,6 @@ def test_validate_config_values_release_files_false_sets_root_uri() -> None:
         "",
         False,
         SimpleFormat.ALL,
-        "simple",
     )
     release_files_false_configparser = BandersnatchConfig(load_defaults=True)
     release_files_false_configparser["mirror"].update({"release-files": "false"})
@@ -186,7 +182,6 @@ def test_validate_config_values_download_mirror_false_sets_no_fallback() -> None
         "",
         False,
         SimpleFormat.ALL,
-        "simple",
     )
     release_files_false_configparser = BandersnatchConfig(load_defaults=True)
     release_files_false_configparser["mirror"].update(
@@ -195,73 +190,6 @@ def test_validate_config_values_download_mirror_false_sets_no_fallback() -> None
         }
     )
     assert default_values == validate_config_values(release_files_false_configparser)
-
-
-def test_validate_config_values_api_method_simple() -> None:
-    """Test that api_method='simple' is accepted and validated."""
-    simple_api_values = SetConfigValues(
-        False,
-        "",
-        "",
-        False,
-        "sha256",
-        "filesystem",
-        False,
-        True,
-        "hash",
-        "",
-        False,
-        SimpleFormat.ALL,
-        "simple",
-    )
-    simple_api_config = BandersnatchConfig(load_defaults=True)
-    simple_api_config["mirror"].update({"api-method": "simple"})
-    assert simple_api_values == validate_config_values(simple_api_config)
-
-
-def test_validate_config_values_api_method_xmlrpc() -> None:
-    """Test that api_method='xmlrpc' is accepted and validated."""
-    xmlrpc_api_values = SetConfigValues(
-        False,
-        "",
-        "",
-        False,
-        "sha256",
-        "filesystem",
-        False,
-        True,
-        "hash",
-        "",
-        False,
-        SimpleFormat.ALL,
-        "xmlrpc",
-    )
-    xmlrpc_api_config = BandersnatchConfig(load_defaults=True)
-    xmlrpc_api_config["mirror"].update({"api-method": "xmlrpc"})
-    assert xmlrpc_api_values == validate_config_values(xmlrpc_api_config)
-
-
-def test_validate_config_values_api_method_invalid() -> None:
-    """Test that invalid api_method raises ValueError."""
-    invalid_api_config = BandersnatchConfig(load_defaults=True)
-    invalid_api_config["mirror"].update({"api-method": "invalid"})
-
-    with pytest.raises(ValueError) as exc_info:
-        validate_config_values(invalid_api_config)
-
-    msg = str(exc_info.value)
-    assert "api-method invalid is not supported" in msg
-    assert "('simple', 'xmlrpc')" in msg
-
-
-def test_validate_config_values_api_method_defaults_to_simple() -> None:
-    """Test that api_method defaults to 'simple' when not specified."""
-    config = BandersnatchConfig(load_defaults=True)
-    # Remove the api-method config if it exists
-    if config.has_option("mirror", "api-method"):
-        config.remove_option("mirror", "api-method")
-    result = validate_config_values(config)
-    assert result.api_method == "simple"
 
 
 # diff-file reference expansion

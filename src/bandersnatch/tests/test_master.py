@@ -2,11 +2,10 @@ import concurrent.futures
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
-import bandersnatch
 from bandersnatch.master import Master, StalePage
 
 
@@ -14,11 +13,6 @@ from bandersnatch.master import Master, StalePage
 async def test_disallow_http() -> None:
     with pytest.raises(ValueError):
         Master("http://pypi.example.com")
-
-
-@pytest.mark.asyncio
-async def test_rpc_url(master: Master) -> None:
-    assert master.xmlrpc_url == "https://pypi.example.com/pypi"
 
 
 @pytest.mark.asyncio
@@ -103,12 +97,6 @@ async def test_master_url_fetch(master: Master) -> None:
 
 
 @pytest.mark.asyncio
-async def test_xmlrpc_user_agent(master: Master) -> None:
-    client = await master._gen_xmlrpc_client()
-    assert f"bandersnatch {bandersnatch.__version__}" in client.headers["User-Agent"]
-
-
-@pytest.mark.asyncio
 async def test_session_raise_for_status(master: Master) -> None:
     with patch("aiohttp.ClientSession", autospec=True) as create_session:
         async with master:
@@ -123,7 +111,7 @@ async def test_session_raise_for_status(master: Master) -> None:
 @pytest.mark.asyncio
 async def test_all_packages_simple_api() -> None:
     """Test fetching all packages using the Simple (PEP 691 v1) API."""
-    master = Master("https://pypi.example.com", api_method="simple")
+    master = Master("https://pypi.example.com")
 
     # Mock fetch_simple_index to return Simple API response
     async def mock_fetch_simple_index() -> dict[str, Any]:
@@ -147,7 +135,7 @@ async def test_all_packages_simple_api() -> None:
 @pytest.mark.asyncio
 async def test_all_packages_simple_api_empty_response() -> None:
     """Test Simple API handling of empty package list."""
-    master = Master("https://pypi.example.com", api_method="simple")
+    master = Master("https://pypi.example.com")
 
     # Mock fetch_simple_index to return empty response
     async def mock_fetch_simple_index() -> dict[str, Any]:
@@ -161,23 +149,9 @@ async def test_all_packages_simple_api_empty_response() -> None:
 
 
 @pytest.mark.asyncio
-async def test_all_packages_xmlrpc_api() -> None:
-    """Test fetching all packages using XML-RPC API (default)."""
-    master = Master("https://pypi.example.com", api_method="xmlrpc")
-
-    expected = {"aiohttp": 69, "requests": 70}
-    master.rpc = AsyncMock(return_value=expected)  # type: ignore
-
-    packages = await master.all_packages()
-
-    master.rpc.assert_called_once_with("list_packages_with_serial")
-    assert packages == expected
-
-
-@pytest.mark.asyncio
 async def test_changed_packages_simple_api() -> None:
     """Test fetching changed packages using Simple (PEP 691 v1) API."""
-    master = Master("https://pypi.example.com", api_method="simple")
+    master = Master("https://pypi.example.com")
 
     # Mock fetch_simple_index to return Simple API response with different serials
     async def mock_fetch_simple_index() -> dict[str, Any]:
@@ -202,7 +176,7 @@ async def test_changed_packages_simple_api() -> None:
 @pytest.mark.asyncio
 async def test_changed_packages_simple_api_no_changes() -> None:
     """Test Simple API when no changes occurred (current serial <= last serial)."""
-    master = Master("https://pypi.example.com", api_method="simple")
+    master = Master("https://pypi.example.com")
 
     # Mock fetch_simple_index to return packages with lower serials
     async def mock_fetch_simple_index() -> dict[str, Any]:
@@ -224,31 +198,7 @@ async def test_changed_packages_simple_api_no_changes() -> None:
 
 
 @pytest.mark.asyncio
-async def test_changed_packages_xmlrpc_api() -> None:
-    """Test fetching changed packages using XML-RPC API (default)."""
-    master = Master("https://pypi.example.com", api_method="xmlrpc")
-
-    list_of_changes = [
-        ("aiohttp", "1.0", 0, "added", 17),
-        ("requests", "2.0", 1, "updated", 18),
-    ]
-    master.rpc = AsyncMock(return_value=list_of_changes)  # type: ignore
-
-    changes = await master.changed_packages(10)
-
-    master.rpc.assert_called_once_with("changelog_since_serial", 10)
-    assert changes == {"aiohttp": 17, "requests": 18}
-
-
-@pytest.mark.asyncio
-async def test_master_defaults_to_simple() -> None:
-    """Test that Master defaults to simple when api_method is not specified."""
+async def test_master_uses_simple_api() -> None:
+    """Test that Master uses the Simple API for package lookups."""
     master = Master("https://pypi.example.com")
-    assert master.api_method == "simple"
-
-
-@pytest.mark.asyncio
-async def test_master_accepts_simple_api_method() -> None:
-    """Test that Master accepts 'simple' as api_method."""
-    master = Master("https://pypi.example.com", api_method="simple")
-    assert master.api_method == "simple"
+    assert master.simple_url == "https://pypi.example.com/simple"

@@ -9,11 +9,7 @@ ______________________________________________________________________
 This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
 <http://www.python.org/dev/peps/pep-0381/>.
 
-- bandersnatch >= 7.0 defaults to PEP691 Simple API for paackge metadata
-  - xmlrpc support is now best effort and will work with PyPI for a deprecation plan
-- bandersnatch >=6.7 offers using PEP691 Simple API vs legacy deprecated xmlrpc
-  for pulling what packages to sync
-  - Will make this default >= 7.0
+- bandersnatch uses the PEP 691 Simple JSON API for package metadata (default since 7.0)
 - bandersnatch >=6.0 implements PEP691 Simple metadata mirroring
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
 
@@ -167,12 +163,11 @@ limitation of 32k sub-directories.
 
 #### Using simple API for metadata
 
-If you set `api-method = simple` there us a caveat that PyPI caches it. So you can only be
-as recent as 1 hour (as of 202511).
+Bandersnatch uses the PEP 691 Simple API for package listings. PyPI caches this
+endpoint, so mirrors can lag by up to about one hour (as of 202511).
 
-The advantages of using is:
+The advantages are:
 
-- xmlrpc is deprecated
 - CDN cached
   - So more performant
 - Could now potentially use mirrors to mirror
