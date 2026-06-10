@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
+
 from bandersnatch.config.proxy import get_aiohttp_proxy_kwargs, proxy_address_from_env
 
 from .errors import PackageNotFound

@@ -153,7 +153,6 @@ def _make_parser() -> argparse.ArgumentParser:
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     match args.op.lower():
         case "delete":
-            config_values = bandersnatch.configuration.validate_config_values(config)
             async with bandersnatch.master.Master(
                 config.get("mirror", "master"),
                 config.getfloat("mirror", "timeout"),
