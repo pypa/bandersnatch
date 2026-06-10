@@ -2,8 +2,8 @@
 
 ## New Features
 
+- Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API `PR #2276`
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
-- Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API
 
 ## CI / test
 
