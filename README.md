@@ -9,7 +9,7 @@ ______________________________________________________________________
 This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
 <http://www.python.org/dev/peps/pep-0381/>.
 
-- bandersnatch >= 8.0 uses the PEP 691 Simple JSON API for package metadata
+- bandersnatch >= 8.0 uses the PEP 691 Simple JSON API for package metadata (default since 7.0)
 - bandersnatch >=6.0 implements PEP691 Simple metadata mirroring
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
 
