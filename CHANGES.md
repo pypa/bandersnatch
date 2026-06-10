@@ -4,6 +4,7 @@
 
 - Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API `PR #2276`
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
+- Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
 
 ## CI / test
 
