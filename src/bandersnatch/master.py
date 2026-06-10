@@ -8,9 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-from aiohttp_xmlrpc.client import ServerProxy
-
-import bandersnatch
 from bandersnatch.config.proxy import get_aiohttp_proxy_kwargs, proxy_address_from_env
 
 from .errors import PackageNotFound
@@ -28,10 +25,6 @@ class StalePage(Exception):
     """We got a page back from PyPI that doesn't meet our expected serial."""
 
 
-class XmlRpcError(aiohttp.ClientError):
-    """Issue getting package listing from PyPI Repository"""
-
-
 class Master:
     def __init__(
         self,
@@ -40,12 +33,10 @@ class Master:
         global_timeout: float | None = FIVE_HOURS_FLOAT,
         proxy: str | None = None,
         allow_non_https: bool = False,
-        api_method: str = "simple",
     ) -> None:
         self.url = url
         self.timeout = timeout
         self.global_timeout = global_timeout or FIVE_HOURS_FLOAT
-        self.api_method = api_method
 
         proxy_url = proxy if proxy else proxy_address_from_env()
         self.proxy_kwargs = get_aiohttp_proxy_kwargs(proxy_url) if proxy_url else {}
@@ -143,49 +134,12 @@ class Master:
                     fd.write(chunk)
 
     @property
-    def xmlrpc_url(self) -> str:
-        return f"{self.url}/pypi"
-
-    @property
     def simple_url(self) -> str:
         return f"{self.url}/simple"
 
-    # TODO: Potentially make USER_AGENT more accessible from aiohttp-xmlrpc
-    async def _gen_custom_headers(self) -> dict[str, str]:
-        # Create dummy client so we can copy the USER_AGENT + prepend bandersnatch info
-        dummy_client = ServerProxy(self.xmlrpc_url, loop=self.loop)
-        custom_headers = {
-            "User-Agent": (
-                f"bandersnatch {bandersnatch.__version__} {dummy_client.USER_AGENT}"
-            )
-        }
-        await dummy_client.close()
-        return custom_headers
-
-    async def _gen_xmlrpc_client(self) -> ServerProxy:
-        custom_headers = await self._gen_custom_headers()
-        client = ServerProxy(
-            self.xmlrpc_url,
-            client=self.session,
-            loop=self.loop,
-            headers=custom_headers,
-        )
-        return client
-
-    # TODO: Add an async context manager to aiohttp-xmlrpc to replace this function
-    async def rpc(self, method_name: str, serial: int = 0) -> Any:
-        try:
-            client = await self._gen_xmlrpc_client()
-            method = getattr(client, method_name)
-            if serial:
-                return await method(serial)
-            return await method()
-        except TimeoutError as te:
-            logger.error(f"Call to {method_name} @ {self.xmlrpc_url} timed out: {te}")
-
     async def fetch_simple_index(self) -> Any:
         """Return a mapping of all project data from the PyPI Index API"""
-        custom_headers = await self._gen_custom_headers()
+        custom_headers = {"User-Agent": USER_AGENT}
         custom_headers["Accept"] = "application/vnd.pypi.simple.v1+json"
         logger.debug(
             f"Fetching simple JSON index from {self.simple_url} "
@@ -198,17 +152,7 @@ class Master:
         return simple_index
 
     async def all_packages(self) -> Any:
-        match self.api_method:
-            case "simple":
-                return await self._all_packages_simple()
-            case _:
-                return await self._all_packages_xmlrpc()
-
-    async def _all_packages_xmlrpc(self) -> Any:
-        all_packages_with_serial = await self.rpc("list_packages_with_serial")
-        if not all_packages_with_serial:
-            raise XmlRpcError("Unable to get full list of packages")
-        return all_packages_with_serial
+        return await self._all_packages_simple()
 
     async def _all_packages_simple(self) -> dict[str, int]:
         """
@@ -233,22 +177,7 @@ class Master:
         return all_packages
 
     async def changed_packages(self, last_serial: int) -> dict[str, int]:
-        match self.api_method:
-            case "simple":
-                return await self._changed_packages_simple(last_serial)
-            case _:
-                return await self._changed_packages_xmlrpc(last_serial)
-
-    async def _changed_packages_xmlrpc(self, last_serial: int) -> dict[str, int]:
-        changelog = await self.rpc("changelog_since_serial", last_serial)
-        if changelog is None:
-            changelog = []
-
-        packages: dict[str, int] = {}
-        for package, _version, _time, _action, serial in changelog:
-            if serial > packages.get(package, 0):
-                packages[package] = serial
-        return packages
+        return await self._changed_packages_simple(last_serial)
 
     async def _changed_packages_simple(self, last_serial: int) -> dict[str, int]:
         """
@@ -256,7 +185,8 @@ class Master:
         The Simple API doesn't have a direct "changelog since serial" equivalent,
         so we fetch all packages and return those with serial > last_serial.
 
-        Note: This is less efficient than XML-RPC changelog, but works with Simple API.
+        Note: The Simple API doesn't provide a changelog endpoint, so all projects
+        are fetched and compared with the last known serial.
         """
         logger.info(
             f"Fetching changed packages since serial {last_serial} via Simple (PEP 691 v1) API"

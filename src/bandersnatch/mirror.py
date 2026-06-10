@@ -340,7 +340,7 @@ class BandersnatchMirror(Mirror):
         await loop.run_in_executor(
             self.storage_backend.executor, self.sync_simple_pages, package
         )
-        # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
+        # Preserve upstream package name if normalization changes it
         await loop.run_in_executor(
             self.storage_backend.executor,
             self.record_finished_package,
@@ -985,7 +985,6 @@ async def mirror(
         global_timeout,
         proxy,
         allow_non_https,
-        config_values.api_method,
     ) as master:
         mirror = BandersnatchMirror(
             homedir,

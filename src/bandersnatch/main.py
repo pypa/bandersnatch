@@ -158,7 +158,6 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
                 config.get("mirror", "master"),
                 config.getfloat("mirror", "timeout"),
                 config.getfloat("mirror", "global-timeout", fallback=None),
-                api_method=config_values.api_method,
             ) as master:
                 return await bandersnatch.delete.delete_packages(config, args, master)
         case "verify":
