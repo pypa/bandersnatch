@@ -8,7 +8,7 @@
 
 - Declare workflow-level `permissions: contents: read` on the 8 remaining workflows (CVE-2025-30066 hardening) `PR #2241`
 - Skip base class tests in test runs `PR #2263`
-- Transitioned from unittest.Testcase to pytest fixtures (`PR #2265`, `PR #2273`)
+- Transitioned from unittest.TestCase to pytest fixtures (`PR #2265`, `PR #2273`, `PR #2274`)
 - Replace MinIO Docker container with moto in-memory mock for S3 tests `PR #2272`
 
 ## Documentation
