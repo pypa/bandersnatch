@@ -48,6 +48,15 @@ Both `filter.py` and `storage.py` carry an `API_REVISION` constant — bump it w
 - `banderx/` — example nginx webserver config/Docker container for serving the mirror (PEP 691 content negotiation).
 - `bandersnatch_docker_compose/` — docker-compose example deployment.
 
+## Releasing
+
+A release is a PR followed by a GitHub Release. Steps:
+
+1. **In a new branch/PR**, finalize `CHANGES.md`: rename the top `# Unreleased` heading to the new version number (e.g. `# 7.2.0`), keeping its `## New Features` / `## CI / test` / `## Documentation` / `## Bug Fixes` subsections. Add a fresh empty `# Unreleased` section above it for future work.
+2. Bump `version =` in `setup.cfg` to the version the user asks for. It **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
+3. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated).
+4. Once merged, cut a new GitHub Release tagged with that version (`gh release create <version>`), and paste the just-released version's `CHANGES.md` markdown (the section you renamed in step 1) as the release body.
+
 ## Conventions
 
 - Version lives in `setup.cfg` (`version =`). User-facing changes get a `CHANGES.md` entry.
