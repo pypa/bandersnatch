@@ -59,12 +59,11 @@ def convert_url_to_path(url: str) -> str:
 
 
 def hash(path: Path, function: str = "sha256") -> str:
-    h = getattr(hashlib, function)
-    content = path.read_bytes()
-    result = h(content).hexdigest()
-    if isinstance(result, str):
-        return result
-    raise TypeError("hashlib did not return str")
+    with path.open("rb") as f:
+        return hashlib.file_digest(
+            f,
+            function,
+        ).hexdigest()
 
 
 def find(root: Path | str, dirs: bool = True) -> str:
