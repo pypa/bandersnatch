@@ -177,7 +177,7 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
                 storage_plugin.write_file(status_file, "0")
                 logger.debug(
                     "Force bandersnatch to check everything against the master PyPI"
-                    + f" - status file {status_file} reset to serial 0"
+                    + f" - status file {status_file} was reset to serial 0 (from {before_serial})"
                 )
             except OSError as e:
                 logger.error(f"Could not reset status file ({status_file}): {e}")
