@@ -174,10 +174,18 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
                 # Reset the serial to 0 via the storage backend so a full sync
                 # occurs. Using the backend keeps this working for non-local
                 # backends (e.g. S3), unlike a local shutil.move(). See #2278.
+                previous_serial_raw = storage_plugin.read_file(status_file)
+                previous_serial = (
+                    previous_serial_raw.decode()
+                    if isinstance(previous_serial_raw, bytes)
+                    else previous_serial_raw
+                ).strip()
                 storage_plugin.write_file(status_file, "0")
                 logger.debug(
-                    "Force bandersnatch to check everything against the master PyPI"
-                    + f" - status file {status_file} was reset to serial 0 (from {before_serial})"
+                    "Force bandersnatch to check everything against the master PyPI "
+                    "- status file %s was reset to serial 0 (from %s)",
+                    status_file,
+                    previous_serial,
                 )
             except OSError as e:
                 logger.error(f"Could not reset status file ({status_file}): {e}")

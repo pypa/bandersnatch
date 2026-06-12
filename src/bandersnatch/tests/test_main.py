@@ -1,5 +1,6 @@
 import asyncio
 import configparser
+import logging
 import sys
 import tempfile
 import unittest.mock as mock
@@ -170,7 +171,7 @@ def _write_force_check_config(tmpdir: Path) -> Path:
 
 
 def test_main_force_check_resets_status_in_place(
-    mocker: "MockerFixture", tmpdir: Path
+    mocker: "MockerFixture", caplog: pytest.LogCaptureFixture, tmpdir: Path
 ) -> None:
     """`mirror --force-check` should reset the serial to 0 *via the storage
     backend* (so non-local backends like S3 work), not shutil.move() the file to
@@ -186,12 +187,14 @@ def test_main_force_check_resets_status_in_place(
         tmp_status_file.unlink()
 
     sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--force-check"]
+    caplog.set_level(logging.DEBUG, logger="bandersnatch.main")
     main(asyncio.new_event_loop())
 
     # Status file stays in place and is reset to 0, rather than being moved away.
     assert status_file.exists()
     assert status_file.read_text(encoding="ascii") == "0"
     assert not tmp_status_file.exists()
+    assert "was reset to serial 0 (from 12345)" in caplog.text
     mirror_coro.assert_awaited_once()
 
 
