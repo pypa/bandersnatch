@@ -2,11 +2,9 @@ import argparse
 import asyncio
 import logging
 import logging.config
-import shutil
 import sys
 from configparser import ConfigParser
 from pathlib import Path
-from tempfile import gettempdir
 
 import bandersnatch.configuration
 import bandersnatch.delete
@@ -62,8 +60,8 @@ def _mirror_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         default=False,
         help=(
-            "Force bandersnatch to reset the PyPI serial (move serial file to /tmp) to "
-            + "perform a full sync"
+            "Force bandersnatch to reset the PyPI serial (set the status file to 0) "
+            + "to perform a full sync"
         ),
     )
     m.set_defaults(op="mirror")
@@ -171,22 +169,21 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         status_file = (
             storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
         )
-        if status_file.exists():
-            tmp_status_file = Path(gettempdir()) / "status"
+        if storage_plugin.exists(status_file):
             try:
-                shutil.move(str(status_file), tmp_status_file)
+                # Reset the serial to 0 via the storage backend so a full sync
+                # occurs. Using the backend keeps this working for non-local
+                # backends (e.g. S3), unlike a local shutil.move(). See #2278.
+                storage_plugin.write_file(status_file, "0")
                 logger.debug(
                     "Force bandersnatch to check everything against the master PyPI"
-                    + f" - status file moved to {tmp_status_file}"
+                    + f" - status file {status_file} reset to serial 0"
                 )
             except OSError as e:
-                logger.error(
-                    f"Could not move status file ({status_file} to "
-                    + f" {tmp_status_file}): {e}"
-                )
+                logger.error(f"Could not reset status file ({status_file}): {e}")
         else:
             logger.info(
-                f"No status file to move ({status_file}) - Full sync will occur"
+                f"No status file to reset ({status_file}) - Full sync will occur"
             )
 
     return await bandersnatch.mirror.mirror(config)

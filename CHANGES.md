@@ -22,6 +22,7 @@
 
 ## Bug Fixes
 
+- Fix `mirror --force-check` to reset the mirror serial via the configured storage backend so it works with non-local backends such as S3 (previously used a local `shutil.move()` to `/tmp`) `Issue #2278`
 - Demote per-package filter matching logs from INFO to DEBUG to reduce noise during mirror and verify runs `PR #2193`
 - Exclude PEP 600 `manylinux_2_*` wheel tags when `exclude_platform = linux` is configured `PR #2151`
 
