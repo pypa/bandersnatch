@@ -25,6 +25,7 @@ Tests, lint, and CI are driven through `tox` and the `test_runner.py` wrapper (t
 The codebase is async (`aiohttp`) throughout. Entry point is `bandersnatch.main:main`, which dispatches on subcommands (each has a `_<cmd>_parser` setting `op=`): **mirror**, **sync** (mirror specific packages), **delete**, **verify**.
 
 Core sync flow (`src/bandersnatch/`):
+
 - `master.py` — `Master`: HTTP client talking to the upstream PyPI server (the "master"). Raises `StalePage` for serial/consistency issues.
 - `mirror.py` — `Mirror` (base) and `BandersnatchMirror` (concrete): orchestrates the whole sync — fetches the changelog/list of packages to update, drives per-package work concurrently, writes the simple index, tracks serial/state.
 - `package.py` — `Package`: represents one PyPI project; fetches its metadata and decides which release files to download.
@@ -53,9 +54,9 @@ Both `filter.py` and `storage.py` carry an `API_REVISION` constant — bump it w
 A release is a PR followed by a GitHub Release. Steps:
 
 1. **In a new branch/PR**, finalize `CHANGES.md`: rename the top `# Unreleased` heading to the new version number (e.g. `# 7.2.0`), keeping its `## New Features` / `## CI / test` / `## Documentation` / `## Bug Fixes` subsections. Add a fresh empty `# Unreleased` section above it for future work.
-2. Bump `version =` in `setup.cfg` to the version the user asks for. It **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
-3. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated).
-4. Once merged, cut a new GitHub Release tagged with that version (`gh release create <version>`), and paste the just-released version's `CHANGES.md` markdown (the section you renamed in step 1) as the release body.
+1. Bump `version =` in `setup.cfg` to the version the user asks for. It **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
+1. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated).
+1. Once merged, cut a new GitHub Release tagged with that version (`gh release create <version>`), and paste the just-released version's `CHANGES.md` markdown (the section you renamed in step 1) as the release body.
 
 ## Conventions
 

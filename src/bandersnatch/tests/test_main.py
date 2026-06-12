@@ -1,5 +1,6 @@
 import asyncio
 import configparser
+import logging
 import sys
 import tempfile
 import unittest.mock as mock
@@ -15,6 +16,8 @@ from bandersnatch.main import main
 from bandersnatch.simple import InvalidDigestFormat, SimpleFormat
 
 if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
     from bandersnatch.mirror import BandersnatchMirror
 
 
@@ -148,3 +151,68 @@ def customconfig(tmpdir: Path) -> Path:
     with open(str(tmpdir / "bandersnatch.conf"), "w") as f:
         f.write(config)
     return tmpdir
+
+
+def _write_force_check_config(tmpdir: Path) -> Path:
+    """Write a config based on unittest.conf with the mirror directory pointed
+    at *tmpdir* so the status file lives somewhere writable for the test."""
+    base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+    config_lines = [
+        (
+            f"directory = {Path(tmpdir).as_posix()}"
+            if line.startswith("directory =")
+            else line
+        )
+        for line in base_config_path.read_text().splitlines()
+    ]
+    config_path = Path(tmpdir) / "unittest.conf"
+    config_path.write_text("\n".join(config_lines), encoding="utf-8")
+    return config_path
+
+
+def test_main_force_check_resets_status_in_place(
+    mocker: "MockerFixture", caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
+    """`mirror --force-check` should reset the serial to 0 *via the storage
+    backend* (so non-local backends like S3 work), not shutil.move() the file to
+    a local /tmp path. Regression test for #2278."""
+    mirror_coro = mocker.patch(
+        "bandersnatch.mirror.mirror", new_callable=mock.AsyncMock, return_value=0
+    )
+    config_path = _write_force_check_config(tmpdir)
+    status_file = Path(tmpdir) / "status"
+    status_file.write_text("12345", encoding="ascii")
+    tmp_status_file = Path(tempfile.gettempdir()) / "status"
+    if tmp_status_file.exists():
+        tmp_status_file.unlink()
+
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--force-check"]
+    caplog.set_level(logging.DEBUG, logger="bandersnatch.main")
+    main(asyncio.new_event_loop())
+
+    # Status file stays in place and is reset to 0, rather than being moved away.
+    assert status_file.exists()
+    assert status_file.read_text(encoding="ascii") == "0"
+    assert not tmp_status_file.exists()
+    assert "was reset to serial 0 (from 12345)" in caplog.text
+    mirror_coro.assert_awaited_once()
+
+
+def test_main_force_check_no_status_file(
+    mocker: "MockerFixture", caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
+    """With no existing status file, force-check should log and proceed to a
+    full sync without error."""
+    mirror_coro = mocker.patch(
+        "bandersnatch.mirror.mirror", new_callable=mock.AsyncMock, return_value=0
+    )
+    config_path = _write_force_check_config(tmpdir)
+    status_file = Path(tmpdir) / "status"
+    assert not status_file.exists()
+
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--force-check"]
+    main(asyncio.new_event_loop())
+
+    assert not status_file.exists()
+    assert "Full sync will occur" in caplog.text
+    mirror_coro.assert_awaited_once()
