@@ -322,3 +322,26 @@ size can grow beyond the limit, and will stop being updated. It is then a choice
 for the maintainer to make whether to add the package to the exception list
 (and possibly run a `bandersnatch mirror --force-check`) or to prune the project
 from the mirror (with `bandersnatch delete <package_name>`).
+
+## Filter projects by version count
+
+Some projects publish an extremely large number of versions, which can consume a significant amount of disk space or bandwidth. Alternatively, you might want to filter out packages that have very few releases, which might indicate early-stage, testing, or abandoned projects.
+
+This can be done with the `versions_count_project_metadata` plugin, which blocks packages whose version count falls outside of configured limits.
+
+```ini
+[plugins]
+enabled =
+    versions_count_project_metadata
+
+[versions_count_project_metadata]
+min_versions = 3
+max_versions = 500
+```
+
+This will block the download of any project that has fewer than 3 versions or more than 500 versions. (If `min_versions` is not specified or set to `0`, no minimum check is performed. If `max_versions` is not specified or set to `0`, no maximum check is performed. If `min_versions` is greater than `max_versions`, a warning is logged and the plugin is deactivated.)
+
+Just like the `size_project_metadata` plugin:
+
+- It can be combined with an `allowlist` (to allow/bypass specific packages as exceptions) or with `allowlist_project` (acting as a logical AND).
+- Since version counts naturally grow over time, a package can cross the `max_versions` limit and stop updating, or a blocked package can cross the `min_versions` limit when new versions are uploaded. The operator can then add exception rules, run `bandersnatch mirror --force-check`, or prune the package from the mirror (using `bandersnatch delete <package_name>`).
