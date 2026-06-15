@@ -252,6 +252,84 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
         return total_size <= self.max_package_size
 
 
+class VersionsCountProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
+    """
+    Filters projects based on the total number of published versions.
+
+    Blocks projects where the version count is below min_versions or
+    above max_versions. Projects in the allowlist bypass this filter.
+    """
+
+    name = "versions_count_project_metadata"
+    initialized = False
+    min_versions: int = 0
+    max_versions: int = 0
+    allowlist_package_names: list[str] = []
+
+    def initialize_plugin(self) -> None:
+        if self.initialized:
+            return
+        try:
+            config = self.configuration[self.name]
+        except KeyError:
+            logger.warning(f"No [{self.name}] config section found; plugin inactive.")
+            self.initialized = True
+            return
+
+        try:
+            self.min_versions = config.getint("min_versions", fallback=0)
+            self.max_versions = config.getint("max_versions", fallback=0)
+        except ValueError as exc:
+            logger.warning(
+                f"Unable to initialise {self.name} plugin, min_versions/max_versions must be integers: {exc}"
+            )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
+            return
+
+        if self.max_versions > 0 and self.min_versions > self.max_versions:
+            logger.warning(
+                f"Unable to initialise {self.name} plugin. min_versions is greater than max_versions"
+            )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
+            return
+
+        if self.min_versions or self.max_versions:
+            self.allowlist_package_names = self._determine_unfiltered_package_names()
+            logger.info(
+                f"Initialized {self.name}: min={self.min_versions}, "
+                f"max={self.max_versions}, allowlist={self.allowlist_package_names}"
+            )
+
+        self.initialized = True
+
+    def filter(self, metadata: dict) -> bool:
+        if not self.min_versions and not self.max_versions:
+            return True
+        if self.allowlist_package_names and not self.check_match(
+            name=metadata["info"]["name"]
+        ):
+            return True
+
+        count = len(metadata["releases"])
+        if self.min_versions and count < self.min_versions:
+            logger.debug(
+                f"Blocking {metadata['info']['name']}: "
+                f"{count} versions < min {self.min_versions}"
+            )
+            return False
+        if self.max_versions and count > self.max_versions:
+            logger.debug(
+                f"Blocking {metadata['info']['name']}: "
+                f"{count} versions > max {self.max_versions}"
+            )
+            return False
+        return True
+
+
 class VersionRangeFilter(Filter):
     """
     Plugin to download only items having metadata
