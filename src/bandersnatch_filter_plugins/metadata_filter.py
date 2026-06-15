@@ -276,13 +276,25 @@ class VersionsCountProjectMetadataFilter(FilterMetadataPlugin, AllowListProject)
             self.initialized = True
             return
 
-        self.min_versions = int(config.get("min_versions", 0))
-        self.max_versions = int(config.get("max_versions", 0))
+        try:
+            self.min_versions = config.getint("min_versions", fallback=0)
+            self.max_versions = config.getint("max_versions", fallback=0)
+        except ValueError as exc:
+            logger.warning(
+                f"Unable to initialise {self.name} plugin, min_versions/max_versions must be integers: {exc}"
+            )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
+            return
 
         if self.max_versions > 0 and self.min_versions > self.max_versions:
             logger.warning(
                 f"Unable to initialise {self.name} plugin. min_versions is greater than max_versions"
             )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
             return
 
         if self.min_versions or self.max_versions:

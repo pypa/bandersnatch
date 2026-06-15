@@ -228,6 +228,32 @@ packages =
     assert pkg.filter_metadata(mirror.filters.filter_metadata_plugins()) is False
 
 
+def test__versions_count__plugin__non_integer_config_warns(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    versions_count_project_metadata
+
+[versions_count_project_metadata]
+min_versions = not_a_number
+max_versions = 5
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_metadata_plugins()
+    plugin = next(
+        p for p in plugins if isinstance(p, VersionsCountProjectMetadataFilter)
+    )
+    assert plugin.initialized
+    assert any(
+        "min_versions/max_versions must be integers" in record.message
+        for record in caplog.records
+    )
+    # Plugin should be deactivated on invalid configuration.
+    assert plugin.filter({"info": {"name": "foo"}, "releases": {"1.0": []}}) is True
+
+
 def test__versions_count__plugin__invalid_limits_warns(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -245,8 +271,10 @@ max_versions = 5
     plugin = next(
         p for p in plugins if isinstance(p, VersionsCountProjectMetadataFilter)
     )
-    assert not plugin.initialized
+    assert plugin.initialized
     assert any(
         "min_versions is greater than max_versions" in record.message
         for record in caplog.records
     )
+    # Plugin should be deactivated on invalid configuration.
+    assert plugin.filter({"info": {"name": "foo"}, "releases": {"1.0": []}}) is True
