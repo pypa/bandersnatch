@@ -792,6 +792,7 @@ async def test_verify_files_s3_size_mismatch(s3_mock: S3Path) -> None:
 def test_s3_head_object_throttle_warning(s3_mock: S3Path) -> None:
     """_s3_head_object logs a WARNING and re-raises when S3 returns a throttle code."""
     import unittest.mock as mock
+
     from botocore.exceptions import ClientError
 
     from bandersnatch_storage_plugins.s3 import _s3_head_object
@@ -808,6 +809,7 @@ def test_s3_head_object_throttle_warning(s3_mock: S3Path) -> None:
 
     with mock.patch.object(client, "head_object", side_effect=throttle_error):
         import bandersnatch_storage_plugins.s3 as s3_mod
+
         with mock.patch.object(s3_mod.logger, "warning") as mock_warn:
             with pytest.raises(ClientError):
                 _s3_head_object(client, bucket, key)

@@ -474,18 +474,22 @@ def test_iter_package_files(tmp_path: Path) -> None:
 
 def _pkg_json(filename: str, url: str, sha256: str, size: int) -> str:
     """Minimal PyPI-style JSON for a single-file package."""
-    return json.dumps({
-        "info": {"name": "mypackage"},
-        "releases": {
-            "1.0": [{
-                "filename": filename,
-                "url": url,
-                "size": size,
-                "digests": {"sha256": sha256},
-                "upload_time_iso_8601": "2024-01-01T00:00:00Z",
-            }]
-        },
-    })
+    return json.dumps(
+        {
+            "info": {"name": "mypackage"},
+            "releases": {
+                "1.0": [
+                    {
+                        "filename": filename,
+                        "url": url,
+                        "size": size,
+                        "digests": {"sha256": sha256},
+                        "upload_time_iso_8601": "2024-01-01T00:00:00Z",
+                    }
+                ]
+            },
+        }
+    )
 
 
 @pytest.mark.asyncio
@@ -493,12 +497,15 @@ async def test_verify_dry_run_logs_but_does_not_fetch(tmp_path: Path) -> None:
     """verify() logs [DRY RUN] and never calls fetch_and_store when dry_run=True."""
     content = b"wheel content"
     import hashlib
+
     sha256 = hashlib.sha256(content).hexdigest()
     url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
-    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
 
     class FakeArgs:
         dry_run = True
@@ -522,13 +529,16 @@ async def test_verify_dry_run_logs_but_does_not_fetch(tmp_path: Path) -> None:
 async def test_verify_remediates_missing_file(tmp_path: Path) -> None:
     """verify() calls fetch_and_store for a file that verify_files reports as bad."""
     import hashlib
+
     content = b"wheel content"
     sha256 = hashlib.sha256(content).hexdigest()
     url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
-    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
 
     class FakeArgs:
         dry_run = False
@@ -544,7 +554,9 @@ async def test_verify_remediates_missing_file(tmp_path: Path) -> None:
         pass
 
     all_files: list[PATH_TYPES] = []
-    with mock.patch("bandersnatch.verify.fetch_and_store", side_effect=_noop_fetch) as mock_fetch:
+    with mock.patch(
+        "bandersnatch.verify.fetch_and_store", side_effect=_noop_fetch
+    ) as mock_fetch:
         await verify(master, fc, storage_backend, "mypackage", tmp_path, all_files, FakeArgs())  # type: ignore
 
     mock_fetch.assert_called_once()
@@ -555,13 +567,16 @@ async def test_verify_remediates_missing_file(tmp_path: Path) -> None:
 async def test_verify_defers_fetch_exception(tmp_path: Path) -> None:
     """When fetch_and_store raises, the error is logged and deferred to on_error."""
     import hashlib
+
     content = b"data"
     sha256 = hashlib.sha256(content).hexdigest()
     url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
 
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
-    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
 
     class FakeArgs:
         dry_run = False
@@ -588,6 +603,7 @@ async def test_verify_defers_fetch_exception(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # storage.py base-class coverage
 # ---------------------------------------------------------------------------
+
 
 def test_stamp_file_metadata_calls_set_upload_time_and_set_hash(tmp_path: Path) -> None:
     """The base stamp_file_metadata calls set_upload_time then set_hash."""
@@ -625,14 +641,18 @@ async def test_verify_files_stat_mode_mismatch(tmp_path: Path) -> None:
     f.write_bytes(b"data")
 
     cfg = configparser.ConfigParser()
-    cfg.read_dict({"mirror": {
-        "storage-backend": "filesystem",
-        "directory": str(tmp_path),
-        "workers": "2",
-        "compare-method": "stat",
-        "digest_name": "sha256",
-        "stop-on-error": "false",
-    }})
+    cfg.read_dict(
+        {
+            "mirror": {
+                "storage-backend": "filesystem",
+                "directory": str(tmp_path),
+                "workers": "2",
+                "compare-method": "stat",
+                "digest_name": "sha256",
+                "stop-on-error": "false",
+            }
+        }
+    )
     storage_backend = FilesystemStorage(config=cfg)
 
     wrong_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
@@ -651,6 +671,7 @@ async def test_verify_files_stat_mode_mismatch(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # filesystem.py coverage — empty-parent cleanup after delete
 # ---------------------------------------------------------------------------
+
 
 def test_delete_package_file_removes_empty_parent(tmp_path: Path) -> None:
     """delete_package_file removes the parent directory when it becomes empty."""

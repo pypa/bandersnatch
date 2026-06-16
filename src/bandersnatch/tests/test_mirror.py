@@ -1517,11 +1517,15 @@ async def test_fetch_and_store_accepts_string_path(tmp_path: Path) -> None:
     dest_str = str(dest_path)  # pass as str, not Path
 
     cfg = configparser.ConfigParser()
-    cfg.read_dict({"mirror": {
-        "directory": str(tmp_path),
-        "storage-backend": "filesystem",
-        "workers": "1",
-    }})
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
     storage = FilesystemStorage(config=cfg)
 
     class _Content:
