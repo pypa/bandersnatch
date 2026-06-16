@@ -756,3 +756,70 @@ async def test_verify_files_s3_legacy_backfill_preserves_existing_metadata(
     assert obj.metadata.get("sha256") == sha
     # …and the pre-existing uploaded-at must NOT have been wiped.
     assert "uploaded-at" in obj.metadata
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_size_mismatch(s3_mock: S3Path) -> None:
+    """verify_files yields the spec when ContentLength in S3 differs from FileSpec.size."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    content = b"real content"
+    sha = hashlib.sha256(content).hexdigest()
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/size-mismatch-1.0.whl"
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(f"/{bucket}"))
+    resource.meta.client.put_object(
+        Bucket=bucket, Key=key, Body=content, Metadata={"sha256": sha}
+    )
+
+    backend = s3.S3Storage()
+    spec = FileSpec(
+        path=s3.S3Path(f"/{bucket}/{key}"),
+        url="https://example.com/size-mismatch-1.0.whl",
+        filename="size-mismatch-1.0.whl",
+        size=len(content) + 999,  # wrong size → flagged before hash check
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+def test_s3_head_object_throttle_warning(s3_mock: S3Path) -> None:
+    """_s3_head_object logs a WARNING and re-raises when S3 returns a throttle code."""
+    import unittest.mock as mock
+    from botocore.exceptions import ClientError
+
+    from bandersnatch_storage_plugins.s3 import _s3_head_object
+
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/throttle-test-1.0.whl"
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(f"/{bucket}"))
+    client = resource.meta.client
+
+    throttle_error = ClientError(
+        {"Error": {"Code": "SlowDown", "Message": "slow down"}}, "HeadObject"
+    )
+
+    with mock.patch.object(client, "head_object", side_effect=throttle_error):
+        import bandersnatch_storage_plugins.s3 as s3_mod
+        with mock.patch.object(s3_mod.logger, "warning") as mock_warn:
+            with pytest.raises(ClientError):
+                _s3_head_object(client, bucket, key)
+
+    mock_warn.assert_called_once()
+    # call_args[0] is (format_str, bucket, key, code) — code is index 3
+    assert "SlowDown" in mock_warn.call_args[0][3]
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_empty_specs(s3_mock: S3Path) -> None:
+    """verify_files with an empty list returns immediately without any S3 calls."""
+    backend = s3.S3Storage()
+    bad = [s async for s in backend.verify_files([])]
+    assert bad == []

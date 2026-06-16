@@ -1,4 +1,5 @@
 import configparser
+import json
 import os
 import sys
 import unittest.mock as mock
@@ -14,7 +15,7 @@ from aiohttp.client_exceptions import ClientResponseError, ServerTimeoutError
 
 import bandersnatch
 from bandersnatch.master import Master
-from bandersnatch.storage import FileSpec
+from bandersnatch.storage import PATH_TYPES, FileSpec
 from bandersnatch.utils import convert_url_to_path, find
 from bandersnatch_storage_plugins.filesystem import FilesystemStorage
 
@@ -469,6 +470,200 @@ def test_iter_package_files(tmp_path: Path) -> None:
     storage_backend = _make_fs_storage(tmp_path)
     found = set(storage_backend.iter_package_files(packages))
     assert found == {f1, f2}
+
+
+def _pkg_json(filename: str, url: str, sha256: str, size: int) -> str:
+    """Minimal PyPI-style JSON for a single-file package."""
+    return json.dumps({
+        "info": {"name": "mypackage"},
+        "releases": {
+            "1.0": [{
+                "filename": filename,
+                "url": url,
+                "size": size,
+                "digests": {"sha256": sha256},
+                "upload_time_iso_8601": "2024-01-01T00:00:00Z",
+            }]
+        },
+    })
+
+
+@pytest.mark.asyncio
+async def test_verify_dry_run_logs_but_does_not_fetch(tmp_path: Path) -> None:
+    """verify() logs [DRY RUN] and never calls fetch_and_store when dry_run=True."""
+    content = b"wheel content"
+    import hashlib
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+
+    class FakeArgs:
+        dry_run = True
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    all_files: list[PATH_TYPES] = []
+
+    with mock.patch("bandersnatch.verify.fetch_and_store") as mock_fetch:
+        await verify(master, fc, storage_backend, "mypackage", tmp_path, all_files, FakeArgs())  # type: ignore
+
+    mock_fetch.assert_not_called()
+    assert len(all_files) == 1  # spec was registered
+
+
+@pytest.mark.asyncio
+async def test_verify_remediates_missing_file(tmp_path: Path) -> None:
+    """verify() calls fetch_and_store for a file that verify_files reports as bad."""
+    import hashlib
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+
+    class FakeArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+
+    async def _noop_fetch(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    all_files: list[PATH_TYPES] = []
+    with mock.patch("bandersnatch.verify.fetch_and_store", side_effect=_noop_fetch) as mock_fetch:
+        await verify(master, fc, storage_backend, "mypackage", tmp_path, all_files, FakeArgs())  # type: ignore
+
+    mock_fetch.assert_called_once()
+    assert len(all_files) == 1
+
+
+@pytest.mark.asyncio
+async def test_verify_defers_fetch_exception(tmp_path: Path) -> None:
+    """When fetch_and_store raises, the error is logged and deferred to on_error."""
+    import hashlib
+    content = b"data"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+
+    class FakeArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+
+    async def _failing_fetch(*args: Any, **kwargs: Any) -> None:
+        raise ValueError("download failed")
+
+    with mock.patch("bandersnatch.verify.fetch_and_store", side_effect=_failing_fetch):
+        with mock.patch("bandersnatch.verify.on_error") as mock_on_error:
+            await verify(master, fc, storage_backend, "mypackage", tmp_path, [], FakeArgs())  # type: ignore
+
+    mock_on_error.assert_called_once()
+    call_exc = mock_on_error.call_args[0][1]
+    assert isinstance(call_exc, ValueError)
+
+
+# ---------------------------------------------------------------------------
+# storage.py base-class coverage
+# ---------------------------------------------------------------------------
+
+def test_stamp_file_metadata_calls_set_upload_time_and_set_hash(tmp_path: Path) -> None:
+    """The base stamp_file_metadata calls set_upload_time then set_hash."""
+    import datetime
+    import hashlib
+
+    storage_backend = _make_fs_storage(tmp_path)
+    f = tmp_path / "pkg.whl"
+    f.write_bytes(b"content")
+
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    sha256 = hashlib.sha256(b"content").hexdigest()
+
+    with mock.patch.object(storage_backend, "set_upload_time") as mock_upload:
+        with mock.patch.object(storage_backend, "set_hash") as mock_hash:
+            storage_backend.stamp_file_metadata(f, sha256, upload_time)
+
+    mock_upload.assert_called_once_with(f, upload_time)
+    mock_hash.assert_called_once_with(f, sha256, "sha256")
+
+
+def test_iter_package_files_nonexistent_path(tmp_path: Path) -> None:
+    """iter_package_files returns nothing when packages_path does not exist."""
+    storage_backend = _make_fs_storage(tmp_path)
+    result = list(storage_backend.iter_package_files(tmp_path / "does_not_exist"))
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_verify_files_stat_mode_mismatch(tmp_path: Path) -> None:
+    """With compare-method=stat, a file whose upload time does not match is flagged."""
+    import datetime
+
+    f = tmp_path / "pkg.whl"
+    f.write_bytes(b"data")
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict({"mirror": {
+        "storage-backend": "filesystem",
+        "directory": str(tmp_path),
+        "workers": "2",
+        "compare-method": "stat",
+        "digest_name": "sha256",
+        "stop-on-error": "false",
+    }})
+    storage_backend = FilesystemStorage(config=cfg)
+
+    wrong_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+    spec = FileSpec(
+        path=f,
+        url="https://example.com/pkg.whl",
+        filename="pkg.whl",
+        size=len(b"data"),
+        digests={"sha256": "dontcare"},
+        upload_time=wrong_time,
+    )
+    bad = [s async for s in storage_backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+# ---------------------------------------------------------------------------
+# filesystem.py coverage — empty-parent cleanup after delete
+# ---------------------------------------------------------------------------
+
+def test_delete_package_file_removes_empty_parent(tmp_path: Path) -> None:
+    """delete_package_file removes the parent directory when it becomes empty."""
+    pkg_dir = tmp_path / "packages" / "aa" / "bb"
+    pkg_dir.mkdir(parents=True)
+    pkg_file = pkg_dir / "pkg-1.0.whl"
+    pkg_file.write_bytes(b"x")
+
+    storage_backend = _make_fs_storage(tmp_path)
+    storage_backend.delete_package_file(pkg_file)
+
+    assert not pkg_file.exists()
+    assert not pkg_dir.exists()
 
 
 if __name__ == "__main__":

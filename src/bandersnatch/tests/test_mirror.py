@@ -1497,5 +1497,60 @@ async def test_fetch_and_store_digest_mismatch(tmp_path: Path) -> None:
     stamp_mock.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_fetch_and_store_accepts_string_path(tmp_path: Path) -> None:
+    """fetch_and_store accepts a str path (PATH_TYPES), not only pathlib.Path."""
+    import configparser
+    import datetime
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"some wheel bytes"
+    sha256 = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-str.whl"
+    dest_path = tmp_path / "web" / "packages" / "pkg-str.whl"
+    dest_str = str(dest_path)  # pass as str, not Path
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict({"mirror": {
+        "directory": str(tmp_path),
+        "storage-backend": "filesystem",
+        "workers": "1",
+    }})
+    storage = FilesystemStorage(config=cfg)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        await fetch_and_store(fake_master, storage, url, dest_str, sha256, upload_time)
+
+    assert dest_path.exists()
+    assert dest_path.read_bytes() == content
+    stamp_mock.assert_called_once()
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv)
