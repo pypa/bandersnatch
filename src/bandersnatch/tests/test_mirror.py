@@ -1378,5 +1378,183 @@ async def test_mirror_subcommand_diff_file_dir_with_epoch(
     assert len(lines) == 3
 
 
+@pytest.mark.asyncio
+async def test_fetch_and_store_success(tmp_path: Path) -> None:
+    """fetch_and_store downloads content, verifies the sha256, writes the file,
+    and calls stamp_file_metadata with the correct arguments."""
+    import configparser
+    import datetime
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"a release wheel payload"
+    sha256 = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-1.0.whl"
+    dest = tmp_path / "web" / "packages" / "pkg-1.0.whl"
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    # A one-shot content reader: first call returns payload, subsequent return b"".
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        await fetch_and_store(fake_master, storage, url, dest, sha256, upload_time)
+
+    assert dest.exists()
+    assert dest.read_bytes() == content
+    stamp_mock.assert_called_once_with(dest, sha256, upload_time, "sha256")
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_digest_mismatch(tmp_path: Path) -> None:
+    """fetch_and_store raises ValueError when the downloaded content does not
+    match the expected sha256, and stamp_file_metadata is never called."""
+    import configparser
+    import datetime
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"the real bytes"
+    wrong_sha = "deadbeef" * 8
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-bad.whl"
+    dest = tmp_path / "web" / "packages" / "pkg-bad.whl"
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        with pytest.raises(ValueError, match="Inconsistent file"):
+            await fetch_and_store(
+                fake_master, storage, url, dest, wrong_sha, upload_time
+            )
+
+    stamp_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_accepts_string_path(tmp_path: Path) -> None:
+    """fetch_and_store accepts a str path (PATH_TYPES), not only pathlib.Path."""
+    import configparser
+    import datetime
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"some wheel bytes"
+    sha256 = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-str.whl"
+    dest_path = tmp_path / "web" / "packages" / "pkg-str.whl"
+    dest_str = str(dest_path)  # pass as str, not Path
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        await fetch_and_store(fake_master, storage, url, dest_str, sha256, upload_time)
+
+    assert dest_path.exists()
+    assert dest_path.read_bytes() == content
+    stamp_mock.assert_called_once()
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv)

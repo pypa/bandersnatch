@@ -21,7 +21,7 @@ from .filter import LoadedFilters
 from .master import Master
 from .package import Package
 from .simple import SimpleAPI, SimpleFormat, SimpleFormats
-from .storage import Storage, storage_backend_plugins
+from .storage import PATH_TYPES, Storage, storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
@@ -874,43 +874,67 @@ class BandersnatchMirror(Mirror):
                     )
 
         logger.info(f"Downloading: {url}")
-
-        dirname = path.parent
-        if not dirname.exists():
-            dirname.mkdir(parents=True)
-
-        # Even more special handling for the serial of package files here:
-        # We do not need to track a serial for package files
-        # as PyPI generally only allows a file to be uploaded once
-        # and then maybe deleted. Re-uploading (and thus changing the hash)
-        # is only allowed in extremely rare cases with intervention from the
-        # PyPI admins.
-        r_generator = self.master.get(url, required_serial=None)
-        response = await r_generator.asend(None)
-
-        checksum = hashlib.sha256()
-
-        with self.storage_backend.rewrite(path, "wb") as f:
-            while True:
-                chunk = await response.content.read(chunk_size)
-                if not chunk:
-                    break
-                checksum.update(chunk)
-                f.write(chunk)
-
-            existing_hash = checksum.hexdigest()
-            if existing_hash != sha256sum:
-                # Bad case: the file we got does not match the expected
-                # checksum. Even if this should be the rare case of a
-                # re-upload this will fix itself in a later run.
-                raise ValueError(
-                    f"Inconsistent file. {url} has hash {existing_hash} "
-                    + f"instead of {sha256sum}."
-                )
-
-        # set upload time to avoid downloading again in next sync
-        self.storage_backend.set_upload_time(path, upload_time)
+        await fetch_and_store(
+            self.master,
+            self.storage_backend,
+            url,
+            path,
+            sha256sum,
+            upload_time,
+            chunk_size,
+        )
         return path
+
+
+async def fetch_and_store(
+    master: Master,
+    storage_backend: Storage,
+    url: str,
+    path: PATH_TYPES,
+    digest: str,
+    upload_time: datetime.datetime,
+    chunk_size: int = 64 * 1024,
+    digest_name: str = "sha256",
+) -> None:
+    """
+    Fetch from url and store in path.
+    """
+    if not isinstance(path, storage_backend.PATH_BACKEND):
+        path = storage_backend.PATH_BACKEND(str(path))
+    dirname = path.parent
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
+
+    # Even more special handling for the serial of package files here:
+    # We do not need to track a serial for package files
+    # as PyPI generally only allows a file to be uploaded once
+    # and then maybe deleted. Re-uploading (and thus changing the hash)
+    # is only allowed in extremely rare cases with intervention from the
+    # PyPI admins.
+    r_generator = master.get(url, required_serial=None)
+    response = await r_generator.asend(None)
+
+    checksum = hashlib.new(digest_name)
+    with storage_backend.rewrite(path, "wb") as f:
+        while True:
+            chunk = await response.content.read(chunk_size)
+            if not chunk:
+                break
+            checksum.update(chunk)
+            f.write(chunk)
+
+        existing_hash = checksum.hexdigest()
+        if existing_hash != digest:
+            # Bad case: the file we got does not match the expected
+            # checksum. Even if this should be the rare case of a
+            # re-upload this will fix itself in a later run.
+            raise ValueError(
+                f"Inconsistent file. {url} has hash {existing_hash} "
+                + f"instead of {digest}."
+            )
+
+    # set upload time and hash to avoid downloading again in next sync
+    storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
 
 
 async def _setup_diff_file(

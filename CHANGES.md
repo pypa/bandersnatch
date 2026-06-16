@@ -2,6 +2,12 @@
 
 ## New Features
 
+- Verify abstraction layer: add `Storage.verify_files()`, `Storage.iter_package_files()`, `Storage.set_hash()`, and `Storage.delete_package_file()` so each storage backend can implement integrity checking optimally. The filesystem default retains existing behaviour; the S3 backend now uses concurrent `HeadObject` calls with stored sha256 metadata, eliminating full-file downloads on the happy path. `PLUGIN_API_REVISION` bumped to 2. `PR #2286`
+- New `[s3] verify_concurrency` option (default `50`) controls the maximum number of simultaneous S3 API calls during `bandersnatch verify`. Verify runs on its own thread pool and HTTP connection pool sized to this value, decoupled from `[mirror] workers` (capped at 10 for PyPI politeness) since verify only touches your own bucket. Tune relative to your S3 request-rate limit and mirror size.
+- S3 client is now configured with botocore `adaptive` retry mode so transient `SlowDown` throttle responses from S3 are absorbed automatically rather than crashing a long-running verify run. The retry ceiling is configurable via the new `[s3] max_attempts` option (default `10`). A `WARNING` is logged if throttling persists after all retries.
+- `bandersnatch verify` now honours `compare-method` and `digest_name` config settings (previously always performed a sha256 hash regardless of config). The S3 backend's `verify_files` honours `compare-method` too: `stat` mode trusts a matching upload time with no content read, while `hash` mode always confirms content.
+- S3 verify now back-fills hash metadata for legacy objects on first verify (unless `--dry-run`), making future runs use only fast `HeadObject` calls; upload time and digest are validated and stored via the storage backend, with `.s3keep` logic moved fully into the S3 plugin.
+- Core verify and mirror flows now rely on storage backend methods (`set_hash`, etc.) for hash and metadata handling, enabling backend-specific optimizations.
 - Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API `PR #2276`
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 - Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
