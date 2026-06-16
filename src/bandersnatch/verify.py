@@ -86,7 +86,7 @@ async def delete_unowned_files(
     """
     Calculates difference in expected files and stored files. Deletes them using the storage backend implementation
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     packages_path = storage_backend.PATH_BACKEND(str(mirror_base)) / "web" / "packages"
 
     all_stored_files: set[str] = set()
@@ -148,6 +148,7 @@ async def verify(
     json_full_path = json_base / json_file
     logger.info(f"Parsing {json_file}")
     stop_on_error = config.getboolean("mirror", "stop-on-error")
+    digest_name = config.get("mirror", "digest_name", fallback="sha256")
 
     if args.json_update:
         if not args.dry_run:
@@ -208,10 +209,9 @@ async def verify(
                     storage_backend,
                     bad_spec.url,
                     bad_spec.path,
-                    bad_spec.digests.get(
-                        "sha256", ""
-                    ),  # sha256 was the default before also
+                    bad_spec.digests.get(digest_name, ""),
                     bad_spec.upload_time,
+                    digest_name=digest_name,
                 )
             except Exception as e:
                 logger.exception(

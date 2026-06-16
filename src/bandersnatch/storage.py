@@ -350,7 +350,7 @@ class Storage:
         """
         compare = self.configuration.get("mirror", "compare-method", fallback="hash")
         digest_name = self.configuration.get("mirror", "digest_name", fallback="sha256")
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         executor = getattr(self, "executor", None)
 
         for spec in expected:
@@ -358,10 +358,10 @@ class Storage:
                 yield spec
                 continue
             if compare == "stat":
-                if (
-                    self.get_upload_time(spec.path) == spec.upload_time
-                    and self.get_file_size(spec.path) == spec.size
-                ):
+                size_ok = (not spec.size) or (
+                    self.get_file_size(spec.path) == spec.size
+                )
+                if self.get_upload_time(spec.path) == spec.upload_time and size_ok:
                     continue
                 else:
                     yield spec

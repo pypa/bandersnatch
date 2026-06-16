@@ -492,8 +492,11 @@ class S3Storage(StoragePlugin):
         client = resource.meta.client
         h = hashlib.new(function)
         body = client.get_object(Bucket=path.bucket, Key=str(path.key))["Body"]
-        for chunk in iter(lambda: body.read(64 * 1024), b""):
-            h.update(chunk)
+        try:
+            for chunk in iter(lambda: body.read(64 * 1024), b""):
+                h.update(chunk)
+        finally:
+            body.close()
         return h.hexdigest()
 
     def symlink(
@@ -638,7 +641,7 @@ class S3Storage(StoragePlugin):
             )
 
         semaphore = self._verify_semaphore
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         executor = self._verify_executor
 
         async def _check(spec: FileSpec) -> FileSpec | None:
@@ -676,8 +679,11 @@ class S3Storage(StoragePlugin):
                 def _hash_content() -> str:
                     h = hashlib.new(digest_name)
                     body = client.get_object(Bucket=bucket, Key=key)["Body"]
-                    for chunk in iter(lambda: body.read(64 * 1024), b""):
-                        h.update(chunk)
+                    try:
+                        for chunk in iter(lambda: body.read(64 * 1024), b""):
+                            h.update(chunk)
+                    finally:
+                        body.close()
                     return h.hexdigest()
 
                 actual_hash = await loop.run_in_executor(executor, _hash_content)

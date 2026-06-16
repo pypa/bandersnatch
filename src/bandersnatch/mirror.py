@@ -891,15 +891,16 @@ async def fetch_and_store(
     storage_backend: Storage,
     url: str,
     path: PATH_TYPES,
-    sha256sum: str,
+    digest: str,
     upload_time: datetime.datetime,
     chunk_size: int = 64 * 1024,
+    digest_name: str = "sha256",
 ) -> None:
     """
     Fetch from url and store in path.
     """
-    if not isinstance(path, Path):
-        path = Path(str(path))
+    if not isinstance(path, storage_backend.PATH_BACKEND):
+        path = storage_backend.PATH_BACKEND(str(path))
     dirname = path.parent
     if not dirname.exists():
         dirname.mkdir(parents=True)
@@ -913,7 +914,7 @@ async def fetch_and_store(
     r_generator = master.get(url, required_serial=None)
     response = await r_generator.asend(None)
 
-    checksum = hashlib.sha256()
+    checksum = hashlib.new(digest_name)
     with storage_backend.rewrite(path, "wb") as f:
         while True:
             chunk = await response.content.read(chunk_size)
@@ -923,17 +924,17 @@ async def fetch_and_store(
             f.write(chunk)
 
         existing_hash = checksum.hexdigest()
-        if existing_hash != sha256sum:
+        if existing_hash != digest:
             # Bad case: the file we got does not match the expected
             # checksum. Even if this should be the rare case of a
             # re-upload this will fix itself in a later run.
             raise ValueError(
                 f"Inconsistent file. {url} has hash {existing_hash} "
-                + f"instead of {sha256sum}."
+                + f"instead of {digest}."
             )
 
     # set upload time and hash to avoid downloading again in next sync
-    storage_backend.stamp_file_metadata(path, sha256sum, upload_time)
+    storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
 
 
 async def _setup_diff_file(

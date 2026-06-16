@@ -59,7 +59,7 @@ def some_paths(*_: Any, **__: Any) -> list[Path]:
 
 
 class FakeConfig:
-    def get(self, section: str, item: str) -> str:
+    def get(self, section: str, item: str, fallback: str = "") -> str:
         if section == "mirror":
             if item == "directory":
                 return "/data/pypi"
@@ -67,7 +67,7 @@ class FakeConfig:
                 return "https://unittest.org"
             if item == "storage-backend":
                 return "filesystem"
-        return ""
+        return fallback
 
     def getfloat(self, section: str, item: str, fallback: float = 0.5) -> float:
         return fallback

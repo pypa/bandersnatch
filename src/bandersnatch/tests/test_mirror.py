@@ -1435,7 +1435,7 @@ async def test_fetch_and_store_success(tmp_path: Path) -> None:
 
     assert dest.exists()
     assert dest.read_bytes() == content
-    stamp_mock.assert_called_once_with(dest, sha256, upload_time)
+    stamp_mock.assert_called_once_with(dest, sha256, upload_time, "sha256")
 
 
 @pytest.mark.asyncio
