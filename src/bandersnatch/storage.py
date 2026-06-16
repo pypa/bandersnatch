@@ -10,8 +10,9 @@ import hashlib
 import logging
 import pathlib
 from collections import defaultdict
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import AsyncIterator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from importlib.metadata import entry_points
 from typing import IO, Any, Protocol
 
@@ -26,8 +27,24 @@ PATH_TYPES = pathlib.Path | str
 # backwards incompatible way.  In order to prevent loading older
 # broken plugins that may be installed and will break due to changes to
 # the methods of the classes.
-PLUGIN_API_REVISION = 1
+PLUGIN_API_REVISION = 2
 STORAGE_PLUGIN_RESOURCE = f"bandersnatch_storage_plugins.v{PLUGIN_API_REVISION}.backend"
+
+
+@dataclass
+class FileSpec:
+    """
+    Describes a single expected release file for integrity verification.
+    """
+
+    path: PATH_TYPES
+    url: str
+    filename: str
+    size: int
+    digests: dict[str, str]
+    upload_time: datetime.datetime
+
+
 loaded_storage_plugins: dict[str, list["Storage"]] = defaultdict(list)
 
 logger = logging.getLogger("bandersnatch")
@@ -303,6 +320,78 @@ class Storage:
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         """Set the upload time of a given **path**"""
         raise NotImplementedError
+
+    def set_hash(self, path: PATH_TYPES, digest: str, function: str = "sha256") -> None:
+        """
+        Store a hash digest for the given path as metadata. (for backend specific optimizations)
+        """
+        pass
+
+    def stamp_file_metadata(
+        self,
+        path: PATH_TYPES,
+        digest: str,
+        upload_time: datetime.datetime,
+        function: str = "sha256",
+    ) -> None:
+        """
+        Store both the hash digest and upload time for a path in one operation.
+        """
+        self.set_upload_time(path, upload_time)
+        self.set_hash(path, digest, function)
+
+    async def verify_files(
+        self, expected: Iterable[FileSpec], dry_run: bool = False
+    ) -> AsyncIterator[FileSpec]:
+        """
+        Iterates through all the expected files and yields those that are missing or corrupt.
+        This is the default implementation for any backend type.
+        (dry_run is included as some backends may set metadata if its not a dry run)
+        """
+        compare = self.configuration.get("mirror", "compare-method", fallback="hash")
+        digest_name = self.configuration.get("mirror", "digest_name", fallback="sha256")
+        loop = asyncio.get_event_loop()
+        executor = getattr(self, "executor", None)
+
+        for spec in expected:
+            if not self.exists(spec.path):
+                yield spec
+                continue
+            if compare == "stat":
+                if (
+                    self.get_upload_time(spec.path) == spec.upload_time
+                    and self.get_file_size(spec.path) == spec.size
+                ):
+                    continue
+                else:
+                    yield spec
+                    continue
+
+            actual = await loop.run_in_executor(
+                executor, self.get_hash, spec.path, digest_name
+            )
+            if actual != spec.digests.get(digest_name, ""):
+                yield spec
+
+    def iter_package_files(self, packages_path: PATH_TYPES) -> Iterator[PATH_TYPES]:
+        """
+        Iterates through all the files in the packages path.
+        This is the default implementation for any backend type.
+        """
+        if not isinstance(packages_path, pathlib.Path):
+            packages_path = self.PATH_BACKEND(str(packages_path))
+        if not self.exists(packages_path):
+            return
+        for f in packages_path.rglob("*"):
+            if f.is_file():
+                yield f
+
+    def delete_package_file(self, path: PATH_TYPES) -> None:
+        """
+        Domain specific implementation of deleting a package file.
+        (Filesystem backend overrides this to also remove empty parent directories)
+        """
+        self.delete_file(path)
 
 
 class StoragePlugin(Storage):

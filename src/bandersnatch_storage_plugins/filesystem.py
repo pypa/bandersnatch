@@ -299,3 +299,17 @@ class FilesystemStorage(StoragePlugin):
             path = pathlib.Path(path)
         ts = time.timestamp()
         os.utime(path, (ts, ts))
+
+    def delete_package_file(self, path: PATH_TYPES) -> None:
+        """Remove a file and if the dir is empty remove it"""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        logger.info(f"unlink {str(path)}")
+        path.unlink()
+
+        parent_path = path.parent
+        try:
+            parent_path.rmdir()
+            logger.info(f"rmdir {str(parent_path)}")
+        except OSError as oe:
+            logger.debug(f"Did not remove {str(parent_path)}: {str(oe)}")

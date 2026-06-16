@@ -58,7 +58,46 @@ signature_version = s3v4
 # Optional example for overriding parameters in Boto3 S3 calls
 config_param_ServerSideEncryption = aws:kms
 config_param_SSEKMSKeyId = your KMS key ID
+
+# Maximum concurrent S3 API calls during `bandersnatch verify`
+# (default: 50). Tune relative to your S3 request-rate limit.
+# verify_concurrency = 50
+
+# Maximum retry attempts per S3 API call before raising an error (default: 10).
+# max_attempts = 10
 ```
+
+### S3-specific options
+
+#### `verify_concurrency`
+
+Maximum number of files checked in parallel during `bandersnatch verify`.
+
+:Config section: `[s3]`
+:Type: integer
+:Required: no
+:Default: `50`
+
+Higher values finish verification faster but issue more simultaneous S3 API
+calls. Lower this if you see throttling warnings in the logs.
+
+This is independent of `[mirror] workers`: verify talks only to your own bucket,
+so it runs on a dedicated thread pool (and a matching HTTP connection pool) sized
+to this value, rather than being limited by the worker count used for politeness
+to the PyPI master.
+
+#### `max_attempts`
+
+Maximum number of retries for a failed S3 API call before giving up.
+
+:Config section: `[s3]`
+:Type: integer
+:Required: no
+:Default: `10`
+
+S3 uses automatic rate-limiting (adaptive retry mode), so transient errors are
+usually absorbed silently. Raise this only if you still see throttling warnings
+during large verify runs.
 
 ### Serving your Mirror
 
