@@ -1,4 +1,4 @@
-aiohttp==3.14.0
+aiohttp==3.14.1
 aiohttp-socks==0.11.0
 attrs==26.1.0
 filelock==3.29.0
