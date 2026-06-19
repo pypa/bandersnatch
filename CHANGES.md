@@ -12,6 +12,7 @@
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 - Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
 - Add new `versions_count_project_metadata` filter plugin to filter packages by total version count `PR #2281`
+- Update get_hash() method for filesystem storage backend to use hashlib.file_digest() `PR #2288`
 
 ## CI / test
 
