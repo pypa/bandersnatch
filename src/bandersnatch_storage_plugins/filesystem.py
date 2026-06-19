@@ -276,7 +276,7 @@ class FilesystemStorage(StoragePlugin):
         with open(path.absolute().as_posix(), "rb") as f:
             digest = hashlib.file_digest(f, function).hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
-        return digest
+        return str(digest)
 
     def get_file_size(self, path: PATH_TYPES) -> int:
         """Return the file size of provided path."""
