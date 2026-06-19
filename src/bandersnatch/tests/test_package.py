@@ -8,6 +8,17 @@ from bandersnatch.master import Master, StalePage
 from bandersnatch.package import Package
 
 
+def test_package_from_metadata(package_json: dict) -> None:
+    pkg = Package.from_metadata(package_json)
+    assert pkg.name == "foo"
+    assert pkg.metadata is package_json
+
+
+def test_package_from_metadata_invalid() -> None:
+    with pytest.raises(ValueError, match="Invalid PyPI metadata"):
+        Package.from_metadata({"releases": {}})
+
+
 def test_package_accessors(package: Package) -> None:
     assert package.info == {"name": "Foo", "version": "0.1"}
     assert package.last_serial == 654_321

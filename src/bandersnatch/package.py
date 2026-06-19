@@ -151,3 +151,14 @@ class Package:
         if releases:
             return True
         return False
+
+    @classmethod
+    def from_metadata(cls, metadata: dict[str, Any]) -> Package:
+        try:
+            name = metadata["info"]["name"]
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Invalid PyPI metadata: {e}") from e
+
+        pkg = cls(name)
+        pkg._metadata = metadata
+        return pkg
