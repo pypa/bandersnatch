@@ -493,6 +493,31 @@ def _pkg_json(filename: str, url: str, sha256: str, size: int) -> str:
 
 
 @pytest.mark.asyncio
+async def test_verify_skips_invalid_metadata(tmp_path: Path) -> None:
+    """verify() skips JSON that parses but lacks required PyPI metadata."""
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "badpackage").write_text(json.dumps({"releases": {}}))
+
+    class FakeArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    all_files: list[PATH_TYPES] = []
+
+    await verify(
+        master, fc, storage_backend, "badpackage", tmp_path, all_files, FakeArgs()  # type: ignore
+    )
+
+    assert all_files == []
+
+
+@pytest.mark.asyncio
 async def test_verify_dry_run_logs_but_does_not_fetch(tmp_path: Path) -> None:
     """verify() logs [DRY RUN] and never calls fetch_and_store when dry_run=True."""
     content = b"wheel content"
