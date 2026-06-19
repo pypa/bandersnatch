@@ -153,7 +153,7 @@ class Package:
         return False
 
     @classmethod
-    def from_metadata(cls, metadata: dict[str, Any]) -> Package:
+    def from_metadata(cls, metadata: dict[str, Any]) -> "Package":
         try:
             name = metadata["info"]["name"]
         except (KeyError, TypeError) as e:
