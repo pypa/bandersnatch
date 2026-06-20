@@ -268,19 +268,15 @@ class FilesystemStorage(StoragePlugin):
         return path.is_file()
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
-        h = getattr(hashlib, function)()
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         logger.debug(
             f"Opening {path.as_posix()} in binary mode for hash calculation..."
         )
         with open(path.absolute().as_posix(), "rb") as f:
-            for chunk in iter(lambda: f.read(128 * 1024), b""):
-                logger.debug(f"Read chunk: {chunk!s}")
-                h.update(chunk)
-        digest = h.hexdigest()
+            digest = hashlib.file_digest(f, function).hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
-        return str(h.hexdigest())
+        return str(digest)
 
     def get_file_size(self, path: PATH_TYPES) -> int:
         """Return the file size of provided path."""

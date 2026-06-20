@@ -165,18 +165,23 @@ async def verify(
 
     try:
         with storage_backend.open_file(json_full_path, text=True) as jfp:
-            pkg = json.load(jfp)
+            metadata = json.load(jfp)
     except json.decoder.JSONDecodeError as jde:
-        logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
+        logger.error(f"Failed to load {json_full_path} metadata: {jde} - skipping ...")
+        return
+
+    try:
+        pkg = Package.from_metadata(metadata)
+    except ValueError as e:
+        logger.error(
+            f"Failed to load {json_full_path} into a Package: {e} - skipping ..."
+        )
         return
 
     # apply releases filter plugins like class Package
-    pkg_c = Package(pkg["info"]["name"])
-    # TODO: Maybe make a load_metadata method in Package
-    pkg_c._metadata = pkg
-    pkg = pkg_c
-    pkg.filter_all_releases_files(LoadedFilters().filter_release_file_plugins())
-    pkg.filter_all_releases(LoadedFilters().filter_release_plugins())
+    loaded_filters = LoadedFilters()
+    pkg.filter_all_releases_files(loaded_filters.filter_release_file_plugins())
+    pkg.filter_all_releases(loaded_filters.filter_release_plugins())
 
     # Build the expected FileSpec list for all release files in this package.
     specs: list[FileSpec] = []
