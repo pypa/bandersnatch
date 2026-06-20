@@ -493,7 +493,9 @@ def _pkg_json(filename: str, url: str, sha256: str, size: int) -> str:
 
 
 @pytest.mark.asyncio
-async def test_verify_skips_invalid_metadata(tmp_path: Path) -> None:
+async def test_verify_skips_invalid_metadata(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     """verify() skips JSON that parses but lacks required PyPI metadata."""
     jsonpath = tmp_path / "web" / "json"
     jsonpath.mkdir(parents=True)
@@ -510,11 +512,55 @@ async def test_verify_skips_invalid_metadata(tmp_path: Path) -> None:
     master = Master(fc.get("mirror", "master"))
     all_files: list[PATH_TYPES] = []
 
-    await verify(
-        master, fc, storage_backend, "badpackage", tmp_path, all_files, FakeArgs()  # type: ignore
-    )
+    with caplog.at_level("ERROR"):
+        await verify(
+            master,
+            fc,  # type: ignore[arg-type]
+            storage_backend,
+            "badpackage",
+            tmp_path,
+            all_files,
+            FakeArgs(),  # type: ignore[arg-type]
+        )
 
     assert all_files == []
+    assert "into a Package" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_verify_skips_malformed_json(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """verify() skips JSON files that fail to parse."""
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "badpackage").write_text("{not valid json")
+
+    class FakeArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    all_files: list[PATH_TYPES] = []
+
+    with caplog.at_level("ERROR"):
+        await verify(
+            master,
+            fc,  # type: ignore[arg-type]
+            storage_backend,
+            "badpackage",
+            tmp_path,
+            all_files,
+            FakeArgs(),  # type: ignore[arg-type]
+        )
+
+    assert all_files == []
+    assert "metadata:" in caplog.text
+    assert "into a Package" not in caplog.text
 
 
 @pytest.mark.asyncio

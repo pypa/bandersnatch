@@ -167,13 +167,15 @@ async def verify(
         with storage_backend.open_file(json_full_path, text=True) as jfp:
             metadata = json.load(jfp)
     except json.decoder.JSONDecodeError as jde:
-        logger.error(f"Failed to load {json_full_path}: {jde} - skipping ...")
+        logger.error(f"Failed to load {json_full_path} metadata: {jde} - skipping ...")
         return
 
     try:
         pkg = Package.from_metadata(metadata)
     except ValueError as e:
-        logger.error(f"Failed to load {json_full_path}: {e} - skipping ...")
+        logger.error(
+            f"Failed to load {json_full_path} into a Package: {e} - skipping ..."
+        )
         return
 
     # apply releases filter plugins like class Package

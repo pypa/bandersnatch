@@ -14,9 +14,19 @@ def test_package_from_metadata(package_json: dict) -> None:
     assert pkg.metadata is package_json
 
 
-def test_package_from_metadata_invalid() -> None:
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"releases": {}},
+        {"info": {"name": "foo"}},
+        {"info": {"name": 123}, "releases": {}},
+        {"info": "not-a-dict", "releases": {}},
+        {"info": {"name": "foo"}, "releases": []},
+    ],
+)
+def test_package_from_metadata_invalid(metadata: dict) -> None:
     with pytest.raises(ValueError, match="Invalid PyPI metadata"):
-        Package.from_metadata({"releases": {}})
+        Package.from_metadata(metadata)
 
 
 def test_package_accessors(package: Package) -> None:
