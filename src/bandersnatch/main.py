@@ -81,7 +81,7 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
         "--dry-run",
         action="store_true",
         default=False,
-        help="Do not download or delete files",
+        help="Do not download or delete files; log a dry-run summary at the end",
     )
     v.add_argument(
         "--json-update",

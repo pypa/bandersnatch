@@ -9,11 +9,13 @@ from argparse import Namespace
 from asyncio.queues import Queue
 from collections.abc import Sequence
 from configparser import ConfigParser
+from dataclasses import dataclass
 from pathlib import Path
 from sys import stderr
 from urllib.parse import urlparse
 
 import aiohttp
+from humanfriendly import format_size
 
 from .filter import LoadedFilters
 from .master import Master
@@ -23,6 +25,60 @@ from .storage import PATH_TYPES, FileSpec, Storage, storage_backend_plugins
 from .utils import convert_url_to_path
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DryRunDownloadStats:
+    bad_count: int = 0
+    bad_bytes: int = 0
+    unknown_size_count: int = 0
+
+    def __add__(self, other: "DryRunDownloadStats") -> "DryRunDownloadStats":
+        return DryRunDownloadStats(
+            self.bad_count + other.bad_count,
+            self.bad_bytes + other.bad_bytes,
+            self.unknown_size_count + other.unknown_size_count,
+        )
+
+    def record_bad(self, size: int) -> None:
+        if size == 0:
+            self.unknown_size_count += 1
+        self.bad_count += 1
+        self.bad_bytes += size
+
+
+def _parse_release_file_size(jpkg: dict, json_file: str) -> int | None:
+    """Return release file size in bytes, or None if the metadata value is invalid."""
+    raw_size = jpkg.get("size")
+    if raw_size is None:
+        return 0
+    try:
+        size = int(raw_size)
+    except (TypeError, ValueError):
+        logger.error(
+            f"Invalid size {raw_size!r} for {jpkg.get('filename', '?')} in {json_file} "
+            "- skipping release file"
+        )
+        return None
+    if size < 0:
+        logger.error(
+            f"Invalid size {raw_size!r} for {jpkg.get('filename', '?')} in {json_file} "
+            "- skipping release file"
+        )
+        return None
+    return size
+
+
+def log_dry_run_download_summary(stats: DryRunDownloadStats) -> None:
+    if stats.bad_count == 0:
+        logger.info("[DRY RUN] No files would be downloaded")
+        return
+    formatted_size = format_size(stats.bad_bytes, binary=True)
+    logger.info(f"[DRY RUN] Would download {stats.bad_count} files (~{formatted_size})")
+    if stats.unknown_size_count:
+        logger.warning(
+            f"[DRY RUN] {stats.unknown_size_count} files had unknown sizes in metadata"
+        )
 
 
 def on_error(stop_on_error: bool, exception: BaseException, package: str) -> None:
@@ -109,7 +165,7 @@ async def delete_unowned_files(
         return 0
 
     if dry_run:
-        print("[DRY RUN] Unowned file list:", file=stderr)
+        print(f"[DRY RUN] {len(unowned_files)} unowned files:", file=stderr)
         for f in sorted(unowned_files):
             print(f)
     else:
@@ -136,6 +192,7 @@ async def verify(
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
     releases_key: str = "releases",
+    dry_run_stats: DryRunDownloadStats | None = None,
 ) -> None:
     """
     Verify a single package JSON file and remediate any missing/corrupt files.
@@ -187,6 +244,9 @@ async def verify(
     specs: list[FileSpec] = []
     for release_version in pkg.releases:
         for jpkg in pkg.releases[release_version]:
+            file_size = _parse_release_file_size(jpkg, json_file)
+            if file_size is None:
+                continue
             raw_time = jpkg.get("upload_time_iso_8601", "1970-01-01T00:00:00Z")
             upload_time = datetime.datetime.fromisoformat(
                 raw_time.replace("Z", "+00:00")
@@ -195,7 +255,7 @@ async def verify(
                 path=mirror_base_path / "web" / convert_url_to_path(jpkg["url"]),
                 url=jpkg["url"],
                 filename=jpkg["filename"],
-                size=int(jpkg.get("size", 0)),
+                size=file_size,
                 digests=jpkg.get("digests", {}),
                 upload_time=upload_time,
             )
@@ -207,6 +267,8 @@ async def verify(
     async for bad_spec in storage_backend.verify_files(specs, dry_run=args.dry_run):
         if args.dry_run:
             logger.info(f"[DRY RUN] {bad_spec.filename} would be fetched")
+            if dry_run_stats is not None:
+                dry_run_stats.record_bad(bad_spec.size)
         else:
             try:
                 await fetch_and_store(
@@ -240,12 +302,13 @@ async def verify_producer(
     json_files: list[str],
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
-) -> None:
+) -> DryRunDownloadStats | None:
     queue: asyncio.Queue = asyncio.Queue()
     for jf in json_files:
         await queue.put(jf)
 
-    async def consume(q: Queue) -> None:
+    async def consume(q: Queue) -> DryRunDownloadStats:
+        local_stats = DryRunDownloadStats()
         while not q.empty():
             json_file = await q.get()
             await verify(
@@ -257,11 +320,16 @@ async def verify_producer(
                 all_package_files,
                 args,
                 executor,
+                dry_run_stats=local_stats if args.dry_run else None,
             )
+        return local_stats
 
-    await asyncio.gather(
+    consumer_results = await asyncio.gather(
         *[consume(queue)] * config.getint("mirror", "verifiers", fallback=3)
     )
+    if args.dry_run:
+        return sum(consumer_results, DryRunDownloadStats())
+    return None
 
 
 async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
@@ -302,7 +370,7 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
         config.getfloat("mirror", "timeout"),
         config.getfloat("mirror", "global-timeout", fallback=None),
     ) as master:
-        await verify_producer(
+        producer_results = await verify_producer(
             master,
             config,
             storage_backend,
@@ -312,6 +380,9 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
             args,
             executor,
         )
+
+    if producer_results is not None:
+        log_dry_run_download_summary(producer_results)
 
     if not args.delete:
         return 0
