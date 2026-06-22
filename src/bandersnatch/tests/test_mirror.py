@@ -10,6 +10,7 @@ from typing import Any, NoReturn
 
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 
 from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
@@ -1006,6 +1007,47 @@ async def test_package_sync_does_not_touch_existing_local_file(
     # Only compare the relevant stat fields
     assert old_stat.st_mtime == Path(pkg_file_path_str).stat().st_mtime
     assert old_stat.st_ctime == Path(pkg_file_path_str).stat().st_ctime
+
+
+@pytest.mark.asyncio
+async def test_download_file_stat_mode_refreshes_stale_upload_time(
+    tmpdir: Path,
+    master: Master,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+) -> None:
+    """With compare-method=stat, stale mtime is updated when content still matches."""
+    from datetime import UTC, datetime
+
+    monkeypatch.chdir(tmpdir)
+    mirror = BandersnatchMirror(tmpdir, master, compare_method="stat")
+    pkg_file_path = Path("web/packages/any/f/foo/foo.zip")
+    touch_files([pkg_file_path])
+    with pkg_file_path.open("wb") as f:
+        f.write(b"")
+
+    stale_mtime = datetime(2020, 1, 1, tzinfo=UTC).timestamp()
+    os.utime(pkg_file_path, (stale_mtime, stale_mtime))
+
+    fetch_mock = mocker.patch(
+        "bandersnatch.mirror.fetch_and_store",
+        new_callable=mock.AsyncMock,
+    )
+    expected_upload_time = datetime(2000, 2, 2, 1, 23, 45, 123456, tzinfo=UTC)
+    empty_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    result = await mirror.download_file(
+        "https://pypi.example.com/packages/any/f/foo/foo.zip",
+        "0",
+        expected_upload_time,
+        empty_sha256,
+    )
+
+    assert result is None
+    fetch_mock.assert_not_called()
+    assert pkg_file_path.stat().st_mtime == pytest.approx(
+        expected_upload_time.timestamp()
+    )
 
 
 @pytest.mark.asyncio

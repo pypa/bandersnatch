@@ -13,6 +13,7 @@ from collections import defaultdict
 from collections.abc import AsyncIterator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from enum import Enum
 from importlib.metadata import entry_points
 from typing import IO, Any, Protocol
 
@@ -48,6 +49,14 @@ class FileSpec:
 loaded_storage_plugins: dict[str, list["Storage"]] = defaultdict(list)
 
 logger = logging.getLogger("bandersnatch")
+
+
+class ReleaseFileStatus(Enum):
+    """Outcome of certifying a stored release file against expected attributes."""
+
+    CURRENT = "current"
+    MISSING = "missing"
+    MISMATCH = "mismatch"
 
 
 class StorageDirEntry(Protocol):
@@ -179,11 +188,87 @@ class Storage:
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO, None, None]:
         """Rewrite an existing file atomically to avoid programs running in
-        parallel to have race conditions while reading."""
+        parallel to have race conditions while reading.
+
+        Storage plugins must accept ``file_metadata`` (even if ignored) so mirror
+        sync can attach backend-specific certifying metadata on upload.
+        """
         raise NotImplementedError
+
+    def build_release_file_metadata(
+        self,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+    ) -> dict[str, str] | None:
+        """Return object metadata to attach at upload time, or None if unsupported."""
+        return None
+
+    def stamps_metadata_on_write(self) -> bool:
+        """True when ``rewrite(..., file_metadata=...)`` stores metadata on upload."""
+        return False
+
+    def release_file_is_current(
+        self,
+        path: PATH_TYPES,
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str = "hash",
+        digest_name: str = "sha256",
+    ) -> bool:
+        """
+        Return True when the stored release file matches expected attributes and
+        a download can be skipped.
+
+        When ``compare_method`` is ``stat`` and upload time differs but content
+        still matches ``digest``, metadata is refreshed in place (via
+        ``set_upload_time``) and True is returned.
+
+        If the file exists but content does not match, it is deleted and False
+        is returned.
+        """
+        if not self.exists(path):
+            return False
+        if size and self.get_file_size(path) != size:
+            logger.info(
+                f"File size mismatch with local file {path}: expected {size} "
+                f"got {self.get_file_size(path)}, will re-download."
+            )
+            self.delete_file(path)
+            return False
+        if compare_method == "stat":
+            if self.get_upload_time(path) == upload_time:
+                return True
+            existing_hash = self.get_hash(path, digest_name)
+            if existing_hash != digest:
+                logger.info(
+                    "File upload time and checksum mismatch with local "
+                    f"file {path}: expected {digest} got {existing_hash}, "
+                    "will re-download."
+                )
+                self.delete_file(path)
+                return False
+            logger.info(f"Updating file upload time of local file {path}.")
+            self.set_upload_time(path, upload_time)
+            return True
+        existing_hash = self.get_hash(path, digest_name)
+        if existing_hash == digest:
+            return True
+        logger.info(
+            f"File checksum mismatch with local file {path}: expected "
+            f"{digest} got {existing_hash}, will re-download."
+        )
+        self.delete_file(path)
+        return False
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:

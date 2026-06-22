@@ -495,3 +495,30 @@ def test_get_hash(
         storage_env.plugin.get_hash(path, function=hash_func)
         == expected_hashes[hash_func]
     )
+
+
+def test_release_file_is_current_stat_refreshes_upload_time(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Stat mode mirror skip refreshes mtime when content hash still matches."""
+    import datetime
+    import os
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "stat_refresh.bin"
+    )
+    path.write_bytes(b"sample payload for stat refresh")
+    stale = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC).timestamp()
+    os.utime(path, (stale, stale))
+
+    expected_time = datetime.datetime(2025, 6, 1, 12, 0, tzinfo=datetime.UTC)
+    digest = storage_env.plugin.get_hash(path, "sha256")
+
+    assert storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size,
+        upload_time=expected_time,
+        digest=digest,
+        compare_method="stat",
+    )
+    assert storage_env.plugin.get_upload_time(path) == expected_time
