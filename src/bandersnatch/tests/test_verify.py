@@ -1,5 +1,6 @@
 import configparser
 import json
+import logging
 import os
 import sys
 import unittest.mock as mock
@@ -20,11 +21,14 @@ from bandersnatch.utils import convert_url_to_path, find
 from bandersnatch_storage_plugins.filesystem import FilesystemStorage
 
 from bandersnatch.verify import (  # isort:skip
+    DownloadStats,
     get_latest_json,
     delete_unowned_files,
+    log_download_summary,
     metadata_verify,
     verify_producer,
     verify,
+    _parse_release_file_size,
 )
 
 
@@ -46,8 +50,43 @@ def _make_fs_storage(directory: Path | str) -> FilesystemStorage:
     return FilesystemStorage(config=cfg)
 
 
+def _verify_mirror_config(
+    tmp_path: Path, verifiers: str = "1"
+) -> configparser.ConfigParser:
+    """Full mirror config for verify_producer() / metadata_verify() integration tests."""
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "storage-backend": "filesystem",
+                "directory": str(tmp_path),
+                "master": "https://unittest.org",
+                "timeout": "10",
+                "global-timeout": "1800",
+                "workers": "1",
+                "verifiers": verifiers,
+                "compare-method": "hash",
+                "digest_name": "sha256",
+                "stop-on-error": "false",
+            }
+        }
+    )
+    return cfg
+
+
+class VerifyArgs:
+    dry_run = True
+    json_update = False
+    delete = False
+    workers = 1
+
+
 async def do_nothing(*args: Any, **kwargs: Any) -> None:
     pass
+
+
+async def do_nothing_stats(*args: Any, **kwargs: Any) -> DownloadStats:
+    return DownloadStats()
 
 
 async def fake_fetch(_: str, save_path: Path, *__: Any) -> None:
@@ -182,10 +221,75 @@ async def test_verify_producer(monkeypatch: pytest.MonkeyPatch) -> None:
     storage_backend = _make_fs_storage(fm.mirror_base)
     master = Master("https://unittest.org")
     json_files = ["web/json/bandersnatch", "web/json/black"]
-    monkeypatch.setattr(bandersnatch.verify, "verify", do_nothing)
+    processed: list[str] = []
+
+    async def track_verify(*args: Any, **kwargs: Any) -> None:
+        processed.append(args[3])
+
+    monkeypatch.setattr(bandersnatch.verify, "verify", track_verify)
     await verify_producer(
         master, fc, storage_backend, [], fm.mirror_base, json_files, mock.Mock(), None
     )
+    assert sorted(processed) == sorted(json_files)
+
+
+@pytest.mark.asyncio
+async def test_verify_producer_distributes_work_with_multiple_verifiers(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Each package is verified exactly once with multiple concurrent consumers."""
+    fc = _verify_mirror_config(tmp_path, verifiers="3")
+    storage_backend = FilesystemStorage(config=fc)
+    json_files = ["pkgone", "pkgtwo", "pkgthree"]
+    processed: list[str] = []
+
+    async def track_verify(*args: Any, **kwargs: Any) -> None:
+        processed.append(args[3])
+
+    monkeypatch.setattr(bandersnatch.verify, "verify", track_verify)
+    await verify_producer(
+        Master("https://unittest.org"),
+        fc,
+        storage_backend,
+        [],
+        tmp_path,
+        json_files,
+        mock.Mock(),
+        None,
+    )
+
+    assert sorted(processed) == sorted(json_files)
+    assert len(processed) == len(json_files)
+
+
+@pytest.mark.asyncio
+async def test_verify_producer_extra_verifiers_finish_cleanly(
+    tmp_path: Path,
+) -> None:
+    """Idle consumers exit when the queue is drained (verifiers > package count)."""
+    import hashlib
+
+    fc = _verify_mirror_config(tmp_path, verifiers="5")
+    storage_backend = FilesystemStorage(config=fc)
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    url = "https://files.pythonhosted.org/packages/aa/bb/only.whl"
+    sha256 = hashlib.sha256(b"content").hexdigest()
+    (jsonpath / "onlypkg").write_text(_pkg_json("only.whl", url, sha256, 100))
+
+    stats = await verify_producer(
+        Master("https://unittest.org"),
+        fc,
+        storage_backend,
+        [],
+        tmp_path,
+        ["onlypkg"],
+        VerifyArgs(),  # type: ignore[arg-type]
+        None,
+    )
+
+    assert stats == DownloadStats(file_count=1, total_bytes=100, unknown_size_count=0)
 
 
 def test_fake_mirror() -> None:
@@ -218,7 +322,7 @@ web{0}simple{0}black{0}index.html""".format(os.sep)
 
 
 @pytest.mark.asyncio
-async def test_delete_unowned_files() -> None:
+async def test_delete_unowned_files(caplog: pytest.LogCaptureFixture) -> None:
     executor = ThreadPoolExecutor(max_workers=2)
     fm = FakeMirror("_test_delete_files")
     storage_backend = _make_fs_storage(fm.mirror_base)
@@ -227,12 +331,14 @@ async def test_delete_unowned_files() -> None:
         fm.mirror_base / "web/packages/8f/1a/1aa0/black-2019.6.9.tar.gz",
         fm.mirror_base / "web/packages/8f/1a/6969/bandersnatch-0.6.9.tar.gz",
     ]
-    await delete_unowned_files(
-        storage_backend, fm.mirror_base, executor, all_pkgs, True
-    )
-    await delete_unowned_files(
-        storage_backend, fm.mirror_base, executor, all_pkgs, False
-    )
+    with caplog.at_level(logging.INFO):
+        await delete_unowned_files(
+            storage_backend, fm.mirror_base, executor, all_pkgs, True
+        )
+        await delete_unowned_files(
+            storage_backend, fm.mirror_base, executor, all_pkgs, False
+        )
+    assert "Deleting 1 unowned files" in caplog.text
     deleted_path = fm.mirror_base / "web/packages/8f/1a/6969/black-2018.6.9.tar.gz"
     assert not deleted_path.exists()
     fm.clean_up()
@@ -257,7 +363,7 @@ async def test_metadata_verify(monkeypatch: pytest.MonkeyPatch) -> None:
 
     fa = FakeArgs()
     fc = FakeConfig()
-    monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing)
+    monkeypatch.setattr(bandersnatch.verify, "verify_producer", do_nothing_stats)
     monkeypatch.setattr(bandersnatch.verify, "delete_unowned_files", do_nothing)
     monkeypatch.setattr(Path, "iterdir", some_paths)
     await metadata_verify(fc, fa)  # type: ignore
@@ -472,7 +578,7 @@ def test_iter_package_files(tmp_path: Path) -> None:
     assert found == {f1, f2}
 
 
-def _pkg_json(filename: str, url: str, sha256: str, size: int) -> str:
+def _pkg_json(filename: str, url: str, sha256: str, size: int | None) -> str:
     """Minimal PyPI-style JSON for a single-file package."""
     return json.dumps(
         {
@@ -756,6 +862,447 @@ def test_delete_package_file_removes_empty_parent(tmp_path: Path) -> None:
 
     assert not pkg_file.exists()
     assert not pkg_dir.exists()
+
+
+def test_parse_release_file_size() -> None:
+    assert _parse_release_file_size({"filename": "a.whl", "size": 1024}, "pkg") == 1024
+    assert _parse_release_file_size({"filename": "a.whl"}, "pkg") is None
+    assert _parse_release_file_size({"filename": "a.whl", "size": "bad"}, "pkg") is None
+    assert _parse_release_file_size({"filename": "a.whl", "size": -5}, "pkg") is None
+
+
+def test_download_stats_addition() -> None:
+    left = DownloadStats(file_count=1, total_bytes=100, unknown_size_count=1)
+    right = DownloadStats(file_count=2, total_bytes=250, unknown_size_count=0)
+    total = left + right
+    assert total == DownloadStats(file_count=3, total_bytes=350, unknown_size_count=1)
+
+
+def test_log_download_summary(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.INFO):
+        log_download_summary(DownloadStats(), dry_run=True)
+    assert "[DRY RUN] No files would be downloaded" in caplog.text
+
+    caplog.clear()
+    with caplog.at_level(logging.INFO):
+        log_download_summary(
+            DownloadStats(file_count=2, total_bytes=2048),
+            dry_run=True,
+        )
+    assert "Would download 2 files" in caplog.text
+    assert "~2 KiB" in caplog.text
+    assert "unknown sizes" not in caplog.text
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        log_download_summary(
+            DownloadStats(
+                file_count=1,
+                total_bytes=0,
+                unknown_size_count=1,
+            ),
+            dry_run=True,
+        )
+
+    assert "unknown sizes in metadata" in caplog.text
+
+
+def test_log_download_summary_live_run(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.INFO):
+        log_download_summary(
+            DownloadStats(file_count=2, total_bytes=2048),
+            dry_run=False,
+        )
+
+    assert "[DRY RUN]" not in caplog.text
+    assert "Downloaded 2 files (2 KiB)" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_verify_dry_run_accumulates_download_stats(tmp_path: Path) -> None:
+    """verify() adds missing release files to stats when dry_run=True."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    class FakeArgs:
+        dry_run = True
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    stats = DownloadStats()
+
+    await verify(
+        master,
+        fc,  # type: ignore[arg-type]
+        storage_backend,
+        "mypackage",
+        tmp_path,
+        [],
+        FakeArgs(),  # type: ignore[arg-type]
+        stats=stats,
+    )
+
+    assert stats == DownloadStats(
+        file_count=1, total_bytes=len(content), unknown_size_count=0
+    )
+
+
+@pytest.mark.asyncio
+async def test_verify_dry_run_unknown_size_in_stats(tmp_path: Path) -> None:
+    """Release files missing size metadata are skipped."""
+    import hashlib
+
+    sha256 = hashlib.sha256(b"wheel content").hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, None)
+    )
+
+    class FakeArgs:
+        dry_run = True
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    stats = DownloadStats()
+
+    await verify(
+        master,
+        fc,  # type: ignore[arg-type]
+        storage_backend,
+        "mypackage",
+        tmp_path,
+        [],
+        FakeArgs(),  # type: ignore[arg-type]
+        stats=stats,
+    )
+
+    assert stats == DownloadStats()
+
+
+@pytest.mark.asyncio
+async def test_verify_skips_invalid_release_file_size(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """verify() skips release files whose size metadata is not a valid integer."""
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        json.dumps(
+            {
+                "info": {"name": "mypackage"},
+                "releases": {
+                    "1.0": [
+                        {
+                            "filename": "mypackage-1.0.whl",
+                            "url": (
+                                "https://files.pythonhosted.org/packages/aa/bb/cc/"
+                                "mypackage-1.0.whl"
+                            ),
+                            "size": "not-a-number",
+                            "digests": {"sha256": "abc"},
+                            "upload_time_iso_8601": "2024-01-01T00:00:00Z",
+                        }
+                    ]
+                },
+            }
+        )
+    )
+
+    class FakeArgs:
+        dry_run = True
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    all_files: list[PATH_TYPES] = []
+    stats = DownloadStats()
+
+    with caplog.at_level(logging.ERROR):
+        await verify(
+            master,
+            fc,  # type: ignore[arg-type]
+            storage_backend,
+            "mypackage",
+            tmp_path,
+            all_files,
+            FakeArgs(),  # type: ignore[arg-type]
+            stats=stats,
+        )
+
+    assert all_files == []
+    assert stats == DownloadStats()
+    assert "Invalid size" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_verify_producer_merges_dry_run_download_stats(
+    tmp_path: Path,
+) -> None:
+    """verify_producer() merges per-consumer dry-run stats across verifiers."""
+    import hashlib
+
+    fc = _verify_mirror_config(tmp_path, verifiers="2")
+    storage_backend = FilesystemStorage(config=fc)
+    master = Master("https://unittest.org")
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    packages = (
+        ("pkgone", 1000),
+        ("pkgtwo", 2500),
+    )
+    for name, size in packages:
+        url = f"https://files.pythonhosted.org/packages/aa/bb/{name}.whl"
+        sha256 = hashlib.sha256(b"content").hexdigest()
+        (jsonpath / name).write_text(_pkg_json(f"{name}.whl", url, sha256, size))
+
+    stats = await verify_producer(
+        master,
+        fc,
+        storage_backend,
+        [],
+        tmp_path,
+        [name for name, _ in packages],
+        VerifyArgs(),  # type: ignore[arg-type]
+        None,
+    )
+
+    assert stats == DownloadStats(file_count=2, total_bytes=3500, unknown_size_count=0)
+
+
+@pytest.mark.asyncio
+async def test_verify_producer_returns_empty_stats_without_dry_run(
+    tmp_path: Path,
+) -> None:
+    fc = _verify_mirror_config(tmp_path)
+    storage_backend = FilesystemStorage(config=fc)
+
+    class LiveRunArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    stats = await verify_producer(
+        Master("https://unittest.org"),
+        fc,
+        storage_backend,
+        [],
+        tmp_path,
+        [],
+        LiveRunArgs(),  # type: ignore[arg-type]
+        None,
+    )
+
+    assert stats == DownloadStats()
+
+
+@pytest.mark.asyncio
+async def test_verify_producer_dry_run_no_downloads_when_files_valid(
+    tmp_path: Path,
+) -> None:
+    """verify_producer() reports zero downloads when all expected files exist."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+    artifact = tmp_path / "web" / convert_url_to_path(url)
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(content)
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    fc = _verify_mirror_config(tmp_path)
+    storage_backend = FilesystemStorage(config=fc)
+
+    stats = await verify_producer(
+        Master("https://unittest.org"),
+        fc,
+        storage_backend,
+        [],
+        tmp_path,
+        ["mypackage"],
+        VerifyArgs(),  # type: ignore[arg-type]
+        None,
+    )
+
+    assert stats == DownloadStats()
+
+
+@pytest.mark.asyncio
+async def test_verify_records_stats_when_not_dry_run(tmp_path: Path) -> None:
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    class LiveRunArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    stats = DownloadStats()
+
+    with mock.patch("bandersnatch.verify.fetch_and_store", return_value=len(content)):
+        await verify(
+            master,
+            fc,  # type: ignore[arg-type]
+            storage_backend,
+            "mypackage",
+            tmp_path,
+            [],
+            LiveRunArgs(),  # type: ignore[arg-type]
+            stats=stats,
+        )
+
+    assert stats == DownloadStats(
+        file_count=1,
+        total_bytes=len(content),
+        unknown_size_count=0,
+    )
+
+
+@pytest.mark.asyncio
+async def test_metadata_verify_dry_run_logs_download_summary(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """metadata_verify() logs the dry-run download summary after verify_producer()."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    cfg = _verify_mirror_config(tmp_path)
+
+    class Args:
+        dry_run = True
+        delete = False
+        json_update = False
+        workers = 1
+
+    with caplog.at_level(logging.INFO):
+        assert (await metadata_verify(cfg, Args())) == 0  # type: ignore[arg-type]
+
+    assert "Would download 1 files (~" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_metadata_verify_dry_run_no_downloads_when_files_valid(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """metadata_verify() logs zero-download summary when mirror is complete."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+    artifact = tmp_path / "web" / convert_url_to_path(url)
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(content)
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    class Args:
+        dry_run = True
+        delete = False
+        json_update = False
+        workers = 1
+
+    with caplog.at_level(logging.INFO):
+        assert (
+            await metadata_verify(_verify_mirror_config(tmp_path), Args())  # type: ignore[arg-type]
+        ) == 0
+
+    assert "[DRY RUN] No files would be downloaded" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_metadata_verify_live_run_logs_download_summary(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """metadata_verify() logs the live-run download summary after verify_producer()."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(
+        _pkg_json("mypackage-1.0.whl", url, sha256, len(content))
+    )
+
+    cfg = _verify_mirror_config(tmp_path)
+
+    class Args:
+        dry_run = False
+        delete = False
+        json_update = False
+        workers = 1
+
+    with caplog.at_level(logging.INFO):
+        with mock.patch(
+            "bandersnatch.verify.fetch_and_store", return_value=len(content)
+        ):
+            assert (await metadata_verify(cfg, Args())) == 0  # type: ignore[arg-type]
+
+    assert "Downloaded 1 files (" in caplog.text
+    assert "[DRY RUN]" not in caplog.text
 
 
 if __name__ == "__main__":
