@@ -849,7 +849,8 @@ async def fetch_and_store(
     upload_time: datetime.datetime,
     chunk_size: int = 64 * 1024,
     digest_name: str = "sha256",
-) -> None:
+    return_size: bool = False,
+) -> int | None:
     """
     Fetch from url and store in path.
     """
@@ -873,6 +874,7 @@ async def fetch_and_store(
         digest, upload_time, digest_name
     )
     digest_mismatch = False
+    size = 0
     try:
         with storage_backend.rewrite(path, "wb", file_metadata=file_metadata) as f:
             while True:
@@ -881,6 +883,7 @@ async def fetch_and_store(
                     break
                 checksum.update(chunk)
                 f.write(chunk)
+                size += len(chunk)
 
             existing_hash = checksum.hexdigest()
             if existing_hash != digest:
@@ -904,6 +907,10 @@ async def fetch_and_store(
 
     if not storage_backend.stamps_metadata_on_write():
         storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
+
+    if return_size:
+        return size
+    return None
 
 
 async def _setup_diff_file(
