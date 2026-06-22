@@ -895,7 +895,8 @@ async def fetch_and_store(
     upload_time: datetime.datetime,
     chunk_size: int = 64 * 1024,
     digest_name: str = "sha256",
-) -> None:
+    return_size: bool = False,
+) -> int | None:
     """
     Fetch from url and store in path.
     """
@@ -915,6 +916,7 @@ async def fetch_and_store(
     response = await r_generator.asend(None)
 
     checksum = hashlib.new(digest_name)
+    size = 0
     with storage_backend.rewrite(path, "wb") as f:
         while True:
             chunk = await response.content.read(chunk_size)
@@ -922,6 +924,7 @@ async def fetch_and_store(
                 break
             checksum.update(chunk)
             f.write(chunk)
+            size += len(chunk)
 
         existing_hash = checksum.hexdigest()
         if existing_hash != digest:
@@ -935,6 +938,10 @@ async def fetch_and_store(
 
     # set upload time and hash to avoid downloading again in next sync
     storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
+
+    if return_size:
+        return size
+    return None
 
 
 async def _setup_diff_file(

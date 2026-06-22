@@ -13,7 +13,7 @@
 - Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
 - Add new `versions_count_project_metadata` filter plugin to filter packages by total version count `PR #2281`
 - Update get_hash() method for filesystem storage backend to use hashlib.file_digest() `PR #2288`
-- `bandersnatch verify --dry-run` reports the total number and size of release files that would be downloaded; warns when metadata omits file sizes. `PR #2290`
+- `bandersnatch verify` logs the count and total size of release files it downloads (or would download with `--dry-run`); release files without a usable `size` in metadata are skipped; `--delete` dry-run and delete actions log via the application logger. `PR #2290`
 
 ## CI / test
 

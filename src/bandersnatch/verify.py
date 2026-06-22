@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from configparser import ConfigParser
 from dataclasses import dataclass
 from pathlib import Path
-from sys import stderr
 from urllib.parse import urlparse
 
 import aiohttp
@@ -28,30 +27,33 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class DryRunDownloadStats:
-    bad_count: int = 0
-    bad_bytes: int = 0
+class DownloadStats:
+    file_count: int = 0
+    total_bytes: int = 0
     unknown_size_count: int = 0
 
-    def __add__(self, other: "DryRunDownloadStats") -> "DryRunDownloadStats":
-        return DryRunDownloadStats(
-            self.bad_count + other.bad_count,
-            self.bad_bytes + other.bad_bytes,
+    def __add__(self, other: "DownloadStats") -> "DownloadStats":
+        return DownloadStats(
+            self.file_count + other.file_count,
+            self.total_bytes + other.total_bytes,
             self.unknown_size_count + other.unknown_size_count,
         )
 
-    def record_bad(self, size: int) -> None:
-        if size == 0:
+    def record_size(self, size: int | None) -> None:
+        self.file_count += 1
+
+        if size is None:
             self.unknown_size_count += 1
-        self.bad_count += 1
-        self.bad_bytes += size
+            return
+
+        self.total_bytes += size
 
 
 def _parse_release_file_size(jpkg: dict, json_file: str) -> int | None:
     """Return release file size in bytes, or None if the metadata value is invalid."""
     raw_size = jpkg.get("size")
     if raw_size is None:
-        return 0
+        return None
     try:
         size = int(raw_size)
     except (TypeError, ValueError):
@@ -69,16 +71,29 @@ def _parse_release_file_size(jpkg: dict, json_file: str) -> int | None:
     return size
 
 
-def log_dry_run_download_summary(stats: DryRunDownloadStats) -> None:
-    if stats.bad_count == 0:
-        logger.info("[DRY RUN] No files would be downloaded")
-        return
-    formatted_size = format_size(stats.bad_bytes, binary=True)
-    logger.info(f"[DRY RUN] Would download {stats.bad_count} files (~{formatted_size})")
-    if stats.unknown_size_count:
-        logger.warning(
-            f"[DRY RUN] {stats.unknown_size_count} files had unknown sizes in metadata"
+def log_download_summary(stats: DownloadStats, dry_run: bool = False) -> None:
+    prefix = "[DRY RUN] " if dry_run else ""
+
+    if stats.file_count == 0:
+        message = (
+            "No files would be downloaded" if dry_run else "No files were downloaded"
         )
+        logger.info(f"{prefix}{message}")
+        return
+
+    formatted_size = format_size(stats.total_bytes, binary=True)
+
+    action = (
+        f"Would download {stats.file_count} files (~{formatted_size})"
+        if dry_run
+        else f"Downloaded {stats.file_count} files ({formatted_size})"
+    )
+
+    logger.info(f"{prefix}{action}")
+
+    if stats.unknown_size_count:
+        warning = f"{stats.unknown_size_count} files had unknown sizes in metadata"
+        logger.warning(f"{prefix}{warning}")
 
 
 def on_error(stop_on_error: bool, exception: BaseException, package: str) -> None:
@@ -165,10 +180,11 @@ async def delete_unowned_files(
         return 0
 
     if dry_run:
-        print(f"[DRY RUN] {len(unowned_files)} unowned files:", file=stderr)
+        logger.info(f"[DRY RUN] {len(unowned_files)} unowned files:")
         for f in sorted(unowned_files):
-            print(f)
+            logger.info(f)
     else:
+        logger.info(f"Deleting {len(unowned_files)} unowned files")
         del_coros = [
             loop.run_in_executor(
                 executor,
@@ -182,30 +198,20 @@ async def delete_unowned_files(
     return 0
 
 
-async def verify(
+async def load_package(
     master: Master,
-    config: ConfigParser,
     storage_backend: Storage,
     json_file: str,
     mirror_base_path: Path,
-    all_package_files: list[PATH_TYPES],
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
-    releases_key: str = "releases",
-    dry_run_stats: DryRunDownloadStats | None = None,
-) -> None:
-    """
-    Verify a single package JSON file and remediate any missing/corrupt files.
+    stop_on_error: bool = False,
+) -> Package | None:
 
-    1. Caluclates expected release files from the JSON file
-    2. Calls storage backend to verify the files and returns any missing or corrupt files
-    3. Downloads those files and stores them using the storage backend
-    """
     json_base = mirror_base_path / "web" / "json"
     json_full_path = json_base / json_file
+
     logger.info(f"Parsing {json_file}")
-    stop_on_error = config.getboolean("mirror", "stop-on-error")
-    digest_name = config.get("mirror", "digest_name", fallback="sha256")
 
     if args.json_update:
         if not args.dry_run:
@@ -218,14 +224,14 @@ async def verify(
 
     if not storage_backend.exists(json_full_path):
         logger.debug(f"Not trying to sync package as {json_full_path} does not exist")
-        return
+        return None
 
     try:
         with storage_backend.open_file(json_full_path, text=True) as jfp:
             metadata = json.load(jfp)
     except json.decoder.JSONDecodeError as jde:
         logger.error(f"Failed to load {json_full_path} metadata: {jde} - skipping ...")
-        return
+        return None
 
     try:
         pkg = Package.from_metadata(metadata)
@@ -233,12 +239,50 @@ async def verify(
         logger.error(
             f"Failed to load {json_full_path} into a Package: {e} - skipping ..."
         )
-        return
+        return None
 
     # apply releases filter plugins like class Package
     loaded_filters = LoadedFilters()
     pkg.filter_all_releases_files(loaded_filters.filter_release_file_plugins())
     pkg.filter_all_releases(loaded_filters.filter_release_plugins())
+
+    return pkg
+
+
+async def verify(
+    master: Master,
+    config: ConfigParser,
+    storage_backend: Storage,
+    json_file: str,
+    mirror_base_path: Path,
+    all_package_files: list[PATH_TYPES],
+    args: argparse.Namespace,
+    executor: concurrent.futures.ThreadPoolExecutor | None = None,
+    stats: DownloadStats | None = None,
+) -> None:
+    """
+    Verify a single package JSON file and remediate any missing/corrupt files.
+
+    1. Caluclates expected release files from the JSON file
+    2. Calls storage backend to verify the files and returns any missing or corrupt files
+    3. Downloads those files and stores them using the storage backend
+    """
+
+    stop_on_error = config.getboolean("mirror", "stop-on-error")
+    digest_name = config.get("mirror", "digest_name", fallback="sha256")
+
+    pkg = await load_package(
+        master,
+        storage_backend,
+        json_file,
+        mirror_base_path,
+        args,
+        executor,
+        stop_on_error,
+    )
+
+    if pkg is None:
+        return
 
     # Build the expected FileSpec list for all release files in this package.
     specs: list[FileSpec] = []
@@ -267,11 +311,11 @@ async def verify(
     async for bad_spec in storage_backend.verify_files(specs, dry_run=args.dry_run):
         if args.dry_run:
             logger.info(f"[DRY RUN] {bad_spec.filename} would be fetched")
-            if dry_run_stats is not None:
-                dry_run_stats.record_bad(bad_spec.size)
+            if stats is not None:
+                stats.record_size(bad_spec.size)
         else:
             try:
-                await fetch_and_store(
+                size = await fetch_and_store(
                     master,
                     storage_backend,
                     bad_spec.url,
@@ -279,7 +323,12 @@ async def verify(
                     bad_spec.digests.get(digest_name, ""),
                     bad_spec.upload_time,
                     digest_name=digest_name,
+                    return_size=True,
                 )
+
+                if size is not None and stats is not None:
+                    stats.record_size(size)
+
             except Exception as e:
                 logger.exception(
                     f"Error downloading {bad_spec.filename} ({bad_spec.url})"
@@ -302,15 +351,20 @@ async def verify_producer(
     json_files: list[str],
     args: argparse.Namespace,
     executor: concurrent.futures.ThreadPoolExecutor | None = None,
-) -> DryRunDownloadStats | None:
+) -> DownloadStats:
     queue: asyncio.Queue = asyncio.Queue()
     for jf in json_files:
         await queue.put(jf)
 
-    async def consume(q: Queue) -> DryRunDownloadStats:
-        local_stats = DryRunDownloadStats()
-        while not q.empty():
-            json_file = await q.get()
+    async def consume(q: Queue) -> DownloadStats:
+        local_stats = DownloadStats()
+
+        while True:
+            try:
+                json_file = q.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
             await verify(
                 master,
                 config,
@@ -320,16 +374,15 @@ async def verify_producer(
                 all_package_files,
                 args,
                 executor,
-                dry_run_stats=local_stats if args.dry_run else None,
+                stats=local_stats,
             )
         return local_stats
 
-    consumer_results = await asyncio.gather(
-        *[consume(queue)] * config.getint("mirror", "verifiers", fallback=3)
-    )
-    if args.dry_run:
-        return sum(consumer_results, DryRunDownloadStats())
-    return None
+    verifiers = config.getint("mirror", "verifiers", fallback=3)
+
+    consumer_results = await asyncio.gather(*(consume(queue) for _ in range(verifiers)))
+
+    return sum(consumer_results, DownloadStats())
 
 
 async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
@@ -381,8 +434,7 @@ async def metadata_verify(config: ConfigParser, args: Namespace) -> int:
             executor,
         )
 
-    if producer_results is not None:
-        log_dry_run_download_summary(producer_results)
+    log_download_summary(producer_results, args.dry_run)
 
     if not args.delete:
         return 0
