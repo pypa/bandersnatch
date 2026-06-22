@@ -1431,11 +1431,24 @@ async def test_fetch_and_store_success(tmp_path: Path) -> None:
     fake_master.get = _fake_get
 
     with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
-        await fetch_and_store(fake_master, storage, url, dest, sha256, upload_time)
+        assert (
+            await fetch_and_store(fake_master, storage, url, dest, sha256, upload_time)
+            is None
+        )
+        assert await fetch_and_store(
+            fake_master,
+            storage,
+            url,
+            dest,
+            sha256,
+            upload_time,
+            return_size=True,
+        ) == len(content)
 
     assert dest.exists()
     assert dest.read_bytes() == content
-    stamp_mock.assert_called_once_with(dest, sha256, upload_time, "sha256")
+    assert stamp_mock.call_count == 2
+    stamp_mock.assert_called_with(dest, sha256, upload_time, "sha256")
 
 
 @pytest.mark.asyncio
