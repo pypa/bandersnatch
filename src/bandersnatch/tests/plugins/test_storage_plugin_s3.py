@@ -1176,3 +1176,236 @@ async def test_fetch_and_store_s3_deletes_on_digest_mismatch(s3_mock: S3Path) ->
         await fetch_and_store(fake_master, backend, url, path, wrong_sha, upload_time)
 
     assert not backend.exists(path)
+
+
+def test_release_file_is_current_missing_returns_false(s3_mock: S3Path) -> None:
+    """A missing object is not current and must not be deleted."""
+    backend = s3.S3Storage()
+    path = f"/{s3_mock.bucket}/web/packages/aa/bb/does-not-exist.whl"
+
+    assert not backend.release_file_is_current(
+        path,
+        size=10,
+        upload_time=datetime(2024, 1, 1, tzinfo=UTC),
+        digest="abc" * 16,
+    )
+
+
+def test_release_file_is_current_hash_mismatch_deletes(s3_mock: S3Path) -> None:
+    """Wrong stored hash triggers delete and re-download."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/hash-mismatch.whl"
+    content = b"wheel payload"
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.stamp_file_metadata(path, "deadbeef" * 8, upload_time)
+
+    assert not backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=upload_time,
+        digest="abc" * 16,
+    )
+    assert not backend.exists(path)
+
+
+def test_release_file_is_current_size_mismatch_deletes(s3_mock: S3Path) -> None:
+    """Wrong ContentLength triggers delete and re-download."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"wheel payload"
+    path = f"/{bucket}/web/packages/aa/bb/size-mismatch.whl"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.stamp_file_metadata(path, digest, upload_time)
+
+    assert not backend.release_file_is_current(
+        path,
+        size=len(content) + 1,
+        upload_time=upload_time,
+        digest=digest,
+    )
+    assert not backend.exists(path)
+
+
+def test_upload_time_from_head_rejects_invalid_metadata(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    assert (
+        backend._upload_time_from_head({"Metadata": {"uploaded-at": "not-a-ts"}})
+        is None
+    )
+    assert backend._upload_time_from_head({"Metadata": {}}) is None
+
+
+def test_release_file_is_current_stat_legacy_backfills_hash_and_upload_time(
+    s3_mock: S3Path,
+) -> None:
+    """Stat mode with legacy object back-fills hash and refreshed upload time."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy stat wheel"
+    path = f"/{bucket}/web/packages/aa/bb/stat-legacy-backfill.whl"
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 6, 1, tzinfo=UTC)
+    sha = hashlib.sha256(content).hexdigest()
+    backend.write_file(path, content)
+    backend.set_upload_time(path, stored_time)
+
+    assert backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=expected_time,
+        digest=sha,
+        compare_method="stat",
+    )
+
+    assert backend.get_hash(path) == sha
+    assert backend.get_upload_time(path) == expected_time
+
+
+def test_certify_from_head_dry_run_logs_stat_refresh(
+    s3_mock: S3Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Dry-run certify logs when upload time would be refreshed."""
+    import logging
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/dry-run-stat.whl"
+    path = f"/{bucket}/{key}"
+    digest = "abc" * 16
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 1, 1, tzinfo=UTC)
+    backend.write_file(path, b"")
+    backend.stamp_file_metadata(path, digest, stored_time)
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    client = resource.meta.client
+    head = client.head_object(Bucket=bucket, Key=key)
+
+    from bandersnatch.storage import ReleaseFileStatus
+
+    with caplog.at_level(logging.DEBUG, logger="bandersnatch"):
+        status = backend._certify_from_head(
+            client,
+            bucket,
+            key,
+            head,
+            size=0,
+            upload_time=expected_time,
+            digest=digest,
+            compare_method="stat",
+            digest_name="sha256",
+            backfill=False,
+            would_backfill_label="dry-run-stat.whl",
+            refresh_stale_metadata=True,
+        )
+
+    assert status is ReleaseFileStatus.CURRENT
+    assert "[DRY RUN] would refresh upload time metadata" in caplog.text
+
+
+def test_rewrite_with_file_metadata_restores_explicit_config(
+    s3_mock: S3Path,
+) -> None:
+    """rewrite(..., file_metadata=...) restores per-path params after upload."""
+    import hashlib
+
+    config = mock_config("""
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = s3
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+signature_version = s3v4
+config_param_ServerSideEncryption = AES256
+""")
+    backend = s3.S3Storage(config=config)
+    backend.initialize_plugin()
+
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/config-meta.whl"
+    content = b"wheel with sse metadata"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 2, tzinfo=UTC)
+    metadata = backend.build_release_file_metadata(digest, upload_time)
+
+    with backend.rewrite(path, "wb", file_metadata=metadata) as fp:
+        fp.write(content)
+
+    assert backend.get_hash(path) == digest
+    assert backend.get_upload_time(path) == upload_time
+    assert backend._copy_object_kwargs()["ServerSideEncryption"] == "AES256"
+
+
+def test_release_file_is_current_accepts_str_path(s3_mock: S3Path) -> None:
+    """release_file_is_current coerces plain paths to the S3 path backend."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"str path wheel"
+    rel = f"/{bucket}/web/packages/aa/bb/str-path.whl"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(rel, content)
+    backend.stamp_file_metadata(rel, digest, upload_time)
+
+    assert backend.release_file_is_current(
+        rel,
+        size=len(content),
+        upload_time=upload_time,
+        digest=digest,
+    )
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_dry_run_logs_legacy_backfill(
+    s3_mock: S3Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Dry-run verify logs when legacy hash metadata would be back-filled."""
+    import hashlib
+    import logging
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-dry-run.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-dry-run.whl",
+        filename="legacy-dry-run.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="bandersnatch"):
+        bad = [s async for s in backend.verify_files([spec], dry_run=True)]
+
+    assert bad == []
+    assert "[DRY RUN] would back-fill sha256 metadata" in caplog.text

@@ -238,10 +238,12 @@ class Storage:
         """
         if not self.exists(path):
             return False
-        if size and self.get_file_size(path) != size:
+
+        actual_size = self.get_file_size(path)
+        if actual_size != size:
             logger.info(
                 f"File size mismatch with local file {path}: expected {size} "
-                f"got {self.get_file_size(path)}, will re-download."
+                f"got {actual_size}, will re-download."
             )
             self.delete_file(path)
             return False

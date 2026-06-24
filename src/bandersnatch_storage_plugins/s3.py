@@ -377,7 +377,7 @@ class S3Storage(StoragePlugin):
         would_backfill_label: str | None = None,
         refresh_stale_metadata: bool = False,
     ) -> ReleaseFileStatus:
-        if size and head["ContentLength"] != size:
+        if head["ContentLength"] != size:
             return ReleaseFileStatus.MISMATCH
 
         stat_upload_stale = False
