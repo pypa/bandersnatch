@@ -26,7 +26,7 @@ from s3path.accessor import _generate_prefix
 if TYPE_CHECKING:
     from s3path.accessor import _S3DirEntry
 
-from bandersnatch.storage import PATH_TYPES, FileSpec, StoragePlugin
+from bandersnatch.storage import PATH_TYPES, FileSpec, ReleaseFileStatus, StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
 
@@ -59,6 +59,17 @@ def _s3_head_object(client: Any, bucket: str, key: str) -> dict[str, Any] | None
                 code,
             )
         raise
+
+
+def _stream_object_hash(client: Any, bucket: str, key: str, digest_name: str) -> str:
+    h = hashlib.new(digest_name)
+    body = client.get_object(Bucket=bucket, Key=key)["Body"]
+    try:
+        for chunk in iter(lambda: body.read(64 * 1024), b""):
+            h.update(chunk)
+    finally:
+        body.close()
+    return h.hexdigest()
 
 
 class S3Path(_S3Path):
@@ -275,14 +286,207 @@ class S3Storage(StoragePlugin):
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO]:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
             filepath = self.create_path_backend(filepath)
-        with filepath.open(mode=mode, **kw) as fh:
-            yield fh
+
+        registered_metadata = False
+        if file_metadata:
+            upload_params: dict[str, Any] = {}
+            if self._explicit_config and self.configuration_parameters:
+                upload_params.update(self.configuration_parameters)
+            upload_params["Metadata"] = file_metadata
+            register_configuration_parameter(filepath, parameters=upload_params)
+            registered_metadata = True
+
+        try:
+            with filepath.open(mode=mode, **kw) as fh:
+                yield fh
+        finally:
+            # reset config params for future calls
+            if registered_metadata:
+                restore_params: dict[str, Any] = {}
+                if self._explicit_config and self.configuration_parameters:
+                    restore_params.update(self.configuration_parameters)
+                register_configuration_parameter(filepath, parameters=restore_params)
+
+    def build_release_file_metadata(
+        self,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+    ) -> dict[str, str] | None:
+        return {
+            digest_name: digest,
+            self.UPLOAD_TIME_METADATA_KEY: str(upload_time.timestamp()),
+        }
+
+    def stamps_metadata_on_write(self) -> bool:
+        return True
+
+    def _copy_object_kwargs(self) -> dict[str, Any]:
+        if self._explicit_config and self.configuration_parameters:
+            return dict(self.configuration_parameters)
+        return {}
+
+    def _backfill_release_metadata(
+        self,
+        client: Any,
+        bucket: str,
+        key: str,
+        head: dict[str, Any],
+        *,
+        digest_name: str | None = None,
+        digest: str | None = None,
+        upload_time: datetime.datetime | None = None,
+    ) -> None:
+        merged = dict(head.get("Metadata", {}))
+        if digest_name is not None and digest is not None:
+            merged[digest_name] = digest
+        if upload_time is not None:
+            merged[self.UPLOAD_TIME_METADATA_KEY] = str(upload_time.timestamp())
+        client.copy_object(
+            Bucket=bucket,
+            Key=key,
+            CopySource={"Bucket": bucket, "Key": key},
+            Metadata=merged,
+            MetadataDirective="REPLACE",
+            **self._copy_object_kwargs(),
+        )
+
+    def _certify_from_head(
+        self,
+        client: Any,
+        bucket: str,
+        key: str,
+        head: dict[str, Any],
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str,
+        digest_name: str,
+        backfill: bool,
+        would_backfill_label: str | None = None,
+        refresh_stale_metadata: bool = False,
+    ) -> ReleaseFileStatus:
+        if head["ContentLength"] != size:
+            return ReleaseFileStatus.MISMATCH
+
+        stat_upload_stale = False
+        if compare_method == "stat":
+            head_upload_time = self._upload_time_from_head(head)
+            if head_upload_time is not None and head_upload_time == upload_time:
+                return ReleaseFileStatus.CURRENT
+            if not refresh_stale_metadata:
+                return ReleaseFileStatus.MISMATCH
+            stat_upload_stale = True
+
+        stored_hash = head.get("Metadata", {}).get(digest_name)
+        if stored_hash is not None:
+            if stored_hash != digest:
+                return ReleaseFileStatus.MISMATCH
+            if stat_upload_stale:
+                if backfill:
+                    logger.info(
+                        "Updating upload time metadata for s3://%s/%s.",
+                        bucket,
+                        key,
+                    )
+                    self._backfill_release_metadata(
+                        client,
+                        bucket,
+                        key,
+                        head,
+                        upload_time=upload_time,
+                    )
+                elif would_backfill_label is not None:
+                    logger.debug(
+                        "[DRY RUN] would refresh upload time metadata for %s",
+                        would_backfill_label,
+                    )
+            return ReleaseFileStatus.CURRENT
+
+        actual_hash = _stream_object_hash(client, bucket, key, digest_name)
+        if actual_hash != digest:
+            return ReleaseFileStatus.MISMATCH
+
+        if backfill:
+            self._backfill_release_metadata(
+                client,
+                bucket,
+                key,
+                head,
+                digest_name=digest_name,
+                digest=actual_hash,
+                upload_time=upload_time if stat_upload_stale else None,
+            )
+        elif would_backfill_label is not None:
+            logger.debug(
+                "[DRY RUN] would back-fill %s metadata for %s",
+                digest_name,
+                would_backfill_label,
+            )
+        return ReleaseFileStatus.CURRENT
+
+    def _upload_time_from_head(self, head: dict) -> datetime.datetime | None:
+        """Parse the stored upload time out of a HeadObject response."""
+        raw = head.get("Metadata", {}).get(self.UPLOAD_TIME_METADATA_KEY)
+        if raw is None:
+            return None
+        try:
+            ts = int(float(raw))
+        except (TypeError, ValueError):
+            return None
+        return datetime.datetime.fromtimestamp(ts, datetime.UTC)
+
+    def release_file_is_current(
+        self,
+        path: PATH_TYPES,
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str = "hash",
+        digest_name: str = "sha256",
+    ) -> bool:
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.create_path_backend(path)
+        resource, _ = configuration_map.get_configuration(path)
+        client = resource.meta.client
+        bucket = path.bucket
+        key = str(path.key)
+
+        head = _s3_head_object(client, bucket, key)
+        if head is None:
+            return False
+
+        status = self._certify_from_head(
+            client,
+            bucket,
+            key,
+            head,
+            size=size,
+            upload_time=upload_time,
+            digest=digest,
+            compare_method=compare_method,
+            digest_name=digest_name,
+            backfill=True,
+            refresh_stale_metadata=True,
+        )
+        if status is ReleaseFileStatus.CURRENT:
+            return True
+        if status is ReleaseFileStatus.MISMATCH:
+            logger.info(f"File mismatch with local file {path}, will re-download.")
+            self.delete_file(path)
+        return False
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO]:
@@ -490,14 +694,7 @@ class S3Storage(StoragePlugin):
             return str(stored)
 
         client = resource.meta.client
-        h = hashlib.new(function)
-        body = client.get_object(Bucket=path.bucket, Key=str(path.key))["Body"]
-        try:
-            for chunk in iter(lambda: body.read(64 * 1024), b""):
-                h.update(chunk)
-        finally:
-            body.close()
-        return h.hexdigest()
+        return _stream_object_hash(client, path.bucket, str(path.key), function)
 
     def symlink(
         self,
@@ -529,15 +726,11 @@ class S3Storage(StoragePlugin):
         s3object.metadata.update({self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
         # s3 does not support editing metadata after upload, it can be done better.
         # by setting metadata before uploading.
-        kwargs: dict[str, Any] = {}
-        # Apply request kwargs only for explicitly-configured instances
-        if self._explicit_config and self.configuration_parameters:
-            kwargs.update(self.configuration_parameters)
         s3object.copy_from(
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata,
             MetadataDirective="REPLACE",
-            **kwargs,
+            **self._copy_object_kwargs(),
         )
 
     def set_hash(self, path: PATH_TYPES, digest: str, function: str = "sha256") -> None:
@@ -553,15 +746,11 @@ class S3Storage(StoragePlugin):
         metadata = dict(s3object.metadata)
         metadata[function] = digest
 
-        kwargs: dict[str, Any] = {}
-        if self._explicit_config and self.configuration_parameters:
-            kwargs.update(self.configuration_parameters)
-
         s3object.copy_from(
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=metadata,
             MetadataDirective="REPLACE",
-            **kwargs,
+            **self._copy_object_kwargs(),
         )
 
     def stamp_file_metadata(
@@ -584,27 +773,12 @@ class S3Storage(StoragePlugin):
             self.UPLOAD_TIME_METADATA_KEY: str(upload_time.timestamp()),
         }
 
-        kwargs: dict[str, Any] = {}
-        if self._explicit_config and self.configuration_parameters:
-            kwargs.update(self.configuration_parameters)
-
         s3object.copy_from(
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=metadata,
             MetadataDirective="REPLACE",
-            **kwargs,
+            **self._copy_object_kwargs(),
         )
-
-    def _upload_time_from_head(self, head: dict) -> datetime.datetime | None:
-        """Parse the stored upload time out of a HeadObject response."""
-        raw = head.get("Metadata", {}).get(self.UPLOAD_TIME_METADATA_KEY)
-        if raw is None:
-            return None
-        try:
-            ts = int(float(raw))
-        except (TypeError, ValueError):
-            return None
-        return datetime.datetime.fromtimestamp(ts, datetime.UTC)
 
     async def verify_files(
         self, expected: Iterable[FileSpec], dry_run: bool = False
@@ -655,67 +829,28 @@ class S3Storage(StoragePlugin):
                 if head is None:
                     return spec
 
-                if spec.size and head["ContentLength"] != spec.size:
-                    return spec
+                expected_hash = spec.digests.get(digest_name, "")
 
-                if compare == "stat":
-                    # size already verified, now verify the upload time
-                    head_upload_time = self._upload_time_from_head(head)
-                    if (
-                        head_upload_time is not None
-                        and head_upload_time == spec.upload_time
-                    ):
-                        return None
-                    else:
-                        return spec
-
-                expected_hash = spec.digests.get(digest_name)
-                stored_hash = head.get("Metadata", {}).get(digest_name)
-
-                if stored_hash is not None:
-                    return spec if stored_hash != expected_hash else None
-
-                # if hash is not yet been stored in metadata, calculate it and store it
-                def _hash_content() -> str:
-                    h = hashlib.new(digest_name)
-                    body = client.get_object(Bucket=bucket, Key=key)["Body"]
-                    try:
-                        for chunk in iter(lambda: body.read(64 * 1024), b""):
-                            h.update(chunk)
-                    finally:
-                        body.close()
-                    return h.hexdigest()
-
-                actual_hash = await loop.run_in_executor(executor, _hash_content)
-                if actual_hash != expected_hash:
-                    return spec
-
-                # set hash metadata for future get_hash() calls (legacy objects)
-                if not dry_run:
-
-                    def _add_hash_to_metadata() -> None:
-                        merged = dict(head.get("Metadata", {}))
-                        merged[digest_name] = actual_hash
-                        bf_kwargs: dict[str, Any] = {}
-                        if self._explicit_config and self.configuration_parameters:
-                            bf_kwargs.update(self.configuration_parameters)
-                        client.copy_object(
-                            Bucket=bucket,
-                            Key=key,
-                            CopySource={"Bucket": bucket, "Key": key},
-                            Metadata=merged,
-                            MetadataDirective="REPLACE",
-                            **bf_kwargs,
-                        )
-
-                    await loop.run_in_executor(executor, _add_hash_to_metadata)
-                else:
-                    logger.debug(
-                        "[DRY RUN] would back-fill %s metadata for %s",
-                        digest_name,
-                        spec.filename,
+                def _certify() -> ReleaseFileStatus:
+                    return self._certify_from_head(
+                        client,
+                        bucket,
+                        key,
+                        head,
+                        size=spec.size,
+                        upload_time=spec.upload_time,
+                        digest=expected_hash,
+                        compare_method=compare,
+                        digest_name=digest_name,
+                        backfill=not dry_run,
+                        would_backfill_label=spec.filename if dry_run else None,
+                        refresh_stale_metadata=False,
                     )
-                return None
+
+                status = await loop.run_in_executor(executor, _certify)
+                if status is ReleaseFileStatus.CURRENT:
+                    return None
+                return spec
 
         results = await asyncio.gather(*[_check(s) for s in specs])
         for result in results:

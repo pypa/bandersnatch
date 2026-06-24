@@ -495,3 +495,136 @@ def test_get_hash(
         storage_env.plugin.get_hash(path, function=hash_func)
         == expected_hashes[hash_func]
     )
+
+
+def test_release_file_is_current_stat_refreshes_upload_time(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Stat mode mirror skip refreshes mtime when content hash still matches."""
+    import datetime
+    import os
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "stat_refresh.bin"
+    )
+    path.write_bytes(b"sample payload for stat refresh")
+    stale = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC).timestamp()
+    os.utime(path, (stale, stale))
+
+    expected_time = datetime.datetime(2025, 6, 1, 12, 0, tzinfo=datetime.UTC)
+    digest = storage_env.plugin.get_hash(path, "sha256")
+
+    assert storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size,
+        upload_time=expected_time,
+        digest=digest,
+        compare_method="stat",
+    )
+    assert storage_env.plugin.get_upload_time(path) == expected_time
+
+
+def test_release_file_is_current_stat_matches_upload_time(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Stat mode returns True immediately when upload time already matches."""
+    import datetime
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "stat_match.bin"
+    )
+    path.write_bytes(b"payload")
+    expected_time = datetime.datetime(2025, 6, 1, 12, 0, tzinfo=datetime.UTC)
+    storage_env.plugin.set_upload_time(path, expected_time)
+    digest = storage_env.plugin.get_hash(path, "sha256")
+
+    assert storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size,
+        upload_time=expected_time,
+        digest=digest,
+        compare_method="stat",
+    )
+
+
+def test_release_file_is_current_stat_deletes_on_hash_mismatch(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Stat mode deletes when upload time differs and content hash does not match."""
+    import datetime
+    import os
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "stat_hash_bad.bin"
+    )
+    path.write_bytes(b"payload")
+    stale = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC).timestamp()
+    os.utime(path, (stale, stale))
+
+    assert not storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size,
+        upload_time=datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
+        digest="deadbeef" * 8,
+        compare_method="stat",
+    )
+    assert not path.exists()
+
+
+def test_release_file_is_current_missing_returns_false(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Missing files are not current."""
+    import datetime
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "does_not_exist.bin"
+    )
+
+    assert not storage_env.plugin.release_file_is_current(
+        path,
+        size=1,
+        upload_time=datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
+        digest="abc" * 16,
+    )
+
+
+def test_release_file_is_current_size_mismatch_deletes(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Wrong size deletes the local file before re-download."""
+    import datetime
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "size_bad.bin"
+    )
+    path.write_bytes(b"payload")
+    digest = storage_env.plugin.get_hash(path, "sha256")
+
+    assert not storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size + 1,
+        upload_time=datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
+        digest=digest,
+    )
+    assert not path.exists()
+
+
+def test_release_file_is_current_hash_mismatch_deletes(
+    storage_env: StorageTestEnv,
+) -> None:
+    """Hash mode deletes when the stored digest does not match."""
+    import datetime
+
+    path = storage_env.plugin.PATH_BACKEND(
+        storage_env.mirror_base_path / "hash_bad.bin"
+    )
+    path.write_bytes(b"payload")
+
+    assert not storage_env.plugin.release_file_is_current(
+        path,
+        size=path.stat().st_size,
+        upload_time=datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC),
+        digest="deadbeef" * 8,
+    )
+    assert not path.exists()

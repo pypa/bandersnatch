@@ -813,65 +813,19 @@ class BandersnatchMirror(Mirror):
             path = self._file_url_to_local_path(url)
         loop = asyncio.get_running_loop()
 
-        # Avoid downloading again if we have the file and it matches the hash.
-        if await loop.run_in_executor(self.storage_backend.executor, path.exists):
-            existing_file_size = await loop.run_in_executor(
-                self.storage_backend.executor, self.storage_backend.get_file_size, path
-            )
-            if existing_file_size != int(file_size):
-                logger.info(
-                    f"File size mismatch with local file {path}: expected {file_size} "
-                    + f"got {existing_file_size}, will re-download."
-                )
-                await loop.run_in_executor(self.storage_backend.executor, path.unlink)
-            elif self.compare_method == "stat":
-                existing_upload_time = await loop.run_in_executor(
-                    self.storage_backend.executor,
-                    self.storage_backend.get_upload_time,
-                    path,
-                )
-                if existing_upload_time == upload_time:
-                    return None
-                else:
-                    existing_hash = await loop.run_in_executor(
-                        self.storage_backend.executor,
-                        self.storage_backend.get_hash,
-                        str(path),
-                    )
-                    if existing_hash != sha256sum:
-                        logger.info(
-                            "File upload time and checksum mismatch with local "
-                            + f"file {path}: expected "
-                            + f"{sha256sum} got {existing_hash}, will re-download."
-                        )
-                        await loop.run_in_executor(
-                            self.storage_backend.executor, path.unlink
-                        )
-                    else:
-                        logger.info(f"Updating file upload time of local file {path}.")
-                        await loop.run_in_executor(
-                            self.storage_backend.executor,
-                            self.storage_backend.set_upload_time,
-                            path,
-                            upload_time,
-                        )
-                        return None
-            else:
-                existing_hash = await loop.run_in_executor(
-                    self.storage_backend.executor,
-                    self.storage_backend.get_hash,
-                    str(path),
-                )
-                if existing_hash == sha256sum:
-                    return None
-                else:
-                    logger.info(
-                        f"File checksum mismatch with local file {path}: expected "
-                        + f"{sha256sum} got {existing_hash}, will re-download."
-                    )
-                    await loop.run_in_executor(
-                        self.storage_backend.executor, path.unlink
-                    )
+        is_current = await loop.run_in_executor(
+            self.storage_backend.executor,
+            lambda: self.storage_backend.release_file_is_current(
+                path,
+                size=int(file_size),
+                upload_time=upload_time,
+                digest=sha256sum,
+                compare_method=self.compare_method,
+                digest_name=self.digest_name,
+            ),
+        )
+        if is_current:
+            return None
 
         logger.info(f"Downloading: {url}")
         await fetch_and_store(
@@ -916,28 +870,43 @@ async def fetch_and_store(
     response = await r_generator.asend(None)
 
     checksum = hashlib.new(digest_name)
+    file_metadata = storage_backend.build_release_file_metadata(
+        digest, upload_time, digest_name
+    )
+    digest_mismatch = False
     size = 0
-    with storage_backend.rewrite(path, "wb") as f:
-        while True:
-            chunk = await response.content.read(chunk_size)
-            if not chunk:
-                break
-            checksum.update(chunk)
-            f.write(chunk)
-            size += len(chunk)
+    try:
+        with storage_backend.rewrite(path, "wb", file_metadata=file_metadata) as f:
+            while True:
+                chunk = await response.content.read(chunk_size)
+                if not chunk:
+                    break
+                checksum.update(chunk)
+                f.write(chunk)
+                size += len(chunk)
 
-        existing_hash = checksum.hexdigest()
-        if existing_hash != digest:
-            # Bad case: the file we got does not match the expected
-            # checksum. Even if this should be the rare case of a
-            # re-upload this will fix itself in a later run.
-            raise ValueError(
-                f"Inconsistent file. {url} has hash {existing_hash} "
-                + f"instead of {digest}."
-            )
+            existing_hash = checksum.hexdigest()
+            if existing_hash != digest:
+                # Bad case: the file we got does not match the expected
+                # checksum. Even if this should be the rare case of a
+                # re-upload this will fix itself in a later run.
+                digest_mismatch = True
+                raise ValueError(
+                    f"Inconsistent file. {url} has hash {existing_hash} "
+                    + f"instead of {digest}."
+                )
+    except ValueError:
+        # delete that bad file
+        if (
+            digest_mismatch
+            and storage_backend.stamps_metadata_on_write()
+            and storage_backend.exists(path)
+        ):
+            storage_backend.delete_file(path)
+        raise
 
-    # set upload time and hash to avoid downloading again in next sync
-    storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
+    if not storage_backend.stamps_metadata_on_write():
+        storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
 
     if return_size:
         return size

@@ -70,7 +70,11 @@ class FilesystemStorage(StoragePlugin):
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO, None, None]:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""

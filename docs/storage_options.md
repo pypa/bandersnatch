@@ -99,6 +99,13 @@ S3 uses automatic rate-limiting (adaptive retry mode), so transient errors are
 usually absorbed silently. Raise this only if you still see throttling warnings
 during large verify runs.
 
+#### Release-file metadata
+
+S3 objects store `sha256` and `uploaded-at` metadata so mirror sync and verify
+can skip unchanged files with a single `HeadObject`. Legacy objects are upgraded
+automatically on first successful check; run `bandersnatch verify` once after
+upgrading to migrate the whole bucket. No extra configuration is required.
+
 ### Serving your Mirror
 
 S3 Bandersnatch mirrors are designed to be served with s3 static sites and
