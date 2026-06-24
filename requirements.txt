@@ -7,4 +7,4 @@ idna==3.18
 multidict==6.7.1
 packaging==26.2
 setuptools==82.0.1
-yarl==1.23.0
+yarl==1.24.2
