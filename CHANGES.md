@@ -8,7 +8,7 @@
 - `bandersnatch verify` now honours `compare-method` and `digest_name` config settings (previously always performed a sha256 hash regardless of config). The S3 backend's `verify_files` honours `compare-method` too: `stat` mode trusts a matching upload time with no content read, while `hash` mode always confirms content.
 - S3 verify now back-fills hash metadata for legacy objects on first verify (unless `--dry-run`), making future runs use only fast `HeadObject` calls; upload time and digest are validated and stored via the storage backend, with `.s3keep` logic moved fully into the S3 plugin.
 - Core verify and mirror flows now rely on storage backend methods (`set_hash`, etc.) for hash and metadata handling, enabling backend-specific optimizations.
-- Mirror skip checks use `Storage.release_file_is_current()`; S3 certifies with one `HeadObject`, migrates legacy objects on first check, and stamps metadata on `PutObject`. Storage plugins must accept optional `file_metadata` on `rewrite()`.
+- Mirror skip checks use `Storage.release_file_is_current()`; S3 certifies with one `HeadObject`, migrates legacy objects on first check, and stamps metadata on `PutObject`. Storage plugins must accept optional `file_metadata` on `rewrite()`. `PR #2296 `
 - Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API `PR #2276`
 - Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 - Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
