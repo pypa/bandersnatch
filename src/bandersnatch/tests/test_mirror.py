@@ -267,6 +267,7 @@ async def test_mirror_empty_resume_from_todo_list(mirror: BandersnatchMirror) ->
     await mirror.synchronize()
 
     expected = """\
+.lock
 generation
 status
 web
@@ -290,7 +291,10 @@ web{0}simple{0}foobar{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    # filelock 3.25.1+ deletes lock file on release on all platforms
+    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+    # Windows still best-effort removes the lock file on release
+    if sys.platform == "win32":
+        expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
 
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
@@ -370,6 +374,7 @@ async def test_mirror_sync_package_error_no_early_exit(
     changed_packages = await mirror.synchronize()
 
     expected = """\
+.lock
 generation
 todo
 web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
@@ -380,7 +385,10 @@ web{0}simple{0}foo{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    # filelock 3.25.1+ deletes lock file on release on all platforms
+    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+    # Windows still best-effort removes the lock file on release
+    if sys.platform == "win32":
+        expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
 <!DOCTYPE html>
@@ -419,12 +427,16 @@ async def mirror_sync_package_error_early_exit(mirror: BandersnatchMirror) -> No
         await mirror.synchronize()
 
     expected = """\
+.lock
 generation
 todo
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
 web{0}simple{0}index.html""".format(sep)
-    # filelock 3.25.1+ deletes lock file on release on all platforms
+    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+    # Windows still best-effort removes the lock file on release
+    if sys.platform == "win32":
+        expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
