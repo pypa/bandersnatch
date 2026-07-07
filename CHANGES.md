@@ -23,6 +23,7 @@
 - Skip base class tests in test runs `PR #2263`
 - Transitioned from unittest.TestCase to pytest fixtures (`PR #2265`, `PR #2273`, `PR #2274`)
 - Replace MinIO Docker container with moto in-memory mock for S3 tests `PR #2272`
+- Bump filelock to 3.29.6 and update lock-file assertions to expect the persisted `.lock` file on Unix; filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577) to avoid a lock-reuse race, while Windows still best-effort removes it `PR #2304`
 
 ## Documentation
 

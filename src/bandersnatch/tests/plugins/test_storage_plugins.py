@@ -162,6 +162,7 @@ PATH_BACKENDS = {
 }
 
 BASE_FIND_CONTENTS = r"""
+.lock
 generation
 sample
 status
@@ -188,7 +189,10 @@ web{0}simple
 web{0}simple{0}foobar
 web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(os.sep).strip()
-# filelock 3.25.1+ deletes lock file on release on all platforms
+# filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+# Windows still best-effort removes the lock file on release
+if sys.platform == "win32":  # pragma: no cover
+    BASE_FIND_CONTENTS = BASE_FIND_CONTENTS.replace(".lock\n", "")
 
 
 def test_plugin_type(storage_env: StorageTestEnv, backend: str) -> None:
