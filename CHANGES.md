@@ -32,7 +32,7 @@
 
 ## Bug Fixes
 
-- Drop `setuptools` from runtime requirements: nothing in bandersnatch imports `setuptools`/`pkg_resources` anymore (plugin loading uses `importlib.metadata`), so it is no longer declared in `install_requires` or the pinned requirements files. It remains only as the PEP 517 build backend in `pyproject.toml`
+- Drop `setuptools` from runtime requirements: nothing in bandersnatch imports `setuptools`/`pkg_resources` anymore (plugin loading uses `importlib.metadata`), so it is no longer declared in `install_requires` or the pinned requirements files. It remains only as the PEP 517 build backend in `pyproject.toml` `PR #2306`
 - Fix broken `bandersnatch_docker_compose` symlinks (`Dockerfile`, `nginx.conf`) whose targets included a trailing newline, leaving them unresolvable on disk `PR #2280`
 - Fix `mirror --force-check` to reset the mirror serial via the configured storage backend so it works with non-local backends such as S3 (previously used a local `shutil.move()` to `/tmp`) `Issue #2278`, `PR #2279`
 - Demote per-package filter matching logs from INFO to DEBUG to reduce noise during mirror and verify runs `PR #2193`
