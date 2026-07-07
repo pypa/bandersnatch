@@ -11,7 +11,6 @@ pytest==9.1.1
 pytest-asyncio==1.4.0
 pytest-mock==3.15.1
 pytest-timeout==2.4.0
-setuptools==83.0.0
 tox==4.56.1
 types-filelock==3.2.7
 types-freezegun==1.1.10
