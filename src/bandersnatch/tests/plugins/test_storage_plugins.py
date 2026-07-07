@@ -191,7 +191,7 @@ web{0}simple{0}foobar{0}index.html
 web{0}simple{0}index.html""".format(os.sep).strip()
 # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
 # Windows still best-effort removes the lock file on release
-if sys.platform == "win32":
+if sys.platform == "win32":  # pragma: no cover
     BASE_FIND_CONTENTS = BASE_FIND_CONTENTS.replace(".lock\n", "")
 
 

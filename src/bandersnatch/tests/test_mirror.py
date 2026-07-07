@@ -293,7 +293,7 @@ web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
     # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
     # Windows still best-effort removes the lock file on release
-    if sys.platform == "win32":
+    if sys.platform == "win32":  # pragma: no cover
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
 
@@ -387,7 +387,7 @@ web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
     # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
     # Windows still best-effort removes the lock file on release
-    if sys.platform == "win32":
+    if sys.platform == "win32":  # pragma: no cover
         expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
@@ -427,16 +427,12 @@ async def mirror_sync_package_error_early_exit(mirror: BandersnatchMirror) -> No
         await mirror.synchronize()
 
     expected = """\
-.lock
 generation
 todo
 web{0}packages{0}any{0}f{0}foo{0}foo.zip
 web{0}simple{0}foo{0}index.html
 web{0}simple{0}index.html""".format(sep)
-    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
-    # Windows still best-effort removes the lock file on release
-    if sys.platform == "win32":
-        expected = expected.replace(".lock\n", "")
+    # filelock 3.25.1+ deletes lock file on release on all platforms
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == "old index"
     assert open("todo").read() == "1\n"
