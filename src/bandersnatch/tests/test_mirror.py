@@ -1322,29 +1322,35 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     # Create a non normalized directory
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
+    # On case insensitive filesystems (macOS APFS / Windows NTFS) the raw
+    # dir IS the live PEP 503 dir, so cleanup correctly leaves it alone
+    case_insensitive_fs = (mirror.webdir / "simple" / package.name).exists()
+    expected_removals = 0 if case_insensitive_fs else 1
+
     mirror.cleanup = True
     with (
         mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink,
         mock.patch("bandersnatch.mirror.Path.rmdir") as mocked_rmdir,
     ):
         await mirror.cleanup_non_pep_503_paths(package)
-        assert mocked_unlink.call_count == 1  # number you expect
-        assert mocked_rmdir.call_count == 1  # Or number you expect here
+        assert mocked_unlink.call_count == expected_removals
+        assert mocked_rmdir.call_count == expected_removals
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Needs symlink support")
 async def test_cleanup_non_pep_503_paths_case_insensitive_fs(
     mirror: BandersnatchMirror,
 ) -> None:
     """On case insensitive filesystems the deprecated mixed case dir is the
-    live PEP 503 dir - simulate that with a symlink and see we keep it"""
+    live PEP 503 dir - simulate that with a symlink on case sensitive
+    filesystems (macOS/Windows collide naturally) and see we keep it"""
     raw_package_name = "CatDogPython69"
     package = Package(raw_package_name)
     simple_index = mirror.simple_directory(package) / "index.html"
     touch_files([simple_index])
     deprecated_dir = mirror.webdir / "simple" / raw_package_name
-    deprecated_dir.symlink_to(mirror.simple_directory(package))
+    if not deprecated_dir.exists():
+        deprecated_dir.symlink_to(mirror.simple_directory(package))
 
     mirror.cleanup = True
     await mirror.cleanup_non_pep_503_paths(package)
