@@ -1,5 +1,7 @@
 # Unreleased
 
+# 8.0.0.dev0
+
 ## New Features
 
 - Verify abstraction layer: add `Storage.verify_files()`, `Storage.iter_package_files()`, `Storage.set_hash()`, and `Storage.delete_package_file()` so each storage backend can implement integrity checking optimally. The filesystem default retains existing behaviour; the S3 backend now uses concurrent `HeadObject` calls with stored sha256 metadata, eliminating full-file downloads on the happy path. `PLUGIN_API_REVISION` bumped to 2. `PR #2286`
