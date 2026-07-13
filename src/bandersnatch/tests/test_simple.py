@@ -72,6 +72,28 @@ def test_json_package_page() -> None:
     )
 
 
+def test_json_package_page_core_metadata() -> None:
+    from copy import deepcopy
+    from json import loads
+    from typing import Any
+
+    metadata: dict[str, Any] = deepcopy(SIXTYNINE_METADATA)
+    metadata["releases"]["0.69"][0]["core-metadata"] = False
+    metadata["releases"]["6.9"][0]["core-metadata"] = {"sha256": "69" * 32}
+    p = Package("69")
+    p._metadata = metadata
+
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None)
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert files["69-0.69.tar.gz"]["core-metadata"] is False
+    assert files["69-6.9.tar.gz"]["core-metadata"] == {"sha256": "69" * 32}
+
+    # Disabling core-metadata emits no keys at all
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None, False)
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert all("core-metadata" not in f for f in files.values())
+
+
 @pytest.mark.asyncio
 async def test_json_index_page() -> None:
     c = ConfigParser()

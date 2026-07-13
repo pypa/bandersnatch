@@ -1,9 +1,8 @@
-# Unreleased
-
 # 8.0.0.dev0
 
 ## New Features
 
+- Mirror PEP 658 / PEP 714 core metadata files: when upstream advertises a `core-metadata` checksum for a release file (live on pypi.org's JSON API since [warehouse #20193](https://github.com/pypi/warehouse/pull/20193)), the extracted metadata is downloaded to `RELEASE_FILE.metadata` alongside the release file and checksum verified. Generated simple indexes advertise the files via the PEP 714 `data-core-metadata` (+ legacy `data-dist-info-metadata`) HTML attributes and the `core-metadata` JSON key, letting pip resolve dependencies without downloading full release files. Controlled by the new `[mirror] core-metadata` option (default `true`). `bandersnatch verify` re-fetches missing/corrupt core metadata files (use `--json-update` to backfill an existing mirror) and `bandersnatch delete` removes them. Checksum selection prefers the configured `digest_name`, then `sha256`, then any hashlib supported digest upstream offers
 - Verify abstraction layer: add `Storage.verify_files()`, `Storage.iter_package_files()`, `Storage.set_hash()`, and `Storage.delete_package_file()` so each storage backend can implement integrity checking optimally. The filesystem default retains existing behaviour; the S3 backend now uses concurrent `HeadObject` calls with stored sha256 metadata, eliminating full-file downloads on the happy path. `PLUGIN_API_REVISION` bumped to 2. `PR #2286`
 - New `[s3] verify_concurrency` option (default `50`) controls the maximum number of simultaneous S3 API calls during `bandersnatch verify`. Verify runs on its own thread pool and HTTP connection pool sized to this value, decoupled from `[mirror] workers` (capped at 10 for PyPI politeness) since verify only touches your own bucket. Tune relative to your S3 request-rate limit and mirror size.
 - S3 client is now configured with botocore `adaptive` retry mode so transient `SlowDown` throttle responses from S3 are absorbed automatically rather than crashing a long-running verify run. The retry ceiling is configurable via the new `[s3] max_attempts` option (default `10`). A `WARNING` is logged if throttling persists after all retries.

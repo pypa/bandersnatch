@@ -741,6 +741,53 @@ async def test_verify_remediates_missing_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_verify_remediates_missing_core_metadata(tmp_path: Path) -> None:
+    """verify() backfills PEP 658/714 core metadata files advertised in JSON."""
+    import hashlib
+
+    content = b"wheel content"
+    sha256 = hashlib.sha256(content).hexdigest()
+    metadata_sha256 = hashlib.sha256(b"Metadata-Version: 2.4").hexdigest()
+    url = "https://files.pythonhosted.org/packages/aa/bb/cc/mypackage-1.0.whl"
+
+    # Release file is already mirrored + current; its .metadata file is missing
+    artifact = tmp_path / "web" / convert_url_to_path(url)
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(content)
+
+    pkg_json = json.loads(_pkg_json("mypackage-1.0.whl", url, sha256, len(content)))
+    pkg_json["releases"]["1.0"][0]["core-metadata"] = {"sha256": metadata_sha256}
+    jsonpath = tmp_path / "web" / "json"
+    jsonpath.mkdir(parents=True)
+    (jsonpath / "mypackage").write_text(json.dumps(pkg_json))
+
+    class FakeArgs:
+        dry_run = False
+        json_update = False
+        delete = False
+        workers = 1
+
+    fc = FakeConfig()
+    storage_backend = _make_fs_storage(tmp_path)
+    master = Master(fc.get("mirror", "master"))
+    all_files: list[PATH_TYPES] = []
+
+    with mock.patch(
+        "bandersnatch.verify.fetch_and_store", return_value=0
+    ) as mock_fetch:
+        await verify(master, fc, storage_backend, "mypackage", tmp_path, all_files, FakeArgs())  # type: ignore
+
+    # Only the missing metadata file needed fetching + checksum verification
+    mock_fetch.assert_called_once()
+    assert mock_fetch.call_args[0][2] == f"{url}.metadata"
+    assert mock_fetch.call_args[0][4] == metadata_sha256
+    assert mock_fetch.call_args.kwargs["digest_name"] == "sha256"
+    # Both files are owned by the mirror so --delete keeps them
+    assert len(all_files) == 2
+    assert all_files[1] == artifact.with_name(f"{artifact.name}.metadata")
+
+
+@pytest.mark.asyncio
 async def test_verify_defers_fetch_exception(tmp_path: Path) -> None:
     """When fetch_and_store raises, the error is logged and deferred to on_error."""
     import hashlib

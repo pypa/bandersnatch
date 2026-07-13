@@ -58,6 +58,34 @@ def convert_url_to_path(url: str) -> str:
     return urlparse(url).path[1:]
 
 
+def find_core_metadata_digest(
+    release_file: dict[str, Any], preferred_digest: str = "sha256"
+) -> tuple[str, str] | None:
+    """Return a (digest_name, digest_value) pair for a release file's
+    PEP 658/714 core metadata file or None when upstream does not
+    advertise a checksum hashlib can verify.
+
+    PyPI's JSON API sets "core-metadata" to false (no metadata file) or a
+    dict of hashes - e.g. {"sha256": "..."} - for each release file.
+    Prefer the mirror's configured digest, then sha256, then any other
+    hashlib supported digest so an upstream algorithm change keeps working."""
+    core_metadata = release_file.get("core-metadata")
+    if not isinstance(core_metadata, dict):
+        return None
+    for digest_name in (preferred_digest, "sha256"):
+        digest = core_metadata.get(digest_name)
+        if isinstance(digest, str) and digest:
+            return digest_name, digest
+    for digest_name, digest in sorted(core_metadata.items()):
+        if (
+            digest_name in hashlib.algorithms_available
+            and isinstance(digest, str)
+            and digest
+        ):
+            return digest_name, digest
+    return None
+
+
 def hash(path: Path, function: str = "sha256") -> str:
     with path.open("rb") as f:
         return hashlib.file_digest(
