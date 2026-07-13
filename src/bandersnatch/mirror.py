@@ -456,6 +456,22 @@ class BandersnatchMirror(Mirror):
                     logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
 
+                # On case insensitive filesystems (e.g. macOS APFS / Windows
+                # NTFS) a mixed case deprecated dir is the same directory as
+                # the live PEP 503 dir - cleaning it up would delete the
+                # simple index we just wrote
+                try:
+                    if deprecated_dir.samefile(self.simple_directory(package)):
+                        logger.debug(
+                            f"{deprecated_dir} is the PEP 503 simple dir on a "
+                            + "case insensitive filesystem. Not cleaning up"
+                        )
+                        continue
+                except (NotImplementedError, OSError, ValueError):
+                    # Storage backends without samefile support (e.g. S3) are
+                    # case sensitive so the str compare above is sufficient
+                    pass
+
                 logger.info(
                     f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
                 )

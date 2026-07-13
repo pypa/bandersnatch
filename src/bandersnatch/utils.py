@@ -66,7 +66,9 @@ def find_core_metadata_digest(
     advertise a checksum hashlib can verify.
 
     PyPI's JSON API sets "core-metadata" to false (no metadata file) or a
-    dict of hashes - e.g. {"sha256": "..."} - for each release file.
+    dict of hashes - e.g. {"sha256": "..."} - for each release file. PEP 714
+    also allows true (metadata exists but without a checksum) - we return
+    None for that as there is nothing to verify a download against.
     Prefer the mirror's configured digest, then sha256, then any other
     hashlib supported digest so an upstream algorithm change keeps working."""
     core_metadata = release_file.get("core-metadata")

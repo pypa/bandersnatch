@@ -1333,6 +1333,25 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Needs symlink support")
+async def test_cleanup_non_pep_503_paths_case_insensitive_fs(
+    mirror: BandersnatchMirror,
+) -> None:
+    """On case insensitive filesystems the deprecated mixed case dir is the
+    live PEP 503 dir - simulate that with a symlink and see we keep it"""
+    raw_package_name = "CatDogPython69"
+    package = Package(raw_package_name)
+    simple_index = mirror.simple_directory(package) / "index.html"
+    touch_files([simple_index])
+    deprecated_dir = mirror.webdir / "simple" / raw_package_name
+    deprecated_dir.symlink_to(mirror.simple_directory(package))
+
+    mirror.cleanup = True
+    await mirror.cleanup_non_pep_503_paths(package)
+    assert simple_index.exists()
+
+
+@pytest.mark.asyncio
 async def test_determine_packages_to_sync(mirror: BandersnatchMirror) -> None:
     mirror.synced_serial = 24
     mirror.packages_to_sync = {"black": 69, "foobar": 47, "barfoo": 68}

@@ -88,6 +88,12 @@ def test_json_package_page_core_metadata() -> None:
     assert files["69-0.69.tar.gz"]["core-metadata"] is False
     assert files["69-6.9.tar.gz"]["core-metadata"] == {"sha256": "69" * 32}
 
+    # PEP 714 also allows true (metadata exists without a checksum) - we
+    # deliberately don't advertise files we could not verify + mirror
+    metadata["releases"]["0.69"][0]["core-metadata"] = True
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert "core-metadata" not in files["69-0.69.tar.gz"]
+
     # Disabling core-metadata emits no keys at all
     s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None, False)
     files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
