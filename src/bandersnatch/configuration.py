@@ -38,6 +38,7 @@ class SetConfigValues(NamedTuple):
     storage_backend_name: str
     cleanup: bool
     release_files_save: bool
+    core_metadata_save: bool
     compare_method: str
     download_mirror: str
     download_mirror_no_fallback: bool
@@ -154,6 +155,8 @@ def validate_config_values(  # noqa: C901
             + root_uri
         )
 
+    core_metadata_save = config.getboolean("mirror", "core-metadata", fallback=True)
+
     diff_file_path = config.get("mirror", "diff-file")
 
     if diff_file_path and has_config_reference(diff_file_path):
@@ -232,6 +235,7 @@ def validate_config_values(  # noqa: C901
         storage_backend_name,
         cleanup,
         release_files_save,
+        core_metadata_save,
         compare_method,
         download_mirror,
         download_mirror_no_fallback,

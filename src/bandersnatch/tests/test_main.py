@@ -97,6 +97,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "digest_name": "sha256",
         "keep_index_versions": 0,
         "release_files_save": True,
+        "core_metadata_save": True,
         "storage_backend": "filesystem",
         "diff_append_epoch": False,
         "diff_full_path": diff_file,

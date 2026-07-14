@@ -132,6 +132,9 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                     url_parts = urlparse(blob["url"])
                     blob_path = web_base_path / url_parts.path[1:]
                     delete_coros.append(delete_path(blob_path, args.dry_run))
+                    # PEP 658/714 core metadata file mirrored alongside the blob
+                    metadata_path = blob_path.with_name(f"{blob_path.name}.metadata")
+                    delete_coros.append(delete_path(metadata_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")

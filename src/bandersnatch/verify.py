@@ -21,7 +21,7 @@ from .master import Master
 from .mirror import fetch_and_store
 from .package import Package
 from .storage import PATH_TYPES, FileSpec, Storage, storage_backend_plugins
-from .utils import convert_url_to_path
+from .utils import convert_url_to_path, find_core_metadata_digest
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +270,7 @@ async def verify(
 
     stop_on_error = config.getboolean("mirror", "stop-on-error")
     digest_name = config.get("mirror", "digest_name", fallback="sha256")
+    core_metadata_save = config.getboolean("mirror", "core-metadata", fallback=True)
 
     pkg = await load_package(
         master,
@@ -306,6 +307,26 @@ async def verify(
             specs.append(spec)
             all_package_files.append(spec.path)
 
+            # PEP 658/714 core metadata file mirrored alongside the release
+            # file - size is unknown (0 skips size comparisons)
+            metadata_digest = (
+                find_core_metadata_digest(jpkg, digest_name)
+                if core_metadata_save
+                else None
+            )
+            if metadata_digest:
+                metadata_url = f"{jpkg['url']}.metadata"
+                metadata_spec = FileSpec(
+                    path=mirror_base_path / "web" / convert_url_to_path(metadata_url),
+                    url=metadata_url,
+                    filename=f"{jpkg['filename']}.metadata",
+                    size=0,
+                    digests={metadata_digest[0]: metadata_digest[1]},
+                    upload_time=upload_time,
+                )
+                specs.append(metadata_spec)
+                all_package_files.append(metadata_spec.path)
+
     # Ask the storage backend which files are missing or corrupt.
     deferred_exception = None
     async for bad_spec in storage_backend.verify_files(specs, dry_run=args.dry_run):
@@ -314,15 +335,21 @@ async def verify(
             if stats is not None:
                 stats.record_size(bad_spec.size)
         else:
+            # Fall back to whatever digest the spec carries when the configured
+            # one is unavailable (e.g. core metadata files carry one upstream
+            # advertised digest which may not match digest_name)
+            fetch_digest_name = digest_name
+            if fetch_digest_name not in bad_spec.digests and bad_spec.digests:
+                fetch_digest_name = next(iter(sorted(bad_spec.digests)))
             try:
                 size = await fetch_and_store(
                     master,
                     storage_backend,
                     bad_spec.url,
                     bad_spec.path,
-                    bad_spec.digests.get(digest_name, ""),
+                    bad_spec.digests.get(fetch_digest_name, ""),
                     bad_spec.upload_time,
-                    digest_name=digest_name,
+                    digest_name=fetch_digest_name,
                     return_size=True,
                 )
 

@@ -194,6 +194,7 @@ class BandersnatchMirror(Mirror):
         *,
         cleanup: bool = False,
         release_files_save: bool = True,
+        core_metadata_save: bool = True,
         compare_method: str | None = None,
         download_mirror: str | None = None,
         download_mirror_no_fallback: bool | None = False,
@@ -222,6 +223,8 @@ class BandersnatchMirror(Mirror):
         self.json_save = json_save
         # Whether or not to mirror PyPI release files to disk
         self.release_files_save = release_files_save
+        # Whether or not to mirror PEP 658/714 core metadata files to disk
+        self.core_metadata_save = core_metadata_save
         self.hash_index = hash_index
         # Allow configuring a root_uri to make generated index pages absolute.
         # This is generally not necessary, but was added for the official internal
@@ -247,6 +250,7 @@ class BandersnatchMirror(Mirror):
             self.digest_name,
             hash_index,
             self.root_uri,
+            core_metadata=core_metadata_save,
         )
         self._bootstrap(flock_timeout)
         self._finish_lock = RLock()
@@ -451,6 +455,22 @@ class BandersnatchMirror(Mirror):
                 if not deprecated_dir.exists():
                     logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
+
+                # On case insensitive filesystems (e.g. macOS APFS / Windows
+                # NTFS) a mixed case deprecated dir is the same directory as
+                # the live PEP 503 dir - cleaning it up would delete the
+                # simple index we just wrote
+                try:
+                    if deprecated_dir.samefile(self.simple_directory(package)):
+                        logger.debug(
+                            f"{deprecated_dir} is the PEP 503 simple dir on a "
+                            + "case insensitive filesystem. Not cleaning up"
+                        )
+                        continue
+                except (NotImplementedError, OSError, ValueError):
+                    # Storage backends without samefile support (e.g. S3) are
+                    # case sensitive so the str compare above is sufficient
+                    pass
 
                 logger.info(
                     f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
@@ -658,14 +678,21 @@ class BandersnatchMirror(Mirror):
         deferred_exception = None
         for release_file in package.release_files:
             release_path, download_urls = self.populate_download_urls(release_file)
+            upload_time = datetime.datetime.fromisoformat(
+                release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+            )
+            metadata_digest = (
+                utils.find_core_metadata_digest(release_file, self.digest_name)
+                if self.core_metadata_save
+                else None
+            )
             for cnt, url in enumerate(download_urls):
+                downloaded_metadata_file = None
                 try:
                     downloaded_file = await self.download_file(
                         url,
                         release_file["size"],
-                        datetime.datetime.fromisoformat(
-                            release_file["upload_time_iso_8601"].replace("Z", "+00:00")
-                        ),
+                        upload_time,
                         release_file["digests"]["sha256"],
                         urlpath=release_path,
                     )
@@ -673,6 +700,21 @@ class BandersnatchMirror(Mirror):
                         downloaded_files.add(
                             str(downloaded_file.relative_to(self.homedir))
                         )
+                    # PEP 658/714: mirror the core metadata file that is served
+                    # next to its release file when upstream provides a checksum
+                    if metadata_digest:
+                        downloaded_metadata_file = await self.download_metadata_file(
+                            f"{url}.metadata",
+                            metadata_digest[1],
+                            upload_time,
+                            digest_name=metadata_digest[0],
+                            urlpath=f"{release_path}.metadata" if release_path else "",
+                        )
+                        if downloaded_metadata_file:
+                            downloaded_files.add(
+                                str(downloaded_metadata_file.relative_to(self.homedir))
+                            )
+                    if downloaded_file or downloaded_metadata_file:
                         break
                 except Exception as e:
                     # Avoid flooding log messages with exception traceback
@@ -836,6 +878,53 @@ class BandersnatchMirror(Mirror):
             sha256sum,
             upload_time,
             chunk_size,
+        )
+        return path
+
+    async def download_metadata_file(
+        self,
+        url: str,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+        chunk_size: int = 64 * 1024,
+        urlpath: str = "",
+    ) -> Path | None:
+        """Download a release file's PEP 658/714 core metadata file to live
+        alongside it in the mirror (release file path + ".metadata")"""
+        if urlpath != "":
+            path = self._file_url_to_local_path(urlpath)
+        else:
+            path = self._file_url_to_local_path(url)
+        loop = asyncio.get_running_loop()
+
+        # Upstream only advertises checksums for core metadata files, so
+        # unlike release files there is no size to compare
+        def metadata_file_is_current() -> bool:
+            if not self.storage_backend.exists(path):
+                return False
+            if self.compare_method == "stat" and (
+                self.storage_backend.get_upload_time(path) == upload_time
+            ):
+                return True
+            return self.storage_backend.get_hash(path, digest_name) == digest
+
+        is_current = await loop.run_in_executor(
+            self.storage_backend.executor, metadata_file_is_current
+        )
+        if is_current:
+            return None
+
+        logger.info(f"Downloading core metadata: {url}")
+        await fetch_and_store(
+            self.master,
+            self.storage_backend,
+            url,
+            path,
+            digest,
+            upload_time,
+            chunk_size,
+            digest_name=digest_name,
         )
         return path
 
@@ -1004,6 +1093,7 @@ async def mirror(
             diff_full_path=diff_full_path,
             cleanup=config_values.cleanup,
             release_files_save=config_values.release_files_save,
+            core_metadata_save=config_values.core_metadata_save,
             download_mirror=config_values.download_mirror,
             download_mirror_no_fallback=config_values.download_mirror_no_fallback,
             simple_format=config_values.simple_format,
