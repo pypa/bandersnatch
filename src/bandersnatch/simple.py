@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 from .package import Package
+from .utils import find_core_metadata_digest
 
 if TYPE_CHECKING:
     from .storage import Storage
@@ -79,6 +80,7 @@ class SimpleAPI:
         digest_name: str,
         hash_index: bool,
         root_uri: str | None,
+        core_metadata: bool = True,
     ) -> None:
         self.diff_file_list = diff_file_list
         self.digest_name = get_digest_value(digest_name)
@@ -86,6 +88,8 @@ class SimpleAPI:
         self.hash_index = hash_index
         self.root_uri = root_uri
         self.storage_backend = storage_backend
+        # Advertise PEP 658/714 core metadata files in generated index pages
+        self.core_metadata = core_metadata
 
     def html_enabled(self) -> bool:
         return self.format in {SimpleFormat.ALL, SimpleFormat.HTML}
@@ -113,6 +117,17 @@ class SimpleAPI:
             file_tags += (
                 f' data-requires-python="{html.escape(release["requires_python"])}"'
             )
+
+        # data-core-metadata (PEP 714) + legacy data-dist-info-metadata (PEP 658)
+        # which MUST match the data-core-metadata value when emitted
+        if self.core_metadata:
+            metadata_digest = find_core_metadata_digest(release, self.digest_name)
+            if metadata_digest:
+                metadata_attr = "=".join(metadata_digest)
+                file_tags += (
+                    f' data-core-metadata="{metadata_attr}"'
+                    f' data-dist-info-metadata="{metadata_attr}"'
+                )
 
         # data-yanked: yanked_reason
         if "yanked" in release and release["yanked"]:
@@ -219,19 +234,28 @@ class SimpleAPI:
 
         # Add release files into the JSON dict
         for r in release_files:
-            package_json["files"].append(
-                {
-                    "filename": r["filename"],
-                    "hashes": {
-                        self.digest_name: r["digests"][self.digest_name],
-                    },
-                    "requires-python": r.get("requires_python", ""),
-                    "size": r["size"],
-                    "upload-time": r.get("upload_time_iso_8601", ""),
-                    "url": self._file_url_to_local_url(r["url"]),
-                    "yanked": r.get("yanked", False),
-                }
-            )
+            file_json: dict[str, Any] = {
+                "filename": r["filename"],
+                "hashes": {
+                    self.digest_name: r["digests"][self.digest_name],
+                },
+                "requires-python": r.get("requires_python", ""),
+                "size": r["size"],
+                "upload-time": r.get("upload_time_iso_8601", ""),
+                "url": self._file_url_to_local_url(r["url"]),
+                "yanked": r.get("yanked", False),
+            }
+            # PEP 714 only emits the core-metadata key - never the
+            # legacy dist-info-metadata key which older pip mis-parses
+            if self.core_metadata:
+                metadata_digest = find_core_metadata_digest(r, self.digest_name)
+                if metadata_digest:
+                    file_json["core-metadata"] = {
+                        metadata_digest[0]: metadata_digest[1]
+                    }
+                elif r.get("core-metadata") is False:
+                    file_json["core-metadata"] = False
+            package_json["files"].append(file_json)
 
         if pretty:
             return json.dumps(package_json, indent=4)

@@ -11,6 +11,10 @@ This is a PyPI mirror client according to `PEP 381` + `PEP 503` + `PEP 691`
 
 - bandersnatch uses the PEP 691 Simple JSON API for package metadata (default since 7.0)
 - bandersnatch >=6.0 implements PEP691 Simple metadata mirroring
+- bandersnatch >=8.0
+  - removes xmlrpc support
+  - mirrors PEP 658 / PEP 714 core metadata files
+    (`core-metadata` config option - on by default)
 - [Documentation](https://bandersnatch.readthedocs.io/en/latest/)
 
 Bandersnatch is supported (and tested) on Linux, Mac and Windows.
