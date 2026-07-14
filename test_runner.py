@@ -26,6 +26,11 @@ EOP = "[CI ERROR]:"
 MIRROR_ROOT = Path(f"{gettempdir()}/pypi")
 MIRROR_BASE = MIRROR_ROOT / "web"
 TGZ_SHA256 = "b6114554fb312f9b0bdeaf6a7498f7da05fc17b9250c0449ed796fac9ab663e2"
+# sha256 PyPI advertises for ACMPlus-0.0.3-py3-none-any.whl's PEP 658/714
+# core metadata file (immutable once published, like the release file)
+ACMPLUS_WHL_METADATA_SHA256 = (
+    "ee27f74bc59940133830219a8986550e444e685f7346ef2235e9489fa382aafb"
+)
 TOX_EXE = Path(which("tox") or "tox")
 
 # Make Global so we can check exists before delete
@@ -37,6 +42,7 @@ A_BLACK_WHL = (
     / "0edf98916640efa5d0696e1abb0a8357b52e69e82322628f25bf14d263d1"
     / "black-25.1.0-cp313-cp313-macosx_10_13_x86_64.whl"
 )
+A_BLACK_WHL_METADATA = A_BLACK_WHL.parent / f"{A_BLACK_WHL.name}.metadata"
 
 
 def check_ci(suppress_errors: bool = False) -> int:
@@ -85,6 +91,57 @@ def check_ci(suppress_errors: bool = False) -> int:
         with pyaib_json_index.open("r") as fp:
             json.load(fp)  # Check it's valid JSON
 
+    # PEP 658/714 core metadata checks - mirrored, checksum verified
+    # and advertised in both simple index formats
+    acmplus_whl_metadata = (
+        MIRROR_BASE
+        / "packages"
+        / "8e"
+        / "3c"
+        / "5a7b892a2a92e8045b2e2662b5a7debb265c52964730676a31a59cd1ec56"
+        / "ACMPlus-0.0.3-py3-none-any.whl.metadata"
+    )
+    acmplus_index_html = MIRROR_BASE / "simple/a/acmplus/index.html"
+    acmplus_index_json = MIRROR_BASE / "simple/a/acmplus/index.v1_json"
+
+    if not suppress_errors and not acmplus_whl_metadata.exists():
+        print(f"{EOP} No ACMPlus core metadata file exists @ {acmplus_whl_metadata}")
+        return 76
+
+    if not suppress_errors:
+        acmplus_metadata_sha256 = hash(acmplus_whl_metadata)
+        if acmplus_metadata_sha256 != ACMPLUS_WHL_METADATA_SHA256:
+            print(
+                f"{EOP} Bad ACMPlus core metadata sha256: "
+                f"{acmplus_metadata_sha256} != {ACMPLUS_WHL_METADATA_SHA256}"
+            )
+            return 77
+
+        expected_html_attr = (
+            f'data-core-metadata="sha256={ACMPLUS_WHL_METADATA_SHA256}"'
+        )
+        if expected_html_attr not in acmplus_index_html.read_text():
+            print(f"{EOP} {acmplus_index_html} does not advertise core metadata")
+            return 78
+
+        with acmplus_index_json.open("r") as fp:
+            acmplus_index_files = json.load(fp)["files"]
+        whl_entry: dict = next(
+            (
+                f
+                for f in acmplus_index_files
+                if f["filename"] == "ACMPlus-0.0.3-py3-none-any.whl"
+            ),
+            {},
+        )
+        if whl_entry.get("core-metadata") != {"sha256": ACMPLUS_WHL_METADATA_SHA256}:
+            print(f"{EOP} {acmplus_index_json} does not advertise core metadata")
+            return 79
+
+    if not suppress_errors and A_BLACK_WHL_METADATA.exists():
+        print(f"{EOP} {A_BLACK_WHL_METADATA} exists ... delete failed?")
+        return 80
+
     rmtree(MIRROR_ROOT)
 
     print("Bandersnatch PyPI CI finished successfully!")
@@ -106,6 +163,12 @@ def do_ci(conf: Path, suppress_errors: bool = False) -> int:
         print(f"{EOP} {A_BLACK_WHL} does not exist after mirroring ...")
         if not suppress_errors:
             return 68
+
+    print(f"Checking if {A_BLACK_WHL_METADATA} exists")
+    if not A_BLACK_WHL_METADATA.exists():
+        print(f"{EOP} {A_BLACK_WHL_METADATA} does not exist after mirroring ...")
+        if not suppress_errors:
+            return 67
 
     print("Starting to deleting black from mirror ...")
     del_cmds = (

@@ -24,10 +24,14 @@ json{0}unittest
 packages
 packages{0}69
 packages{0}69{0}cooper-6.9.tar.gz
+packages{0}69{0}cooper-6.9.tar.gz.metadata
 packages{0}69{0}unittest-6.9.tar.gz
+packages{0}69{0}unittest-6.9.tar.gz.metadata
 packages{0}7b
 packages{0}7b{0}cooper-6.9-py3-none-any.whl
+packages{0}7b{0}cooper-6.9-py3-none-any.whl.metadata
 packages{0}7b{0}unittest-6.9-py3-none-any.whl
+packages{0}7b{0}unittest-6.9-py3-none-any.whl.metadata
 pypi
 pypi{0}cooper
 pypi{0}cooper{0}json
@@ -139,6 +143,8 @@ async def test_delete_packages() -> None:
                     blob_path = web_path / url_parts.path[1:]
                     blob_path.parent.mkdir(parents=True, exist_ok=True)
                     blob_path.touch()
+                    # PEP 658/714 core metadata should also get removed
+                    blob_path.with_name(f"{blob_path.name}.metadata").touch()
 
         # See we have a correct mirror setup
         assert find(web_path) == EXPECTED_WEB_BEFORE_DELETION

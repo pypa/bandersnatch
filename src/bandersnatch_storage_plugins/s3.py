@@ -829,7 +829,13 @@ class S3Storage(StoragePlugin):
                 if head is None:
                     return spec
 
-                expected_hash = spec.digests.get(digest_name, "")
+                # Fall back to whatever digest the spec carries when the
+                # configured one is unavailable (e.g. core metadata files carry
+                # one upstream advertised digest which may not match digest_name)
+                check_digest_name = digest_name
+                if check_digest_name not in spec.digests and spec.digests:
+                    check_digest_name = next(iter(sorted(spec.digests)))
+                expected_hash = spec.digests.get(check_digest_name, "")
 
                 def _certify() -> ReleaseFileStatus:
                     return self._certify_from_head(
@@ -841,7 +847,7 @@ class S3Storage(StoragePlugin):
                         upload_time=spec.upload_time,
                         digest=expected_hash,
                         compare_method=compare,
-                        digest_name=digest_name,
+                        digest_name=check_digest_name,
                         backfill=not dry_run,
                         would_backfill_label=spec.filename if dry_run else None,
                         refresh_stale_metadata=False,

@@ -1,3 +1,4 @@
+import json
 import os.path
 import sys
 import time
@@ -930,6 +931,82 @@ async def test_package_sync_downloads_release_file(mirror: BandersnatchMirror) -
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
 
 
+# sha256 of b"" - all FakeReader downloads in these tests have no content
+EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+
+@pytest.mark.asyncio
+async def test_package_sync_downloads_core_metadata_file(
+    mirror: BandersnatchMirror, package_json: dict[str, Any]
+) -> None:
+    from datetime import UTC, datetime
+
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": EMPTY_SHA256}
+    package_json["releases"]["0.1"][1]["core-metadata"] = False
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+    assert not mirror.errors
+
+    assert open("web/packages/any/f/foo/foo.zip.metadata").read() == ""
+    assert not os.path.exists("web/packages/2.7/f/foo/foo.whl.metadata")
+    metadata_rel_path = f"web{sep}packages{sep}any{sep}f{sep}foo{sep}foo.zip.metadata"
+    assert metadata_rel_path in mirror.altered_packages["foo"]
+
+    # Simple pages advertise core metadata via PEP 714 + legacy PEP 658 keys
+    expected_tags = (
+        f' data-core-metadata="sha256={EMPTY_SHA256}"'
+        + f' data-dist-info-metadata="sha256={EMPTY_SHA256}"'
+    )
+    assert expected_tags in open("web/simple/foo/index.html").read()
+    simple_json = json.loads(open("web/simple/foo/index.v1_json").read())
+    simple_files = {f["filename"]: f for f in simple_json["files"]}
+    assert simple_files["foo.zip"]["core-metadata"] == {"sha256": EMPTY_SHA256}
+    assert simple_files["foo.whl"]["core-metadata"] is False
+
+    # A second download should find the metadata file current and do nothing
+    assert (
+        await mirror.download_metadata_file(
+            "https://pypi.example.com/packages/any/f/foo/foo.zip.metadata",
+            EMPTY_SHA256,
+            datetime(2000, 2, 2, 1, 23, 45, 123456, tzinfo=UTC),
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_package_sync_core_metadata_checksum_mismatch(
+    mirror: BandersnatchMirror, package_json: dict[str, Any]
+) -> None:
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": "69" * 32}
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+
+    assert mirror.errors
+    assert "foo" in mirror.packages_to_sync
+    assert not os.path.exists("web/packages/any/f/foo/foo.zip.metadata")
+
+
+@pytest.mark.asyncio
+async def test_package_sync_core_metadata_disabled(
+    tmpdir: Path,
+    master: Master,
+    package_json: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmpdir)
+    mirror = BandersnatchMirror(tmpdir, master, core_metadata_save=False)
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": EMPTY_SHA256}
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+    assert not mirror.errors
+
+    assert os.path.exists("web/packages/any/f/foo/foo.zip")
+    assert not os.path.exists("web/packages/any/f/foo/foo.zip.metadata")
+    assert "core-metadata" not in open("web/simple/foo/index.html").read()
+    assert "core-metadata" not in open("web/simple/foo/index.v1_json").read()
+
+
 @pytest.mark.asyncio
 async def test_package_sync_skips_release_file(mirror: BandersnatchMirror) -> None:
     mirror.release_files_save = False
@@ -1075,6 +1152,16 @@ async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
         "yanked_reason": "Broken release",
     }
 
+    # requires_python + PEP 658/714 core metadata hashes
+    fake_release_4 = {
+        "requires_python": ">=3.6",
+        "core-metadata": {"sha256": "69" * 32},
+    }
+
+    # core metadata without a usable checksum is not advertised
+    fake_release_5 = {"core-metadata": False}
+    fake_release_6 = {"core-metadata": True}
+
     assert mirror.simple_api.gen_html_file_tags(fake_no_release) == ""
     assert (
         mirror.simple_api.gen_html_file_tags(fake_release_1)
@@ -1088,6 +1175,14 @@ async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
         mirror.simple_api.gen_html_file_tags(fake_release_3)
         == ' data-requires-python="&gt;=3.6" data-yanked="Broken release"'
     )
+    assert (
+        mirror.simple_api.gen_html_file_tags(fake_release_4)
+        == ' data-requires-python="&gt;=3.6"'
+        + f' data-core-metadata="sha256={"69" * 32}"'
+        + f' data-dist-info-metadata="sha256={"69" * 32}"'
+    )
+    assert mirror.simple_api.gen_html_file_tags(fake_release_5) == ""
+    assert mirror.simple_api.gen_html_file_tags(fake_release_6) == ""
 
 
 @pytest.mark.asyncio
@@ -1227,14 +1322,39 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     # Create a non normalized directory
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
+    # On case insensitive filesystems (macOS APFS / Windows NTFS) the raw
+    # dir IS the live PEP 503 dir, so cleanup correctly leaves it alone
+    case_insensitive_fs = (mirror.webdir / "simple" / package.name).exists()
+    expected_removals = 0 if case_insensitive_fs else 1
+
     mirror.cleanup = True
     with (
         mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink,
         mock.patch("bandersnatch.mirror.Path.rmdir") as mocked_rmdir,
     ):
         await mirror.cleanup_non_pep_503_paths(package)
-        assert mocked_unlink.call_count == 1  # number you expect
-        assert mocked_rmdir.call_count == 1  # Or number you expect here
+        assert mocked_unlink.call_count == expected_removals
+        assert mocked_rmdir.call_count == expected_removals
+
+
+@pytest.mark.asyncio
+async def test_cleanup_non_pep_503_paths_case_insensitive_fs(
+    mirror: BandersnatchMirror,
+) -> None:
+    """On case insensitive filesystems the deprecated mixed case dir is the
+    live PEP 503 dir - simulate that with a symlink on case sensitive
+    filesystems (macOS/Windows collide naturally) and see we keep it"""
+    raw_package_name = "CatDogPython69"
+    package = Package(raw_package_name)
+    simple_index = mirror.simple_directory(package) / "index.html"
+    touch_files([simple_index])
+    deprecated_dir = mirror.webdir / "simple" / raw_package_name
+    if not deprecated_dir.exists():
+        deprecated_dir.symlink_to(mirror.simple_directory(package))
+
+    mirror.cleanup = True
+    await mirror.cleanup_non_pep_503_paths(package)
+    assert simple_index.exists()
 
 
 @pytest.mark.asyncio
