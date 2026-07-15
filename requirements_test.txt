@@ -5,7 +5,7 @@ flake8==7.3.0
 flake8-bugbear==25.11.29
 freezegun==1.5.5
 moto[s3]==5.2.2
-mypy==2.1.0
+mypy==2.3.0
 pre_commit==4.6.0
 pytest==9.1.1
 pytest-asyncio==1.4.0
