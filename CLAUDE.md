@@ -54,12 +54,20 @@ Both `filter.py` and `storage.py` carry an `API_REVISION` constant — bump it w
 A release is a PR followed by a GitHub Release. Steps:
 
 1. **In a new branch/PR**, finalize `CHANGES.md`: rename the top `# Unreleased` heading to the new version number (e.g. `# 7.2.0`), keeping its `## New Features` / `## CI / test` / `## Documentation` / `## Bug Fixes` subsections. Add a fresh empty `# Unreleased` section above it for future work.
-1. Bump `version =` in `setup.cfg` to the version the user asks for. It **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
+
+1. Bump the version in **both** places — they must match, and it's easy to update one and forget the other:
+
+   - `version =` in `setup.cfg`
+   - `__version_info__` in `src/bandersnatch/__init__.py` (set `major`/`minor`/`micro` accordingly and clear `releaselevel` to `""` for a final release)
+
+   The version **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
+
 1. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated).
+
 1. Once merged, cut a new GitHub Release tagged with that version (`gh release create <version>`), and paste the just-released version's `CHANGES.md` markdown (the section you renamed in step 1) as the release body.
 
 ## Conventions
 
-- Version lives in `setup.cfg` (`version =`). User-facing changes get a `CHANGES.md` entry.
+- Version lives in **two** places that must be kept in sync: `setup.cfg` (`version =`) and `src/bandersnatch/__init__.py` (`__version_info__`). User-facing changes get a `CHANGES.md` entry.
 - Min supported Python is 3.12; CI matrix runs 3.12–3.15. New syntax for >=3.12 is acceptable.
 - Optional features are extras: `s3` (s3path), `uvloop`, `safety_db`. uvloop is auto-installed/used when present (`main.py` tries to import it).
