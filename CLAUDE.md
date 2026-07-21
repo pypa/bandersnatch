@@ -62,9 +62,11 @@ A release is a PR followed by a GitHub Release. Steps:
 
    The version **must be valid semver and strictly greater** than the current value — verify against `git tag` (tags are the released versions) and refuse/flag if the requested version is not higher.
 
-1. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated).
+1. Push the PR and wait for it to land on `main` (CI must pass; `main` is normally PR-gated). The `Changelog Entry Check` workflow greps `CHANGES.md` for a `PR #<this PR's number>` line and fails on a release PR since the PR doesn't reference itself — add the `skip news` label to the PR to satisfy it.
 
 1. Once merged, cut a new GitHub Release tagged with that version (`gh release create <version>`), and paste the just-released version's `CHANGES.md` markdown (the section you renamed in step 1) as the release body.
+
+1. **Publishing a release triggers two more workflows** (`on: release: types: created`) that must be watched to completion, since a failure here means the release is tagged but not actually shipped: `pypi_upload.yml` (builds sdist/wheel, `twine upload`s to PyPI) and `docker_upload.yml` (builds+pushes `pypa/bandersnatch` images to DockerHub for `linux/amd64,linux/arm64`, both the plain and `s3-` tag variants). Find the runs with `gh run list --workflow=pypi_upload.yml --limit 3` / `--workflow=docker_upload.yml --limit 3` (match on the release tag as `headBranch` and `event == "release"`), watch with `gh run watch <id> --exit-status`, and after both succeed confirm the version actually landed by checking `https://pypi.org/pypi/bandersnatch/json` (`.info.version`). `docker_upload.yml` also runs on every push to `main`, independent of releases — that's expected, not a duplicate to worry about.
 
 ## Conventions
 
