@@ -5,5 +5,5 @@ filelock==3.32.0
 humanfriendly==10.0
 idna==3.18
 multidict==6.7.1
-packaging==26.2
+packaging==26.3
 yarl==1.24.2
