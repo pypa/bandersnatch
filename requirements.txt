@@ -6,4 +6,4 @@ humanfriendly==10.0
 idna==3.18
 multidict==6.7.1
 packaging==26.3
-yarl==1.24.2
+yarl==1.24.5
