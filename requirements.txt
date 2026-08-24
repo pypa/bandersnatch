@@ -1,7 +1,7 @@
 aiohttp==3.14.3
 aiohttp-socks==0.11.0
 attrs==26.1.0
-filelock==3.32.0
+filelock==3.32.3
 humanfriendly==10.0
 idna==3.18
 multidict==6.7.1
