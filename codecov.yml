@@ -1,0 +1,36 @@
+# Codecov configuration for bandersnatch
+#
+# Coverage is uploaded from every CI job, split across two workflows:
+#
+#   ci.yml         4 Python versions x 2 OSes (macOS, windows)  =  8
+#   ci_ubuntu.yml  4 Python versions x 1 OS   (ubuntu)          =  4
+#                                                        total  = 12
+#
+# Without `after_n_builds`, Codecov scores a commit as soon as the first
+# upload lands and revises as the rest arrive. The project status therefore
+# fires against a partial set and reports a drop that does not exist -- in
+# practice a recurring "-0.10%" red on dependency-bump PRs that change no
+# Python at all, which then self-heals minutes later once the remaining
+# uploads are in.
+#
+# Waiting for all 12 reports fixes the cause. A coverage threshold would
+# only mask it, and would hide genuine small regressions too.
+#
+# NOTE: if the CI matrix changes, update this number to match. Setting it
+# higher than the real job count means Codecov never reports at all.
+
+codecov:
+  notify:
+    after_n_builds: 12
+    wait_for_ci: true
+
+comment:
+  after_n_builds: 12
+
+coverage:
+  status:
+    project:
+      default:
+        # Second line of defence: if an upload is genuinely lost rather than
+        # merely late, do not fail the PR over sub-0.5% measurement drift.
+        threshold: 0.5%
