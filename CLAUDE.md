@@ -101,9 +101,9 @@ red check is a signal to investigate the bump, not to retry the merge.
 
 **Do not gate on branch protection's required contexts.** Only three contexts are *required*
 (`bandersnatch CI python 3.14 on {ubuntu,macOS,windows}-latest`), but a PR routinely carries ~17
-checks — the 3.12/3.13/3.15 matrix, `html + linkcheck build`, `pre-commit.ci`, `Changelog Entry
-Check` and both codecov statuses. Waiting only on the required three merges PRs while the rest are
-still running or already red. Gate on the whole set, e.g.:
+checks: the 3.12/3.13/3.15 matrix, `html + linkcheck build`, `pre-commit.ci`,
+`Changelog Entry Check`, and both codecov statuses. Waiting only on the required three merges PRs
+while the rest are still running or already red. Gate on the whole set, e.g.:
 
 ```bash
 s=$(gh pr checks <n> --json name,bucket)
