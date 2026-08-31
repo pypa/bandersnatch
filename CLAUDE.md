@@ -68,6 +68,93 @@ A release is a PR followed by a GitHub Release. Steps:
 
 1. **Publishing a release triggers two more workflows** (`on: release: types: created`) that must be watched to completion, since a failure here means the release is tagged but not actually shipped: `pypi_upload.yml` (builds sdist/wheel, `twine upload`s to PyPI) and `docker_upload.yml` (builds+pushes `pypa/bandersnatch` images to DockerHub for `linux/amd64,linux/arm64`, both the plain and `s3-` tag variants). Find the runs with `gh run list --workflow=pypi_upload.yml --limit 3` / `--workflow=docker_upload.yml --limit 3` (match on the release tag as `headBranch` and `event == "release"`), watch with `gh run watch <id> --exit-status`, and after both succeed confirm the version actually landed by checking `https://pypi.org/pypi/bandersnatch/json` (`.info.version`). `docker_upload.yml` also runs on every push to `main`, independent of releases — that's expected, not a duplicate to worry about.
 
+## Dependency updates (Dependabot)
+
+Dependabot opens a batch of pip PRs roughly weekly, each a one-line pin bump in one of the
+pinned requirements files: `requirements.txt` (runtime), `requirements_test.txt` (test/lint
+tooling), `requirements_s3.txt` (the `s3` extra), `requirements_docs.txt` (sphinx docs).
+
+What governs merging them:
+
+- **`main` branch protection**: 1 approving review required, and **strict** required status
+  checks — the branch must be up to date with `main` — on exactly three contexts:
+  `bandersnatch CI python 3.14 on {ubuntu,macOS,windows}-latest`. `enforce_admins` is **off**,
+  so a maintainer can merge without a separate review via `gh pr merge <n> --squash --admin`.
+- **Squash is the only allowed merge method** (merge commits and rebase-merges are disabled);
+  `delete_branch_on_merge` is on, so branches clean themselves up.
+- Because required checks are strict, **merging one PR makes every other open PR `BEHIND`** and
+  unmergeable until refreshed. So merge them **one at a time**: merge, then
+  `gh pr update-branch <next> --rebase` (or comment `@dependabot rebase`), wait for **all** of
+  that PR's checks to go green (see the policy below — not just the required three), then merge
+  the next.
+- Dependabot PRs carry the **`skip news`** label, which is what lets the `Changelog Entry Check`
+  workflow pass without a `CHANGES.md` entry. Dependency bumps do not get changelog entries.
+- Triage the batch with:
+  `gh pr list --author "app/dependabot" --json number,title,mergeable,mergeStateStatus`
+  then `gh pr checks <n>` per PR.
+
+**Policy — when Claude may approve/merge without asking.** Only for **Dependabot-authored PRs**
+(`app/dependabot`) where **EVERY check is passing** — not merely the required ones. Both
+conditions must hold. Anything else — a human-authored PR, or a Dependabot PR with even one
+failing *or still-pending* check — gets reported back for a human decision instead of merged. A
+red check is a signal to investigate the bump, not to retry the merge.
+
+**Do not gate on branch protection's required contexts.** Only three contexts are *required*
+(`bandersnatch CI python 3.14 on {ubuntu,macOS,windows}-latest`), but a PR routinely carries ~17
+checks — the 3.12/3.13/3.15 matrix, `html + linkcheck build`, `pre-commit.ci`, `Changelog Entry
+Check` and both codecov statuses. Waiting only on the required three merges PRs while the rest are
+still running or already red. Gate on the whole set, e.g.:
+
+```bash
+s=$(gh pr checks <n> --json name,bucket)
+jq -e '[.[] | select(.bucket != "pass")] | length == 0' <<<"$s" >/dev/null \
+  && gh pr merge <n> --squash --admin \
+  || jq -r '.[] | select(.bucket != "pass") | "  \(.bucket)\t\(.name)"' <<<"$s"
+```
+
+**Known flake: `codecov/project` reports a transient `-0.10%` that later self-heals.** CI uploads
+coverage from *every* matrix job (`ci.yml`, 4 Pythons x 3 OSes = 12 uploads), and codecov computes
+the `project` status from whatever has arrived so far. When it fires after only ~10 of the 12
+uploads have landed it reports e.g. `91.96% (-0.10%)` and goes red; once the stragglers arrive the
+commit reconciles to the true value and the check flips green on its own. Verified via the codecov
+API — a red PR head and its green base had **identical** totals (`92.06%`, 5028 lines / 4629 hits
+/ 256 misses), differing only in session count (10 vs 12).
+
+So a red `codecov/project` on a pin bump is almost never a real regression — but **do not merge
+through it**. Re-check a few minutes later and it will normally be green; merge then. Confirm with:
+
+```bash
+curl -s "https://api.codecov.io/api/v2/github/pypa/repos/bandersnatch/commits/<sha>" \
+  | jq '{coverage: .report.totals.coverage, sessions: (.report.sessions | length)}'
+```
+
+Fewer sessions than the matrix size means uploads are still landing, not that coverage dropped. The
+durable fix is a `codecov.yml` setting `after_n_builds` to the full matrix count so codecov waits
+for every upload before reporting (a project `threshold` would only mask it).
+
+**Claude needs local permission for this.** Approving and merging are blocked by Claude Code's
+auto-mode classifier unless these rules exist in a settings file — user-level
+`~/.claude/settings.local.json` works and applies to every repo:
+
+```json
+"Bash(gh pr review:*)",
+"Bash(gh pr merge:*)",
+"Bash(gh pr update-branch:*)"
+```
+
+Claude cannot add these itself — writing to its own permissions file is blocked by design, via
+both Bash and the edit tools. The user adds them by editing the file, or by choosing "Yes, and
+don't ask again" on the permission prompt (which requires leaving auto mode with `shift+tab`).
+Never put them in a committed `.claude/settings.json` — this is a public repo.
+
+### Known upstream-blocked bumps
+
+- **#2258 `docutils` 0.22.4 → 0.23** — fails `html + linkcheck build` with
+  `ResolutionImpossible`: `sphinx==9.1.0` (currently the latest sphinx) requires
+  `docutils<0.23,>=0.21`. Nothing to fix on our side; leave it open until Sphinx relaxes the
+  cap. Re-check with
+  `curl -s https://pypi.org/pypi/sphinx/json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['info']['version'], [r for r in d['info']['requires_dist'] if 'docutils' in r])"`.
+
 ## Conventions
 
 - Version lives in **two** places that must be kept in sync: `setup.cfg` (`version =`) and `src/bandersnatch/__init__.py` (`__version_info__`). User-facing changes get a `CHANGES.md` entry.
