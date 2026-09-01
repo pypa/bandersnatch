@@ -48,4 +48,4 @@ repos:
           - mdformat-black
 
 ci:
-  autofix_prs: false
+  autofix_prs: true
