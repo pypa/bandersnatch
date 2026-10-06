@@ -111,6 +111,10 @@ class S3FileLock(filelock.BaseFileLock):
     Simply watches the existence of the lock file.
     """
 
+    # The hold is the existence of the S3 object: there is no OS file
+    # descriptor to lend out, so the ``on_acquired`` hook must be refused.
+    _on_acquired_supported = False
+
     def __init__(
         self,
         lock_file: str,
@@ -119,7 +123,10 @@ class S3FileLock(filelock.BaseFileLock):
     ) -> None:
         # The path to the lock file.
         self.backend: S3Storage | None = backend
-        self._lock_file_fd: S3Storage | None
+        self._lock_file_fd: S3Path | None = None
+        # Throwaway OS descriptor acting as the "held" token for the
+        # filelock base class bookkeeping (see _acquire).
+        self._held_os_fd: int | None = None
         super().__init__(lock_file, timeout=timeout)
 
     @property
@@ -139,9 +146,27 @@ class S3FileLock(filelock.BaseFileLock):
         else:
             logger.info(f"Acquired lock: {self.lock_file}")
             self._lock_file_fd = fd
+            # filelock tracks held state via an OS descriptor in the base
+            # context (since 4.0 release() returns early without one). An S3
+            # object has no descriptor, so hold a throwaway read-only one
+            # purely as the "held" token; it is closed again in _release().
+            try:
+                held_fd = os.open(os.devnull, os.O_RDONLY)
+            except OSError:
+                self._lock_file_fd = None
+                with contextlib.suppress(OSError):
+                    self.path_backend(self.lock_file).unlink()
+                raise
+            self._held_os_fd = held_fd
+            self._mark_descriptor_owned(held_fd)  # type: ignore[attr-defined]
         return None
 
     def _release(self) -> None:
+        held_fd, self._held_os_fd = self._held_os_fd, None
+        self._mark_descriptor_released()  # type: ignore[attr-defined]
+        if held_fd is not None:
+            with contextlib.suppress(OSError):
+                os.close(held_fd)
         self._lock_file_fd = None
         try:
             logger.info(f"Removing lock: {self.lock_file}")
