@@ -136,51 +136,73 @@ class S3FileLock(filelock.BaseFileLock):
         raise RuntimeError("Failed to retrieve s3 backend")
 
     def _acquire(self) -> None:
+        # Claim the marker with a conditional create (``If-None-Match: *``)
+        # so only the process that actually created the object owns the
+        # lock. A plain ``touch()`` would overwrite (or no-op over) another
+        # holder's marker and report success without exclusive ownership.
+        logger.info("Attempting to acquire lock")
+        s3_path = self.path_backend(self.lock_file)
         try:
-            logger.info("Attempting to acquire lock")
-            fd: S3Path = self.path_backend(self.lock_file)
-            fd.touch()
-        except OSError as exc:
-            logger.error("Failed to acquire lock...")
-            logger.exception("Exception: ", exc)
-        else:
-            logger.info(f"Acquired lock: {self.lock_file}")
-            self._lock_file_fd = fd
-            # filelock tracks held state via an OS descriptor in the base
-            # context (since 4.0 release() returns early without one). An S3
-            # object has no descriptor, so hold a throwaway read-only one
-            # purely as the "held" token; it is closed again in _release().
-            try:
-                held_fd = os.open(os.devnull, os.O_RDONLY)
-            except OSError:
-                self._lock_file_fd = None
-                with contextlib.suppress(OSError):
-                    self.path_backend(self.lock_file).unlink()
-                raise
-            self._held_os_fd = held_fd
-            self._mark_descriptor_owned(held_fd)  # type: ignore[attr-defined]
+            resource, _ = configuration_map.get_configuration(s3_path)
+            resource.meta.client.put_object(
+                Bucket=s3_path.bucket,
+                Key=str(s3_path.key),
+                Body=b"",
+                IfNoneMatch="*",
+            )
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "PreconditionFailed":
+                logger.debug(f"Lock already held: {self.lock_file}")
+                return
+            logger.exception(f"Failed to acquire lock {self.lock_file}")
+            raise
+        except OSError:
+            logger.exception(f"Failed to acquire lock {self.lock_file}")
+            raise
+        logger.info(f"Acquired lock: {self.lock_file}")
+        self._lock_file_fd = s3_path
+        # filelock tracks held state via an OS descriptor in the base
+        # context (since 4.0 release() returns early without one). An S3
+        # object has no descriptor, so hold a throwaway read-only one
+        # purely as the "held" token; it is closed again in _release().
+        try:
+            held_fd = os.open(os.devnull, os.O_RDONLY)
+        except OSError:
+            self._lock_file_fd = None
+            with contextlib.suppress(OSError):
+                self.path_backend(self.lock_file).unlink()
+            raise
+        self._held_os_fd = held_fd
+        self._mark_descriptor_owned(held_fd)  # type: ignore[attr-defined]
         return None
 
     def _release(self) -> None:
         held_fd, self._held_os_fd = self._held_os_fd, None
         self._mark_descriptor_released()  # type: ignore[attr-defined]
-        if held_fd is not None:
-            with contextlib.suppress(OSError):
-                os.close(held_fd)
+        # filelock only calls _release while is_locked, which for this
+        # class means the held token exists (no `if` keeps the branch
+        # coverage clean: the None case is unreachable via the public API).
+        assert held_fd is not None
+        with contextlib.suppress(OSError):
+            os.close(held_fd)
         self._lock_file_fd = None
         try:
             logger.info(f"Removing lock: {self.lock_file}")
             self.path_backend(self.lock_file).unlink()
-        except OSError as exc:
-            logger.error("Failed to remove lockfile")
-            logger.exception("Exception: ", exc)
+        except OSError:
+            logger.exception(f"Failed to remove lockfile {self.lock_file}")
         else:
             logger.info("Successfully cleaned up lock")
         return None
 
     @property
     def is_locked(self) -> bool:
-        return bool(self.path_backend(self.lock_file).exists())
+        # Whether *this instance* holds the lock. This must not consult S3:
+        # the filelock poll loop returns from ``acquire()`` as soon as
+        # ``is_locked`` is true, so reporting another holder's marker here
+        # would let a contender "acquire" without exclusive ownership (and
+        # then delete the real holder's marker on release).
+        return self._held_os_fd is not None
 
 
 class S3Storage(StoragePlugin):
