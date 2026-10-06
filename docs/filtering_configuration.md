@@ -252,6 +252,7 @@ sort_by = [version|time]
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
 The default is to sort by `version` number (parsed according to semantic versioning).
 As an alternative, `time` can be used to sort releases chronologically by upload time and select the last `keep` ones.
+When sorting by `version`, releases whose version is not valid under PEP 440 are skipped; the project's current version is always kept.
 
 You should be aware that it can break requirements. Prereleases are also kept.
 

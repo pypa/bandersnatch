@@ -112,6 +112,47 @@ def test_latest_releases_keep_stable() -> None:
     assert pkg.releases == {"2.0.1b2": {}, "2.0.0": {}}
 
 
+def test_latest_releases_skip_invalid_versions() -> None:
+    mock_config(_KEEP_2_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "1.0.0": {},
+            "2.0.1rc2-git": {},
+            "1.1.0": {},
+            "2013d": {},
+            "1.1.1": {},
+            "2.0.0": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"1.1.1": {}, "2.0.0": {}}
+
+
+def test_latest_releases_keep_invalid_current_version() -> None:
+    mock_config(_KEEP_2_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2013g"},
+        "releases": {
+            "2013d": {},
+            "2013e": {},
+            "2013g": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"2013g": {}}
+
+
 def test_latest_releases_ensure_reusable() -> None:
     """Tests the filter multiple times to ensure no state is preserved."""
     mock_config(_KEEP_2_CONFIG)
