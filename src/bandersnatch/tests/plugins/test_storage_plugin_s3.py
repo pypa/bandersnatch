@@ -1,6 +1,10 @@
+import os
 from datetime import UTC, datetime
+from unittest import mock
 
 import pytest
+from botocore.exceptions import ClientError
+from filelock import Timeout
 from s3path import S3Path, configuration_map
 
 from bandersnatch.tests.mock_config import mock_config
@@ -55,6 +59,136 @@ def test_lock(s3_mock: S3Path) -> None:
     with s3lock.acquire(timeout=30):
         assert s3lock.is_locked is True
     assert s3lock.is_locked is False
+
+
+def _assert_locked(lock: s3.S3FileLock) -> None:
+    assert lock.is_locked is True
+
+
+def _assert_unlocked(lock: s3.S3FileLock) -> None:
+    assert lock.is_locked is False
+
+
+# NOTE: the helpers above exist because mypy narrows the ``is_locked``
+# member on ``assert ... is True`` and does not reset that narrowing when a
+# ``with`` block exits; asserting ``is False`` on the same member later in
+# the same function would make the rest of the function look unreachable
+# under ``warn_unreachable``. Function boundaries reset the narrowing.
+
+
+def test_lock_contender_times_out(s3_mock: S3Path) -> None:
+    """A second lock instance must not report success while one holds it."""
+    backend = s3.S3Storage()
+    holder = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    contender = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with holder.acquire(timeout=30):
+        _assert_locked(holder)
+        with pytest.raises(Timeout):
+            with contender.acquire(timeout=1):
+                pass  # pragma: no cover - must time out, never acquired
+        _assert_unlocked(contender)
+        # The failed contender must not disturb the holder's marker.
+        _assert_locked(holder)
+        assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is True
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(holder)
+
+
+def test_lock_sequential_reacquire(s3_mock: S3Path) -> None:
+    """The next waiter acquires once the holder fully releases."""
+    backend = s3.S3Storage()
+    first = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    second = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with first.acquire(timeout=30):
+        _assert_locked(first)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(first)
+    with second.acquire(timeout=30):
+        _assert_locked(second)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(second)
+
+
+def test_lock_release_tolerates_missing_marker(s3_mock: S3Path) -> None:
+    """Releasing when the marker is already gone (deleted out-of-band)
+    must not raise; the lock still reports unlocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with s3lock.acquire(timeout=30):
+        _assert_locked(s3lock)
+        s3.S3Path(f"/{s3_mock.bucket}/.lock").unlink()
+    _assert_unlocked(s3lock)
+
+
+def test_lock_release_tolerates_held_token_close_failure(
+    s3_mock: S3Path,
+) -> None:
+    """A failure closing the internal held-token fd must not break release:
+    the marker is still removed and the lock reports unlocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    s3lock.acquire(timeout=30)
+    _assert_locked(s3lock)
+    with mock.patch.object(os, "close", side_effect=OSError("bad fd")):
+        s3lock.release()
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(s3lock)
+
+
+def test_lock_acquire_unexpected_client_error_propagates(
+    s3_mock: S3Path,
+) -> None:
+    """A non-contention S3 failure (e.g. AccessDenied) during acquire
+    propagates instead of being mistaken for contention, keeping no local
+    held state."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    denied = ClientError(
+        {"Error": {"Code": "AccessDenied", "Message": "nope"}}, "PutObject"
+    )
+    client = mock.MagicMock()
+    client.put_object.side_effect = denied
+    resource = mock.MagicMock()
+    resource.meta.client = client
+    with mock.patch.object(
+        s3.configuration_map, "get_configuration", return_value=(resource, None)
+    ):
+        with pytest.raises(ClientError, match="AccessDenied"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - acquire must raise, never held
+    _assert_unlocked(s3lock)
+
+
+def test_lock_acquire_failure_cleans_up_marker(s3_mock: S3Path) -> None:
+    """A non-contention S3 failure during acquire propagates and keeps
+    no local held state."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with mock.patch.object(
+        s3.configuration_map, "get_configuration", side_effect=OSError("boom")
+    ):
+        with pytest.raises(OSError, match="boom"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - acquire must raise, never held
+    _assert_unlocked(s3lock)
+
+
+def test_lock_devnull_open_failure_releases_marker(s3_mock: S3Path) -> None:
+    """If the held-token fd cannot be opened, the just-created marker is
+    removed again so a later acquire is not blocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with mock.patch("os.open", side_effect=OSError("no fds")):
+        with pytest.raises(OSError, match="no fds"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - token setup must raise
+    _assert_unlocked(s3lock)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    # The lock is usable again after the failed attempt.
+    with s3lock.acquire(timeout=30):
+        _assert_locked(s3lock)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(s3lock)
 
 
 def test_compare_files(s3_mock: S3Path) -> None:
