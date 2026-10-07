@@ -16,6 +16,15 @@ enabled =
 keep = 2
 """
 
+_KEEP_3_CONFIG = """\
+[plugins]
+enabled =
+    latest_release
+
+[latest_release]
+keep = 3
+"""
+
 _NO_KEEP_CONFIG = """\
 [plugins]
 enabled =
@@ -151,6 +160,117 @@ def test_latest_releases_keep_invalid_current_version() -> None:
     pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
     assert pkg.releases == {"2013g": {}}
+
+
+def test_latest_releases_skip_invalid_when_count_equals_keep() -> None:
+    mock_config(_KEEP_2_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "2.0.0": {},
+            "2013d": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"2.0.0": {}}
+
+
+def test_latest_releases_skip_invalid_when_fewer_than_keep() -> None:
+    mock_config(_KEEP_3_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "2.0.0": {},
+            "2013d": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"2.0.0": {}}
+
+
+def test_latest_releases_keep_invalid_current_when_fewer_than_keep() -> None:
+    mock_config(_KEEP_3_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2013e"},
+        "releases": {
+            "2013d": {},
+            "2013e": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"2013e": {}}
+
+
+def test_latest_releases_keep_invalid_current_with_valid_when_fewer_than_keep() -> None:
+    mock_config(_KEEP_3_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2013d"},
+        "releases": {
+            "2.0.0": {},
+            "2013d": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"2.0.0": {}, "2013d": {}}
+
+
+def test_latest_releases_keep_valid_when_fewer_than_keep() -> None:
+    mock_config(_KEEP_3_CONFIG)
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "1.0.0": {},
+            "2.0.0": {},
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {"1.0.0": {}, "2.0.0": {}}
+
+
+def test_latest_releases_time_keeps_short_list() -> None:
+    mock_config(_KEEP_3_CONFIG + "\nsort_by = time")
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "2013d": [{"upload_time_iso_8601": "2013-10-01T15:24:37.255645Z"}],
+            "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    assert pkg.releases == {
+        "2013d": [{"upload_time_iso_8601": "2013-10-01T15:24:37.255645Z"}],
+        "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
+    }
 
 
 def test_latest_releases_ensure_reusable() -> None:

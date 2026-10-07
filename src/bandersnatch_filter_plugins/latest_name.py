@@ -58,7 +58,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
         releases: dict = metadata["releases"]
         version: str = metadata["version"]
 
-        if self.keep == 0 or self.keep > len(releases):
+        # Time sorting can keep every release once `keep` exceeds the list.
+        # Version sorting cannot: a non-PEP 440 name still has to be left out.
+        if self.keep == 0 or (self.sort_by == "time" and self.keep > len(releases)):
             return True
 
         getter_index = 1
