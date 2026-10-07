@@ -1,8 +1,7 @@
 import logging
-from collections.abc import Iterator
 from operator import itemgetter
 
-from packaging.version import Version, parse
+from packaging.version import InvalidVersion, Version, parse
 
 from bandersnatch.filter import FilterReleasePlugin
 
@@ -59,7 +58,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
         releases: dict = metadata["releases"]
         version: str = metadata["version"]
 
-        if self.keep == 0 or self.keep > len(releases):
+        # Time sorting can keep every release once `keep` exceeds the list.
+        # Version sorting cannot: a non-PEP 440 name still has to be left out.
+        if self.keep == 0 or (self.sort_by == "time" and self.keep > len(releases)):
             return True
 
         getter_index = 1
@@ -71,9 +72,15 @@ class LatestReleaseFilter(FilterReleasePlugin):
                 reverse=True,
             )
         else:
-            versions_pair: Iterator[tuple[Version, str]] = map(
-                lambda v: (parse(v), v), releases.keys()
-            )
+            versions_pair: list[tuple[Version, str]] = []
+            for version_string in releases.keys():
+                try:
+                    versions_pair.append((parse(version_string), version_string))
+                except InvalidVersion:
+                    logger.debug(
+                        f"Package {info.get('name')}=={version_string} has an "
+                        "invalid version"
+                    )
             # Sort all versions
             versions_sorted = sorted(versions_pair, reverse=True)
         # Select the first few (larger) items
@@ -83,6 +90,9 @@ class LatestReleaseFilter(FilterReleasePlugin):
 
         # Add back latest version if necessary
         if info.get("version") not in version_names:
-            version_names[-1] = info.get("version")
+            if len(version_names) < self.keep:
+                version_names.append(info.get("version"))
+            else:
+                version_names[-1] = info.get("version")
 
         return version in version_names
