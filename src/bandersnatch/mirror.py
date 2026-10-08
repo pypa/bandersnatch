@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 _FILENAME_TOO_LONG_WINERROR = 206
 
 
-def _is_file_name_too_long(error: BaseException) -> bool:
+def _is_file_name_too_long(error: Exception) -> bool:
     """Check whether an error means a file name the OS cannot represent."""
     if not isinstance(error, OSError):
         return False
@@ -738,6 +738,17 @@ class BandersnatchMirror(Mirror):
                             f"Skipping download for package {package.name}: "
                             f"file name too long: {url} ({e})"
                         )
+                        # Keep the generated simple indexes honest: drop the
+                        # file (and any version left with no files, like the
+                        # release-file filters do) so the indexes do not
+                        # advertise an artifact that was never stored.
+                        for version_files in package.releases.values():
+                            if release_file in version_files:
+                                version_files.remove(release_file)
+                                break
+                        for version in list(package.releases):
+                            if not package.releases[version]:
+                                del package.releases[version]
                         break
                     # Avoid flooding log messages with exception traceback
                     if not len(download_urls) == (cnt + 1):

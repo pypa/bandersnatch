@@ -1196,6 +1196,26 @@ async def test_sync_release_files_skips_file_name_too_long(
 
 
 @pytest.mark.asyncio
+async def test_skipped_long_file_name_excluded_from_simple_index(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+) -> None:
+    package = _package_with_long_file_name()
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.ENAMETOOLONG, "File name too long"),
+        autospec=True,
+    )
+    await mirror.sync_release_files(package)
+
+    assert package.releases == {}
+    mirror.sync_simple_pages(package)
+    index = Path(mirror.simple_directory(package)) / "index.html"
+    assert "x" * 300 not in index.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
 async def test_sync_release_files_reraises_other_os_errors(
     mirror: BandersnatchMirror,
     mocker: MockerFixture,
