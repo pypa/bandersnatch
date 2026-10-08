@@ -134,6 +134,8 @@ not-null:info.classifiers =
 
 Valid tags are `all`,`any`,`none`,`match-null`,`not-null`, with default of `any:match-null`
 
+Patterns use `re.match` and are anchored at the start of the value. Set `search = true` in this section to use `re.search` instead. `search` defaults to false.
+
 All metadata provided by json is available, including `info`, `last_serial`, `releases`, etc. headings.
 
 ### Release File Regex Matching
@@ -149,7 +151,16 @@ any:release_file.packagetype =
     bdist_wheel
 ```
 
-Valid tags are the same as for projects.
+Valid tags are the same as for projects. `search` is the same option and also defaults to false.
+
+```ini
+[regex_release_file_metadata]
+search = true
+none:release_file.filename =
+    macosx_
+```
+
+With `search = true`, `macosx_` matches a filename that contains that text anywhere. Leave `search` unset to keep matching from the start.
 
 Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info`
 containing the package-wide info, `release` containing the version of the release and `release_file` the metadata

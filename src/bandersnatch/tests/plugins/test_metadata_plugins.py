@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,8 @@ from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
 from bandersnatch_filter_plugins.metadata_filter import (
+    RegexProjectMetadataFilter,
+    RegexReleaseFileMetadataFilter,
     SizeProjectMetadataFilter,
     VersionsCountProjectMetadataFilter,
 )
@@ -278,3 +281,243 @@ max_versions = 5
     )
     # Plugin should be deactivated on invalid configuration.
     assert plugin.filter({"info": {"name": "foo"}, "releases": {"1.0": []}}) is True
+
+
+@pytest.fixture
+def reset_regex_metadata_filters() -> Iterator[None]:
+    classes = (RegexProjectMetadataFilter, RegexReleaseFileMetadataFilter)
+    for cls in classes:
+        cls.patterns = {}
+        cls.initialized = False
+    yield
+    for cls in classes:
+        cls.patterns = {}
+        cls.initialized = False
+
+
+def _release_files(*filenames: str) -> Package:
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo"},
+        "releases": {"1.0": [{"filename": name} for name in filenames]},
+    }
+    return pkg
+
+
+def _filter_release_filenames(pkg: Package, *, search: bool) -> list[str]:
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    assert len(plugins) == 1
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is search
+    assert "search" not in plugin.patterns
+    pkg.filter_all_releases_files(plugins)
+    return [item["filename"] for item in pkg.releases.get("1.0", [])]
+
+
+def test__regex_release_file__search__matches_within_filename(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = true
+none:release_file.filename =
+    macosx_
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is True
+    assert "search" not in plugin.patterns
+    pkg = _release_files(
+        "foo-1.0-macosx_x86_64.whl",
+        "foo-1.0.tar.gz",
+        "macosx_10_15_x86_64.whl",
+    )
+    pkg.filter_all_releases_files(plugins)
+    assert [item["filename"] for item in pkg.releases["1.0"]] == ["foo-1.0.tar.gz"]
+
+
+def test__regex_release_file__defaults_to_match(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+none:release_file.filename =
+    macosx_
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is False
+    pkg = _release_files(
+        "foo-1.0-macosx_x86_64.whl",
+        "foo-1.0.tar.gz",
+        "macosx_10_15_x86_64.whl",
+    )
+    pkg.filter_all_releases_files(plugins)
+    assert [item["filename"] for item in pkg.releases["1.0"]] == [
+        "foo-1.0-macosx_x86_64.whl",
+        "foo-1.0.tar.gz",
+    ]
+
+
+def test__regex_release_file__search_false_matches_from_start(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = false
+none:release_file.filename =
+    macosx_
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is False
+    pkg = _release_files("foo-1.0-macosx_x86_64.whl", "macosx_10_15_x86_64.whl")
+    pkg.filter_all_releases_files(plugins)
+    assert [item["filename"] for item in pkg.releases["1.0"]] == [
+        "foo-1.0-macosx_x86_64.whl",
+    ]
+
+
+def test__regex_release_file__search__keeps_caret_anchor(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = true
+none:release_file.filename =
+    ^macosx_
+""")
+
+    pkg = _release_files(
+        "foo-1.0-macosx_x86_64.whl",
+        "foo-1.0.tar.gz",
+        "macosx_10_15_x86_64.whl",
+    )
+    assert _filter_release_filenames(pkg, search=True) == [
+        "foo-1.0-macosx_x86_64.whl",
+        "foo-1.0.tar.gz",
+    ]
+
+
+def test__regex_release_file__search__all_mode_matches_within_filename(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = true
+all:release_file.filename =
+    macosx_
+""")
+
+    pkg = _release_files("foo-1.0-macosx_x86_64.whl")
+    assert _filter_release_filenames(pkg, search=True) == ["foo-1.0-macosx_x86_64.whl"]
+
+
+def test__regex_release_file__invalid_search_keeps_match(
+    reset_regex_metadata_filters: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = not-a-boolean
+none:release_file.filename =
+    macosx_
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is False
+    assert "search" not in plugin.patterns
+    assert any(
+        "search must be a boolean" in record.message for record in caplog.records
+    )
+    pkg = _release_files("foo-1.0-macosx_x86_64.whl", "macosx_10_15_x86_64.whl")
+    pkg.filter_all_releases_files(plugins)
+    assert [item["filename"] for item in pkg.releases["1.0"]] == [
+        "foo-1.0-macosx_x86_64.whl",
+    ]
+
+
+def test__regex_project__search__matches_within_name(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_project_metadata
+
+[regex_project_metadata]
+search = true
+none:info.name =
+    -nightly$
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_metadata_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexProjectMetadataFilter)
+    assert plugin.search is True
+    assert "search" not in plugin.patterns
+
+    blocked = Package("foo-nightly", 1)
+    blocked._metadata = {"info": {"name": "foo-nightly"}, "releases": {}}
+    assert blocked.filter_metadata(plugins) is False
+
+    kept = Package("foo", 1)
+    kept._metadata = {"info": {"name": "foo"}, "releases": {}}
+    assert kept.filter_metadata(plugins) is True
+
+
+def test__regex_release_file__search_alone_is_not_a_pattern(
+    reset_regex_metadata_filters: None,
+) -> None:
+    mock_config("""\
+[plugins]
+enabled =
+    regex_release_file_metadata
+
+[regex_release_file_metadata]
+search = true
+""")
+
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_file_plugins()
+    plugin = plugins[0]
+    assert isinstance(plugin, RegexReleaseFileMetadataFilter)
+    assert plugin.search is True
+    assert plugin.patterns == {}
+    pkg = _release_files("foo-1.0-macosx_x86_64.whl")
+    pkg.filter_all_releases_files(plugins)
+    assert [item["filename"] for item in pkg.releases["1.0"]] == [
+        "foo-1.0-macosx_x86_64.whl",
+    ]

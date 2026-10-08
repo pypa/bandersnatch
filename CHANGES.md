@@ -1,5 +1,9 @@
 # Unreleased
 
+## New Features
+
+- `regex_project_metadata` and `regex_release_file_metadata` accept `search = true` to match patterns with `re.search`. The default remains `re.match`. TODO: 送出前補 PR #編號
+
 ## Bug Fixes
 
 - Skip non-PEP 440 versions in the `latest_release` plugin when sorting by version, and still keep the project's current version `PR #2357`
