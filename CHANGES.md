@@ -2,7 +2,7 @@
 
 ## New Features
 
-- `regex_project_metadata` and `regex_release_file_metadata` accept `search = true` to match patterns with `re.search`. The default remains `re.match`. TODO: 送出前補 PR #編號
+- `regex_project_metadata` and `regex_release_file_metadata` accept `search = true` to match patterns with `re.search`. The default remains `re.match`. `PR #2358`
 
 ## Bug Fixes
 
