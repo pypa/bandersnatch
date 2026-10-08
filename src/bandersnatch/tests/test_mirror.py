@@ -1,3 +1,4 @@
+import errno
 import json
 import os.path
 import sys
@@ -16,7 +17,7 @@ from pytest_mock import MockerFixture
 from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.mirror import BandersnatchMirror, _is_file_name_too_long
 from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
@@ -1133,6 +1134,100 @@ async def test_download_file_stat_mode_refreshes_stale_upload_time(
     assert pkg_file_path.stat().st_mtime == pytest.approx(
         expected_upload_time.timestamp()
     )
+
+
+def _package_with_long_file_name() -> Package:
+    package = Package("foo", serial=1)
+    package._metadata = {
+        "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 1,
+        "releases": {
+            "0.1": [
+                {
+                    "url": (
+                        "https://pypi.example.com/packages/any/f/foo/"
+                        + "x" * 300
+                        + ".zip"
+                    ),
+                    "filename": "x" * 300 + ".zip",
+                    "digests": {
+                        "sha256": (
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        )
+                    },
+                    "size": "0",
+                    "upload_time_iso_8601": "2000-01-01T01:23:45.123456Z",
+                }
+            ]
+        },
+    }
+    return package
+
+
+def test_is_file_name_too_long() -> None:
+    assert _is_file_name_too_long(OSError(errno.ENAMETOOLONG, "File name too long"))
+    windows_error = OSError("The filename or extension is too long")
+    # winerror only exists on Windows: set it explicitly so this test covers
+    # the Windows branch on every platform (setattr is required - winerror is
+    # a data descriptor that shadows plain __dict__ assignment on Windows)
+    setattr(windows_error, "winerror", 206)  # noqa: B010
+    assert _is_file_name_too_long(windows_error)
+    assert not _is_file_name_too_long(OSError(errno.EACCES, "Permission denied"))
+    assert not _is_file_name_too_long(ValueError("not an OS error"))
+
+
+@pytest.mark.asyncio
+async def test_sync_release_files_skips_file_name_too_long(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.ENAMETOOLONG, "File name too long"),
+        autospec=True,
+    )
+    await mirror.sync_release_files(_package_with_long_file_name())
+
+    assert mirror.altered_packages["foo"] == set()
+    assert "file name too long" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_skipped_long_file_name_excluded_from_simple_index(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+) -> None:
+    package = _package_with_long_file_name()
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.ENAMETOOLONG, "File name too long"),
+        autospec=True,
+    )
+    await mirror.sync_release_files(package)
+
+    assert package.releases == {}
+    mirror.sync_simple_pages(package)
+    index = Path(mirror.simple_directory(package)) / "index.html"
+    assert "x" * 300 not in index.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_sync_release_files_reraises_other_os_errors(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.EACCES, "Permission denied"),
+        autospec=True,
+    )
+    with pytest.raises(OSError, match="Permission denied"):
+        await mirror.sync_release_files(_package_with_long_file_name())
 
 
 @pytest.mark.asyncio
