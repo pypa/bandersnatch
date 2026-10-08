@@ -1,6 +1,7 @@
 import asyncio
 import configparser
 import datetime
+import errno
 import hashlib
 import logging
 import sys
@@ -25,6 +26,18 @@ from .storage import PATH_TYPES, Storage, storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
+
+# Windows reports over-long file names as ERROR_FILENAME_EXCED_RANGE.
+_FILENAME_TOO_LONG_WINERROR = 206
+
+
+def _is_file_name_too_long(error: BaseException) -> bool:
+    """Check whether an error means a file name the OS cannot represent."""
+    if not isinstance(error, OSError):
+        return False
+    if error.errno == errno.ENAMETOOLONG:
+        return True
+    return getattr(error, "winerror", None) == _FILENAME_TOO_LONG_WINERROR
 
 
 class Mirror:
@@ -717,6 +730,15 @@ class BandersnatchMirror(Mirror):
                     if downloaded_file or downloaded_metadata_file:
                         break
                 except Exception as e:
+                    if _is_file_name_too_long(e):
+                        # A release file name (usually from an absurdly long
+                        # version string) that the storage cannot represent:
+                        # skip the file instead of failing the package (#1228)
+                        logger.error(
+                            f"Skipping download for package {package.name}: "
+                            f"file name too long: {url} ({e})"
+                        )
+                        break
                     # Avoid flooding log messages with exception traceback
                     if not len(download_urls) == (cnt + 1):
                         logger.info(
