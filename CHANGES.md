@@ -1,5 +1,7 @@
 # Unreleased
 
+# 8.1.0
+
 ## New Features
 
 - `regex_project_metadata` and `regex_release_file_metadata` accept `search = true` to match patterns with `re.search`. The default remains `re.match`. `PR #2358`
