@@ -160,7 +160,7 @@ none:release_file.filename =
     macosx_
 ```
 
-With `search = true`, `macosx_` matches a filename that contains that text anywhere. Leave `search` unset to keep matching from the start.
+With `search = true`, `macosx_` matches a filename that contains that text anywhere. Leave `search` unset to keep matching from the start. Patterns that already start with `.*`, including `.*macosx_.*` and `.*-freebsd.*`, match the same filenames with `re.match` and `re.search`, so `search = true` does not change them.
 
 Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info`
 containing the package-wide info, `release` containing the version of the release and `release_file` the metadata

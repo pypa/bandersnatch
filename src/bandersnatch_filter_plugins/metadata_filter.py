@@ -48,7 +48,7 @@ class RegexFilter(Filter):
                     self.search = config.getboolean(_SEARCH_OPTION, fallback=False)
                 except ValueError:
                     logger.warning(
-                        f"Unable to initialise {self.name} plugin; "
+                        f"Invalid search value for {self.name}; "
                         "search must be a boolean, so re.match will be used."
                     )
                     self.search = False

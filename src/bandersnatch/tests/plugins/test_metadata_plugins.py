@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -459,9 +460,16 @@ none:release_file.filename =
     plugin = plugins[0]
     assert isinstance(plugin, RegexReleaseFileMetadataFilter)
     assert plugin.search is False
+    assert plugin.initialized
     assert "search" not in plugin.patterns
+    assert "none:release_file.filename" in plugin.patterns
+    expected_warning = (
+        "Invalid search value for regex_release_file_metadata; "
+        "search must be a boolean, so re.match will be used."
+    )
     assert any(
-        "search must be a boolean" in record.message for record in caplog.records
+        record.levelname == "WARNING" and record.message == expected_warning
+        for record in caplog.records
     )
     pkg = _release_files("foo-1.0-macosx_x86_64.whl", "macosx_10_15_x86_64.whl")
     pkg.filter_all_releases_files(plugins)
@@ -521,3 +529,52 @@ search = true
     assert [item["filename"] for item in pkg.releases["1.0"]] == [
         "foo-1.0-macosx_x86_64.whl",
     ]
+
+
+def test__regex_release_file__leading_dot_star_ignores_search(
+    reset_regex_metadata_filters: None,
+) -> None:
+    # .*macosx_.* and .*-freebsd.* match the same with re.match and re.search.
+    macosx = re.compile(r".*macosx_.*")
+    freebsd = re.compile(r".*-freebsd.*")
+    assert macosx.match("foo-1.0-macosx_x86_64.whl")
+    assert macosx.search("foo-1.0-macosx_x86_64.whl")
+    assert macosx.match("macosx_10_15_x86_64.whl")
+    assert not macosx.match("foo-1.0.tar.gz")
+    assert not macosx.search("foo-1.0.tar.gz")
+    assert freebsd.match("foo-1.0-freebsd.whl")
+    assert freebsd.search("foo-1.0-freebsd.whl")
+    assert not freebsd.match("freebsd-1.0.whl")
+    assert not freebsd.search("freebsd-1.0.whl")
+    patterns = """\
+none:match-null:release_file.filename =
+    .*macosx_.*
+    .*-freebsd.*
+"""
+    filenames = (
+        "foo-1.0-macosx_x86_64.whl",
+        "macosx_10_15_x86_64.whl",
+        "foo-1.0-freebsd.whl",
+        "freebsd-1.0.whl",
+        "foo-1.0.tar.gz",
+    )
+    kept = ["freebsd-1.0.whl", "foo-1.0.tar.gz"]
+    cases = (
+        ("", False),
+        ("search = false\n", False),
+        ("search = true\n", True),
+        ("search = not-a-boolean\n", False),
+    )
+    for search_line, search in cases:
+        RegexReleaseFileMetadataFilter.patterns = {}
+        RegexReleaseFileMetadataFilter.initialized = False
+        mock_config(
+            "[plugins]\n"
+            "enabled =\n"
+            "    regex_release_file_metadata\n"
+            "\n"
+            "[regex_release_file_metadata]\n"
+            f"{search_line}{patterns}"
+        )
+        pkg = _release_files(*filenames)
+        assert _filter_release_filenames(pkg, search=search) == kept
