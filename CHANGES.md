@@ -1,5 +1,9 @@
 # Unreleased
 
+## Bug Fixes
+
+- When `cleanup_todo` is enabled, or `bandersnatch mirror --cleanup-todo` is passed, packages that raise `PackageNotFound` are removed from the todo list. The default stays off. Stale serials stay on the list, and mirrored files are not deleted. TODO: 送出前補 PR #編號
+
 # 8.1.0
 
 ## New Features
@@ -8,7 +12,6 @@
 
 ## Bug Fixes
 
-- When `cleanup_todo` is enabled, or `bandersnatch mirror --cleanup-todo` is passed, packages that raise `PackageNotFound` are removed from the todo list. The default stays off. Stale serials stay on the list, and mirrored files are not deleted. TODO: 送出前補 PR #編號
 - Skip non-PEP 440 versions in the `latest_release` plugin when sorting by version, and still keep the project's current version `PR #2357`
 - Skip release files whose names the storage cannot represent (for example from absurdly long version strings) with a one-line error instead of failing the package sync, and exclude the skipped files from the generated simple indexes `PR #2359`
 
