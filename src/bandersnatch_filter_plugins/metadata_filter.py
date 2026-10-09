@@ -15,6 +15,9 @@ from bandersnatch.filter import FilterReleaseFilePlugin  # isort:skip
 
 logger = logging.getLogger("bandersnatch")
 
+# Reserved config key. Every other key in the plugin section is a metadata path.
+_SEARCH_OPTION = "search"
+
 
 class RegexFilter(Filter):
     """
@@ -25,6 +28,8 @@ class RegexFilter(Filter):
     name = "regex_filter"
     match_patterns = "any"
     nulls_match = True
+    # False keeps re.match. True uses re.search. Set from the `search` option.
+    search: bool = False
     initialized = False
     patterns: dict = {}
 
@@ -39,7 +44,17 @@ class RegexFilter(Filter):
         else:
             logger.info(f"Initializing {self.name} plugin")
             if not self.initialized:
+                try:
+                    self.search = config.getboolean(_SEARCH_OPTION, fallback=False)
+                except ValueError:
+                    logger.warning(
+                        f"Invalid search value for {self.name}; "
+                        "search must be a boolean, so re.match will be used."
+                    )
+                    self.search = False
                 for k in config:
+                    if k == _SEARCH_OPTION:
+                        continue
                     pattern_strings = [
                         pattern for pattern in config[k].split("\n") if pattern
                     ]
@@ -120,7 +135,7 @@ class RegexFilter(Filter):
                 results.append(True)
                 continue
             for value in values:
-                results.append(pattern.match(value))
+                results.append(self._pattern_matches(pattern, value))
         return any(results)
 
     def _match_all_patterns(
@@ -131,8 +146,13 @@ class RegexFilter(Filter):
             if nulls_match and not values:
                 results.append(True)
                 continue
-            results.append(any(pattern.match(v) for v in values))
+            results.append(any(self._pattern_matches(pattern, v) for v in values))
         return all(results)
+
+    def _pattern_matches(self, pattern: re.Pattern[str], value: str) -> bool:
+        if self.search:
+            return pattern.search(value) is not None
+        return pattern.match(value) is not None
 
     def _match_none_patterns(
         self, key: str, values: list[str], nulls_match: bool = True
