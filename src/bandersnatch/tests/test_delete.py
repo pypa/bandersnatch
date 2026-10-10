@@ -63,7 +63,12 @@ MOCK_JSON_TEMPLATE = """{
 
 
 def _fake_args() -> Namespace:
-    return Namespace(dry_run=True, pypi_packages=["cooper", "unittest"], workers=0)
+    return Namespace(
+        dry_run=True,
+        pypi_packages=["cooper", "unittest"],
+        workers=0,
+        skip_json_fetch=False,
+    )
 
 
 def _fake_config() -> ConfigParser:
@@ -168,6 +173,22 @@ async def test_delete_packages_no_exist() -> None:
     with patch("bandersnatch.delete.logger.error") as mock_log:
         assert await delete_packages(_fake_config(), args, master) == 0
         assert mock_log.call_count == len(args.pypi_packages)
+
+
+@pytest.mark.asyncio
+async def test_delete_packages_skip_json_fetch() -> None:
+    """Test that --skip-json-fetch skips fetching JSON and continues without error."""
+    args = _fake_args()
+    args.skip_json_fetch = True
+    args.dry_run = False
+    master = Master("https://unittest.org")
+    with patch("bandersnatch.delete.logger.info") as mock_log:
+        assert await delete_packages(_fake_config(), args, master) == 0
+        # Should log the skip message for each package
+        assert mock_log.call_count >= len(args.pypi_packages)
+        # Check that the skip message was logged
+        calls = [str(call) for call in mock_log.call_args_list]
+        assert any("Skipping JSON fetch" in c for c in calls)
 
 
 @pytest.mark.asyncio
