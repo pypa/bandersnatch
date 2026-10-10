@@ -427,6 +427,18 @@ Stop mirror/sync operations immediately when an error occurs.
 
 When disabled (`stop-on-error = false`), Bandersnatch continues syncing after an error occurs, but will mark the sync as unsuccessful. When enabled, Bandersnatch will stop all syncing as soon as possible if an error occurs. This can be helpful when debugging the cause of an unsuccessful sync.
 
+### `cleanup_todo`
+
+Remove packages that no longer exist on PyPI from the `todo` list.
+
+:Type: boolean
+:Required: no
+:Default: false
+
+An interrupted sync resumes from `todo` and does not read the changelog until that list is finished. A package deleted upstream raises `PackageNotFound` and, by default, stays in `todo`. If another package also fails (for example a stale serial), the sync is not marked successful, `todo` is kept, and later runs stay on that list.
+
+Set `cleanup_todo = true`, or pass `bandersnatch mirror --cleanup-todo`, to drop only those `PackageNotFound` names from `todo`. The default `false` keeps the current behavior. Stale serials and other errors stay on the list. This option does not delete release files, local blobs, or simple API pages already stored in the mirror.
+
 ### `compare-method`
 
 The method used to compare existing files with upstream files.

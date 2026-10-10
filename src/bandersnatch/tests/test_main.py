@@ -102,11 +102,47 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
+        "cleanup_todo": False,
         "compare_method": "hash",
         "download_mirror": "",
         "download_mirror_no_fallback": False,
         "simple_format": SimpleFormat.ALL,
     } == kwargs
+
+
+def _write_mirror_config(tmpdir: Path, cleanup_todo: str | None = None) -> Path:
+    base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+    diff_file = Path(tempfile.gettempdir()) / "srv/pypi/mirrored-files"
+    config_lines: list[str] = []
+    for line in base_config_path.read_text().splitlines():
+        if line.startswith("diff-file"):
+            line = f"diff-file = {diff_file.as_posix()}"
+        config_lines.append(line)
+        if cleanup_todo is not None and line.startswith("stop-on-error"):
+            config_lines.append(f"cleanup_todo = {cleanup_todo}")
+    config_path = tmpdir / "unittest.conf"
+    config_path.write_text("\n".join(config_lines) + "\n", encoding="utf-8")
+    return config_path
+
+
+def test_main_cleanup_todo_cli_overrides_config(
+    mirror_mock: mock.MagicMock, tmpdir: Path
+) -> None:
+    config_path = _write_mirror_config(tmpdir, "false")
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--cleanup-todo"]
+    main(asyncio.new_event_loop())
+    _, kwargs = mirror_mock.call_args_list[0]
+    assert kwargs["cleanup_todo"] is True
+
+
+def test_main_cleanup_todo_from_config(
+    mirror_mock: mock.MagicMock, tmpdir: Path
+) -> None:
+    config_path = _write_mirror_config(tmpdir, "true")
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror"]
+    main(asyncio.new_event_loop())
+    _, kwargs = mirror_mock.call_args_list[0]
+    assert kwargs["cleanup_todo"] is True
 
 
 def test_main_reads_custom_config_values(

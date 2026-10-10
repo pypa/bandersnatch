@@ -145,9 +145,13 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
             except PackageNotFound:
+                await self.on_package_not_found(package)
                 continue
             except Exception as e:
                 self.on_error(e, package=package)
+
+    async def on_package_not_found(self, package: Package) -> None:
+        return None
 
     async def process_package(self, package: Package) -> None:
         raise NotImplementedError()
@@ -206,6 +210,7 @@ class BandersnatchMirror(Mirror):
         diff_file_list: list[Path] | None = None,
         *,
         cleanup: bool = False,
+        cleanup_todo: bool = False,
         release_files_save: bool = True,
         core_metadata_save: bool = True,
         compare_method: str | None = None,
@@ -215,6 +220,9 @@ class BandersnatchMirror(Mirror):
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
+        # Drop PackageNotFound names from the todo list. Default off.
+        # Does not delete mirrored release files, blobs, or simple pages.
+        self.cleanup_todo = cleanup_todo
 
         if storage_backend:
             self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
@@ -417,6 +425,29 @@ class BandersnatchMirror(Mirror):
                 # sync.
                 logger.error("Removing inconsistent todo list.")
                 self.storage_backend.delete_file(self.todolist)
+
+    async def on_package_not_found(self, package: Package) -> None:
+        """Remove a missing package from the mirror todo list when enabled.
+
+        Only ``PackageNotFound`` reaches this hook. A stale serial stays on
+        the list. Release files, local blobs, and simple API pages are left
+        in place. ``bandersnatch sync`` does not resume the mirror todo, so
+        an existing todo file is left unchanged in that mode.
+        """
+        if not self.cleanup_todo or not self.need_wrapup:
+            return
+        if package.raw_name not in self.packages_to_sync:
+            return
+        logger.info(
+            f"Removing {package.raw_name} from the todo list because it "
+            + "no longer exists on PyPI"
+        )
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            self.storage_backend.executor,
+            self.record_finished_package,
+            package.raw_name,
+        )
 
     def record_finished_package(self, name: str) -> None:
         with self._finish_lock:
@@ -1125,6 +1156,7 @@ async def mirror(
             diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path,
             cleanup=config_values.cleanup,
+            cleanup_todo=config.getboolean("mirror", "cleanup_todo", fallback=False),
             release_files_save=config_values.release_files_save,
             core_metadata_save=config_values.core_metadata_save,
             download_mirror=config_values.download_mirror,
