@@ -64,6 +64,15 @@ def _mirror_parser(subparsers: argparse._SubParsersAction) -> None:
             + "to perform a full sync"
         ),
     )
+    m.add_argument(
+        "--cleanup-todo",
+        action="store_true",
+        default=False,
+        help=(
+            "Remove packages that no longer exist on PyPI from the todo list. "
+            + "Does not delete mirrored files. Stale serials are left in place."
+        ),
+    )
     m.set_defaults(op="mirror")
 
 
@@ -193,6 +202,9 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
             logger.info(
                 f"No status file to reset ({status_file}) - Full sync will occur"
             )
+
+    if args.cleanup_todo:
+        config.set("mirror", "cleanup_todo", "true")
 
     return await bandersnatch.mirror.mirror(config)
 
