@@ -1,5 +1,9 @@
 # Unreleased
 
+## New Features
+
+- Add `delete_missing_packages` (default false). During `bandersnatch mirror`, a `PackageNotFound` package with readable local JSON metadata has the release blobs and simple API pages named by that metadata deleted. Stale serials are unchanged, and the todo list is left to `cleanup_todo`. `PR #2369`
+
 ## Bug Fixes
 
 - Add `--skip-json-fetch` option to `bandersnatch delete` to skip fetching JSON metadata from PyPI for packages not found locally, allowing deletion of packages that have been removed from PyPI `PR #2362`

@@ -2204,5 +2204,196 @@ async def test_cleanup_todo_storage_oserror_keeps_disk_todo(
     _assert_mirror_files_unchanged(files)
 
 
+def _plant_metadata_release(
+    mirror: BandersnatchMirror, raw_name: str, blob_rel: str
+) -> dict[str, Path]:
+    package = Package(raw_name)
+    metadata_path = mirror.webdir / "json" / package.name
+    blob_path = mirror.webdir / blob_rel
+    sidecar = blob_path.with_name(f"{blob_path.name}.metadata")
+    simple_dir = mirror.simple_directory(package)
+    simple_index = simple_dir / "index.html"
+    decoy = mirror.webdir / "packages" / "keep-me.bin"
+    payload = {
+        "info": {"name": raw_name},
+        "releases": {
+            "1.0": [
+                {
+                    "filename": blob_path.name,
+                    "url": f"https://files.pythonhosted.org/{blob_rel}",
+                }
+            ]
+        },
+    }
+    for path in (metadata_path, blob_path, sidecar, simple_index, decoy):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(payload), encoding="utf-8")
+    blob_path.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    simple_index.write_bytes(b"simple-api")
+    decoy.write_bytes(b"leave-this")
+    return {
+        "metadata": metadata_path,
+        "blob": blob_path,
+        "sidecar": sidecar,
+        "simple": simple_index,
+        "decoy": decoy,
+    }
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_removes_blobs_and_simple_page(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Enabled: delete files named by local JSON, keep JSON, decoys, and todo."""
+    _install_metadata_results(monkeypatch)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=False, need_wrapup=True)
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    stale_files = _plant_mirror_files(mirror, _STALE_PACKAGE)
+
+    await mirror.sync_packages()
+
+    assert not planted["blob"].exists()
+    assert not planted["sidecar"].exists()
+    assert not planted["simple"].exists()
+    assert planted["metadata"].is_file()
+    assert planted["decoy"].read_bytes() == b"leave-this"
+    assert mirror.packages_to_sync == packages
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(stale_files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_skips_unreadable_metadata(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+
+    await mirror.sync_packages()
+
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_ignores_urls_outside_the_mirror(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    outside = mirror.homedir / "outside.bin"
+    outside.write_bytes(b"outside")
+    metadata = json.loads(planted["metadata"].read_text(encoding="utf-8"))
+    metadata["releases"]["1.0"].append(
+        {
+            "filename": "outside.bin",
+            "url": "https://files.pythonhosted.org/packages/../../outside.bin",
+        }
+    )
+    planted["metadata"].write_text(json.dumps(metadata), encoding="utf-8")
+
+    await mirror.sync_packages()
+
+    assert outside.read_bytes() == b"outside"
+    assert not planted["blob"].exists()
+    assert planted["metadata"].is_file()
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_does_not_run_for_sync(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=False,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+
+    await mirror.sync_packages()
+
+    assert planted["blob"].is_file()
+    assert planted["simple"].is_file()
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_with_cleanup_todo(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL},
+        cleanup_todo=True,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    stale_files = _plant_mirror_files(mirror, _STALE_PACKAGE)
+
+    await mirror.sync_packages()
+
+    assert not planted["blob"].exists()
+    assert not planted["simple"].exists()
+    assert planted["metadata"].is_file()
+    assert _MISSING_PACKAGE not in mirror.packages_to_sync
+    assert mirror.packages_to_sync == {_STALE_PACKAGE: _STALE_SERIAL}
+    _assert_mirror_files_unchanged(stale_files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_hash_index_keeps_sibling(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.hash_index = True
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    sibling = mirror.webdir / "simple" / "o" / "other" / "index.html"
+    sibling.parent.mkdir(parents=True, exist_ok=True)
+    sibling.write_bytes(b"sibling")
+
+    await mirror.sync_packages()
+
+    assert not planted["simple"].exists()
+    assert sibling.read_bytes() == b"sibling"
+    assert planted["metadata"].is_file()
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv)
