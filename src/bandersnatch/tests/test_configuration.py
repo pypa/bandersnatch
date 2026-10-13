@@ -52,7 +52,7 @@ def test_single_config__default__all_sections_present() -> None:
 
 def test_single_config__default__mirror__setting_attributes() -> None:
     instance = BandersnatchConfig()
-    options = {option for option in instance["mirror"]}
+    options = {*instance["mirror"]}
     assert instance["mirror"].getboolean("cleanup_todo") is False
     assert options == {
         "allow-non-https",
