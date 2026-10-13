@@ -483,15 +483,24 @@ class BandersnatchMirror(Mirror):
         return None
 
     def _release_blob_path(self, url: str) -> Path | None:
+        """Return a path strictly under the mirror's packages directory.
+
+        The mirror root, ``packages`` itself, and any path ending in ``/`` are
+        rejected. The caller also skips a path that exists as a directory:
+        ``Storage.delete`` removes directories recursively.
+        """
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.path.startswith("/"):
+            return None
+        if parsed.path.endswith("/"):
             return None
         relative = Path(parsed.path.lstrip("/"))
         if relative.is_absolute() or ".." in relative.parts:
             return None
         webdir = Path(self.webdir).resolve()
+        packages = (webdir / "packages").resolve()
         candidate = (webdir / relative).resolve()
-        if candidate != webdir and webdir not in candidate.parents:
+        if packages not in candidate.parents:
             return None
         return candidate
 
@@ -545,13 +554,16 @@ class BandersnatchMirror(Mirror):
                 if not isinstance(url, str):
                     continue
                 blob_path = self._release_blob_path(url)
-                if blob_path is None:
-                    logger.info(f"Skipping release URL outside the mirror: {url}")
+                if blob_path is None or self.storage_backend.is_dir(blob_path):
+                    logger.info(
+                        "Skipping release URL that is not a file under packages: " + url
+                    )
                     continue
-                self.storage_backend.delete(blob_path)
-                self.storage_backend.delete(
-                    blob_path.with_name(f"{blob_path.name}.metadata")
-                )
+                if self.storage_backend.is_file(blob_path):
+                    self.storage_backend.delete_file(blob_path)
+                sidecar = blob_path.with_name(f"{blob_path.name}.metadata")
+                if self.storage_backend.is_file(sidecar):
+                    self.storage_backend.delete_file(sidecar)
         for simple_dir in self._simple_dirs_for_missing_package(package):
             self.storage_backend.delete(simple_dir)
 

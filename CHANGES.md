@@ -2,7 +2,7 @@
 
 ## New Features
 
-- Add `delete_missing_packages` (default false). During `bandersnatch mirror`, a `PackageNotFound` package with readable local JSON metadata has the release blobs and simple API pages named by that metadata deleted. Stale serials are unchanged, and the todo list is left to `cleanup_todo`. `PR #2369`
+- Add `delete_missing_packages` (default false). During `bandersnatch mirror`, a `PackageNotFound` package with readable local JSON metadata has the release blobs and simple API pages named by that metadata deleted. Only files strictly under `packages/` are removed; a URL that names a directory, including the mirror root, is skipped. Stale serials are unchanged, and the todo list is left to `cleanup_todo`. `PR #2369`
 
 ## Bug Fixes
 

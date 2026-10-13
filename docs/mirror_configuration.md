@@ -447,7 +447,7 @@ Delete local release blobs and simple API pages for a package that raises `Packa
 :Required: no
 :Default: false
 
-The package's local JSON metadata lists the release file URLs. Those blob paths, and a `.metadata` file beside each one, are deleted, along with that package's simple API directory. The JSON file itself is left in place. A URL that does not stay inside the mirror web directory is skipped. If the local JSON is missing or cannot be read, nothing is deleted. Stale serials are not treated as missing packages. This option does not remove the name from `todo`; use [](#cleanup_todo) for that. `bandersnatch sync` does not apply it.
+The package's local JSON metadata lists the release file URLs. A URL is deleted only when it names a file strictly inside the mirror's `packages` directory, plus a `.metadata` file beside that file. A URL that names a directory, including the mirror root or `packages/` itself, is skipped. That package's simple API directory is still removed. The JSON file itself is left in place. If the local JSON is missing or cannot be read, nothing is deleted. Stale serials are not treated as missing packages. This option does not remove the name from `todo`; use [](#cleanup_todo) for that. `bandersnatch sync` does not apply it.
 
 ### `compare-method`
 

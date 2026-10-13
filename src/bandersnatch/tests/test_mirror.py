@@ -2491,5 +2491,103 @@ def test_release_blob_path_rejects_a_resolved_path_outside_the_mirror(
     )
 
 
+def test_delete_missing_packages_does_not_remove_directories(
+    mirror: BandersnatchMirror,
+) -> None:
+    """A release URL that names a directory must not be removed recursively."""
+    package = Package("oreo4")
+    metadata_path = mirror.json_file(package.name)
+    blob = mirror.webdir / "packages" / "ab" / "oreo4-1.0.tar.gz"
+    sidecar = blob.with_name(f"{blob.name}.metadata")
+    no_sidecar = mirror.webdir / "packages" / "ab" / "noside.tar.gz"
+    missing_sidecar = mirror.webdir / "packages" / "ab" / "missing.tar.gz.metadata"
+    prefix_keep = mirror.webdir / "packages" / "ab" / "keep.bin"
+    packages_keep = mirror.webdir / "packages" / "keep.bin"
+    root_keep = mirror.webdir / "keep.bin"
+    other_simple = mirror.webdir / "simple" / "other" / "index.html"
+    simple = mirror.simple_directory(package) / "index.html"
+    for path in (
+        metadata_path,
+        blob,
+        sidecar,
+        no_sidecar,
+        missing_sidecar,
+        prefix_keep,
+        packages_keep,
+        root_keep,
+        other_simple,
+        simple,
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "releases": {
+                    "1.0": [
+                        {"url": "https://files.pythonhosted.org/"},
+                        {"url": "https://files.pythonhosted.org/packages/"},
+                        {"url": "https://files.pythonhosted.org/packages"},
+                        {"url": "https://files.pythonhosted.org/packages/ab"},
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/simple/oreo4/index.html"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/"
+                                "oreo4-1.0.tar.gz"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/noside.tar.gz"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/"
+                                "missing.tar.gz"
+                            )
+                        },
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    blob.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    no_sidecar.write_bytes(b"no-sidecar")
+    missing_sidecar.write_bytes(b"orphan-sidecar")
+    prefix_keep.write_bytes(b"prefix")
+    packages_keep.write_bytes(b"packages")
+    root_keep.write_bytes(b"root")
+    other_simple.write_bytes(b"other-simple")
+    simple.write_bytes(b"simple")
+
+    mirror._delete_missing_package_files(package)
+
+    assert not blob.exists()
+    assert not sidecar.exists()
+    assert not no_sidecar.exists()
+    assert not missing_sidecar.exists()
+    assert prefix_keep.is_file()
+    assert packages_keep.is_file()
+    assert root_keep.is_file()
+    assert other_simple.is_file()
+    assert (mirror.webdir / "packages").is_dir()
+    assert (mirror.webdir / "packages" / "ab").is_dir()
+    assert not simple.exists()
+    assert metadata_path.is_file()
+    for url in (
+        "https://files.pythonhosted.org/",
+        "https://files.pythonhosted.org/packages/",
+        "https://files.pythonhosted.org/packages",
+        "https://files.pythonhosted.org/simple/oreo4/index.html",
+    ):
+        assert mirror._release_blob_path(url) is None
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv)
