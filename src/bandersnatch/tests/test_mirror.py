@@ -2395,5 +2395,101 @@ async def test_delete_missing_packages_hash_index_keeps_sibling(
     assert planted["metadata"].is_file()
 
 
+def test_delete_missing_packages_skips_absent_and_malformed_metadata(
+    mirror: BandersnatchMirror,
+) -> None:
+    """No JSON, identical names, and unusable JSON delete nothing."""
+    same_name = Package("oreo4")
+    assert same_name.name == same_name.raw_name
+    assert mirror._simple_dirs_for_missing_package(same_name) == [
+        mirror.simple_directory(same_name)
+    ]
+    mirror._delete_missing_package_files(same_name)
+
+    metadata_path = mirror.json_file(same_name.name)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text("{", encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    assert metadata_path.is_file()
+
+    metadata_path.write_text(json.dumps(["not-an-object"]), encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    metadata_path.write_text(json.dumps({"info": {"name": "oreo4"}}), encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    assert metadata_path.read_text(encoding="utf-8").startswith("{")
+
+
+def test_delete_missing_packages_reads_raw_metadata_and_skips_bad_entries(
+    mirror: BandersnatchMirror,
+) -> None:
+    """A differing raw name is the metadata key, and bad release entries are skipped."""
+    package = Package("Oreo.4")
+    assert package.name == "oreo-4"
+    assert package.raw_name == "Oreo.4"
+    canonical_json = mirror.json_file(package.name)
+    canonical_json.mkdir(parents=True)
+    metadata_path = mirror.json_file(package.raw_name)
+    blob = mirror.webdir / "packages" / "ab" / "Oreo.4-1.0.tar.gz"
+    sidecar = blob.with_name(f"{blob.name}.metadata")
+    simple = mirror.simple_directory(package) / "index.html"
+    raw_simple = mirror.webdir / "simple" / package.raw_name / "index.html"
+    for path in (metadata_path, blob, sidecar, simple, raw_simple):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "releases": {
+                    "skip-not-a-list": "nope",
+                    "1.0": [
+                        "not-a-dict",
+                        {"filename": "missing-url"},
+                        {"url": None},
+                        {"url": "ftp://files.pythonhosted.org/packages/ab/x.tar.gz"},
+                        {"url": "https://files.pythonhosted.org"},
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/Oreo.4-1.0.tar.gz"
+                            )
+                        },
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    blob.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    simple.write_bytes(b"simple")
+    raw_simple.write_bytes(b"raw-simple")
+
+    mirror._delete_missing_package_files(package)
+
+    assert not blob.exists()
+    assert not sidecar.exists()
+    assert not simple.exists()
+    assert not raw_simple.exists()
+    assert metadata_path.is_file()
+    assert canonical_json.is_dir()
+
+
+def test_release_blob_path_rejects_a_resolved_path_outside_the_mirror(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_resolve = Path.resolve
+
+    def resolve(self: Path, *args: Any, **kwargs: Any) -> Path:
+        if self.name == "secret.bin":
+            return real_resolve(mirror.homedir / "secret.bin")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", resolve)
+    assert (
+        mirror._release_blob_path(
+            "https://files.pythonhosted.org/packages/ab/secret.bin"
+        )
+        is None
+    )
+
+
 if __name__ == "__main__":
     pytest.main(sys.argv)
