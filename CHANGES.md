@@ -2,6 +2,7 @@
 
 ## Bug Fixes
 
+- Add `--skip-json-fetch` option to `bandersnatch delete` to skip fetching JSON metadata from PyPI for packages not found locally, allowing deletion of packages that have been removed from PyPI `PR #2362`
 - When `cleanup_todo` is enabled, or `bandersnatch mirror --cleanup-todo` is passed, packages that raise `PackageNotFound` are removed from the todo list. The default stays off. Stale serials stay on the list, and mirrored files are not deleted. If rewriting the todo fails, the error is recorded and the mirror continues. `PR #2361`
 
 # 8.1.0
@@ -12,7 +13,6 @@
 
 ## Bug Fixes
 
-- Add `--skip-json-fetch` option to `bandersnatch delete` to skip fetching JSON metadata from PyPI for packages not found locally, allowing deletion of packages that have been removed from PyPI `PR #2362`
 - Skip non-PEP 440 versions in the `latest_release` plugin when sorting by version, and still keep the project's current version `PR #2357`
 - Skip release files whose names the storage cannot represent (for example from absurdly long version strings) with a one-line error instead of failing the package sync, and exclude the skipped files from the generated simple indexes `PR #2359`
 
