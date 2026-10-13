@@ -113,8 +113,14 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 )
                 continue
 
-            logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
-            await get_latest_json(master, json_full_path, executor, False)
+            if args.skip_json_fetch:
+                logger.info(
+                    f"{json_full_path} does not exist. Skipping JSON fetch "
+                    "(--skip-json-fetch)"
+                )
+            else:
+                logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
+                await get_latest_json(master, json_full_path, executor, False)
         if not json_full_path.exists():
             logger.info(
                 f"No json file for {package} found, skipping blob file cleaning"

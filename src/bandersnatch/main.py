@@ -46,6 +46,12 @@ def _delete_parser(subparsers: argparse._SubParsersAction) -> None:
         default=0,
         help="# of parallel iops [Defaults to bandersnatch.conf]",
     )
+    d.add_argument(
+        "--skip-json-fetch",
+        action="store_true",
+        default=False,
+        help="Skip fetching JSON metadata from PyPI for packages not found locally",
+    )
     d.add_argument("pypi_packages", nargs="*")
     d.set_defaults(op="delete")
 

@@ -63,7 +63,12 @@ MOCK_JSON_TEMPLATE = """{
 
 
 def _fake_args() -> Namespace:
-    return Namespace(dry_run=True, pypi_packages=["cooper", "unittest"], workers=0)
+    return Namespace(
+        dry_run=True,
+        pypi_packages=["cooper", "unittest"],
+        workers=0,
+        skip_json_fetch=False,
+    )
 
 
 def _fake_config() -> ConfigParser:
@@ -168,6 +173,50 @@ async def test_delete_packages_no_exist() -> None:
     with patch("bandersnatch.delete.logger.error") as mock_log:
         assert await delete_packages(_fake_config(), args, master) == 0
         assert mock_log.call_count == len(args.pypi_packages)
+
+
+@pytest.mark.asyncio
+async def test_delete_packages_skip_json_fetch(mirror: BandersnatchMirror) -> None:
+    """--skip-json-fetch must skip the fetch but still delete local artifacts.
+
+    Regression test: previously the flag `continue`d past the whole deletion
+    path, so a package with no local /json/<name> (the case the flag targets)
+    kept its simple index / legacy metadata and falsely reported success.
+    """
+    args = _fake_args()
+    args.skip_json_fetch = True
+    args.dry_run = False
+    args.pypi_packages = ["cooper", "unittest"]
+    config = _fake_config()
+    config["mirror"]["directory"] = str(mirror.homedir)
+    master = mirror.master
+    url_fetch = AsyncMock()
+    with patch.object(master, "url_fetch", url_fetch):
+        # Local simple + legacy (pypi/<name>/json) pages, but no json/<name>
+        created: list[Path] = []
+        for package_name in args.pypi_packages:
+            simple_dir = mirror.webdir / "simple" / package_name
+            simple_dir.mkdir(parents=True)
+            index_page = simple_dir / "index.html"
+            index_page.touch()
+            legacy_dir = mirror.webdir / "pypi" / package_name
+            legacy_dir.mkdir(parents=True)
+            legacy_json = legacy_dir / "json"
+            legacy_json.touch()
+            created += [index_page, legacy_json]
+
+        with patch("bandersnatch.delete.logger.info") as mock_log:
+            assert await delete_packages(config, args, master) == 0
+            calls = [str(call) for call in mock_log.call_args_list]
+            assert any("Skipping JSON fetch" in c for c in calls)
+
+        # No remote fetch was attempted ...
+        url_fetch.assert_not_called()
+        # ... but local cleanup still ran
+        for path in created:
+            assert not path.exists(), f"{path} should have been deleted"
+        for package_name in args.pypi_packages:
+            assert not (mirror.webdir / "simple" / package_name).exists()
 
 
 @pytest.mark.asyncio
