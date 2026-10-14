@@ -7,7 +7,7 @@ import logging
 import sys
 import time
 from collections.abc import Awaitable, Callable
-from json import dump
+from json import JSONDecodeError, dump, load
 from pathlib import Path, WindowsPath
 from threading import RLock
 from typing import Any
@@ -217,6 +217,7 @@ class BandersnatchMirror(Mirror):
         *,
         cleanup: bool = False,
         cleanup_todo: bool = False,
+        delete_missing_packages: bool = False,
         release_files_save: bool = True,
         core_metadata_save: bool = True,
         compare_method: str | None = None,
@@ -229,6 +230,9 @@ class BandersnatchMirror(Mirror):
         # Drop PackageNotFound names from the todo list. Default off.
         # Does not delete mirrored release files, blobs, or simple pages.
         self.cleanup_todo = cleanup_todo
+        # Delete blobs and simple pages for PackageNotFound using local JSON.
+        # Default off. Does not change the todo list by itself.
+        self.delete_missing_packages = delete_missing_packages
 
         if storage_backend:
             self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
@@ -433,14 +437,26 @@ class BandersnatchMirror(Mirror):
                 self.storage_backend.delete_file(self.todolist)
 
     async def on_package_not_found(self, package: Package) -> None:
-        """Remove a missing package from the mirror todo list when enabled.
+        """Handle a package that no longer exists on PyPI.
 
         Only ``PackageNotFound`` reaches this hook. A stale serial stays on
-        the list. Release files, local blobs, and simple API pages are left
-        in place. ``bandersnatch sync`` does not resume the mirror todo, so
-        an existing todo file is left unchanged in that mode.
+        the list and its files stay on disk. ``bandersnatch sync`` does not
+        resume the mirror todo, so this hook does nothing in that mode.
+
+        ``cleanup_todo`` removes the name from the todo list.
+        ``delete_missing_packages`` deletes release blobs and simple API
+        pages named by local JSON metadata. Both default to off.
         """
-        if not self.cleanup_todo or not self.need_wrapup:
+        if not self.need_wrapup:
+            return
+        if self.delete_missing_packages:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                self.storage_backend.executor,
+                self._delete_missing_package_files,
+                package,
+            )
+        if not self.cleanup_todo:
             return
         if package.raw_name not in self.packages_to_sync:
             return
@@ -454,6 +470,102 @@ class BandersnatchMirror(Mirror):
             self.record_finished_package,
             package.raw_name,
         )
+
+    def _local_metadata_path(self, package: Package) -> Path | None:
+        seen: set[str] = set()
+        for name in (package.name, package.raw_name):
+            if name in seen:
+                continue
+            seen.add(name)
+            path = self.json_file(name)
+            if self.storage_backend.exists(path) and self.storage_backend.is_file(path):
+                return path
+        return None
+
+    def _release_blob_path(self, url: str) -> Path | None:
+        """Return a path strictly under the mirror's packages directory.
+
+        The mirror root, ``packages`` itself, and any path ending in ``/`` are
+        rejected. The caller also skips a path that exists as a directory:
+        ``Storage.delete`` removes directories recursively.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.path.startswith("/"):
+            return None
+        if parsed.path.endswith("/"):
+            return None
+        relative = Path(parsed.path.lstrip("/"))
+        if relative.is_absolute() or ".." in relative.parts:
+            return None
+        webdir = Path(self.webdir).resolve()
+        packages = (webdir / "packages").resolve()
+        candidate = (webdir / relative).resolve()
+        if packages not in candidate.parents:
+            return None
+        return candidate
+
+    def _simple_dirs_for_missing_package(self, package: Package) -> list[Path]:
+        dirs = [self.simple_directory(package)]
+        if package.raw_name == package.name:
+            return dirs
+        if self.hash_index:
+            raw_dir = self.webdir / "simple" / package.raw_name[0] / package.raw_name
+        else:
+            raw_dir = self.webdir / "simple" / package.raw_name
+        if raw_dir.resolve() != dirs[0].resolve():
+            dirs.append(raw_dir)
+        return dirs
+
+    def _delete_missing_package_files(self, package: Package) -> None:
+        """Delete blobs and simple pages named by local JSON. Leave the JSON."""
+        metadata_path = self._local_metadata_path(package)
+        if metadata_path is None:
+            logger.info(
+                f"Not deleting files for {package.raw_name}: no local JSON metadata"
+            )
+            return
+        try:
+            with self.storage_backend.open_file(metadata_path, text=True) as fh:
+                metadata = load(fh)
+        except (JSONDecodeError, OSError, UnicodeError):
+            logger.info(
+                f"Not deleting files for {package.raw_name}: local JSON metadata "
+                + f"at {metadata_path} cannot be read"
+            )
+            return
+        releases = metadata.get("releases") if isinstance(metadata, dict) else None
+        if not isinstance(releases, dict):
+            logger.info(
+                f"Not deleting files for {package.raw_name}: local JSON metadata "
+                + "has no releases object"
+            )
+            return
+        logger.info(
+            f"Deleting mirrored files for {package.raw_name} because it "
+            + "no longer exists on PyPI"
+        )
+        for blobs in releases.values():
+            if not isinstance(blobs, list):
+                continue
+            for blob in blobs:
+                if not isinstance(blob, dict):
+                    continue
+                url = blob.get("url")
+                if not isinstance(url, str):
+                    continue
+                blob_path = self._release_blob_path(url)
+                if blob_path is None or self.storage_backend.is_dir(blob_path):
+                    logger.info(
+                        "Skipping release URL that is not a file under packages: " + url
+                    )
+                    continue
+                if self.storage_backend.is_file(blob_path):
+                    self.storage_backend.delete_file(blob_path)
+                sidecar = blob_path.with_name(f"{blob_path.name}.metadata")
+                if self.storage_backend.is_file(sidecar):
+                    self.storage_backend.delete_file(sidecar)
+        for simple_dir in self._simple_dirs_for_missing_package(package):
+            self.storage_backend.delete(simple_dir)
 
     def record_finished_package(self, name: str) -> None:
         with self._finish_lock:
@@ -1163,6 +1275,9 @@ async def mirror(
             diff_full_path=diff_full_path,
             cleanup=config_values.cleanup,
             cleanup_todo=config.getboolean("mirror", "cleanup_todo", fallback=False),
+            delete_missing_packages=config.getboolean(
+                "mirror", "delete_missing_packages", fallback=False
+            ),
             release_files_save=config_values.release_files_save,
             core_metadata_save=config_values.core_metadata_save,
             download_mirror=config_values.download_mirror,

@@ -439,6 +439,16 @@ An interrupted sync resumes from `todo` and does not read the changelog until th
 
 Set `cleanup_todo = true`, or pass `bandersnatch mirror --cleanup-todo`, to drop only those `PackageNotFound` names from `todo`. The default `false` keeps the current behavior. Stale serials and other errors stay on the list. This option does not delete release files, local blobs, or simple API pages already stored in the mirror. If rewriting `todo` fails, the sync is marked unsuccessful and the mirror continues with the remaining packages.
 
+### `delete_missing_packages`
+
+Delete local release blobs and simple API pages for a package that raises `PackageNotFound`.
+
+:Type: boolean
+:Required: no
+:Default: false
+
+The package's local JSON metadata lists the release file URLs. A URL is deleted only when it names a file strictly inside the mirror's `packages` directory, plus a `.metadata` file beside that file. A URL that names a directory, including the mirror root or `packages/` itself, is skipped. That package's simple API directory is still removed. The JSON file itself is left in place. If the local JSON is missing or cannot be read, nothing is deleted. Stale serials are not treated as missing packages. This option does not remove the name from `todo`; use [](#cleanup_todo) for that. `bandersnatch sync` does not apply it.
+
 ### `compare-method`
 
 The method used to compare existing files with upstream files.

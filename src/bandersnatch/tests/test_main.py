@@ -103,6 +103,7 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "diff_full_path": diff_file,
         "cleanup": False,
         "cleanup_todo": False,
+        "delete_missing_packages": False,
         "compare_method": "hash",
         "download_mirror": "",
         "download_mirror_no_fallback": False,

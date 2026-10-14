@@ -54,10 +54,12 @@ def test_single_config__default__mirror__setting_attributes() -> None:
     instance = BandersnatchConfig()
     options = {*instance["mirror"]}
     assert instance["mirror"].getboolean("cleanup_todo") is False
+    assert instance["mirror"].getboolean("delete_missing_packages") is False
     assert options == {
         "allow-non-https",
         "cleanup",
         "cleanup_todo",
+        "delete_missing_packages",
         "compare-method",
         "core-metadata",
         "diff-append-epoch",
@@ -96,6 +98,7 @@ def test_single_config__default__mirror__setting__types() -> None:
         ("master", str),
         ("stop-on-error", bool),
         ("cleanup_todo", bool),
+        ("delete_missing_packages", bool),
         ("storage-backend", str),
         ("timeout", int),
         ("global-timeout", int),
