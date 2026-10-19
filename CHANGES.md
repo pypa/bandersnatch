@@ -1,5 +1,9 @@
 # Unreleased
 
+## Bug Fixes
+
+- Avoid prerelease-setting deprecation warnings in release allowlist and blocklist filters `PR #2375`
+
 # 8.2.0
 
 ## New Features
