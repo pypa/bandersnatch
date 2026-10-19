@@ -136,7 +136,6 @@ def _parse_package_lines(package_lines: list[str]) -> set[Requirement]:
         package_line, *_ = package_line.split("#", maxsplit=1)
         requirement = Requirement(package_line.strip())
         requirement.name = canonicalize_name(requirement.name)
-        requirement.specifier.prereleases = True
         filtered_requirements.add(requirement)
     return filtered_requirements
 
@@ -248,7 +247,7 @@ class AllowListRelease(FilterReleasePlugin):
         for requirement in self.allowlist_release_requirements:
             if name != requirement.name:
                 continue
-            if version in requirement.specifier:
+            if requirement.specifier.contains(version, prereleases=True):
                 logger.debug(
                     f"MATCH: Release {name}=={version} matches specifier "
                     f"{requirement.specifier}"
