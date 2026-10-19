@@ -18,9 +18,8 @@ import boto3
 import filelock
 from botocore.client import Config
 from botocore.exceptions import ClientError
-from s3path import PureS3Path
+from s3path import PureS3Path, configuration_map, register_configuration_parameter
 from s3path import S3Path as _S3Path
-from s3path import configuration_map, register_configuration_parameter
 from s3path.accessor import _generate_prefix
 
 if TYPE_CHECKING:
