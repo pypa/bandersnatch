@@ -134,6 +134,12 @@ class S3FileLock(filelock.BaseFileLock):
             return self.backend.PATH_BACKEND
         raise RuntimeError("Failed to retrieve s3 backend")
 
+    @property
+    def _lock_path(self) -> str:
+        # BaseFileLock creates the lock path's parent before acquisition. S3
+        # lock paths are object keys, so use a local path whose parent exists.
+        return os.devnull
+
     def _acquire(self) -> None:
         # Claim the marker with a conditional create (``If-None-Match: *``)
         # so only the process that actually created the object owns the
