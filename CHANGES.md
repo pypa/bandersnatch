@@ -2,6 +2,7 @@
 
 ## Bug Fixes
 
+- Avoid creating local directories for S3 locks when using filelock 4.2.1 `PR #2376`
 - Avoid prerelease-setting deprecation warnings in release allowlist and blocklist filters `PR #2375`
 
 # 8.2.0
