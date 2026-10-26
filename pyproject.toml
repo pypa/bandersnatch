@@ -1,3 +1,4 @@
 [build-system]
-requires = ["setuptools>=84.2.1"]
+# 70.1.0 supports Python 3.12 and includes the bdist_wheel command.
+requires = ["setuptools>=70.1.0"]
 build-backend = "setuptools.build_meta"
