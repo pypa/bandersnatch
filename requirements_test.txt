@@ -4,7 +4,7 @@ coverage==7.15.2
 flake8==7.4.1
 flake8-bugbear==25.11.29
 freezegun==1.5.5
-moto[s3]==5.2.3
+moto[s3]==5.2.4
 mypy==2.4.0
 pre_commit==4.6.2
 pytest==9.1.1
