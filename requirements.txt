@@ -3,7 +3,7 @@ aiohttp-socks==0.12.0
 attrs==26.1.0
 filelock==4.2.1
 humanfriendly==10.0
-idna==3.19
+idna==3.20
 multidict==7.1.0
 packaging==26.3
 yarl==1.25.1
