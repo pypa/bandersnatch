@@ -2,7 +2,7 @@ async-timeout==5.0.1
 black==26.10.1
 coverage==7.17.0
 flake8==7.4.1
-flake8-bugbear==26.9.30
+flake8-bugbear==26.10.27
 freezegun==1.5.5
 moto[s3]==5.2.4
 mypy==2.4.0
