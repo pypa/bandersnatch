@@ -2,6 +2,7 @@
 
 ## Bug Fixes
 
+- Skip releases without files when sorting `latest_release` candidates by upload time, instead of failing with `IndexError` `PR #2395`
 - Avoid creating local directories for S3 locks when using filelock 4.2.1 `PR #2376`
 - Avoid prerelease-setting deprecation warnings in release allowlist and blocklist filters `PR #2375`
 

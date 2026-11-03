@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 import bandersnatch.filter
 from bandersnatch.master import Master
 from bandersnatch.mirror import BandersnatchMirror
@@ -95,6 +97,32 @@ def test_latest_releases_keep_latest_time() -> None:
         "1.1.1d": [{"upload_time_iso_8601": "2020-10-01T15:24:37.255645Z"}],
         "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
     }
+
+
+@pytest.mark.parametrize("keep", [1, 2])
+def test_latest_releases_time_ignores_empty_releases(keep: int) -> None:
+    mock_config(
+        _KEEP_2_CONFIG.replace("keep = 2", f"keep = {keep}") + "\nsort_by = time"
+    )
+
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo", "version": "2.0.0"},
+        "releases": {
+            "0.1.0": [],
+            "1.0.0": [{"upload_time_iso_8601": "2013-10-01T15:24:37.255645Z"}],
+            "2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}],
+            "3.0.0": [],
+        },
+    }
+
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+
+    expected = {"2.0.0": [{"upload_time_iso_8601": "2018-10-01T15:24:37.255645Z"}]}
+    if keep == 2:
+        expected["1.0.0"] = [{"upload_time_iso_8601": "2013-10-01T15:24:37.255645Z"}]
+    assert pkg.releases == expected
 
 
 def test_latest_releases_keep_stable() -> None:
