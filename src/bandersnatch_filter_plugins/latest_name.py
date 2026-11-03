@@ -67,7 +67,7 @@ class LatestReleaseFilter(FilterReleasePlugin):
         if self.sort_by == "time":
             getter_index = 0
             versions_sorted = sorted(
-                releases.items(),
+                (release for release in releases.items() if release[1]),
                 key=lambda x: x[1][0]["upload_time_iso_8601"],
                 reverse=True,
             )
