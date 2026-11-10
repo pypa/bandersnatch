@@ -330,5 +330,5 @@ class SimpleAPI:
                 if pretty:
                     json.dump(simple_json, f, indent=4)
                 else:
-                    json.dump(simple_json, f)
+                    f.write(json.dumps(simple_json))
             self.diff_file_list.append(simple_json_path)
