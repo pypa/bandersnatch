@@ -54,7 +54,7 @@ class PreReleaseFilter(FilterReleasePlugin):
         """
         Returns False if version fails the filter, i.e. follows a prerelease pattern
         """
-        name = metadata["info"]["name"]
+        name = canonicalize_name(metadata["info"]["name"])
         version = metadata["version"]
         if self.package_names and name not in self.package_names:
             return True
