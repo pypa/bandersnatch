@@ -69,3 +69,5 @@ def test_prerelease_plugin_filter_packages() -> None:
     mock_config(_PRERELEASE_CONFIG + _DUCKDB_EXCEPTION_CONFIG)
     assert _check_filter("foo") is False
     assert _check_filter("duckdb") is True
+    # PyPI reports the display name, which is not always in canonical form
+    assert _check_filter("DuckDB") is True
