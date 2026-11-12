@@ -1,7 +1,4 @@
-import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from unittest import TestCase
 
 import bandersnatch.filter
 from bandersnatch.master import Master
@@ -9,61 +6,46 @@ from bandersnatch.mirror import BandersnatchMirror
 from bandersnatch.package import Package
 from bandersnatch.tests.mock_config import mock_config
 
+# BlockList Project
 
-class TestBlockListProject(TestCase):
-    """
-    Tests for the bandersnatch filtering classes
-    """
 
-    tempdir = None
-    cwd = None
-
-    def setUp(self) -> None:
-        self.cwd = os.getcwd()
-        self.tempdir = TemporaryDirectory()
-        os.chdir(self.tempdir.name)
-
-    def tearDown(self) -> None:
-        if self.tempdir:
-            assert self.cwd
-            os.chdir(self.cwd)
-            self.tempdir.cleanup()
-            self.tempdir = None
-
-    def test__plugin__loads__explicitly_enabled(self) -> None:
-        mock_config("""\
+def test__blocklist_project__loads__explicitly_enabled() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_project
 """)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
-        names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ["blocklist_project"])
-        self.assertEqual(len(plugins), 1)
+    plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
+    names = [plugin.name for plugin in plugins]
+    assert names == ["blocklist_project"]
+    assert len(plugins) == 1
 
-    def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__doesnt_load__explicitly__disabled() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_release
 """)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
-        names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blocklist_project", names)
+    plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
+    names = [plugin.name for plugin in plugins]
+    assert "blocklist_project" not in names
 
-    def test__plugin__loads__default(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__loads__default() -> None:
+    mock_config("""\
 [blocklist]
 """)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
-        names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blocklist_project", names)
+    plugins = bandersnatch.filter.LoadedFilters().filter_project_plugins()
+    names = [plugin.name for plugin in plugins]
+    assert "blocklist_project" not in names
 
-    def test__filter__matches__package(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__filter__matches__package() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_project
@@ -72,14 +54,15 @@ packages =
     foo
 """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo": ""}
-        mirror._filter_packages()
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    mirror.packages_to_sync = {"foo": ""}
+    mirror._filter_packages()
 
-        self.assertNotIn("foo", mirror.packages_to_sync.keys())
+    assert "foo" not in mirror.packages_to_sync.keys()
 
-    def test__filter__nomatch_package(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__filter__nomatch_package() -> None:
+    mock_config("""\
         [blocklist]
         plugins =
             blocklist_project
@@ -87,14 +70,15 @@ packages =
             foo
         """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo2": ""}
-        mirror._filter_packages()
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    mirror.packages_to_sync = {"foo2": ""}
+    mirror._filter_packages()
 
-        self.assertIn("foo2", mirror.packages_to_sync.keys())
+    assert "foo2" in mirror.packages_to_sync.keys()
 
-    def test__filter__name_only(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__filter__name_only() -> None:
+    mock_config("""\
 [mirror]
 storage-backend = filesystem
 
@@ -107,15 +91,16 @@ packages =
     foo==1.2.3
 """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {"foo": "", "foo2": ""}
-        mirror._filter_packages()
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    mirror.packages_to_sync = {"foo": "", "foo2": ""}
+    mirror._filter_packages()
 
-        self.assertIn("foo", mirror.packages_to_sync.keys())
-        self.assertIn("foo2", mirror.packages_to_sync.keys())
+    assert "foo" in mirror.packages_to_sync.keys()
+    assert "foo2" in mirror.packages_to_sync.keys()
 
-    def test__filter__varying__specifiers(self) -> None:
-        mock_config("""\
+
+def test__blocklist_project__filter__varying__specifiers() -> None:
+    mock_config("""\
 [mirror]
 storage-backend = filesystem
 
@@ -129,63 +114,48 @@ packages =
     bar~=3.0,<=1.5
     snu
 """)
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        mirror.packages_to_sync = {
-            "foo": "",
-            "foo2": "",
-            "bar": "",
-            "snu": "",
-        }
-        mirror._filter_packages()
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    mirror.packages_to_sync = {
+        "foo": "",
+        "foo2": "",
+        "bar": "",
+        "snu": "",
+    }
+    mirror._filter_packages()
 
-        self.assertEqual({"foo": "", "foo2": "", "bar": ""}, mirror.packages_to_sync)
+    assert {"foo": "", "foo2": "", "bar": ""} == mirror.packages_to_sync
 
 
-class TestBlockListRelease(TestCase):
-    """
-    Tests for the bandersnatch filtering classes
-    """
+# BlockList Release
 
-    tempdir = None
-    cwd = None
 
-    def setUp(self) -> None:
-        self.cwd = os.getcwd()
-        self.tempdir = TemporaryDirectory()
-        os.chdir(self.tempdir.name)
-
-    def tearDown(self) -> None:
-        if self.tempdir:
-            assert self.cwd
-            os.chdir(self.cwd)
-            self.tempdir.cleanup()
-            self.tempdir = None
-
-    def test__plugin__loads__explicitly_enabled(self) -> None:
-        mock_config("""\
+def test__blocklist_release__loads__explicitly_enabled() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_release
 """)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
-        names = [plugin.name for plugin in plugins]
-        self.assertListEqual(names, ["blocklist_release"])
-        self.assertEqual(len(plugins), 1)
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+    names = [plugin.name for plugin in plugins]
+    assert names == ["blocklist_release"]
+    assert len(plugins) == 1
 
-    def test__plugin__doesnt_load__explicitly__disabled(self) -> None:
-        mock_config("""\
+
+def test__blocklist_release__doesnt_load__explicitly__disabled() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_package
 """)
 
-        plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
-        names = [plugin.name for plugin in plugins]
-        self.assertNotIn("blocklist_release", names)
+    plugins = bandersnatch.filter.LoadedFilters().filter_release_plugins()
+    names = [plugin.name for plugin in plugins]
+    assert "blocklist_release" not in names
 
-    def test__filter__matches__release(self) -> None:
-        mock_config("""\
+
+def test__blocklist_release__filter__matches__release() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_release
@@ -194,19 +164,20 @@ packages =
     foo==1.2.0
 """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1)
-        pkg._metadata = {
-            "info": {"name": "foo"},
-            "releases": {"1.2.0": {}, "1.2.1": {}},
-        }
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo"},
+        "releases": {"1.2.0": {}, "1.2.1": {}},
+    }
 
-        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
-        self.assertEqual(pkg.releases, {"1.2.1": {}})
+    assert pkg.releases == {"1.2.1": {}}
 
-    def test__dont__filter__prereleases(self) -> None:
-        mock_config("""\
+
+def test__blocklist_release__dont__filter__prereleases() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_release
@@ -215,26 +186,27 @@ packages =
     foo<=1.2.0
 """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1)
-        pkg._metadata = {
-            "info": {"name": "foo"},
-            "releases": {
-                "1.1.0a2": {},
-                "1.1.1beta1": {},
-                "1.2.0": {},
-                "1.2.1": {},
-                "1.2.2alpha3": {},
-                "1.2.3rc1": {},
-            },
-        }
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo"},
+        "releases": {
+            "1.1.0a2": {},
+            "1.1.1beta1": {},
+            "1.2.0": {},
+            "1.2.1": {},
+            "1.2.2alpha3": {},
+            "1.2.3rc1": {},
+        },
+    }
 
-        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
-        self.assertEqual(pkg.releases, {"1.2.1": {}, "1.2.2alpha3": {}, "1.2.3rc1": {}})
+    assert pkg.releases == {"1.2.1": {}, "1.2.2alpha3": {}, "1.2.3rc1": {}}
 
-    def test__casing__no__affect(self) -> None:
-        mock_config("""\
+
+def test__blocklist_release__casing__no__affect() -> None:
+    mock_config("""\
 [plugins]
 enabled =
     blocklist_release
@@ -243,13 +215,13 @@ packages =
     Foo<=1.2.0
 """)
 
-        mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
-        pkg = Package("foo", 1)
-        pkg._metadata = {
-            "info": {"name": "foo"},
-            "releases": {"1.2.0": {}, "1.2.1": {}},
-        }
+    mirror = BandersnatchMirror(Path("."), Master(url="https://foo.bar.com"))
+    pkg = Package("foo", 1)
+    pkg._metadata = {
+        "info": {"name": "foo"},
+        "releases": {"1.2.0": {}, "1.2.1": {}},
+    }
 
-        pkg.filter_all_releases(mirror.filters.filter_release_plugins())
+    pkg.filter_all_releases(mirror.filters.filter_release_plugins())
 
-        self.assertEqual(pkg.releases, {"1.2.1": {}})
+    assert pkg.releases == {"1.2.1": {}}

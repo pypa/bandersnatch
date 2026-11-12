@@ -8,9 +8,9 @@ Bandersnatch documentation
 bandersnatch is a PyPI mirror client according to `PEP 381`
 https://peps.python.org/pep-0381/.
 
-Bandersnatch hits the XMLRPC API of pypi.org to get all packages with serial
-or packages since the last run's serial. bandersnatch then uses the JSON API
-of PyPI to get shasums and release file paths to download and workout where
+Bandersnatch uses the PEP 691 Simple API of pypi.org to fetch package serial
+metadata, then uses the JSON API of PyPI to get shasums and release file paths
+to download and work out where
 to layout the package files on a POSIX file system.
 
 As of 6.0:

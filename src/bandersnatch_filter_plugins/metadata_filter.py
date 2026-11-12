@@ -15,6 +15,9 @@ from bandersnatch.filter import FilterReleaseFilePlugin  # isort:skip
 
 logger = logging.getLogger("bandersnatch")
 
+# Reserved config key. Every other key in the plugin section is a metadata path.
+_SEARCH_OPTION = "search"
+
 
 class RegexFilter(Filter):
     """
@@ -25,6 +28,8 @@ class RegexFilter(Filter):
     name = "regex_filter"
     match_patterns = "any"
     nulls_match = True
+    # False keeps re.match. True uses re.search. Set from the `search` option.
+    search: bool = False
     initialized = False
     patterns: dict = {}
 
@@ -39,7 +44,17 @@ class RegexFilter(Filter):
         else:
             logger.info(f"Initializing {self.name} plugin")
             if not self.initialized:
+                try:
+                    self.search = config.getboolean(_SEARCH_OPTION, fallback=False)
+                except ValueError:
+                    logger.warning(
+                        f"Invalid search value for {self.name}; "
+                        "search must be a boolean, so re.match will be used."
+                    )
+                    self.search = False
                 for k in config:
+                    if k == _SEARCH_OPTION:
+                        continue
                     pattern_strings = [
                         pattern for pattern in config[k].split("\n") if pattern
                     ]
@@ -120,7 +135,7 @@ class RegexFilter(Filter):
                 results.append(True)
                 continue
             for value in values:
-                results.append(pattern.match(value))
+                results.append(self._pattern_matches(pattern, value))
         return any(results)
 
     def _match_all_patterns(
@@ -131,8 +146,13 @@ class RegexFilter(Filter):
             if nulls_match and not values:
                 results.append(True)
                 continue
-            results.append(any(pattern.match(v) for v in values))
+            results.append(any(self._pattern_matches(pattern, v) for v in values))
         return all(results)
+
+    def _pattern_matches(self, pattern: re.Pattern[str], value: str) -> bool:
+        if self.search:
+            return pattern.search(value) is not None
+        return pattern.match(value) is not None
 
     def _match_none_patterns(
         self, key: str, values: list[str], nulls_match: bool = True
@@ -250,6 +270,84 @@ class SizeProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
                 total_size += file["size"]
 
         return total_size <= self.max_package_size
+
+
+class VersionsCountProjectMetadataFilter(FilterMetadataPlugin, AllowListProject):
+    """
+    Filters projects based on the total number of published versions.
+
+    Blocks projects where the version count is below min_versions or
+    above max_versions. Projects in the allowlist bypass this filter.
+    """
+
+    name = "versions_count_project_metadata"
+    initialized = False
+    min_versions: int = 0
+    max_versions: int = 0
+    allowlist_package_names: list[str] = []
+
+    def initialize_plugin(self) -> None:
+        if self.initialized:
+            return
+        try:
+            config = self.configuration[self.name]
+        except KeyError:
+            logger.warning(f"No [{self.name}] config section found; plugin inactive.")
+            self.initialized = True
+            return
+
+        try:
+            self.min_versions = config.getint("min_versions", fallback=0)
+            self.max_versions = config.getint("max_versions", fallback=0)
+        except ValueError as exc:
+            logger.warning(
+                f"Unable to initialise {self.name} plugin, min_versions/max_versions must be integers: {exc}"
+            )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
+            return
+
+        if self.max_versions > 0 and self.min_versions > self.max_versions:
+            logger.warning(
+                f"Unable to initialise {self.name} plugin. min_versions is greater than max_versions"
+            )
+            self.min_versions = 0
+            self.max_versions = 0
+            self.initialized = True
+            return
+
+        if self.min_versions or self.max_versions:
+            self.allowlist_package_names = self._determine_unfiltered_package_names()
+            logger.info(
+                f"Initialized {self.name}: min={self.min_versions}, "
+                f"max={self.max_versions}, allowlist={self.allowlist_package_names}"
+            )
+
+        self.initialized = True
+
+    def filter(self, metadata: dict) -> bool:
+        if not self.min_versions and not self.max_versions:
+            return True
+        if self.allowlist_package_names and not self.check_match(
+            name=metadata["info"]["name"]
+        ):
+            return True
+
+        count = len(metadata["releases"])
+        if self.min_versions and count < self.min_versions:
+            logger.debug(
+                f"Blocking {metadata['info']['name']}: "
+                f"{count} versions < min {self.min_versions}"
+            )
+            return False
+        if self.max_versions and count > self.max_versions:
+            logger.debug(
+                f"Blocking {metadata['info']['name']}: "
+                f"{count} versions > max {self.max_versions}"
+            )
+            return False
+        return True
 
 
 class VersionRangeFilter(Filter):

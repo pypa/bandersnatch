@@ -1,12 +1,13 @@
 import asyncio
 import configparser
 import datetime
+import errno
 import hashlib
 import logging
 import sys
 import time
 from collections.abc import Awaitable, Callable
-from json import dump
+from json import JSONDecodeError, dump, load
 from pathlib import Path, WindowsPath
 from threading import RLock
 from typing import Any
@@ -21,10 +22,22 @@ from .filter import LoadedFilters
 from .master import Master
 from .package import Package
 from .simple import SimpleAPI, SimpleFormat, SimpleFormats
-from .storage import Storage, storage_backend_plugins
+from .storage import PATH_TYPES, Storage, storage_backend_plugins
 
 LOG_PLUGINS = True
 logger = logging.getLogger(__name__)
+
+# Windows reports over-long file names as ERROR_FILENAME_EXCED_RANGE.
+_FILENAME_TOO_LONG_WINERROR = 206
+
+
+def _is_file_name_too_long(error: Exception) -> bool:
+    """Check whether an error means a file name the OS cannot represent."""
+    if not isinstance(error, OSError):
+        return False
+    if error.errno == errno.ENAMETOOLONG:
+        return True
+    return getattr(error, "winerror", None) == _FILENAME_TOO_LONG_WINERROR
 
 
 class Mirror:
@@ -132,9 +145,19 @@ class Mirror:
                 logger.debug(f"Package syncer {idx} emptied queue")
                 break
             except PackageNotFound:
+                # This handler is outside the sibling `except Exception` below.
+                # A todo rewrite failure must use on_error so one package does
+                # not escape asyncio.gather and abort the rest of the mirror.
+                try:
+                    await self.on_package_not_found(package)
+                except Exception as e:
+                    self.on_error(e, package=package)
                 continue
             except Exception as e:
                 self.on_error(e, package=package)
+
+    async def on_package_not_found(self, package: Package) -> None:
+        return None
 
     async def process_package(self, package: Package) -> None:
         raise NotImplementedError()
@@ -193,7 +216,10 @@ class BandersnatchMirror(Mirror):
         diff_file_list: list[Path] | None = None,
         *,
         cleanup: bool = False,
+        cleanup_todo: bool = False,
+        delete_missing_packages: bool = False,
         release_files_save: bool = True,
+        core_metadata_save: bool = True,
         compare_method: str | None = None,
         download_mirror: str | None = None,
         download_mirror_no_fallback: bool | None = False,
@@ -201,6 +227,12 @@ class BandersnatchMirror(Mirror):
     ) -> None:
         super().__init__(master=master, workers=workers)
         self.cleanup = cleanup
+        # Drop PackageNotFound names from the todo list. Default off.
+        # Does not delete mirrored release files, blobs, or simple pages.
+        self.cleanup_todo = cleanup_todo
+        # Delete blobs and simple pages for PackageNotFound using local JSON.
+        # Default off. Does not change the todo list by itself.
+        self.delete_missing_packages = delete_missing_packages
 
         if storage_backend:
             self.storage_backend = next(iter(storage_backend_plugins(storage_backend)))
@@ -222,6 +254,8 @@ class BandersnatchMirror(Mirror):
         self.json_save = json_save
         # Whether or not to mirror PyPI release files to disk
         self.release_files_save = release_files_save
+        # Whether or not to mirror PEP 658/714 core metadata files to disk
+        self.core_metadata_save = core_metadata_save
         self.hash_index = hash_index
         # Allow configuring a root_uri to make generated index pages absolute.
         # This is generally not necessary, but was added for the official internal
@@ -247,6 +281,7 @@ class BandersnatchMirror(Mirror):
             self.digest_name,
             hash_index,
             self.root_uri,
+            core_metadata=core_metadata_save,
         )
         self._bootstrap(flock_timeout)
         self._finish_lock = RLock()
@@ -340,7 +375,7 @@ class BandersnatchMirror(Mirror):
         await loop.run_in_executor(
             self.storage_backend.executor, self.sync_simple_pages, package
         )
-        # XMLRPC PyPI Endpoint stores raw_name so we need to provide it
+        # Preserve upstream package name if normalization changes it
         await loop.run_in_executor(
             self.storage_backend.executor,
             self.record_finished_package,
@@ -401,6 +436,137 @@ class BandersnatchMirror(Mirror):
                 logger.error("Removing inconsistent todo list.")
                 self.storage_backend.delete_file(self.todolist)
 
+    async def on_package_not_found(self, package: Package) -> None:
+        """Handle a package that no longer exists on PyPI.
+
+        Only ``PackageNotFound`` reaches this hook. A stale serial stays on
+        the list and its files stay on disk. ``bandersnatch sync`` does not
+        resume the mirror todo, so this hook does nothing in that mode.
+
+        ``cleanup_todo`` removes the name from the todo list.
+        ``delete_missing_packages`` deletes release blobs and simple API
+        pages named by local JSON metadata. Both default to off.
+        """
+        if not self.need_wrapup:
+            return
+        if self.delete_missing_packages:
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                self.storage_backend.executor,
+                self._delete_missing_package_files,
+                package,
+            )
+        if not self.cleanup_todo:
+            return
+        if package.raw_name not in self.packages_to_sync:
+            return
+        logger.info(
+            f"Removing {package.raw_name} from the todo list because it "
+            + "no longer exists on PyPI"
+        )
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            self.storage_backend.executor,
+            self.record_finished_package,
+            package.raw_name,
+        )
+
+    def _local_metadata_path(self, package: Package) -> Path | None:
+        seen: set[str] = set()
+        for name in (package.name, package.raw_name):
+            if name in seen:
+                continue
+            seen.add(name)
+            path = self.json_file(name)
+            if self.storage_backend.exists(path) and self.storage_backend.is_file(path):
+                return path
+        return None
+
+    def _release_blob_path(self, url: str) -> Path | None:
+        """Return a path strictly under the mirror's packages directory.
+
+        The mirror root, ``packages`` itself, and any path ending in ``/`` are
+        rejected. The caller also skips a path that exists as a directory:
+        ``Storage.delete`` removes directories recursively.
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.path.startswith("/"):
+            return None
+        if parsed.path.endswith("/"):
+            return None
+        relative = Path(parsed.path.lstrip("/"))
+        if relative.is_absolute() or ".." in relative.parts:
+            return None
+        webdir = Path(self.webdir).resolve()
+        packages = (webdir / "packages").resolve()
+        candidate = (webdir / relative).resolve()
+        if packages not in candidate.parents:
+            return None
+        return candidate
+
+    def _simple_dirs_for_missing_package(self, package: Package) -> list[Path]:
+        dirs = [self.simple_directory(package)]
+        if package.raw_name == package.name:
+            return dirs
+        if self.hash_index:
+            raw_dir = self.webdir / "simple" / package.raw_name[0] / package.raw_name
+        else:
+            raw_dir = self.webdir / "simple" / package.raw_name
+        if raw_dir.resolve() != dirs[0].resolve():
+            dirs.append(raw_dir)
+        return dirs
+
+    def _delete_missing_package_files(self, package: Package) -> None:
+        """Delete blobs and simple pages named by local JSON. Leave the JSON."""
+        metadata_path = self._local_metadata_path(package)
+        if metadata_path is None:
+            logger.info(
+                f"Not deleting files for {package.raw_name}: no local JSON metadata"
+            )
+            return
+        try:
+            with self.storage_backend.open_file(metadata_path, text=True) as fh:
+                metadata = load(fh)
+        except (JSONDecodeError, OSError, UnicodeError):
+            logger.info(
+                f"Not deleting files for {package.raw_name}: local JSON metadata "
+                + f"at {metadata_path} cannot be read"
+            )
+            return
+        releases = metadata.get("releases") if isinstance(metadata, dict) else None
+        if not isinstance(releases, dict):
+            logger.info(
+                f"Not deleting files for {package.raw_name}: local JSON metadata "
+                + "has no releases object"
+            )
+            return
+        logger.info(
+            f"Deleting mirrored files for {package.raw_name} because it "
+            + "no longer exists on PyPI"
+        )
+        for blobs in releases.values():
+            if not isinstance(blobs, list):
+                continue
+            for blob in blobs:
+                if not isinstance(blob, dict):
+                    continue
+                url = blob.get("url")
+                if not isinstance(url, str):
+                    continue
+                blob_path = self._release_blob_path(url)
+                if blob_path is None or self.storage_backend.is_dir(blob_path):
+                    logger.info(
+                        "Skipping release URL that is not a file under packages: " + url
+                    )
+                    continue
+                if self.storage_backend.is_file(blob_path):
+                    self.storage_backend.delete_file(blob_path)
+                sidecar = blob_path.with_name(f"{blob_path.name}.metadata")
+                if self.storage_backend.is_file(sidecar):
+                    self.storage_backend.delete_file(sidecar)
+        for simple_dir in self._simple_dirs_for_missing_package(package):
+            self.storage_backend.delete(simple_dir)
+
     def record_finished_package(self, name: str) -> None:
         with self._finish_lock:
             del self.packages_to_sync[name]
@@ -451,6 +617,22 @@ class BandersnatchMirror(Mirror):
                 if not deprecated_dir.exists():
                     logger.debug(f"{deprecated_dir} does not exist. Not cleaning up")
                     continue
+
+                # On case insensitive filesystems (e.g. macOS APFS / Windows
+                # NTFS) a mixed case deprecated dir is the same directory as
+                # the live PEP 503 dir - cleaning it up would delete the
+                # simple index we just wrote
+                try:
+                    if deprecated_dir.samefile(self.simple_directory(package)):
+                        logger.debug(
+                            f"{deprecated_dir} is the PEP 503 simple dir on a "
+                            + "case insensitive filesystem. Not cleaning up"
+                        )
+                        continue
+                except (NotImplementedError, OSError, ValueError):
+                    # Storage backends without samefile support (e.g. S3) are
+                    # case sensitive so the str compare above is sufficient
+                    pass
 
                 logger.info(
                     f"Attempting to cleanup non PEP 503 simple dir: {deprecated_dir}"
@@ -658,14 +840,21 @@ class BandersnatchMirror(Mirror):
         deferred_exception = None
         for release_file in package.release_files:
             release_path, download_urls = self.populate_download_urls(release_file)
+            upload_time = datetime.datetime.fromisoformat(
+                release_file["upload_time_iso_8601"].replace("Z", "+00:00")
+            )
+            metadata_digest = (
+                utils.find_core_metadata_digest(release_file, self.digest_name)
+                if self.core_metadata_save
+                else None
+            )
             for cnt, url in enumerate(download_urls):
+                downloaded_metadata_file = None
                 try:
                     downloaded_file = await self.download_file(
                         url,
                         release_file["size"],
-                        datetime.datetime.fromisoformat(
-                            release_file["upload_time_iso_8601"].replace("Z", "+00:00")
-                        ),
+                        upload_time,
                         release_file["digests"]["sha256"],
                         urlpath=release_path,
                     )
@@ -673,8 +862,43 @@ class BandersnatchMirror(Mirror):
                         downloaded_files.add(
                             str(downloaded_file.relative_to(self.homedir))
                         )
+                    # PEP 658/714: mirror the core metadata file that is served
+                    # next to its release file when upstream provides a checksum
+                    if metadata_digest:
+                        downloaded_metadata_file = await self.download_metadata_file(
+                            f"{url}.metadata",
+                            metadata_digest[1],
+                            upload_time,
+                            digest_name=metadata_digest[0],
+                            urlpath=f"{release_path}.metadata" if release_path else "",
+                        )
+                        if downloaded_metadata_file:
+                            downloaded_files.add(
+                                str(downloaded_metadata_file.relative_to(self.homedir))
+                            )
+                    if downloaded_file or downloaded_metadata_file:
                         break
                 except Exception as e:
+                    if _is_file_name_too_long(e):
+                        # A release file name (usually from an absurdly long
+                        # version string) that the storage cannot represent:
+                        # skip the file instead of failing the package (#1228)
+                        logger.error(
+                            f"Skipping download for package {package.name}: "
+                            f"file name too long: {url} ({e})"
+                        )
+                        # Keep the generated simple indexes honest: drop the
+                        # file (and any version left with no files, like the
+                        # release-file filters do) so the indexes do not
+                        # advertise an artifact that was never stored.
+                        for version_files in package.releases.values():
+                            if release_file in version_files:
+                                version_files.remove(release_file)
+                                break
+                        for version in list(package.releases):
+                            if not package.releases[version]:
+                                del package.releases[version]
+                        break
                     # Avoid flooding log messages with exception traceback
                     if not len(download_urls) == (cnt + 1):
                         logger.info(
@@ -813,104 +1037,151 @@ class BandersnatchMirror(Mirror):
             path = self._file_url_to_local_path(url)
         loop = asyncio.get_running_loop()
 
-        # Avoid downloading again if we have the file and it matches the hash.
-        if await loop.run_in_executor(self.storage_backend.executor, path.exists):
-            existing_file_size = await loop.run_in_executor(
-                self.storage_backend.executor, self.storage_backend.get_file_size, path
-            )
-            if existing_file_size != int(file_size):
-                logger.info(
-                    f"File size mismatch with local file {path}: expected {file_size} "
-                    + f"got {existing_file_size}, will re-download."
-                )
-                await loop.run_in_executor(self.storage_backend.executor, path.unlink)
-            elif self.compare_method == "stat":
-                existing_upload_time = await loop.run_in_executor(
-                    self.storage_backend.executor,
-                    self.storage_backend.get_upload_time,
-                    path,
-                )
-                if existing_upload_time == upload_time:
-                    return None
-                else:
-                    existing_hash = await loop.run_in_executor(
-                        self.storage_backend.executor,
-                        self.storage_backend.get_hash,
-                        str(path),
-                    )
-                    if existing_hash != sha256sum:
-                        logger.info(
-                            "File upload time and checksum mismatch with local "
-                            + f"file {path}: expected "
-                            + f"{sha256sum} got {existing_hash}, will re-download."
-                        )
-                        await loop.run_in_executor(
-                            self.storage_backend.executor, path.unlink
-                        )
-                    else:
-                        logger.info(f"Updating file upload time of local file {path}.")
-                        await loop.run_in_executor(
-                            self.storage_backend.executor,
-                            self.storage_backend.set_upload_time,
-                            path,
-                            upload_time,
-                        )
-                        return None
-            else:
-                existing_hash = await loop.run_in_executor(
-                    self.storage_backend.executor,
-                    self.storage_backend.get_hash,
-                    str(path),
-                )
-                if existing_hash == sha256sum:
-                    return None
-                else:
-                    logger.info(
-                        f"File checksum mismatch with local file {path}: expected "
-                        + f"{sha256sum} got {existing_hash}, will re-download."
-                    )
-                    await loop.run_in_executor(
-                        self.storage_backend.executor, path.unlink
-                    )
+        is_current = await loop.run_in_executor(
+            self.storage_backend.executor,
+            lambda: self.storage_backend.release_file_is_current(
+                path,
+                size=int(file_size),
+                upload_time=upload_time,
+                digest=sha256sum,
+                compare_method=self.compare_method,
+                digest_name=self.digest_name,
+            ),
+        )
+        if is_current:
+            return None
 
         logger.info(f"Downloading: {url}")
+        await fetch_and_store(
+            self.master,
+            self.storage_backend,
+            url,
+            path,
+            sha256sum,
+            upload_time,
+            chunk_size,
+        )
+        return path
 
-        dirname = path.parent
-        if not dirname.exists():
-            dirname.mkdir(parents=True)
+    async def download_metadata_file(
+        self,
+        url: str,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+        chunk_size: int = 64 * 1024,
+        urlpath: str = "",
+    ) -> Path | None:
+        """Download a release file's PEP 658/714 core metadata file to live
+        alongside it in the mirror (release file path + ".metadata")"""
+        if urlpath != "":
+            path = self._file_url_to_local_path(urlpath)
+        else:
+            path = self._file_url_to_local_path(url)
+        loop = asyncio.get_running_loop()
 
-        # Even more special handling for the serial of package files here:
-        # We do not need to track a serial for package files
-        # as PyPI generally only allows a file to be uploaded once
-        # and then maybe deleted. Re-uploading (and thus changing the hash)
-        # is only allowed in extremely rare cases with intervention from the
-        # PyPI admins.
-        r_generator = self.master.get(url, required_serial=None)
-        response = await r_generator.asend(None)
+        # Upstream only advertises checksums for core metadata files, so
+        # unlike release files there is no size to compare
+        def metadata_file_is_current() -> bool:
+            if not self.storage_backend.exists(path):
+                return False
+            if self.compare_method == "stat" and (
+                self.storage_backend.get_upload_time(path) == upload_time
+            ):
+                return True
+            return self.storage_backend.get_hash(path, digest_name) == digest
 
-        checksum = hashlib.sha256()
+        is_current = await loop.run_in_executor(
+            self.storage_backend.executor, metadata_file_is_current
+        )
+        if is_current:
+            return None
 
-        with self.storage_backend.rewrite(path, "wb") as f:
+        logger.info(f"Downloading core metadata: {url}")
+        await fetch_and_store(
+            self.master,
+            self.storage_backend,
+            url,
+            path,
+            digest,
+            upload_time,
+            chunk_size,
+            digest_name=digest_name,
+        )
+        return path
+
+
+async def fetch_and_store(
+    master: Master,
+    storage_backend: Storage,
+    url: str,
+    path: PATH_TYPES,
+    digest: str,
+    upload_time: datetime.datetime,
+    chunk_size: int = 64 * 1024,
+    digest_name: str = "sha256",
+    return_size: bool = False,
+) -> int | None:
+    """
+    Fetch from url and store in path.
+    """
+    if not isinstance(path, storage_backend.PATH_BACKEND):
+        path = storage_backend.PATH_BACKEND(str(path))
+    dirname = path.parent
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
+
+    # Even more special handling for the serial of package files here:
+    # We do not need to track a serial for package files
+    # as PyPI generally only allows a file to be uploaded once
+    # and then maybe deleted. Re-uploading (and thus changing the hash)
+    # is only allowed in extremely rare cases with intervention from the
+    # PyPI admins.
+    r_generator = master.get(url, required_serial=None)
+    response = await r_generator.asend(None)
+
+    checksum = hashlib.new(digest_name)
+    file_metadata = storage_backend.build_release_file_metadata(
+        digest, upload_time, digest_name
+    )
+    digest_mismatch = False
+    size = 0
+    try:
+        with storage_backend.rewrite(path, "wb", file_metadata=file_metadata) as f:
             while True:
                 chunk = await response.content.read(chunk_size)
                 if not chunk:
                     break
                 checksum.update(chunk)
                 f.write(chunk)
+                size += len(chunk)
 
             existing_hash = checksum.hexdigest()
-            if existing_hash != sha256sum:
+            if existing_hash != digest:
                 # Bad case: the file we got does not match the expected
                 # checksum. Even if this should be the rare case of a
                 # re-upload this will fix itself in a later run.
+                digest_mismatch = True
                 raise ValueError(
                     f"Inconsistent file. {url} has hash {existing_hash} "
-                    + f"instead of {sha256sum}."
+                    + f"instead of {digest}."
                 )
+    except ValueError:
+        # delete that bad file
+        if (
+            digest_mismatch
+            and storage_backend.stamps_metadata_on_write()
+            and storage_backend.exists(path)
+        ):
+            storage_backend.delete_file(path)
+        raise
 
-        # set upload time to avoid downloading again in next sync
-        self.storage_backend.set_upload_time(path, upload_time)
-        return path
+    if not storage_backend.stamps_metadata_on_write():
+        storage_backend.stamp_file_metadata(path, digest, upload_time, digest_name)
+
+    if return_size:
+        return size
+    return None
 
 
 async def _setup_diff_file(
@@ -985,7 +1256,6 @@ async def mirror(
         global_timeout,
         proxy,
         allow_non_https,
-        config_values.api_method,
     ) as master:
         mirror = BandersnatchMirror(
             homedir,
@@ -1004,7 +1274,12 @@ async def mirror(
             diff_append_epoch=config_values.diff_append_epoch,
             diff_full_path=diff_full_path,
             cleanup=config_values.cleanup,
+            cleanup_todo=config.getboolean("mirror", "cleanup_todo", fallback=False),
+            delete_missing_packages=config.getboolean(
+                "mirror", "delete_missing_packages", fallback=False
+            ),
             release_files_save=config_values.release_files_save,
+            core_metadata_save=config_values.core_metadata_save,
             download_mirror=config_values.download_mirror,
             download_mirror_no_fallback=config_values.download_mirror_no_fallback,
             simple_format=config_values.simple_format,

@@ -1,48 +1,31 @@
 import argparse
-from unittest import TestCase
+
+import pytest
 
 from runner import parseHourList
 
 
-class TestRunner(TestCase):
-    """
-    Tests for the bandersnatch runner script
-    """
+def test_parseHourList_ascending_range() -> None:
+    """Start time less than end time."""
+    assert parseHourList("10-18") == [10, 11, 12, 13, 14, 15, 16, 17, 18]
 
-    def setUp(self) -> None:
-        pass
 
-    def tearDown(self) -> None:
-        pass
+def test_parseHourList_same_start_end() -> None:
+    """Start and end match, expressed as a range."""
+    assert parseHourList("18-18") == [18]
 
-    def test__parseHourList__function(self) -> None:
-        # Case where start time is less than end time
-        input_time_range = "10-18"
-        expected_hours_list = [10, 11, 12, 13, 14, 15, 16, 17, 18]
-        hours_list = parseHourList(input_time_range)
-        self.assertEqual(hours_list, expected_hours_list)
 
-        # Case where start and end time match, but they are expressed as a range
-        input_time_range = "18-18"
-        expected_hours_list = [18]
-        hours_list = parseHourList(input_time_range)
-        self.assertEqual(hours_list, expected_hours_list)
+def test_parseHourList_crosses_midnight() -> None:
+    """Time range crosses the day boundary."""
+    assert parseHourList("23-5") == [23, 0, 1, 2, 3, 4, 5]
 
-        # Case where time range crosses the day
-        input_time_range = "23-5"
-        expected_hours_list = [23, 0, 1, 2, 3, 4, 5]
-        hours_list = parseHourList(input_time_range)
-        self.assertEqual(hours_list, expected_hours_list)
 
-        # Case where the string is a single number and not a range
-        input_time_range = "23"
-        expected_hours_list = [23]
-        hours_list = parseHourList(input_time_range)
-        self.assertEqual(hours_list, expected_hours_list)
+def test_parseHourList_single_number() -> None:
+    """Single number, not a range."""
+    assert parseHourList("23") == [23]
 
-        # Case where the string is a text, should raise ArgumentTypeError
-        input_time_range = "foo"
-        with self.assertRaises(argparse.ArgumentTypeError) as context:
-            parseHourList(input_time_range)
-        # Assert that the error message contains the user input string
-        self.assertIn(input_time_range, str(context.exception))
+
+def test_parseHourList_invalid_raises() -> None:
+    """Non-numeric input raises ArgumentTypeError containing the input string."""
+    with pytest.raises(argparse.ArgumentTypeError, match="foo"):
+        parseHourList("foo")

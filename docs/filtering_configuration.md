@@ -134,6 +134,8 @@ not-null:info.classifiers =
 
 Valid tags are `all`,`any`,`none`,`match-null`,`not-null`, with default of `any:match-null`
 
+Patterns use `re.match` and are anchored at the start of the value. Set `search = true` in this section to use `re.search` instead. `search` defaults to false.
+
 All metadata provided by json is available, including `info`, `last_serial`, `releases`, etc. headings.
 
 ### Release File Regex Matching
@@ -149,7 +151,16 @@ any:release_file.packagetype =
     bdist_wheel
 ```
 
-Valid tags are the same as for projects.
+Valid tags are the same as for projects. `search` is the same option and also defaults to false.
+
+```ini
+[regex_release_file_metadata]
+search = true
+none:release_file.filename =
+    macosx_
+```
+
+With `search = true`, `macosx_` matches a filename that contains that text anywhere. Leave `search` unset to keep matching from the start. Patterns that already start with `.*`, including `.*macosx_.*` and `.*-freebsd.*`, match the same filenames with `re.match` and `re.search`, so `search = true` does not change them.
 
 Metadata available to match consists of `info`, `release`, and `release_file` top level structures, with `info`
 containing the package-wide info, `release` containing the version of the release and `release_file` the metadata
@@ -252,6 +263,7 @@ sort_by = [version|time]
 By default, the plugin does not filter out any release. You have to add the `keep` setting.
 The default is to sort by `version` number (parsed according to semantic versioning).
 As an alternative, `time` can be used to sort releases chronologically by upload time and select the last `keep` ones.
+When sorting by `version`, names are ordered with `packaging.version`. A name that is not valid under PEP 440 cannot be ordered, and parsing it raises `InvalidVersion`, which used to stop the whole project from being mirrored. The plugin logs that name at debug level and leaves it out, including when the project has fewer releases than `keep`. The project's current version is always kept.
 
 You should be aware that it can break requirements. Prereleases are also kept.
 
@@ -322,3 +334,26 @@ size can grow beyond the limit, and will stop being updated. It is then a choice
 for the maintainer to make whether to add the package to the exception list
 (and possibly run a `bandersnatch mirror --force-check`) or to prune the project
 from the mirror (with `bandersnatch delete <package_name>`).
+
+## Filter projects by version count
+
+Some projects publish an extremely large number of versions, which can consume a significant amount of disk space or bandwidth. Alternatively, you might want to filter out packages that have very few releases, which might indicate early-stage, testing, or abandoned projects.
+
+This can be done with the `versions_count_project_metadata` plugin, which blocks packages whose version count falls outside of configured limits.
+
+```ini
+[plugins]
+enabled =
+    versions_count_project_metadata
+
+[versions_count_project_metadata]
+min_versions = 3
+max_versions = 500
+```
+
+This will block the download of any project that has fewer than 3 versions or more than 500 versions. (If `min_versions` is not specified or set to `0`, no minimum check is performed. If `max_versions` is not specified or set to `0`, no maximum check is performed. If `min_versions` is greater than `max_versions`, a warning is logged and the plugin is deactivated.)
+
+Just like the `size_project_metadata` plugin:
+
+- It can be combined with an `allowlist` (to allow/bypass specific packages as exceptions) or with `allowlist_project` (acting as a logical AND).
+- Since version counts naturally grow over time, a package can cross the `max_versions` limit and stop updating, or a blocked package can cross the `min_versions` limit when new versions are uploaded. The operator can then add exception rules, run `bandersnatch mirror --force-check`, or prune the package from the mirror (using `bandersnatch delete <package_name>`).

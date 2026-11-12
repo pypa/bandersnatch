@@ -21,29 +21,19 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
         os: [ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Setup minio
-      run: |
-          docker run -d -p 9000:9000 --name minio \
-                     -e "MINIO_ACCESS_KEY=minioadmin" \
-                     -e "MINIO_SECRET_KEY=minioadmin" \
-                     -v '/tmp/data:/data' \
-                     -v '/tmp/config:/root/.minio' \
-                     minio/minio server /data
-
-          export AWS_ACCESS_KEY_ID=minioadmin
-          export AWS_SECRET_ACCESS_KEY=minioadmin
-          export AWS_EC2_METADATA_DISABLED=true
+        allow-prereleases: true
 
     - name: Install latest pip, setuptools + tox
       run: |
@@ -63,12 +53,13 @@ jobs:
     - name: Upload coverage to Codecov
       # If pushed / is a pull request against main repo.
       if: (github.event_name == 'push' && github.repository == 'pypa/bandersnatch') || (github.event.pull_request.base.repo.full_name == 'pypa/bandersnatch')
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       env:
         OS: ${{ matrix.os }}
         PYTHON: ${{ matrix.python-version }}
       with:
         env_vars: OS,PYTHON
+        fail_ci_if_error: true
         files: coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
 

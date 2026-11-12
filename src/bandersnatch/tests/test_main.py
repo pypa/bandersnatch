@@ -1,5 +1,6 @@
 import asyncio
 import configparser
+import logging
 import sys
 import tempfile
 import unittest.mock as mock
@@ -7,8 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from _pytest.capture import CaptureFixture
-from _pytest.logging import LogCaptureFixture
 
 import bandersnatch.mirror
 import bandersnatch.storage
@@ -17,6 +16,8 @@ from bandersnatch.main import main
 from bandersnatch.simple import InvalidDigestFormat, SimpleFormat
 
 if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
     from bandersnatch.mirror import BandersnatchMirror
 
 
@@ -34,7 +35,7 @@ def reset_config_singleton() -> None:
 pytestmark = pytest.mark.usefixtures("reset_config_singleton")
 
 
-def test_main_help(capfd: CaptureFixture) -> None:
+def test_main_help(capfd: pytest.CaptureFixture[str]) -> None:
     sys.argv = ["bandersnatch", "--help"]
     with pytest.raises(SystemExit):
         main(asyncio.new_event_loop())
@@ -43,7 +44,7 @@ def test_main_help(capfd: CaptureFixture) -> None:
     assert "" == err
 
 
-def test_main_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
+def test_main_create_config(caplog: pytest.LogCaptureFixture, tmpdir: Path) -> None:
     sys.argv = ["bandersnatch", "-c", str(tmpdir / "bandersnatch.conf"), "mirror"]
     assert main(asyncio.new_event_loop()) == 1
     assert "creating default config" in caplog.text
@@ -51,7 +52,9 @@ def test_main_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
     assert conf_path.exists()
 
 
-def test_main_cant_create_config(caplog: LogCaptureFixture, tmpdir: Path) -> None:
+def test_main_cant_create_config(
+    caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
     sys.argv = [
         "bandersnatch",
         "-c",
@@ -94,15 +97,53 @@ def test_main_reads_config_values(mirror_mock: mock.MagicMock, tmpdir: Path) -> 
         "digest_name": "sha256",
         "keep_index_versions": 0,
         "release_files_save": True,
+        "core_metadata_save": True,
         "storage_backend": "filesystem",
         "diff_append_epoch": False,
         "diff_full_path": diff_file,
         "cleanup": False,
+        "cleanup_todo": False,
+        "delete_missing_packages": False,
         "compare_method": "hash",
         "download_mirror": "",
         "download_mirror_no_fallback": False,
         "simple_format": SimpleFormat.ALL,
     } == kwargs
+
+
+def _write_mirror_config(tmpdir: Path, cleanup_todo: str | None = None) -> Path:
+    base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+    diff_file = Path(tempfile.gettempdir()) / "srv/pypi/mirrored-files"
+    config_lines: list[str] = []
+    for line in base_config_path.read_text().splitlines():
+        if line.startswith("diff-file"):
+            line = f"diff-file = {diff_file.as_posix()}"
+        config_lines.append(line)
+        if cleanup_todo is not None and line.startswith("stop-on-error"):
+            config_lines.append(f"cleanup_todo = {cleanup_todo}")
+    config_path = tmpdir / "unittest.conf"
+    config_path.write_text("\n".join(config_lines) + "\n", encoding="utf-8")
+    return config_path
+
+
+def test_main_cleanup_todo_cli_overrides_config(
+    mirror_mock: mock.MagicMock, tmpdir: Path
+) -> None:
+    config_path = _write_mirror_config(tmpdir, "false")
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--cleanup-todo"]
+    main(asyncio.new_event_loop())
+    _, kwargs = mirror_mock.call_args_list[0]
+    assert kwargs["cleanup_todo"] is True
+
+
+def test_main_cleanup_todo_from_config(
+    mirror_mock: mock.MagicMock, tmpdir: Path
+) -> None:
+    config_path = _write_mirror_config(tmpdir, "true")
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror"]
+    main(asyncio.new_event_loop())
+    _, kwargs = mirror_mock.call_args_list[0]
+    assert kwargs["cleanup_todo"] is True
 
 
 def test_main_reads_custom_config_values(
@@ -148,3 +189,68 @@ def customconfig(tmpdir: Path) -> Path:
     with open(str(tmpdir / "bandersnatch.conf"), "w") as f:
         f.write(config)
     return tmpdir
+
+
+def _write_force_check_config(tmpdir: Path) -> Path:
+    """Write a config based on unittest.conf with the mirror directory pointed
+    at *tmpdir* so the status file lives somewhere writable for the test."""
+    base_config_path = Path(bandersnatch.__file__).parent / "unittest.conf"
+    config_lines = [
+        (
+            f"directory = {Path(tmpdir).as_posix()}"
+            if line.startswith("directory =")
+            else line
+        )
+        for line in base_config_path.read_text().splitlines()
+    ]
+    config_path = Path(tmpdir) / "unittest.conf"
+    config_path.write_text("\n".join(config_lines), encoding="utf-8")
+    return config_path
+
+
+def test_main_force_check_resets_status_in_place(
+    mocker: "MockerFixture", caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
+    """`mirror --force-check` should reset the serial to 0 *via the storage
+    backend* (so non-local backends like S3 work), not shutil.move() the file to
+    a local /tmp path. Regression test for #2278."""
+    mirror_coro = mocker.patch(
+        "bandersnatch.mirror.mirror", new_callable=mock.AsyncMock, return_value=0
+    )
+    config_path = _write_force_check_config(tmpdir)
+    status_file = Path(tmpdir) / "status"
+    status_file.write_text("12345", encoding="ascii")
+    tmp_status_file = Path(tempfile.gettempdir()) / "status"
+    if tmp_status_file.exists():
+        tmp_status_file.unlink()
+
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--force-check"]
+    caplog.set_level(logging.DEBUG, logger="bandersnatch.main")
+    main(asyncio.new_event_loop())
+
+    # Status file stays in place and is reset to 0, rather than being moved away.
+    assert status_file.exists()
+    assert status_file.read_text(encoding="ascii") == "0"
+    assert not tmp_status_file.exists()
+    assert "was reset to serial 0 (from 12345)" in caplog.text
+    mirror_coro.assert_awaited_once()
+
+
+def test_main_force_check_no_status_file(
+    mocker: "MockerFixture", caplog: pytest.LogCaptureFixture, tmpdir: Path
+) -> None:
+    """With no existing status file, force-check should log and proceed to a
+    full sync without error."""
+    mirror_coro = mocker.patch(
+        "bandersnatch.mirror.mirror", new_callable=mock.AsyncMock, return_value=0
+    )
+    config_path = _write_force_check_config(tmpdir)
+    status_file = Path(tmpdir) / "status"
+    assert not status_file.exists()
+
+    sys.argv = ["bandersnatch", "-c", str(config_path), "mirror", "--force-check"]
+    main(asyncio.new_event_loop())
+
+    assert not status_file.exists()
+    assert "Full sync will occur" in caplog.text
+    mirror_coro.assert_awaited_once()

@@ -136,6 +136,33 @@ Disabling this will mirror repository [index files](#simple-format) and/or [proj
 If `release-files = false`, you should also specify the [](#root_uri) option.
 ```
 
+### `core-metadata`
+
+Mirror package core metadata files ([PEP 658](https://peps.python.org/pep-0658/) / [PEP 714](https://peps.python.org/pep-0714/)).
+
+:Type: boolean
+:Required: no
+:Default: true
+
+When enabled, Bandersnatch downloads the extracted core metadata file for every release file that upstream advertises one for, storing it alongside the release file with a `.metadata` suffix (e.g. `black-25.1.0-py3-none-any.whl.metadata`). Files are only fetched when upstream provides a checksum for them - preferring the configured [](#digest_name), then `sha256`, then any other digest supported by Python's `hashlib` - and the download is verified against that checksum.
+
+Generated [index files](#simple-format) advertise the metadata files via the `data-core-metadata` (and legacy `data-dist-info-metadata`) HTML attributes and the `core-metadata` JSON key. This lets installers like `pip` resolve dependencies by fetching only the small metadata file instead of a whole wheel or sdist.
+
+```{note}
+If `release-files = false`, no core metadata files are downloaded either, but index files still advertise them so they can be fetched from the [](#root_uri) host.
+```
+
+#### Backfilling an existing mirror
+
+A mirror created before core metadata support only gains `.metadata` files for packages that change after upgrading, since `bandersnatch mirror` skips packages whose serial is already current. Two options exist to backfill all other packages:
+
+- `bandersnatch mirror --force-check` performs a full sync: release files that are already current are skipped, missing core metadata files are downloaded, and all simple index files are regenerated to advertise them. This is the complete backfill.
+- `bandersnatch verify --json-update` refreshes the saved JSON metadata for every mirrored package (so it contains the `core-metadata` checksums PyPI now serves) and downloads every advertised metadata file that is missing or fails checksum validation. This requires [](#json) to be enabled (`json = true`). Note `bandersnatch verify` repairs package files only - simple index files are not regenerated, so they will only advertise core metadata once packages are re-synced by `bandersnatch mirror`.
+
+```{note}
+Both options crawl every package on the mirror, so like any full sync they can take hours against a full PyPI mirror.
+```
+
 ### `json`
 
 Save copies of JSON project metadata downloaded from PyPI.
@@ -399,6 +426,28 @@ Stop mirror/sync operations immediately when an error occurs.
 :Default: false
 
 When disabled (`stop-on-error = false`), Bandersnatch continues syncing after an error occurs, but will mark the sync as unsuccessful. When enabled, Bandersnatch will stop all syncing as soon as possible if an error occurs. This can be helpful when debugging the cause of an unsuccessful sync.
+
+### `cleanup_todo`
+
+Remove packages that no longer exist on PyPI from the `todo` list.
+
+:Type: boolean
+:Required: no
+:Default: false
+
+An interrupted sync resumes from `todo` and does not read the changelog until that list is finished. A package deleted upstream raises `PackageNotFound` and, by default, stays in `todo`. If another package also fails (for example a stale serial), the sync is not marked successful, `todo` is kept, and later runs stay on that list.
+
+Set `cleanup_todo = true`, or pass `bandersnatch mirror --cleanup-todo`, to drop only those `PackageNotFound` names from `todo`. The default `false` keeps the current behavior. Stale serials and other errors stay on the list. This option does not delete release files, local blobs, or simple API pages already stored in the mirror. If rewriting `todo` fails, the sync is marked unsuccessful and the mirror continues with the remaining packages.
+
+### `delete_missing_packages`
+
+Delete local release blobs and simple API pages for a package that raises `PackageNotFound`.
+
+:Type: boolean
+:Required: no
+:Default: false
+
+The package's local JSON metadata lists the release file URLs. A URL is deleted only when it names a file strictly inside the mirror's `packages` directory, plus a `.metadata` file beside that file. A URL that names a directory, including the mirror root or `packages/` itself, is skipped. That package's simple API directory is still removed. The JSON file itself is left in place. If the local JSON is missing or cannot be read, nothing is deleted. Stale serials are not treated as missing packages. This option does not remove the name from `todo`; use [](#cleanup_todo) for that. `bandersnatch sync` does not apply it.
 
 ### `compare-method`
 

@@ -2,11 +2,9 @@ import argparse
 import asyncio
 import logging
 import logging.config
-import shutil
 import sys
 from configparser import ConfigParser
 from pathlib import Path
-from tempfile import gettempdir
 
 import bandersnatch.configuration
 import bandersnatch.delete
@@ -48,6 +46,12 @@ def _delete_parser(subparsers: argparse._SubParsersAction) -> None:
         default=0,
         help="# of parallel iops [Defaults to bandersnatch.conf]",
     )
+    d.add_argument(
+        "--skip-json-fetch",
+        action="store_true",
+        default=False,
+        help="Skip fetching JSON metadata from PyPI for packages not found locally",
+    )
     d.add_argument("pypi_packages", nargs="*")
     d.set_defaults(op="delete")
 
@@ -62,8 +66,17 @@ def _mirror_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         default=False,
         help=(
-            "Force bandersnatch to reset the PyPI serial (move serial file to /tmp) to "
-            + "perform a full sync"
+            "Force bandersnatch to reset the PyPI serial (set the status file to 0) "
+            + "to perform a full sync"
+        ),
+    )
+    m.add_argument(
+        "--cleanup-todo",
+        action="store_true",
+        default=False,
+        help=(
+            "Remove packages that no longer exist on PyPI from the todo list. "
+            + "Does not delete mirrored files. Stale serials are left in place."
         ),
     )
     m.set_defaults(op="mirror")
@@ -83,7 +96,7 @@ def _verify_parser(subparsers: argparse._SubParsersAction) -> None:
         "--dry-run",
         action="store_true",
         default=False,
-        help="Do not download or delete files",
+        help="Do not download or delete files; log a dry-run summary at the end",
     )
     v.add_argument(
         "--json-update",
@@ -153,12 +166,10 @@ def _make_parser() -> argparse.ArgumentParser:
 async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
     match args.op.lower():
         case "delete":
-            config_values = bandersnatch.configuration.validate_config_values(config)
             async with bandersnatch.master.Master(
                 config.get("mirror", "master"),
                 config.getfloat("mirror", "timeout"),
                 config.getfloat("mirror", "global-timeout", fallback=None),
-                api_method=config_values.api_method,
             ) as master:
                 return await bandersnatch.delete.delete_packages(config, args, master)
         case "verify":
@@ -173,23 +184,33 @@ async def async_main(args: argparse.Namespace, config: ConfigParser) -> int:
         status_file = (
             storage_plugin.PATH_BACKEND(config.get("mirror", "directory")) / "status"
         )
-        if status_file.exists():
-            tmp_status_file = Path(gettempdir()) / "status"
+        if storage_plugin.exists(status_file):
             try:
-                shutil.move(str(status_file), tmp_status_file)
+                # Reset the serial to 0 via the storage backend so a full sync
+                # occurs. Using the backend keeps this working for non-local
+                # backends (e.g. S3), unlike a local shutil.move(). See #2278.
+                previous_serial_raw = storage_plugin.read_file(status_file)
+                previous_serial = (
+                    previous_serial_raw.decode()
+                    if isinstance(previous_serial_raw, bytes)
+                    else previous_serial_raw
+                ).strip()
+                storage_plugin.write_file(status_file, "0")
                 logger.debug(
-                    "Force bandersnatch to check everything against the master PyPI"
-                    + f" - status file moved to {tmp_status_file}"
+                    "Force bandersnatch to check everything against the master PyPI "
+                    "- status file %s was reset to serial 0 (from %s)",
+                    status_file,
+                    previous_serial,
                 )
             except OSError as e:
-                logger.error(
-                    f"Could not move status file ({status_file} to "
-                    + f" {tmp_status_file}): {e}"
-                )
+                logger.error(f"Could not reset status file ({status_file}): {e}")
         else:
             logger.info(
-                f"No status file to move ({status_file}) - Full sync will occur"
+                f"No status file to reset ({status_file}) - Full sync will occur"
             )
+
+    if args.cleanup_todo:
+        config.set("mirror", "cleanup_todo", "true")
 
     return await bandersnatch.mirror.mirror(config)
 

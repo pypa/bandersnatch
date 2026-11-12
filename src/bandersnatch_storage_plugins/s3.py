@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import configparser
 import contextlib
 import datetime
@@ -8,24 +9,66 @@ import logging
 import os
 import pathlib
 import tempfile
-from collections.abc import Generator, Iterator
+from collections.abc import AsyncIterator, Generator, Iterable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
-from typing import IO, TYPE_CHECKING, Any
+from typing import IO, TYPE_CHECKING, Any, cast
 
 import boto3
 import filelock
 from botocore.client import Config
-from s3path import PureS3Path
+from botocore.exceptions import ClientError
+from s3path import PureS3Path, configuration_map, register_configuration_parameter
 from s3path import S3Path as _S3Path
-from s3path import configuration_map, register_configuration_parameter
 from s3path.accessor import _generate_prefix
 
 if TYPE_CHECKING:
     from s3path.accessor import _S3DirEntry
 
-from bandersnatch.storage import PATH_TYPES, StoragePlugin
+from bandersnatch.storage import PATH_TYPES, FileSpec, ReleaseFileStatus, StoragePlugin
 
 logger = logging.getLogger("bandersnatch")
+
+_THROTTLE_CODES = frozenset(
+    {
+        "SlowDown",
+        "RequestLimitExceeded",
+        "Throttling",
+        "ThrottlingException",
+        "TooManyRequestsException",
+    }
+)
+
+
+def _s3_head_object(client: Any, bucket: str, key: str) -> dict[str, Any] | None:
+    """Issue a HeadObject, returning the response dict or None on 404.
+    Re-raises all other ClientErrors; logs a warning for throttle codes."""
+    try:
+        return cast(dict[str, Any], client.head_object(Bucket=bucket, Key=key))
+    except ClientError as exc:
+        code = exc.response["Error"]["Code"]
+        if code in ("404", "NoSuchKey"):
+            return None
+        if code in _THROTTLE_CODES:
+            logger.warning(
+                "S3 throttling on HeadObject for %s/%s (%s). "
+                "Consider lowering [s3] verify_concurrency.",
+                bucket,
+                key,
+                code,
+            )
+        raise
+
+
+def _stream_object_hash(client: Any, bucket: str, key: str, digest_name: str) -> str:
+    h = hashlib.new(digest_name)
+    body = client.get_object(Bucket=bucket, Key=key)["Body"]
+    try:
+        for chunk in iter(lambda: body.read(64 * 1024), b""):
+            h.update(chunk)
+    finally:
+        body.close()
+    return h.hexdigest()
 
 
 class S3Path(_S3Path):
@@ -67,6 +110,10 @@ class S3FileLock(filelock.BaseFileLock):
     Simply watches the existence of the lock file.
     """
 
+    # The hold is the existence of the S3 object: there is no OS file
+    # descriptor to lend out, so the ``on_acquired`` hook must be refused.
+    _on_acquired_supported = False
+
     def __init__(
         self,
         lock_file: str,
@@ -75,7 +122,10 @@ class S3FileLock(filelock.BaseFileLock):
     ) -> None:
         # The path to the lock file.
         self.backend: S3Storage | None = backend
-        self._lock_file_fd: S3Storage | None
+        self._lock_file_fd: S3Path | None = None
+        # Throwaway OS descriptor acting as the "held" token for the
+        # filelock base class bookkeeping (see _acquire).
+        self._held_os_fd: int | None = None
         super().__init__(lock_file, timeout=timeout)
 
     @property
@@ -84,34 +134,80 @@ class S3FileLock(filelock.BaseFileLock):
             return self.backend.PATH_BACKEND
         raise RuntimeError("Failed to retrieve s3 backend")
 
+    @property
+    def _lock_path(self) -> str:
+        # BaseFileLock creates the lock path's parent before acquisition. S3
+        # lock paths are object keys, so use a local path whose parent exists.
+        return os.devnull
+
     def _acquire(self) -> None:
+        # Claim the marker with a conditional create (``If-None-Match: *``)
+        # so only the process that actually created the object owns the
+        # lock. A plain ``touch()`` would overwrite (or no-op over) another
+        # holder's marker and report success without exclusive ownership.
+        logger.info("Attempting to acquire lock")
+        s3_path = self.path_backend(self.lock_file)
         try:
-            logger.info("Attempting to acquire lock")
-            fd: S3Path = self.path_backend(self.lock_file)
-            fd.touch()
-        except OSError as exc:
-            logger.error("Failed to acquire lock...")
-            logger.exception("Exception: ", exc)
-        else:
-            logger.info(f"Acquired lock: {self.lock_file}")
-            self._lock_file_fd = fd
+            resource, _ = configuration_map.get_configuration(s3_path)
+            resource.meta.client.put_object(
+                Bucket=s3_path.bucket,
+                Key=str(s3_path.key),
+                Body=b"",
+                IfNoneMatch="*",
+            )
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") == "PreconditionFailed":
+                logger.debug(f"Lock already held: {self.lock_file}")
+                return
+            logger.exception(f"Failed to acquire lock {self.lock_file}")
+            raise
+        except OSError:
+            logger.exception(f"Failed to acquire lock {self.lock_file}")
+            raise
+        logger.info(f"Acquired lock: {self.lock_file}")
+        self._lock_file_fd = s3_path
+        # filelock tracks held state via an OS descriptor in the base
+        # context (since 4.0 release() returns early without one). An S3
+        # object has no descriptor, so hold a throwaway read-only one
+        # purely as the "held" token; it is closed again in _release().
+        try:
+            held_fd = os.open(os.devnull, os.O_RDONLY)
+        except OSError:
+            self._lock_file_fd = None
+            with contextlib.suppress(OSError):
+                self.path_backend(self.lock_file).unlink()
+            raise
+        self._held_os_fd = held_fd
+        self._mark_descriptor_owned(held_fd)  # type: ignore[attr-defined]
         return None
 
     def _release(self) -> None:
+        held_fd, self._held_os_fd = self._held_os_fd, None
+        self._mark_descriptor_released()  # type: ignore[attr-defined]
+        # filelock only calls _release while is_locked, which for this
+        # class means the held token exists (no `if` keeps the branch
+        # coverage clean: the None case is unreachable via the public API).
+        assert held_fd is not None
+        with contextlib.suppress(OSError):
+            os.close(held_fd)
         self._lock_file_fd = None
         try:
             logger.info(f"Removing lock: {self.lock_file}")
             self.path_backend(self.lock_file).unlink()
-        except OSError as exc:
-            logger.error("Failed to remove lockfile")
-            logger.exception("Exception: ", exc)
+        except OSError:
+            logger.exception(f"Failed to remove lockfile {self.lock_file}")
         else:
             logger.info("Successfully cleaned up lock")
         return None
 
     @property
     def is_locked(self) -> bool:
-        return bool(self.path_backend(self.lock_file).exists())
+        # Whether *this instance* holds the lock. This must not consult S3:
+        # the filelock poll loop returns from ``acquire()`` as soon as
+        # ``is_locked`` is true, so reporting another holder's marker here
+        # would let a contender "acquire" without exclusive ownership (and
+        # then delete the real holder's marker on release).
+        return self._held_os_fd is not None
 
 
 class S3Storage(StoragePlugin):
@@ -175,8 +271,20 @@ class S3Storage(StoragePlugin):
             s3_args["region_name"] = region_name
         if aws_secret_access_key:
             s3_args["aws_secret_access_key"] = aws_secret_access_key
+        max_attempts = self.configuration.getint("s3", "max_attempts", fallback=10)
+        retry_config = {"mode": "adaptive", "max_attempts": max_attempts}
+
+        # Ensures that the HTTP connection pool was sized to match verify_concurrency.
+        verify_concurrency = self.configuration.getint(
+            "s3", "verify_concurrency", fallback=50
+        )
+        config_kwargs: dict[str, Any] = {
+            "retries": retry_config,
+            "max_pool_connections": max(10, verify_concurrency),
+        }
         if signature_version:
-            s3_args["config"] = Config(signature_version=signature_version)
+            config_kwargs["signature_version"] = signature_version
+        s3_args["config"] = Config(**config_kwargs)
         resource = boto3.resource("s3", **s3_args)
         # Register the S3 resource for the configured path, but do not register
         # per-request parameters globally to avoid leaking settings (like SSE)
@@ -230,14 +338,207 @@ class S3Storage(StoragePlugin):
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO]:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
         if not isinstance(filepath, self.PATH_BACKEND):
             filepath = self.create_path_backend(filepath)
-        with filepath.open(mode=mode, **kw) as fh:
-            yield fh
+
+        registered_metadata = False
+        if file_metadata:
+            upload_params: dict[str, Any] = {}
+            if self._explicit_config and self.configuration_parameters:
+                upload_params.update(self.configuration_parameters)
+            upload_params["Metadata"] = file_metadata
+            register_configuration_parameter(filepath, parameters=upload_params)
+            registered_metadata = True
+
+        try:
+            with filepath.open(mode=mode, **kw) as fh:
+                yield fh
+        finally:
+            # reset config params for future calls
+            if registered_metadata:
+                restore_params: dict[str, Any] = {}
+                if self._explicit_config and self.configuration_parameters:
+                    restore_params.update(self.configuration_parameters)
+                register_configuration_parameter(filepath, parameters=restore_params)
+
+    def build_release_file_metadata(
+        self,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+    ) -> dict[str, str] | None:
+        return {
+            digest_name: digest,
+            self.UPLOAD_TIME_METADATA_KEY: str(upload_time.timestamp()),
+        }
+
+    def stamps_metadata_on_write(self) -> bool:
+        return True
+
+    def _copy_object_kwargs(self) -> dict[str, Any]:
+        if self._explicit_config and self.configuration_parameters:
+            return dict(self.configuration_parameters)
+        return {}
+
+    def _backfill_release_metadata(
+        self,
+        client: Any,
+        bucket: str,
+        key: str,
+        head: dict[str, Any],
+        *,
+        digest_name: str | None = None,
+        digest: str | None = None,
+        upload_time: datetime.datetime | None = None,
+    ) -> None:
+        merged = dict(head.get("Metadata", {}))
+        if digest_name is not None and digest is not None:
+            merged[digest_name] = digest
+        if upload_time is not None:
+            merged[self.UPLOAD_TIME_METADATA_KEY] = str(upload_time.timestamp())
+        client.copy_object(
+            Bucket=bucket,
+            Key=key,
+            CopySource={"Bucket": bucket, "Key": key},
+            Metadata=merged,
+            MetadataDirective="REPLACE",
+            **self._copy_object_kwargs(),
+        )
+
+    def _certify_from_head(
+        self,
+        client: Any,
+        bucket: str,
+        key: str,
+        head: dict[str, Any],
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str,
+        digest_name: str,
+        backfill: bool,
+        would_backfill_label: str | None = None,
+        refresh_stale_metadata: bool = False,
+    ) -> ReleaseFileStatus:
+        if head["ContentLength"] != size:
+            return ReleaseFileStatus.MISMATCH
+
+        stat_upload_stale = False
+        if compare_method == "stat":
+            head_upload_time = self._upload_time_from_head(head)
+            if head_upload_time is not None and head_upload_time == upload_time:
+                return ReleaseFileStatus.CURRENT
+            if not refresh_stale_metadata:
+                return ReleaseFileStatus.MISMATCH
+            stat_upload_stale = True
+
+        stored_hash = head.get("Metadata", {}).get(digest_name)
+        if stored_hash is not None:
+            if stored_hash != digest:
+                return ReleaseFileStatus.MISMATCH
+            if stat_upload_stale:
+                if backfill:
+                    logger.info(
+                        "Updating upload time metadata for s3://%s/%s.",
+                        bucket,
+                        key,
+                    )
+                    self._backfill_release_metadata(
+                        client,
+                        bucket,
+                        key,
+                        head,
+                        upload_time=upload_time,
+                    )
+                elif would_backfill_label is not None:
+                    logger.debug(
+                        "[DRY RUN] would refresh upload time metadata for %s",
+                        would_backfill_label,
+                    )
+            return ReleaseFileStatus.CURRENT
+
+        actual_hash = _stream_object_hash(client, bucket, key, digest_name)
+        if actual_hash != digest:
+            return ReleaseFileStatus.MISMATCH
+
+        if backfill:
+            self._backfill_release_metadata(
+                client,
+                bucket,
+                key,
+                head,
+                digest_name=digest_name,
+                digest=actual_hash,
+                upload_time=upload_time if stat_upload_stale else None,
+            )
+        elif would_backfill_label is not None:
+            logger.debug(
+                "[DRY RUN] would back-fill %s metadata for %s",
+                digest_name,
+                would_backfill_label,
+            )
+        return ReleaseFileStatus.CURRENT
+
+    def _upload_time_from_head(self, head: dict) -> datetime.datetime | None:
+        """Parse the stored upload time out of a HeadObject response."""
+        raw = head.get("Metadata", {}).get(self.UPLOAD_TIME_METADATA_KEY)
+        if raw is None:
+            return None
+        try:
+            ts = int(float(raw))
+        except (TypeError, ValueError):
+            return None
+        return datetime.datetime.fromtimestamp(ts, datetime.UTC)
+
+    def release_file_is_current(
+        self,
+        path: PATH_TYPES,
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str = "hash",
+        digest_name: str = "sha256",
+    ) -> bool:
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.create_path_backend(path)
+        resource, _ = configuration_map.get_configuration(path)
+        client = resource.meta.client
+        bucket = path.bucket
+        key = str(path.key)
+
+        head = _s3_head_object(client, bucket, key)
+        if head is None:
+            return False
+
+        status = self._certify_from_head(
+            client,
+            bucket,
+            key,
+            head,
+            size=size,
+            upload_time=upload_time,
+            digest=digest,
+            compare_method=compare_method,
+            digest_name=digest_name,
+            backfill=True,
+            refresh_stale_metadata=True,
+        )
+        if status is ReleaseFileStatus.CURRENT:
+            return True
+        if status is ReleaseFileStatus.MISMATCH:
+            logger.info(f"File mismatch with local file {path}, will re-download.")
+            self.delete_file(path)
+        return False
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO]:
@@ -429,8 +730,23 @@ class S3Storage(StoragePlugin):
         return bool(path.is_symlink())
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
-        h = getattr(hashlib, function)(self.read_file(path, text=False))
-        return str(h.hexdigest())
+        """
+        Get the hash of a given path.
+        Returns the stored metadata hash if present (fast path).
+        Otherwise streams the object content in chunks of 64kb
+        """
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.create_path_backend(path)
+        resource, _ = configuration_map.get_configuration(path)
+        s3object = resource.Object(path.bucket, str(path.key))
+        s3object.load()
+
+        stored = s3object.metadata.get(function)
+        if stored:
+            return str(stored)
+
+        client = resource.meta.client
+        return _stream_object_hash(client, path.bucket, str(path.key), function)
 
     def symlink(
         self,
@@ -462,13 +778,162 @@ class S3Storage(StoragePlugin):
         s3object.metadata.update({self.UPLOAD_TIME_METADATA_KEY: str(time.timestamp())})
         # s3 does not support editing metadata after upload, it can be done better.
         # by setting metadata before uploading.
-        kwargs: dict[str, Any] = {}
-        # Apply request kwargs only for explicitly-configured instances
-        if self._explicit_config and self.configuration_parameters:
-            kwargs.update(self.configuration_parameters)
         s3object.copy_from(
             CopySource={"Bucket": path.bucket, "Key": str(path.key)},
             Metadata=s3object.metadata,
             MetadataDirective="REPLACE",
-            **kwargs,
+            **self._copy_object_kwargs(),
         )
+
+    def set_hash(self, path: PATH_TYPES, digest: str, function: str = "sha256") -> None:
+        """
+        Store the hash/digest of the file directly in metadata for better get_hash()
+        """
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.create_path_backend(path)
+        resource, _ = configuration_map.get_configuration(path)
+        s3object = resource.Object(path.bucket, str(path.key))
+        s3object.load()
+
+        metadata = dict(s3object.metadata)
+        metadata[function] = digest
+
+        s3object.copy_from(
+            CopySource={"Bucket": path.bucket, "Key": str(path.key)},
+            Metadata=metadata,
+            MetadataDirective="REPLACE",
+            **self._copy_object_kwargs(),
+        )
+
+    def stamp_file_metadata(
+        self,
+        path: PATH_TYPES,
+        digest: str,
+        upload_time: datetime.datetime,
+        function: str = "sha256",
+    ) -> None:
+        """
+        Sets both upload time and hash metadata in one CopyObject call.
+        """
+        if not isinstance(path, self.PATH_BACKEND):
+            path = self.create_path_backend(path)
+        resource, _ = configuration_map.get_configuration(path)
+        s3object = resource.Object(path.bucket, str(path.key))
+
+        metadata = {
+            function: digest,
+            self.UPLOAD_TIME_METADATA_KEY: str(upload_time.timestamp()),
+        }
+
+        s3object.copy_from(
+            CopySource={"Bucket": path.bucket, "Key": str(path.key)},
+            Metadata=metadata,
+            MetadataDirective="REPLACE",
+            **self._copy_object_kwargs(),
+        )
+
+    async def verify_files(
+        self, expected: Iterable[FileSpec], dry_run: bool = False
+    ) -> AsyncIterator[FileSpec]:
+        """
+        Concurrently verifies files in expected list.
+        Uses the digest metadata if set to compare hashes (HEAD call only)
+        Sets the digest metadata for future get_hash() calls
+        (For legacy objects GET used to happen on get_hash which loaded the whole file)
+        verify_concurrency param to limit the number of concurrent calls to s3
+        """
+        specs = list(expected)
+        if not specs:
+            return
+
+        compare = self.configuration.get("mirror", "compare-method", fallback="hash")
+        digest_name = self.configuration.get("mirror", "digest_name", fallback="sha256")
+
+        first_path = self.PATH_BACKEND(str(specs[0].path))
+        resource, _ = configuration_map.get_configuration(first_path)
+        client = resource.meta.client
+        bucket = first_path.bucket
+
+        if not hasattr(self, "_verify_semaphore") or self._verify_semaphore is None:
+            concurrency = self.configuration.getint(
+                "s3", "verify_concurrency", fallback=50
+            )
+            self._verify_semaphore: asyncio.Semaphore = asyncio.Semaphore(concurrency)
+
+            # Thread pool for S3 verify API calls, sized to match verify_concurrency.
+            # Not using self.executor as we are not hitting PyPI master and can run much wider
+            self._verify_executor: ThreadPoolExecutor = ThreadPoolExecutor(
+                max_workers=concurrency, thread_name_prefix="s3-verify"
+            )
+
+        semaphore = self._verify_semaphore
+        loop = asyncio.get_running_loop()
+        executor = self._verify_executor
+
+        async def _check(spec: FileSpec) -> FileSpec | None:
+            async with semaphore:
+                s3_path = self.PATH_BACKEND(str(spec.path))
+                key = str(s3_path.key)
+
+                head = await loop.run_in_executor(
+                    executor, _s3_head_object, client, bucket, key
+                )
+                if head is None:
+                    return spec
+
+                # Fall back to whatever digest the spec carries when the
+                # configured one is unavailable (e.g. core metadata files carry
+                # one upstream advertised digest which may not match digest_name)
+                check_digest_name = digest_name
+                if check_digest_name not in spec.digests and spec.digests:
+                    check_digest_name = next(iter(sorted(spec.digests)))
+                expected_hash = spec.digests.get(check_digest_name, "")
+
+                def _certify() -> ReleaseFileStatus:
+                    return self._certify_from_head(
+                        client,
+                        bucket,
+                        key,
+                        head,
+                        size=spec.size,
+                        upload_time=spec.upload_time,
+                        digest=expected_hash,
+                        compare_method=compare,
+                        digest_name=check_digest_name,
+                        backfill=not dry_run,
+                        would_backfill_label=spec.filename if dry_run else None,
+                        refresh_stale_metadata=False,
+                    )
+
+                status = await loop.run_in_executor(executor, _certify)
+                if status is ReleaseFileStatus.CURRENT:
+                    return None
+                return spec
+
+        results = await asyncio.gather(*[_check(s) for s in specs])
+        for result in results:
+            if result is not None:
+                yield result
+
+    def iter_package_files(self, packages_path: PATH_TYPES) -> Iterator[PATH_TYPES]:
+        """
+        Uses ListObjectsV2 to iterate through all the files in the packages path. (ignores .s3keep files)
+        """
+        if not isinstance(packages_path, self.PATH_BACKEND):
+            packages_path = self.create_path_backend(packages_path)
+
+        if not self.exists(packages_path):
+            return
+
+        resource, _ = configuration_map.get_configuration(packages_path)
+        client = resource.meta.client
+        bucket = packages_path.bucket
+        prefix = str(packages_path.key).lstrip("/") + "/"
+
+        paginator = client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key: str = obj["Key"]
+                if key.endswith(f"/{self.PATH_BACKEND.keep_file}"):
+                    continue
+                yield self.PATH_BACKEND(f"/{bucket}/{key}")

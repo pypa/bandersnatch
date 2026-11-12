@@ -6,11 +6,11 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory, gettempdir
 
 import aiohttp
 import pytest
-from _pytest.monkeypatch import MonkeyPatch
 
 from bandersnatch.utils import (  # isort:skip
     bandersnatch_safe_name,
     convert_url_to_path,
+    find_core_metadata_digest,
     hash,
     parse_version,
     find_all_files,
@@ -20,6 +20,24 @@ from bandersnatch.utils import (  # isort:skip
     user_agent,
     WINDOWS,
 )
+
+
+def test_find_core_metadata_digest() -> None:
+    assert find_core_metadata_digest({}) is None
+    assert find_core_metadata_digest({"core-metadata": False}) is None
+    # PEP 658 allows true (no checksum) - nothing for us to verify with
+    assert find_core_metadata_digest({"core-metadata": True}) is None
+
+    release_file = {"core-metadata": {"sha256": "abc"}}
+    assert find_core_metadata_digest(release_file) == ("sha256", "abc")
+
+    # The mirror's configured digest wins when upstream provides it
+    release_file = {"core-metadata": {"sha256": "abc", "sha512": "def"}}
+    assert find_core_metadata_digest(release_file, "sha512") == ("sha512", "def")
+    # ... and we fall back to sha256, then any hashlib supported digest
+    assert find_core_metadata_digest(release_file, "md5") == ("sha256", "abc")
+    release_file = {"core-metadata": {"sha512": "def", "un5upp0rt3d": "a"}}
+    assert find_core_metadata_digest(release_file) == ("sha512", "def")
 
 
 def test_convert_url_to_path() -> None:
@@ -68,7 +86,7 @@ def test_find_files() -> None:
         assert found_files == expected_found_files
 
 
-def test_rewrite(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
@@ -81,7 +99,7 @@ def test_rewrite(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
         assert oct(mode) == "0o100644"
 
 
-def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite_fails(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmpdir)
     with open("sample", "w") as f:
         f.write("bsdf")
@@ -91,7 +109,9 @@ def test_rewrite_fails(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
     assert open("sample").read() == "bsdf"
 
 
-def test_rewrite_nonexisting_file(tmpdir: Path, monkeypatch: MonkeyPatch) -> None:
+def test_rewrite_nonexisting_file(
+    tmpdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.chdir(tmpdir)
     with rewrite("sample", "w") as f:
         f.write("csdf")

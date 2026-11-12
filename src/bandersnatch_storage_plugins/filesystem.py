@@ -70,7 +70,11 @@ class FilesystemStorage(StoragePlugin):
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO, None, None]:
         """Rewrite an existing file atomically to avoid programs running in
         parallel to have race conditions while reading."""
@@ -268,19 +272,15 @@ class FilesystemStorage(StoragePlugin):
         return path.is_file()
 
     def get_hash(self, path: PATH_TYPES, function: str = "sha256") -> str:
-        h = getattr(hashlib, function)()
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         logger.debug(
             f"Opening {path.as_posix()} in binary mode for hash calculation..."
         )
         with open(path.absolute().as_posix(), "rb") as f:
-            for chunk in iter(lambda: f.read(128 * 1024), b""):
-                logger.debug(f"Read chunk: {chunk!s}")
-                h.update(chunk)
-        digest = h.hexdigest()
+            digest = hashlib.file_digest(f, function).hexdigest()
         logger.debug(f"Calculated digest: {digest!s}")
-        return str(h.hexdigest())
+        return str(digest)
 
     def get_file_size(self, path: PATH_TYPES) -> int:
         """Return the file size of provided path."""
@@ -299,3 +299,17 @@ class FilesystemStorage(StoragePlugin):
             path = pathlib.Path(path)
         ts = time.timestamp()
         os.utime(path, (ts, ts))
+
+    def delete_package_file(self, path: PATH_TYPES) -> None:
+        """Remove a file and if the dir is empty remove it"""
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        logger.info(f"unlink {str(path)}")
+        path.unlink()
+
+        parent_path = path.parent
+        try:
+            parent_path.rmdir()
+            logger.info(f"rmdir {str(parent_path)}")
+        except OSError as oe:
+            logger.debug(f"Did not remove {str(parent_path)}: {str(oe)}")

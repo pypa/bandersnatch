@@ -10,8 +10,10 @@ import hashlib
 import logging
 import pathlib
 from collections import defaultdict
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import AsyncIterator, Generator, Iterable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from enum import Enum
 from importlib.metadata import entry_points
 from typing import IO, Any, Protocol
 
@@ -26,11 +28,35 @@ PATH_TYPES = pathlib.Path | str
 # backwards incompatible way.  In order to prevent loading older
 # broken plugins that may be installed and will break due to changes to
 # the methods of the classes.
-PLUGIN_API_REVISION = 1
+PLUGIN_API_REVISION = 2
 STORAGE_PLUGIN_RESOURCE = f"bandersnatch_storage_plugins.v{PLUGIN_API_REVISION}.backend"
+
+
+@dataclass
+class FileSpec:
+    """
+    Describes a single expected release file for integrity verification.
+    """
+
+    path: PATH_TYPES
+    url: str
+    filename: str
+    size: int
+    digests: dict[str, str]
+    upload_time: datetime.datetime
+
+
 loaded_storage_plugins: dict[str, list["Storage"]] = defaultdict(list)
 
 logger = logging.getLogger("bandersnatch")
+
+
+class ReleaseFileStatus(Enum):
+    """Outcome of certifying a stored release file against expected attributes."""
+
+    CURRENT = "current"
+    MISSING = "missing"
+    MISMATCH = "mismatch"
 
 
 class StorageDirEntry(Protocol):
@@ -162,11 +188,89 @@ class Storage:
 
     @contextlib.contextmanager
     def rewrite(
-        self, filepath: PATH_TYPES, mode: str = "w", **kw: Any
+        self,
+        filepath: PATH_TYPES,
+        mode: str = "w",
+        file_metadata: dict[str, str] | None = None,
+        **kw: Any,
     ) -> Generator[IO, None, None]:
         """Rewrite an existing file atomically to avoid programs running in
-        parallel to have race conditions while reading."""
+        parallel to have race conditions while reading.
+
+        Storage plugins must accept ``file_metadata`` (even if ignored) so mirror
+        sync can attach backend-specific certifying metadata on upload.
+        """
         raise NotImplementedError
+
+    def build_release_file_metadata(
+        self,
+        digest: str,
+        upload_time: datetime.datetime,
+        digest_name: str = "sha256",
+    ) -> dict[str, str] | None:
+        """Return object metadata to attach at upload time, or None if unsupported."""
+        return None
+
+    def stamps_metadata_on_write(self) -> bool:
+        """True when ``rewrite(..., file_metadata=...)`` stores metadata on upload."""
+        return False
+
+    def release_file_is_current(
+        self,
+        path: PATH_TYPES,
+        *,
+        size: int,
+        upload_time: datetime.datetime,
+        digest: str,
+        compare_method: str = "hash",
+        digest_name: str = "sha256",
+    ) -> bool:
+        """
+        Return True when the stored release file matches expected attributes and
+        a download can be skipped.
+
+        When ``compare_method`` is ``stat`` and upload time differs but content
+        still matches ``digest``, metadata is refreshed in place (via
+        ``set_upload_time``) and True is returned.
+
+        If the file exists but content does not match, it is deleted and False
+        is returned.
+        """
+        if not self.exists(path):
+            return False
+
+        actual_size = self.get_file_size(path)
+        if actual_size != size:
+            logger.info(
+                f"File size mismatch with local file {path}: expected {size} "
+                f"got {actual_size}, will re-download."
+            )
+            self.delete_file(path)
+            return False
+        if compare_method == "stat":
+            if self.get_upload_time(path) == upload_time:
+                return True
+            existing_hash = self.get_hash(path, digest_name)
+            if existing_hash != digest:
+                logger.info(
+                    "File upload time and checksum mismatch with local "
+                    f"file {path}: expected {digest} got {existing_hash}, "
+                    "will re-download."
+                )
+                self.delete_file(path)
+                return False
+            logger.info(f"Updating file upload time of local file {path}.")
+            self.set_upload_time(path, upload_time)
+            return True
+        existing_hash = self.get_hash(path, digest_name)
+        if existing_hash == digest:
+            return True
+        logger.info(
+            f"File checksum mismatch with local file {path}: expected "
+            f"{digest} got {existing_hash}, will re-download."
+        )
+        self.delete_file(path)
+        return False
 
     @contextlib.contextmanager
     def update_safe(self, filename: PATH_TYPES, **kw: Any) -> Generator[IO, None, None]:
@@ -303,6 +407,84 @@ class Storage:
     def set_upload_time(self, path: PATH_TYPES, time: datetime.datetime) -> None:
         """Set the upload time of a given **path**"""
         raise NotImplementedError
+
+    def set_hash(self, path: PATH_TYPES, digest: str, function: str = "sha256") -> None:
+        """
+        Store a hash digest for the given path as metadata. (for backend specific optimizations)
+        """
+        pass
+
+    def stamp_file_metadata(
+        self,
+        path: PATH_TYPES,
+        digest: str,
+        upload_time: datetime.datetime,
+        function: str = "sha256",
+    ) -> None:
+        """
+        Store both the hash digest and upload time for a path in one operation.
+        """
+        self.set_upload_time(path, upload_time)
+        self.set_hash(path, digest, function)
+
+    async def verify_files(
+        self, expected: Iterable[FileSpec], dry_run: bool = False
+    ) -> AsyncIterator[FileSpec]:
+        """
+        Iterates through all the expected files and yields those that are missing or corrupt.
+        This is the default implementation for any backend type.
+        (dry_run is included as some backends may set metadata if its not a dry run)
+        """
+        compare = self.configuration.get("mirror", "compare-method", fallback="hash")
+        digest_name = self.configuration.get("mirror", "digest_name", fallback="sha256")
+        loop = asyncio.get_running_loop()
+        executor = getattr(self, "executor", None)
+
+        for spec in expected:
+            if not self.exists(spec.path):
+                yield spec
+                continue
+            if compare == "stat":
+                size_ok = (not spec.size) or (
+                    self.get_file_size(spec.path) == spec.size
+                )
+                if self.get_upload_time(spec.path) == spec.upload_time and size_ok:
+                    continue
+                else:
+                    yield spec
+                    continue
+
+            # Fall back to whatever digest the spec carries when the configured
+            # one is unavailable (e.g. core metadata files carry one upstream
+            # advertised digest which may not match digest_name)
+            check_digest_name = digest_name
+            if check_digest_name not in spec.digests and spec.digests:
+                check_digest_name = next(iter(sorted(spec.digests)))
+            actual = await loop.run_in_executor(
+                executor, self.get_hash, spec.path, check_digest_name
+            )
+            if actual != spec.digests.get(check_digest_name, ""):
+                yield spec
+
+    def iter_package_files(self, packages_path: PATH_TYPES) -> Iterator[PATH_TYPES]:
+        """
+        Iterates through all the files in the packages path.
+        This is the default implementation for any backend type.
+        """
+        if not isinstance(packages_path, pathlib.Path):
+            packages_path = self.PATH_BACKEND(str(packages_path))
+        if not self.exists(packages_path):
+            return
+        for f in packages_path.rglob("*"):
+            if f.is_file():
+                yield f
+
+    def delete_package_file(self, path: PATH_TYPES) -> None:
+        """
+        Domain specific implementation of deleting a package file.
+        (Filesystem backend overrides this to also remove empty parent directories)
+        """
+        self.delete_file(path)
 
 
 class StoragePlugin(Storage):

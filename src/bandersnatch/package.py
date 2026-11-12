@@ -151,3 +151,22 @@ class Package:
         if releases:
             return True
         return False
+
+    @classmethod
+    def from_metadata(cls, metadata: dict[str, Any]) -> "Package":
+        try:
+            info = metadata["info"]
+            releases = metadata["releases"]
+            name = info["name"]
+            if (
+                not isinstance(info, dict)
+                or not isinstance(releases, dict)
+                or not isinstance(name, str)
+            ):
+                raise TypeError("Unexpected metadata types")
+            pkg = cls(name)
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(f"Invalid PyPI metadata: {e}") from e
+
+        pkg._metadata = metadata
+        return pkg

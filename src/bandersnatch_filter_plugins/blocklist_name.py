@@ -133,7 +133,6 @@ class BlockListRelease(FilterReleasePlugin):
                 continue
             requirement = Requirement(package_line)
             requirement.name = canonicalize_name(requirement.name)
-            requirement.specifier.prereleases = True
             filtered_requirements.add(requirement)
         return list(filtered_requirements)
 
@@ -175,7 +174,7 @@ class BlockListRelease(FilterReleasePlugin):
         for requirement in self.blocklist_release_requirements:
             if name != requirement.name:
                 continue
-            if version in requirement.specifier:
+            if requirement.specifier.contains(version, prereleases=True):
                 logger.debug(
                     f"MATCH: Release {name}=={version} matches specifier "
                     f"{requirement.specifier}"

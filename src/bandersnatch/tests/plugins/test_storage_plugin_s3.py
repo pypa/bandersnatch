@@ -1,6 +1,10 @@
-from datetime import datetime
+import os
+from datetime import UTC, datetime
+from unittest import mock
 
 import pytest
+from botocore.exceptions import ClientError
+from filelock import Timeout
 from s3path import S3Path, configuration_map
 
 from bandersnatch.tests.mock_config import mock_config
@@ -55,6 +59,136 @@ def test_lock(s3_mock: S3Path) -> None:
     with s3lock.acquire(timeout=30):
         assert s3lock.is_locked is True
     assert s3lock.is_locked is False
+
+
+def _assert_locked(lock: s3.S3FileLock) -> None:
+    assert lock.is_locked is True
+
+
+def _assert_unlocked(lock: s3.S3FileLock) -> None:
+    assert lock.is_locked is False
+
+
+# NOTE: the helpers above exist because mypy narrows the ``is_locked``
+# member on ``assert ... is True`` and does not reset that narrowing when a
+# ``with`` block exits; asserting ``is False`` on the same member later in
+# the same function would make the rest of the function look unreachable
+# under ``warn_unreachable``. Function boundaries reset the narrowing.
+
+
+def test_lock_contender_times_out(s3_mock: S3Path) -> None:
+    """A second lock instance must not report success while one holds it."""
+    backend = s3.S3Storage()
+    holder = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    contender = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with holder.acquire(timeout=30):
+        _assert_locked(holder)
+        with pytest.raises(Timeout):
+            with contender.acquire(timeout=1):
+                pass  # pragma: no cover - must time out, never acquired
+        _assert_unlocked(contender)
+        # The failed contender must not disturb the holder's marker.
+        _assert_locked(holder)
+        assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is True
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(holder)
+
+
+def test_lock_sequential_reacquire(s3_mock: S3Path) -> None:
+    """The next waiter acquires once the holder fully releases."""
+    backend = s3.S3Storage()
+    first = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    second = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with first.acquire(timeout=30):
+        _assert_locked(first)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(first)
+    with second.acquire(timeout=30):
+        _assert_locked(second)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(second)
+
+
+def test_lock_release_tolerates_missing_marker(s3_mock: S3Path) -> None:
+    """Releasing when the marker is already gone (deleted out-of-band)
+    must not raise; the lock still reports unlocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with s3lock.acquire(timeout=30):
+        _assert_locked(s3lock)
+        s3.S3Path(f"/{s3_mock.bucket}/.lock").unlink()
+    _assert_unlocked(s3lock)
+
+
+def test_lock_release_tolerates_held_token_close_failure(
+    s3_mock: S3Path,
+) -> None:
+    """A failure closing the internal held-token fd must not break release:
+    the marker is still removed and the lock reports unlocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    s3lock.acquire(timeout=30)
+    _assert_locked(s3lock)
+    with mock.patch.object(os, "close", side_effect=OSError("bad fd")):
+        s3lock.release()
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(s3lock)
+
+
+def test_lock_acquire_unexpected_client_error_propagates(
+    s3_mock: S3Path,
+) -> None:
+    """A non-contention S3 failure (e.g. AccessDenied) during acquire
+    propagates instead of being mistaken for contention, keeping no local
+    held state."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    denied = ClientError(
+        {"Error": {"Code": "AccessDenied", "Message": "nope"}}, "PutObject"
+    )
+    client = mock.MagicMock()
+    client.put_object.side_effect = denied
+    resource = mock.MagicMock()
+    resource.meta.client = client
+    with mock.patch.object(
+        s3.configuration_map, "get_configuration", return_value=(resource, None)
+    ):
+        with pytest.raises(ClientError, match="AccessDenied"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - acquire must raise, never held
+    _assert_unlocked(s3lock)
+
+
+def test_lock_acquire_failure_cleans_up_marker(s3_mock: S3Path) -> None:
+    """A non-contention S3 failure during acquire propagates and keeps
+    no local held state."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with mock.patch.object(
+        s3.configuration_map, "get_configuration", side_effect=OSError("boom")
+    ):
+        with pytest.raises(OSError, match="boom"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - acquire must raise, never held
+    _assert_unlocked(s3lock)
+
+
+def test_lock_devnull_open_failure_releases_marker(s3_mock: S3Path) -> None:
+    """If the held-token fd cannot be opened, the just-created marker is
+    removed again so a later acquire is not blocked."""
+    backend = s3.S3Storage()
+    s3lock = backend.get_lock(f"/{s3_mock.bucket}/.lock")
+    with mock.patch("os.open", side_effect=OSError("no fds")):
+        with pytest.raises(OSError, match="no fds"):
+            with s3lock.acquire(timeout=5):
+                pass  # pragma: no cover - token setup must raise
+    _assert_unlocked(s3lock)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    # The lock is usable again after the failed attempt.
+    with s3lock.acquire(timeout=30):
+        _assert_locked(s3lock)
+    assert s3.S3Path(f"/{s3_mock.bucket}/.lock").exists() is False
+    _assert_unlocked(s3lock)
 
 
 def test_compare_files(s3_mock: S3Path) -> None:
@@ -201,6 +335,55 @@ endpoint_url = http://localhost:9090
     assert resource.meta.client.meta.endpoint_url == "http://localhost:9090"
 
 
+def test_plugin_init_pool_matches_verify_concurrency(s3_mock: S3Path) -> None:
+    """The boto3 client's HTTP connection pool must be sized to at least
+    verify_concurrency, otherwise the dedicated verify thread pool would block
+    on botocore's default 10-connection pool and the flag would be a no-op."""
+    config = mock_config("""
+[mirror]
+directory = /tmp/pypi
+master = https://pypi.org
+storage-backend = s3
+workers = 3
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+verify_concurrency = 64
+""")
+    backend = s3.S3Storage(config=config)
+    backend.initialize_plugin()
+
+    path = s3.S3Path("/tmp/pypi")
+    resource, _ = configuration_map.get_configuration(path)
+    assert resource.meta.client.meta.config.max_pool_connections == 64
+
+
+def test_plugin_init_pool_floor_is_10(s3_mock: S3Path) -> None:
+    """A tiny verify_concurrency must not shrink the pool below boto3's
+    default of 10 (which other operations rely on)."""
+    config = mock_config("""
+[mirror]
+directory = /tmp/pypi
+master = https://pypi.org
+storage-backend = s3
+workers = 3
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+verify_concurrency = 2
+""")
+    backend = s3.S3Storage(config=config)
+    backend.initialize_plugin()
+
+    path = s3.S3Path("/tmp/pypi")
+    resource, _ = configuration_map.get_configuration(path)
+    assert resource.meta.client.meta.config.max_pool_connections == 10
+
+
 def test_plugin_init_with_boto3_configs(s3_mock: S3Path) -> None:
     config = mock_config("""
 [mirror]
@@ -229,14 +412,9 @@ config_param_ServerSideEncryption = AES256
 
     assert backend.configuration_parameters["ServerSideEncryption"] == "AES256"
 
-    # Limitation of min.io, but tells us that the expected config param was used
-    with pytest.raises(ValueError) as execinfo:
-        # Use a unique object name so SSE parameters registered in this test
-        # don’t affect other tests that also use 'file1'
-        backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
-    assert "KMS not configured for a server side encrypted objects" in str(
-        execinfo.value
-    )
+    # Verify that write with SSE AES256 succeeds and data is readable
+    backend.write_file(f"/{s3_mock.bucket}/sse_test_file", "test")
+    assert backend.read_file(f"/{s3_mock.bucket}/sse_test_file") == "test"
 
 
 def test_upload_time(s3_mock: S3Path) -> None:
@@ -266,3 +444,1102 @@ def test_copy_file(s3_mock: S3Path) -> None:
 
     backend.copy_file(f"/{s3_mock.bucket}/file1", f"/{s3_mock.bucket}/file2")
     assert backend.read_file(f"/{s3_mock.bucket}/file2") == "1234"
+
+
+def test_set_and_get_hash(s3_mock: S3Path) -> None:
+    """set_hash stores the digest in object metadata; get_hash reads it without
+    downloading the full object (fast path)."""
+    backend = s3.S3Storage()
+    path = f"/{s3_mock.bucket}/pkgs/pkg-1.0.whl"
+    backend.write_file(path, b"wheel content")
+
+    # Before set_hash the fast path finds nothing and falls back to full read.
+    expected = __import__("hashlib").sha256(b"wheel content").hexdigest()
+    assert backend.get_hash(path) == expected
+
+    # After set_hash the stored value is returned directly.
+    backend.set_hash(path, "cafebabe" * 8)
+    assert backend.get_hash(path) == "cafebabe" * 8
+
+
+def test_iter_package_files(s3_mock: S3Path) -> None:
+    """iter_package_files lists package files and excludes .s3keep entries."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    files = [
+        f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl",
+        f"/{bucket}/web/packages/aa/bb/pkg-2.0.whl",
+    ]
+    for f in files:
+        backend.write_file(f, b"data")
+    # mkdir creates a .s3keep file — it must NOT appear in results
+    backend.mkdir(f"/{bucket}/web/packages/aa/cc")
+
+    packages_path = s3.S3Path(f"/{bucket}/web/packages")
+    found = {str(p) for p in backend.iter_package_files(packages_path)}
+    assert {str(s3.S3Path(f)) for f in files} == found
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_missing(s3_mock: S3Path) -> None:
+    """verify_files yields the spec when the object does not exist."""
+    import datetime
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    spec = FileSpec(
+        path=s3.S3Path(f"/{bucket}/web/packages/aa/bb/missing.whl"),
+        url="https://example.com/missing.whl",
+        filename="missing.whl",
+        size=100,
+        digests={"sha256": "abc123"},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_valid_with_metadata(s3_mock: S3Path) -> None:
+    """verify_files does not yield a spec when stored sha256 metadata matches."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+    backend.set_hash(path, sha)
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/pkg-1.0.whl",
+        filename="pkg-1.0.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == []
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_corrupt_hash(s3_mock: S3Path) -> None:
+    """verify_files yields the spec when stored sha256 metadata mismatches."""
+    import datetime
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    backend.write_file(path, content)
+    backend.set_hash(path, "wrong" * 12 + "0000")
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/pkg-1.0.whl",
+        filename="pkg-1.0.whl",
+        size=len(content),
+        digests={"sha256": "correct" * 8 + "0000"},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_legacy_valid(s3_mock: S3Path) -> None:
+    """A pre-existing object with no stored hash metadata is verified by
+    reading and hashing its content (the legacy, one-time GetObject path)."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-1.0.whl"
+    # write_file does not stamp sha256 metadata -> simulates a legacy object
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-1.0.whl",
+        filename="legacy-1.0.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == []
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_legacy_corrupt(s3_mock: S3Path) -> None:
+    """A legacy object whose content does not match the expected digest is
+    flagged even when its size matches, proving the content hash (not just the
+    size pre-filter) is what catches it."""
+    import datetime
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-1.0.whl"
+    backend.write_file(path, content)
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-1.0.whl",
+        filename="legacy-1.0.whl",
+        size=len(content),  # size matches, so only the content hash can flag it
+        digests={"sha256": "deadbeef" * 8},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_legacy_backfills_hash(s3_mock: S3Path) -> None:
+    """Hashing a valid legacy object back-fills its sha256 metadata so the next
+    run is HEAD-only ("one-time after upgrade")."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-1.0.whl"
+    backend.write_file(path, content)  # no sha256 metadata
+    sha = hashlib.sha256(content).hexdigest()
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-1.0.whl",
+        filename="legacy-1.0.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+
+    # Sanity: metadata absent before verify.
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    obj = resource.Object(bucket, "web/packages/aa/bb/legacy-1.0.whl")
+    obj.load()
+    assert "sha256" not in obj.metadata
+
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == []
+
+    # After a (non-dry-run) verify, the hash is stamped on the object.
+    obj = resource.Object(bucket, "web/packages/aa/bb/legacy-1.0.whl")
+    obj.load()
+    assert obj.metadata.get("sha256") == sha
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_dry_run_does_not_backfill(s3_mock: S3Path) -> None:
+    """Dry-run detection must not mutate the backend: no metadata back-fill."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-1.0.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-1.0.whl",
+        filename="legacy-1.0.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+
+    bad = [s async for s in backend.verify_files([spec], dry_run=True)]
+    assert bad == []
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    obj = resource.Object(bucket, "web/packages/aa/bb/legacy-1.0.whl")
+    obj.load()
+    assert "sha256" not in obj.metadata
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_stat_mode_trusts_upload_time(s3_mock: S3Path) -> None:
+    """In compare-method=stat, a matching upload time certifies the file with no
+    content read — even a deliberately wrong expected hash is not consulted."""
+    import configparser
+    import datetime
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    # Drive compare-method without touching the global config singleton.
+    cfg = configparser.ConfigParser()
+    cfg.read_dict({"mirror": {"compare-method": "stat"}})
+    backend.configuration = cfg
+
+    bucket = s3_mock.bucket
+    content = b"some wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    backend.write_file(path, content)
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    backend.set_upload_time(path, upload_time)
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/pkg-1.0.whl",
+        filename="pkg-1.0.whl",
+        size=len(content),
+        digests={"sha256": "deadbeef" * 8},  # wrong on purpose; stat must skip it
+        upload_time=upload_time,
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == []
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_stat_mode_mismatch_falls_through(
+    s3_mock: S3Path,
+) -> None:
+    """In stat mode a non-matching upload_time immediately flags the file —
+    there is no hash fallthrough; the corrupt digest is never consulted."""
+    import configparser
+    import datetime
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    cfg = configparser.ConfigParser()
+    cfg.read_dict({"mirror": {"compare-method": "stat"}})
+    backend.configuration = cfg
+
+    bucket = s3_mock.bucket
+    content = b"some wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    backend.write_file(path, content)
+    backend.set_upload_time(path, datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC))
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/pkg-1.0.whl",
+        filename="pkg-1.0.whl",
+        size=len(content),
+        digests={"sha256": "deadbeef" * 8},
+        # upload_time differs from what's stored -> stat mismatch → flagged bad
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+def test_stamp_file_metadata(s3_mock: S3Path) -> None:
+    """stamp_file_metadata writes both the hash digest and upload-time
+    metadata to an S3 object and they can be read back correctly."""
+    import datetime
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"some release content"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    backend.write_file(path, content)
+
+    expected_hash = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 6, 1, 12, 0, 0, tzinfo=datetime.UTC)
+
+    backend.stamp_file_metadata(path, expected_hash, upload_time)
+
+    assert backend.get_hash(path) == expected_hash
+    assert backend.get_upload_time(path) == upload_time
+
+
+def test_stamp_file_metadata_single_copy(s3_mock: S3Path) -> None:
+    """stamp_file_metadata issues exactly one CopyObject and zero HeadObject
+    calls — the load() was removed because stamp is only called on freshly
+    written objects that carry no prior metadata worth preserving."""
+    import datetime
+    import hashlib
+
+    from s3path import configuration_map
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-2.0.whl"
+    backend.write_file(path, content)
+
+    s3path_obj = s3.S3Path(path)
+    resource, _ = configuration_map.get_configuration(s3path_obj)
+    client = resource.meta.client
+
+    copy_calls: list[dict] = []
+    head_calls: list[dict] = []
+
+    original_copy = client.copy_object
+    original_head = client.head_object
+
+    def counting_copy(**kwargs: object) -> object:
+        copy_calls.append(kwargs)
+        return original_copy(**kwargs)
+
+    def counting_head(**kwargs: object) -> object:
+        head_calls.append(kwargs)
+        return original_head(**kwargs)
+
+    client.copy_object = counting_copy
+    client.head_object = counting_head
+    try:
+        expected_hash = hashlib.sha256(content).hexdigest()
+        upload_time = datetime.datetime(2025, 1, 1, tzinfo=datetime.UTC)
+        backend.stamp_file_metadata(path, expected_hash, upload_time)
+    finally:
+        client.copy_object = original_copy
+        client.head_object = original_head
+
+    assert len(copy_calls) == 1, f"Expected 1 CopyObject call, got {len(copy_calls)}"
+    assert (
+        len(head_calls) == 0
+    ), f"Expected 0 HeadObject calls (no load()), got {len(head_calls)}"
+    # Both keys must be present in the single operation
+    metadata = copy_calls[0]["Metadata"]
+    assert metadata.get("sha256") == expected_hash
+    assert "uploaded-at" in metadata
+
+
+def test_get_hash_streams_chunks(s3_mock: S3Path) -> None:
+    """get_hash falls back to chunked streaming when no metadata digest is
+    stored, and returns the correct hash without loading the whole file at once."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    # Content larger than one 64 KB chunk to exercise the iteration loop.
+    content = b"x" * (200 * 1024)
+    path = f"/{bucket}/web/packages/cc/dd/large-1.0.whl"
+    backend.write_file(path, content)
+
+    expected = hashlib.sha256(content).hexdigest()
+    # No set_hash called → must fall back to streaming.
+    assert backend.get_hash(path) == expected
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_legacy_backfill_preserves_existing_metadata(
+    s3_mock: S3Path,
+) -> None:
+    """When the inline _backfill writes sha256 to a legacy object it must
+    preserve any metadata keys already present (e.g. uploaded-at).
+    The old self.set_hash path did this via load(); the new _backfill path
+    does it by merging into head["Metadata"] — this test pins that contract."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel with upload time"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-preserved.whl"
+    backend.write_file(path, content)
+
+    # Stamp only the upload time — no sha256 yet (simulates an object that was
+    # written by set_upload_time before the sha256 metadata feature existed).
+    upload_time = datetime.datetime(2023, 6, 1, tzinfo=datetime.UTC)
+    backend.set_upload_time(path, upload_time)
+
+    sha = hashlib.sha256(content).hexdigest()
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-preserved.whl",
+        filename="legacy-preserved.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=upload_time,
+    )
+
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == []
+
+    # sha256 must be written…
+    from s3path import configuration_map
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    obj = resource.Object(bucket, "web/packages/aa/bb/legacy-preserved.whl")
+    obj.load()
+    assert obj.metadata.get("sha256") == sha
+    # …and the pre-existing uploaded-at must NOT have been wiped.
+    assert "uploaded-at" in obj.metadata
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_size_mismatch(s3_mock: S3Path) -> None:
+    """verify_files yields the spec when ContentLength in S3 differs from FileSpec.size."""
+    import datetime
+    import hashlib
+
+    from bandersnatch.storage import FileSpec
+
+    content = b"real content"
+    sha = hashlib.sha256(content).hexdigest()
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/size-mismatch-1.0.whl"
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(f"/{bucket}"))
+    resource.meta.client.put_object(
+        Bucket=bucket, Key=key, Body=content, Metadata={"sha256": sha}
+    )
+
+    backend = s3.S3Storage()
+    spec = FileSpec(
+        path=s3.S3Path(f"/{bucket}/{key}"),
+        url="https://example.com/size-mismatch-1.0.whl",
+        filename="size-mismatch-1.0.whl",
+        size=len(content) + 999,  # wrong size → flagged before hash check
+        digests={"sha256": sha},
+        upload_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+    )
+    bad = [s async for s in backend.verify_files([spec])]
+    assert bad == [spec]
+
+
+def test_s3_head_object_throttle_warning(s3_mock: S3Path) -> None:
+    """_s3_head_object logs a WARNING and re-raises when S3 returns a throttle code."""
+    import unittest.mock as mock
+
+    from botocore.exceptions import ClientError
+
+    from bandersnatch_storage_plugins.s3 import _s3_head_object
+
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/throttle-test-1.0.whl"
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(f"/{bucket}"))
+    client = resource.meta.client
+
+    throttle_error = ClientError(
+        {"Error": {"Code": "SlowDown", "Message": "slow down"}}, "HeadObject"
+    )
+
+    with mock.patch.object(client, "head_object", side_effect=throttle_error):
+        import bandersnatch_storage_plugins.s3 as s3_mod
+
+        with mock.patch.object(s3_mod.logger, "warning") as mock_warn:
+            with pytest.raises(ClientError):
+                _s3_head_object(client, bucket, key)
+
+    mock_warn.assert_called_once()
+    # call_args[0] is (format_str, bucket, key, code) — code is index 3
+    assert "SlowDown" in mock_warn.call_args[0][3]
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_empty_specs(s3_mock: S3Path) -> None:
+    """verify_files with an empty list returns immediately without any S3 calls."""
+    backend = s3.S3Storage()
+    bad = [s async for s in backend.verify_files([])]
+    assert bad == []
+
+
+def test_release_file_is_current_uses_single_head_object(s3_mock: S3Path) -> None:
+    """release_file_is_current checks stored metadata with one HeadObject call."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"release wheel payload"
+    path = f"/{bucket}/web/packages/aa/bb/pkg-1.0.whl"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.stamp_file_metadata(path, digest, upload_time)
+
+    s3path_obj = s3.S3Path(path)
+    resource, _ = configuration_map.get_configuration(s3path_obj)
+    client = resource.meta.client
+
+    head_calls: list[dict] = []
+    original_head = client.head_object
+
+    def counting_head(**kwargs: object) -> object:
+        head_calls.append(kwargs)
+        return original_head(**kwargs)
+
+    client.head_object = counting_head
+    try:
+        assert backend.release_file_is_current(
+            path,
+            size=len(content),
+            upload_time=upload_time,
+            digest=digest,
+        )
+    finally:
+        client.head_object = original_head
+
+    assert len(head_calls) == 1
+
+
+def test_release_file_is_current_stat_mode(s3_mock: S3Path) -> None:
+    """In compare-method=stat, upload time alone certifies the file."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/pkg-stat.whl"
+    upload_time = datetime(2025, 3, 1, tzinfo=UTC)
+    backend.write_file(path, b"")
+    backend.stamp_file_metadata(path, "wrong" * 12 + "0000", upload_time)
+
+    assert backend.release_file_is_current(
+        path,
+        size=0,
+        upload_time=upload_time,
+        digest="deadbeef" * 8,
+        compare_method="stat",
+    )
+
+
+def test_release_file_is_current_stat_refreshes_upload_time_when_hash_matches(
+    s3_mock: S3Path,
+) -> None:
+    """In stat mode a stale upload time is refreshed when stored hash matches."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/pkg-stat-refresh.whl"
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 1, 1, tzinfo=UTC)
+    backend.write_file(path, b"")
+    backend.stamp_file_metadata(path, "abc" * 16, stored_time)
+
+    assert backend.release_file_is_current(
+        path,
+        size=0,
+        upload_time=expected_time,
+        digest="abc" * 16,
+        compare_method="stat",
+    )
+    assert backend.exists(path)
+    assert backend.get_upload_time(path) == expected_time
+
+
+def test_release_file_is_current_stat_deletes_when_content_mismatch(
+    s3_mock: S3Path,
+) -> None:
+    """In stat mode stale upload time with wrong content triggers re-download."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/pkg-stat-bad.whl"
+    content = b"wheel bytes"
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 1, 1, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.set_upload_time(path, stored_time)
+
+    assert not backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=expected_time,
+        digest="deadbeef" * 8,
+        compare_method="stat",
+    )
+    assert not backend.exists(path)
+
+
+def test_rewrite_with_file_metadata_on_upload(s3_mock: S3Path) -> None:
+    """rewrite(..., file_metadata=...) attaches metadata on the initial upload."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/pkg-meta.whl"
+    content = b"wheel with metadata"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 2, tzinfo=UTC)
+    metadata = backend.build_release_file_metadata(digest, upload_time)
+
+    with backend.rewrite(path, "wb", file_metadata=metadata) as fp:
+        fp.write(content)
+
+    assert backend.get_hash(path) == digest
+    assert backend.get_upload_time(path) == upload_time
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_s3_skips_post_upload_copy(s3_mock: S3Path) -> None:
+    """fetch_and_store on S3 stamps metadata on PUT and does not CopyObject after."""
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"fresh download payload"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 7, 1, tzinfo=UTC)
+    path = f"/{bucket}/web/packages/cc/dd/fresh-1.0.whl"
+    url = "https://example.com/packages/cc/dd/fresh-1.0.whl"
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    s3path_obj = s3.S3Path(path)
+    resource, _ = configuration_map.get_configuration(s3path_obj)
+    client = resource.meta.client
+
+    copy_calls: list[dict] = []
+    original_copy = client.copy_object
+
+    def counting_copy(**kwargs: object) -> object:
+        copy_calls.append(kwargs)
+        return original_copy(**kwargs)
+
+    client.copy_object = counting_copy
+    try:
+        with mock.patch.object(backend, "stamp_file_metadata") as stamp_mock:
+            await fetch_and_store(fake_master, backend, url, path, digest, upload_time)
+            stamp_mock.assert_not_called()
+    finally:
+        client.copy_object = original_copy
+
+    assert len(copy_calls) == 0
+    assert backend.get_hash(path) == digest
+    assert backend.get_upload_time(path) == upload_time
+
+
+def test_release_file_is_current_legacy_backfills_hash(s3_mock: S3Path) -> None:
+    """Legacy skip-check back-fills sha256 metadata so the next check is HEAD-only."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/mirror-legacy-1.0.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    obj = resource.Object(bucket, "web/packages/aa/bb/mirror-legacy-1.0.whl")
+    obj.load()
+    assert "sha256" not in obj.metadata
+
+    assert backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=upload_time,
+        digest=sha,
+    )
+
+    obj.load()
+    assert obj.metadata.get("sha256") == sha
+
+
+def test_release_file_is_current_legacy_backfill_preserves_uploaded_at(
+    s3_mock: S3Path,
+) -> None:
+    """Mirror legacy back-fill must preserve existing uploaded-at metadata."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel with upload time"
+    path = f"/{bucket}/web/packages/aa/bb/mirror-legacy-preserved.whl"
+    backend.write_file(path, content)
+    upload_time = datetime(2023, 6, 1, tzinfo=UTC)
+    backend.set_upload_time(path, upload_time)
+    sha = hashlib.sha256(content).hexdigest()
+
+    assert backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=upload_time,
+        digest=sha,
+    )
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    obj = resource.Object(bucket, "web/packages/aa/bb/mirror-legacy-preserved.whl")
+    obj.load()
+    assert obj.metadata.get("sha256") == sha
+    assert backend.get_upload_time(path) == upload_time
+
+
+def test_release_file_is_current_legacy_second_check_is_head_only(
+    s3_mock: S3Path,
+) -> None:
+    """After back-fill, release_file_is_current uses HeadObject only."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/mirror-legacy-headonly.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+
+    assert backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=upload_time,
+        digest=sha,
+    )
+
+    s3path_obj = s3.S3Path(path)
+    resource, _ = configuration_map.get_configuration(s3path_obj)
+    client = resource.meta.client
+
+    head_calls: list[dict] = []
+    get_calls: list[dict] = []
+    original_head = client.head_object
+    original_get = client.get_object
+
+    def counting_head(**kwargs: object) -> object:
+        head_calls.append(kwargs)
+        return original_head(**kwargs)
+
+    def counting_get(**kwargs: object) -> object:
+        get_calls.append(kwargs)
+        return original_get(**kwargs)
+
+    client.head_object = counting_head
+    client.get_object = counting_get
+    try:
+        assert backend.release_file_is_current(
+            path,
+            size=len(content),
+            upload_time=upload_time,
+            digest=sha,
+        )
+    finally:
+        client.head_object = original_head
+        client.get_object = original_get
+
+    assert len(head_calls) == 1
+    assert len(get_calls) == 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_s3_deletes_on_digest_mismatch(s3_mock: S3Path) -> None:
+    """A digest mismatch must not leave a trusted-metadata object in S3."""
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    import pytest
+
+    from bandersnatch.mirror import fetch_and_store
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/mismatch-1.0.whl"
+    content = b"the actual served bytes"
+    wrong_sha = "deadbeef" * 8
+    upload_time = datetime(2024, 3, 15, tzinfo=UTC)
+    path = f"/{bucket}/{key}"
+    url = "https://example.com/packages/aa/bb/mismatch-1.0.whl"
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(f"/{bucket}"))
+    resource.meta.client.put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=content,
+        Metadata={
+            "sha256": wrong_sha,
+            backend.UPLOAD_TIME_METADATA_KEY: str(upload_time.timestamp()),
+        },
+    )
+    assert backend.exists(path)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with pytest.raises(ValueError, match="Inconsistent file"):
+        await fetch_and_store(fake_master, backend, url, path, wrong_sha, upload_time)
+
+    assert not backend.exists(path)
+
+
+def test_release_file_is_current_missing_returns_false(s3_mock: S3Path) -> None:
+    """A missing object is not current and must not be deleted."""
+    backend = s3.S3Storage()
+    path = f"/{s3_mock.bucket}/web/packages/aa/bb/does-not-exist.whl"
+
+    assert not backend.release_file_is_current(
+        path,
+        size=10,
+        upload_time=datetime(2024, 1, 1, tzinfo=UTC),
+        digest="abc" * 16,
+    )
+
+
+def test_release_file_is_current_hash_mismatch_deletes(s3_mock: S3Path) -> None:
+    """Wrong stored hash triggers delete and re-download."""
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/hash-mismatch.whl"
+    content = b"wheel payload"
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.stamp_file_metadata(path, "deadbeef" * 8, upload_time)
+
+    assert not backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=upload_time,
+        digest="abc" * 16,
+    )
+    assert not backend.exists(path)
+
+
+def test_release_file_is_current_size_mismatch_deletes(s3_mock: S3Path) -> None:
+    """Wrong ContentLength triggers delete and re-download."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"wheel payload"
+    path = f"/{bucket}/web/packages/aa/bb/size-mismatch.whl"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(path, content)
+    backend.stamp_file_metadata(path, digest, upload_time)
+
+    assert not backend.release_file_is_current(
+        path,
+        size=len(content) + 1,
+        upload_time=upload_time,
+        digest=digest,
+    )
+    assert not backend.exists(path)
+
+
+def test_upload_time_from_head_rejects_invalid_metadata(s3_mock: S3Path) -> None:
+    backend = s3.S3Storage()
+    assert (
+        backend._upload_time_from_head({"Metadata": {"uploaded-at": "not-a-ts"}})
+        is None
+    )
+    assert backend._upload_time_from_head({"Metadata": {}}) is None
+
+
+def test_release_file_is_current_stat_legacy_backfills_hash_and_upload_time(
+    s3_mock: S3Path,
+) -> None:
+    """Stat mode with legacy object back-fills hash and refreshed upload time."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy stat wheel"
+    path = f"/{bucket}/web/packages/aa/bb/stat-legacy-backfill.whl"
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 6, 1, tzinfo=UTC)
+    sha = hashlib.sha256(content).hexdigest()
+    backend.write_file(path, content)
+    backend.set_upload_time(path, stored_time)
+
+    assert backend.release_file_is_current(
+        path,
+        size=len(content),
+        upload_time=expected_time,
+        digest=sha,
+        compare_method="stat",
+    )
+
+    assert backend.get_hash(path) == sha
+    assert backend.get_upload_time(path) == expected_time
+
+
+def test_certify_from_head_dry_run_logs_stat_refresh(
+    s3_mock: S3Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Dry-run certify logs when upload time would be refreshed."""
+    import logging
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    key = "web/packages/aa/bb/dry-run-stat.whl"
+    path = f"/{bucket}/{key}"
+    digest = "abc" * 16
+    stored_time = datetime(2020, 1, 1, tzinfo=UTC)
+    expected_time = datetime(2025, 1, 1, tzinfo=UTC)
+    backend.write_file(path, b"")
+    backend.stamp_file_metadata(path, digest, stored_time)
+
+    resource, _ = configuration_map.get_configuration(s3.S3Path(path))
+    client = resource.meta.client
+    head = client.head_object(Bucket=bucket, Key=key)
+
+    from bandersnatch.storage import ReleaseFileStatus
+
+    with caplog.at_level(logging.DEBUG, logger="bandersnatch"):
+        status = backend._certify_from_head(
+            client,
+            bucket,
+            key,
+            head,
+            size=0,
+            upload_time=expected_time,
+            digest=digest,
+            compare_method="stat",
+            digest_name="sha256",
+            backfill=False,
+            would_backfill_label="dry-run-stat.whl",
+            refresh_stale_metadata=True,
+        )
+
+    assert status is ReleaseFileStatus.CURRENT
+    assert "[DRY RUN] would refresh upload time metadata" in caplog.text
+
+
+def test_rewrite_with_file_metadata_restores_explicit_config(
+    s3_mock: S3Path,
+) -> None:
+    """rewrite(..., file_metadata=...) restores per-path params after upload."""
+    import hashlib
+
+    config = mock_config("""
+[mirror]
+directory = /tmp/pypi
+json = true
+master = https://pypi.org
+timeout = 60
+global-timeout = 18000
+workers = 3
+hash-index = true
+stop-on-error = true
+storage-backend = s3
+verifiers = 3
+keep_index_versions = 2
+compare-method = hash
+[s3]
+region_name = us-east-1
+aws_access_key_id = 123456
+aws_secret_access_key = 123456
+endpoint_url = http://localhost:9090
+signature_version = s3v4
+config_param_ServerSideEncryption = AES256
+""")
+    backend = s3.S3Storage(config=config)
+    backend.initialize_plugin()
+
+    bucket = s3_mock.bucket
+    path = f"/{bucket}/web/packages/aa/bb/config-meta.whl"
+    content = b"wheel with sse metadata"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 2, tzinfo=UTC)
+    metadata = backend.build_release_file_metadata(digest, upload_time)
+
+    with backend.rewrite(path, "wb", file_metadata=metadata) as fp:
+        fp.write(content)
+
+    assert backend.get_hash(path) == digest
+    assert backend.get_upload_time(path) == upload_time
+    assert backend._copy_object_kwargs()["ServerSideEncryption"] == "AES256"
+
+
+def test_release_file_is_current_accepts_str_path(s3_mock: S3Path) -> None:
+    """release_file_is_current coerces plain paths to the S3 path backend."""
+    import hashlib
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"str path wheel"
+    rel = f"/{bucket}/web/packages/aa/bb/str-path.whl"
+    digest = hashlib.sha256(content).hexdigest()
+    upload_time = datetime(2024, 1, 1, tzinfo=UTC)
+    backend.write_file(rel, content)
+    backend.stamp_file_metadata(rel, digest, upload_time)
+
+    assert backend.release_file_is_current(
+        rel,
+        size=len(content),
+        upload_time=upload_time,
+        digest=digest,
+    )
+
+
+@pytest.mark.asyncio
+async def test_verify_files_s3_dry_run_logs_legacy_backfill(
+    s3_mock: S3Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Dry-run verify logs when legacy hash metadata would be back-filled."""
+    import hashlib
+    import logging
+
+    from bandersnatch.storage import FileSpec
+
+    backend = s3.S3Storage()
+    bucket = s3_mock.bucket
+    content = b"legacy wheel bytes"
+    path = f"/{bucket}/web/packages/aa/bb/legacy-dry-run.whl"
+    backend.write_file(path, content)
+    sha = hashlib.sha256(content).hexdigest()
+
+    spec = FileSpec(
+        path=s3.S3Path(path),
+        url="https://example.com/legacy-dry-run.whl",
+        filename="legacy-dry-run.whl",
+        size=len(content),
+        digests={"sha256": sha},
+        upload_time=datetime(2024, 1, 1, tzinfo=UTC),
+    )
+
+    with caplog.at_level(logging.DEBUG, logger="bandersnatch"):
+        bad = [s async for s in backend.verify_files([spec], dry_run=True)]
+
+    assert bad == []
+    assert "[DRY RUN] would back-fill sha256 metadata" in caplog.text

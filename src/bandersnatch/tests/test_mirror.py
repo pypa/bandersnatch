@@ -1,3 +1,5 @@
+import errno
+import json
 import os.path
 import sys
 import time
@@ -10,11 +12,12 @@ from typing import Any, NoReturn
 
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 
 from bandersnatch import utils
 from bandersnatch.configuration import BandersnatchConfig, Singleton
 from bandersnatch.master import Master
-from bandersnatch.mirror import BandersnatchMirror
+from bandersnatch.mirror import BandersnatchMirror, _is_file_name_too_long
 from bandersnatch.mirror import mirror as mirror_cmd
 from bandersnatch.package import Package
 from bandersnatch.simple import SimpleFormats
@@ -266,6 +269,7 @@ async def test_mirror_empty_resume_from_todo_list(mirror: BandersnatchMirror) ->
     await mirror.synchronize()
 
     expected = """\
+.lock
 generation
 status
 web
@@ -289,7 +293,10 @@ web{0}simple{0}foobar{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    # filelock 3.25.1+ deletes lock file on release on all platforms
+    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+    # Windows still best-effort removes the lock file on release
+    if sys.platform == "win32":  # pragma: no cover
+        expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir)
 
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
@@ -369,6 +376,7 @@ async def test_mirror_sync_package_error_no_early_exit(
     changed_packages = await mirror.synchronize()
 
     expected = """\
+.lock
 generation
 todo
 web{0}packages{0}2.7{0}f{0}foo{0}foo.whl
@@ -379,7 +387,10 @@ web{0}simple{0}foo{0}index.v1_json
 web{0}simple{0}index.html
 web{0}simple{0}index.v1_html
 web{0}simple{0}index.v1_json""".format(sep)
-    # filelock 3.25.1+ deletes lock file on release on all platforms
+    # filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577);
+    # Windows still best-effort removes the lock file on release
+    if sys.platform == "win32":  # pragma: no cover
+        expected = expected.replace(".lock\n", "")
     assert expected == utils.find(mirror.homedir, dirs=False)
     assert open("web{0}simple{0}index.html".format(sep)).read() == """\
 <!DOCTYPE html>
@@ -921,6 +932,82 @@ async def test_package_sync_downloads_release_file(mirror: BandersnatchMirror) -
     assert open("web/packages/any/f/foo/foo.zip").read() == ""
 
 
+# sha256 of b"" - all FakeReader downloads in these tests have no content
+EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+
+@pytest.mark.asyncio
+async def test_package_sync_downloads_core_metadata_file(
+    mirror: BandersnatchMirror, package_json: dict[str, Any]
+) -> None:
+    from datetime import UTC, datetime
+
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": EMPTY_SHA256}
+    package_json["releases"]["0.1"][1]["core-metadata"] = False
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+    assert not mirror.errors
+
+    assert open("web/packages/any/f/foo/foo.zip.metadata").read() == ""
+    assert not os.path.exists("web/packages/2.7/f/foo/foo.whl.metadata")
+    metadata_rel_path = f"web{sep}packages{sep}any{sep}f{sep}foo{sep}foo.zip.metadata"
+    assert metadata_rel_path in mirror.altered_packages["foo"]
+
+    # Simple pages advertise core metadata via PEP 714 + legacy PEP 658 keys
+    expected_tags = (
+        f' data-core-metadata="sha256={EMPTY_SHA256}"'
+        + f' data-dist-info-metadata="sha256={EMPTY_SHA256}"'
+    )
+    assert expected_tags in open("web/simple/foo/index.html").read()
+    simple_json = json.loads(open("web/simple/foo/index.v1_json").read())
+    simple_files = {f["filename"]: f for f in simple_json["files"]}
+    assert simple_files["foo.zip"]["core-metadata"] == {"sha256": EMPTY_SHA256}
+    assert simple_files["foo.whl"]["core-metadata"] is False
+
+    # A second download should find the metadata file current and do nothing
+    assert (
+        await mirror.download_metadata_file(
+            "https://pypi.example.com/packages/any/f/foo/foo.zip.metadata",
+            EMPTY_SHA256,
+            datetime(2000, 2, 2, 1, 23, 45, 123456, tzinfo=UTC),
+        )
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_package_sync_core_metadata_checksum_mismatch(
+    mirror: BandersnatchMirror, package_json: dict[str, Any]
+) -> None:
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": "69" * 32}
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+
+    assert mirror.errors
+    assert "foo" in mirror.packages_to_sync
+    assert not os.path.exists("web/packages/any/f/foo/foo.zip.metadata")
+
+
+@pytest.mark.asyncio
+async def test_package_sync_core_metadata_disabled(
+    tmpdir: Path,
+    master: Master,
+    package_json: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmpdir)
+    mirror = BandersnatchMirror(tmpdir, master, core_metadata_save=False)
+    package_json["releases"]["0.1"][0]["core-metadata"] = {"sha256": EMPTY_SHA256}
+    mirror.packages_to_sync = {"foo": 0}
+    await mirror.sync_packages()
+    assert not mirror.errors
+
+    assert os.path.exists("web/packages/any/f/foo/foo.zip")
+    assert not os.path.exists("web/packages/any/f/foo/foo.zip.metadata")
+    assert "core-metadata" not in open("web/simple/foo/index.html").read()
+    assert "core-metadata" not in open("web/simple/foo/index.v1_json").read()
+
+
 @pytest.mark.asyncio
 async def test_package_sync_skips_release_file(mirror: BandersnatchMirror) -> None:
     mirror.release_files_save = False
@@ -1009,6 +1096,141 @@ async def test_package_sync_does_not_touch_existing_local_file(
 
 
 @pytest.mark.asyncio
+async def test_download_file_stat_mode_refreshes_stale_upload_time(
+    tmpdir: Path,
+    master: Master,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+) -> None:
+    """With compare-method=stat, stale mtime is updated when content still matches."""
+    from datetime import UTC, datetime
+
+    monkeypatch.chdir(tmpdir)
+    mirror = BandersnatchMirror(tmpdir, master, compare_method="stat")
+    pkg_file_path = Path("web/packages/any/f/foo/foo.zip")
+    touch_files([pkg_file_path])
+    with pkg_file_path.open("wb") as f:
+        f.write(b"")
+
+    stale_mtime = datetime(2020, 1, 1, tzinfo=UTC).timestamp()
+    os.utime(pkg_file_path, (stale_mtime, stale_mtime))
+
+    fetch_mock = mocker.patch(
+        "bandersnatch.mirror.fetch_and_store",
+        new_callable=mock.AsyncMock,
+    )
+    expected_upload_time = datetime(2000, 2, 2, 1, 23, 45, 123456, tzinfo=UTC)
+    empty_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    result = await mirror.download_file(
+        "https://pypi.example.com/packages/any/f/foo/foo.zip",
+        "0",
+        expected_upload_time,
+        empty_sha256,
+    )
+
+    assert result is None
+    fetch_mock.assert_not_called()
+    assert pkg_file_path.stat().st_mtime == pytest.approx(
+        expected_upload_time.timestamp()
+    )
+
+
+def _package_with_long_file_name() -> Package:
+    package = Package("foo", serial=1)
+    package._metadata = {
+        "info": {"name": "foo", "version": "0.1"},
+        "last_serial": 1,
+        "releases": {
+            "0.1": [
+                {
+                    "url": (
+                        "https://pypi.example.com/packages/any/f/foo/"
+                        + "x" * 300
+                        + ".zip"
+                    ),
+                    "filename": "x" * 300 + ".zip",
+                    "digests": {
+                        "sha256": (
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        )
+                    },
+                    "size": "0",
+                    "upload_time_iso_8601": "2000-01-01T01:23:45.123456Z",
+                }
+            ]
+        },
+    }
+    return package
+
+
+def test_is_file_name_too_long() -> None:
+    assert _is_file_name_too_long(OSError(errno.ENAMETOOLONG, "File name too long"))
+    windows_error = OSError("The filename or extension is too long")
+    # winerror only exists on Windows: set it explicitly so this test covers
+    # the Windows branch on every platform (setattr is required - winerror is
+    # a data descriptor that shadows plain __dict__ assignment on Windows)
+    setattr(windows_error, "winerror", 206)  # noqa: B010
+    assert _is_file_name_too_long(windows_error)
+    assert not _is_file_name_too_long(OSError(errno.EACCES, "Permission denied"))
+    assert not _is_file_name_too_long(ValueError("not an OS error"))
+
+
+@pytest.mark.asyncio
+async def test_sync_release_files_skips_file_name_too_long(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.ENAMETOOLONG, "File name too long"),
+        autospec=True,
+    )
+    await mirror.sync_release_files(_package_with_long_file_name())
+
+    assert mirror.altered_packages["foo"] == set()
+    assert "file name too long" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_skipped_long_file_name_excluded_from_simple_index(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+) -> None:
+    package = _package_with_long_file_name()
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.ENAMETOOLONG, "File name too long"),
+        autospec=True,
+    )
+    await mirror.sync_release_files(package)
+
+    assert package.releases == {}
+    mirror.sync_simple_pages(package)
+    index = Path(mirror.simple_directory(package)) / "index.html"
+    assert "x" * 300 not in index.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_sync_release_files_reraises_other_os_errors(
+    mirror: BandersnatchMirror,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.object(
+        BandersnatchMirror,
+        "download_file",
+        side_effect=OSError(errno.EACCES, "Permission denied"),
+        autospec=True,
+    )
+    with pytest.raises(OSError, match="Permission denied"):
+        await mirror.sync_release_files(_package_with_long_file_name())
+
+
+@pytest.mark.asyncio
 async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
     fake_no_release: dict[str, str] = {}
 
@@ -1025,6 +1247,16 @@ async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
         "yanked_reason": "Broken release",
     }
 
+    # requires_python + PEP 658/714 core metadata hashes
+    fake_release_4 = {
+        "requires_python": ">=3.6",
+        "core-metadata": {"sha256": "69" * 32},
+    }
+
+    # core metadata without a usable checksum is not advertised
+    fake_release_5 = {"core-metadata": False}
+    fake_release_6 = {"core-metadata": True}
+
     assert mirror.simple_api.gen_html_file_tags(fake_no_release) == ""
     assert (
         mirror.simple_api.gen_html_file_tags(fake_release_1)
@@ -1038,6 +1270,14 @@ async def test_gen_html_file_tags(mirror: BandersnatchMirror) -> None:
         mirror.simple_api.gen_html_file_tags(fake_release_3)
         == ' data-requires-python="&gt;=3.6" data-yanked="Broken release"'
     )
+    assert (
+        mirror.simple_api.gen_html_file_tags(fake_release_4)
+        == ' data-requires-python="&gt;=3.6"'
+        + f' data-core-metadata="sha256={"69" * 32}"'
+        + f' data-dist-info-metadata="sha256={"69" * 32}"'
+    )
+    assert mirror.simple_api.gen_html_file_tags(fake_release_5) == ""
+    assert mirror.simple_api.gen_html_file_tags(fake_release_6) == ""
 
 
 @pytest.mark.asyncio
@@ -1177,14 +1417,39 @@ async def test_cleanup_non_pep_503_paths(mirror: BandersnatchMirror) -> None:
     # Create a non normalized directory
     touch_files([mirror.webdir / "simple" / raw_package_name / "index.html"])
 
+    # On case insensitive filesystems (macOS APFS / Windows NTFS) the raw
+    # dir IS the live PEP 503 dir, so cleanup correctly leaves it alone
+    case_insensitive_fs = (mirror.webdir / "simple" / package.name).exists()
+    expected_removals = 0 if case_insensitive_fs else 1
+
     mirror.cleanup = True
     with (
         mock.patch("bandersnatch.mirror.Path.unlink") as mocked_unlink,
         mock.patch("bandersnatch.mirror.Path.rmdir") as mocked_rmdir,
     ):
         await mirror.cleanup_non_pep_503_paths(package)
-        assert mocked_unlink.call_count == 1  # number you expect
-        assert mocked_rmdir.call_count == 1  # Or number you expect here
+        assert mocked_unlink.call_count == expected_removals
+        assert mocked_rmdir.call_count == expected_removals
+
+
+@pytest.mark.asyncio
+async def test_cleanup_non_pep_503_paths_case_insensitive_fs(
+    mirror: BandersnatchMirror,
+) -> None:
+    """On case insensitive filesystems the deprecated mixed case dir is the
+    live PEP 503 dir - simulate that with a symlink on case sensitive
+    filesystems (macOS/Windows collide naturally) and see we keep it"""
+    raw_package_name = "CatDogPython69"
+    package = Package(raw_package_name)
+    simple_index = mirror.simple_directory(package) / "index.html"
+    touch_files([simple_index])
+    deprecated_dir = mirror.webdir / "simple" / raw_package_name
+    if not deprecated_dir.exists():
+        deprecated_dir.symlink_to(mirror.simple_directory(package))
+
+    mirror.cleanup = True
+    await mirror.cleanup_non_pep_503_paths(package)
+    assert simple_index.exists()
 
 
 @pytest.mark.asyncio
@@ -1376,6 +1641,952 @@ async def test_mirror_subcommand_diff_file_dir_with_epoch(
     assert expected_diff_file.is_file()
     lines = expected_diff_file.read_text().splitlines()
     assert len(lines) == 3
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_success(tmp_path: Path) -> None:
+    """fetch_and_store downloads content, verifies the sha256, writes the file,
+    and calls stamp_file_metadata with the correct arguments."""
+    import configparser
+    import datetime
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"a release wheel payload"
+    sha256 = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-1.0.whl"
+    dest = tmp_path / "web" / "packages" / "pkg-1.0.whl"
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    # A one-shot content reader: first call returns payload, subsequent return b"".
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        assert (
+            await fetch_and_store(fake_master, storage, url, dest, sha256, upload_time)
+            is None
+        )
+        assert await fetch_and_store(
+            fake_master,
+            storage,
+            url,
+            dest,
+            sha256,
+            upload_time,
+            return_size=True,
+        ) == len(content)
+
+    assert dest.exists()
+    assert dest.read_bytes() == content
+    assert stamp_mock.call_count == 2
+    stamp_mock.assert_called_with(dest, sha256, upload_time, "sha256")
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_digest_mismatch(tmp_path: Path) -> None:
+    """fetch_and_store raises ValueError when the downloaded content does not
+    match the expected sha256, and stamp_file_metadata is never called."""
+    import configparser
+    import datetime
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"the real bytes"
+    wrong_sha = "deadbeef" * 8
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-bad.whl"
+    dest = tmp_path / "web" / "packages" / "pkg-bad.whl"
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        with pytest.raises(ValueError, match="Inconsistent file"):
+            await fetch_and_store(
+                fake_master, storage, url, dest, wrong_sha, upload_time
+            )
+
+    stamp_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_and_store_accepts_string_path(tmp_path: Path) -> None:
+    """fetch_and_store accepts a str path (PATH_TYPES), not only pathlib.Path."""
+    import configparser
+    import datetime
+    import hashlib
+    import unittest.mock as mock
+    from collections.abc import AsyncGenerator
+
+    from bandersnatch.mirror import fetch_and_store
+    from bandersnatch_storage_plugins.filesystem import FilesystemStorage
+
+    content = b"some wheel bytes"
+    sha256 = hashlib.sha256(content).hexdigest()
+    upload_time = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
+    url = "https://example.com/packages/pkg-str.whl"
+    dest_path = tmp_path / "web" / "packages" / "pkg-str.whl"
+    dest_str = str(dest_path)  # pass as str, not Path
+
+    cfg = configparser.ConfigParser()
+    cfg.read_dict(
+        {
+            "mirror": {
+                "directory": str(tmp_path),
+                "storage-backend": "filesystem",
+                "workers": "1",
+            }
+        }
+    )
+    storage = FilesystemStorage(config=cfg)
+
+    class _Content:
+        def __init__(self) -> None:
+            self._done = False
+
+        async def read(self, _: int) -> bytes:
+            if self._done:
+                return b""
+            self._done = True
+            return content
+
+    async def _fake_get(
+        url: str, required_serial: object, **kw: object
+    ) -> AsyncGenerator[mock.MagicMock, None]:
+        response = mock.MagicMock()
+        response.content = _Content()
+        yield response
+
+    fake_master = mock.MagicMock()
+    fake_master.get = _fake_get
+
+    with mock.patch.object(storage, "stamp_file_metadata") as stamp_mock:
+        await fetch_and_store(fake_master, storage, url, dest_str, sha256, upload_time)
+
+    assert dest_path.exists()
+    assert dest_path.read_bytes() == content
+    stamp_mock.assert_called_once()
+
+
+_MISSING_PACKAGE = "Oreo4"
+_STALE_PACKAGE = "spanishconjugator"
+_TODO_SERIAL = 17825673
+_MISSING_SERIAL = 17825509
+_STALE_SERIAL = 17825562
+
+
+def _plant_mirror_files(mirror: BandersnatchMirror, name: str) -> dict[Path, bytes]:
+    payload = {
+        mirror.webdir / "packages" / name / f"{name}-1.0.tar.gz": b"release-blob",
+        mirror.webdir / "simple" / name / "index.html": b"simple-api",
+        mirror.webdir / "json" / name: b"json-blob",
+    }
+    for path, content in payload.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    return payload
+
+
+def _assert_mirror_files_unchanged(payload: dict[Path, bytes]) -> None:
+    for path, content in payload.items():
+        assert path.is_file()
+        assert path.read_bytes() == content
+
+
+def _install_metadata_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    from bandersnatch.errors import PackageNotFound, StaleMetadata
+
+    async def update_metadata(self: Package, master: Master, attempts: int = 3) -> None:
+        if self.raw_name == _MISSING_PACKAGE:
+            raise PackageNotFound(self.name)
+        if self.raw_name == _STALE_PACKAGE:
+            raise StaleMetadata(self.name, attempts)
+        raise AssertionError(self.raw_name)
+
+    monkeypatch.setattr(Package, "update_metadata", update_metadata)
+
+
+def _prepare_todo(
+    mirror: BandersnatchMirror,
+    packages: dict[str, int],
+    *,
+    cleanup_todo: bool,
+    need_wrapup: bool,
+) -> str:
+    mirror.cleanup_todo = cleanup_todo
+    mirror.need_wrapup = need_wrapup
+    mirror.workers = 1
+    mirror.target_serial = _TODO_SERIAL
+    mirror.packages_to_sync = dict(packages)
+    text = "\n".join(
+        [str(_TODO_SERIAL)] + [f"{name} {serial}" for name, serial in packages.items()]
+    )
+    text += "\n"
+    mirror.todolist.write_text(text, encoding="utf-8")
+    return text
+
+
+@pytest.mark.asyncio
+async def test_package_not_found_stays_on_todo_when_cleanup_disabled(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default off: PackageNotFound and a stale serial both stay on the todo."""
+    assert mirror.cleanup_todo is False
+    _install_metadata_results(monkeypatch)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=False, need_wrapup=True)
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    files.update(_plant_mirror_files(mirror, _STALE_PACKAGE))
+    serial_before = mirror.synced_serial
+
+    await mirror.sync_packages()
+
+    assert mirror.errors
+    assert mirror.packages_to_sync == packages
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+    mirror.finalize_sync()
+
+    assert mirror.synced_serial == serial_before
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_removes_only_package_not_found(
+    mirror: BandersnatchMirror,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Enabled: drop the missing package, keep the stale serial, keep files."""
+    import logging
+
+    assert Package(_MISSING_PACKAGE).name == "oreo4"
+    assert Package(_MISSING_PACKAGE).raw_name == _MISSING_PACKAGE
+    caplog.set_level(logging.INFO, logger="bandersnatch.mirror")
+    _install_metadata_results(monkeypatch)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    _prepare_todo(mirror, packages, cleanup_todo=True, need_wrapup=True)
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    files.update(_plant_mirror_files(mirror, _STALE_PACKAGE))
+    serial_before = mirror.synced_serial
+
+    await mirror.sync_packages()
+
+    assert mirror.errors
+    assert _MISSING_PACKAGE not in mirror.packages_to_sync
+    assert Package(_MISSING_PACKAGE).name not in mirror.packages_to_sync
+    assert mirror.packages_to_sync == {_STALE_PACKAGE: _STALE_SERIAL}
+    assert mirror.todolist.read_text(encoding="utf-8") == (
+        f"{_TODO_SERIAL}\n{_STALE_PACKAGE} {_STALE_SERIAL}"
+    )
+    assert f"Removing {_MISSING_PACKAGE} from the todo list" in caplog.text
+    _assert_mirror_files_unchanged(files)
+
+    mirror.finalize_sync()
+
+    assert mirror.synced_serial == serial_before
+    assert mirror.todolist.read_text(encoding="utf-8") == (
+        f"{_TODO_SERIAL}\n{_STALE_PACKAGE} {_STALE_SERIAL}"
+    )
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_leaves_mirror_files_when_package_is_only_missing(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A todo that is only PackageNotFound can finish, without deleting files."""
+    import datetime
+
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=True,
+        need_wrapup=True,
+    )
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    mirror.now = datetime.datetime.now(datetime.UTC)
+
+    await mirror.sync_packages()
+
+    assert not mirror.errors
+    assert _MISSING_PACKAGE not in mirror.packages_to_sync
+    assert mirror.todolist.read_text(encoding="utf-8") == f"{_TODO_SERIAL}\n"
+    _assert_mirror_files_unchanged(files)
+
+    mirror.finalize_sync()
+
+    assert not mirror.todolist.exists()
+    assert mirror.synced_serial == _TODO_SERIAL
+    assert mirror.statusfile.read_text(encoding="ascii").strip() == str(_TODO_SERIAL)
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_package_not_found_without_cleanup_is_not_an_error(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default off still does not treat PackageNotFound as a sync error."""
+    import datetime
+
+    _install_metadata_results(monkeypatch)
+    original = _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    mirror.now = datetime.datetime.now(datetime.UTC)
+
+    await mirror.sync_packages()
+
+    assert not mirror.errors
+    assert mirror.packages_to_sync == {_MISSING_PACKAGE: _MISSING_SERIAL}
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+    mirror.finalize_sync()
+
+    assert not mirror.todolist.exists()
+    assert mirror.synced_serial == _TODO_SERIAL
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_does_not_rewrite_todo_outside_mirror(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """bandersnatch sync does not resume the mirror todo, so leave that file."""
+    _install_metadata_results(monkeypatch)
+    original = _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL},
+        cleanup_todo=True,
+        need_wrapup=False,
+    )
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    files.update(_plant_mirror_files(mirror, _STALE_PACKAGE))
+
+    await mirror.sync_packages()
+    mirror.finalize_sync()
+
+    assert mirror.errors
+    assert mirror.packages_to_sync == {
+        _MISSING_PACKAGE: _MISSING_SERIAL,
+        _STALE_PACKAGE: _STALE_SERIAL,
+    }
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_ignores_name_missing_from_packages(
+    mirror: BandersnatchMirror,
+) -> None:
+    mirror.cleanup_todo = True
+    mirror.need_wrapup = True
+    mirror.packages_to_sync = {_STALE_PACKAGE: _STALE_SERIAL}
+    mirror.target_serial = _TODO_SERIAL
+    original = f"{_TODO_SERIAL}\n{_STALE_PACKAGE} {_STALE_SERIAL}\n"
+    mirror.todolist.write_text(original, encoding="utf-8")
+
+    await mirror.on_package_not_found(Package(_MISSING_PACKAGE, serial=_MISSING_SERIAL))
+
+    assert mirror.packages_to_sync == {_STALE_PACKAGE: _STALE_SERIAL}
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_write_failure_does_not_abort_mirror(
+    mirror: BandersnatchMirror,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A failed todo rewrite is a package error, and later packages still run."""
+    import logging
+
+    from bandersnatch.errors import PackageNotFound, StaleMetadata
+
+    seen: list[str] = []
+
+    async def update_metadata(self: Package, master: Master, attempts: int = 3) -> None:
+        seen.append(self.raw_name)
+        if self.raw_name == _MISSING_PACKAGE:
+            raise PackageNotFound(self.name)
+        if self.raw_name == _STALE_PACKAGE:
+            raise StaleMetadata(self.name, attempts)
+        raise AssertionError(self.raw_name)
+
+    def fail_missing_rewrite(name: str) -> None:
+        if name == _MISSING_PACKAGE:
+            raise OSError(13, "Permission denied")
+        raise AssertionError(name)
+
+    monkeypatch.setattr(Package, "update_metadata", update_metadata)
+    monkeypatch.setattr(mirror, "record_finished_package", fail_missing_rewrite)
+    caplog.set_level(logging.ERROR, logger="bandersnatch.mirror")
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=True, need_wrapup=True)
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    files.update(_plant_mirror_files(mirror, _STALE_PACKAGE))
+    serial_before = mirror.synced_serial
+
+    await mirror.sync_packages()
+
+    assert seen == [_MISSING_PACKAGE, _STALE_PACKAGE]
+    assert mirror.errors
+    assert mirror.packages_to_sync == packages
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    assert (
+        f"Error syncing package: {Package(_MISSING_PACKAGE).name}@{_MISSING_SERIAL}"
+        in caplog.text
+    )
+    _assert_mirror_files_unchanged(files)
+
+    mirror.finalize_sync()
+
+    assert mirror.synced_serial == serial_before
+    assert mirror.todolist.exists()
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_disabled_does_not_rewrite_when_record_would_fail(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default off never calls the todo rewrite, so a failing hook is unused."""
+
+    def fail_any_rewrite(name: str) -> None:
+        raise OSError(13, "Permission denied")
+
+    _install_metadata_results(monkeypatch)
+    monkeypatch.setattr(mirror, "record_finished_package", fail_any_rewrite)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=False, need_wrapup=True)
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    serial_before = mirror.synced_serial
+
+    await mirror.sync_packages()
+
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    mirror.finalize_sync()
+
+    assert not mirror.errors
+    assert mirror.packages_to_sync == packages
+    assert mirror.synced_serial == _TODO_SERIAL
+    assert serial_before != _TODO_SERIAL
+    assert not mirror.todolist.exists()
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_cleanup_todo_storage_oserror_keeps_disk_todo(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The real rewrite raises after dropping the name in memory.
+
+    The worker still finishes the queue. The sync stays unsuccessful, and the
+    todo file on disk is left unchanged.
+    """
+    from bandersnatch.errors import PackageNotFound, StaleMetadata
+
+    seen: list[str] = []
+
+    async def update_metadata(self: Package, master: Master, attempts: int = 3) -> None:
+        seen.append(self.raw_name)
+        if self.raw_name == _MISSING_PACKAGE:
+            raise PackageNotFound(self.name)
+        if self.raw_name == _STALE_PACKAGE:
+            raise StaleMetadata(self.name, attempts)
+        raise AssertionError(self.raw_name)
+
+    from contextlib import AbstractContextManager
+    from typing import IO
+
+    backend = mirror.storage_backend
+    real_update_safe = backend.update_safe
+
+    def fail_todo_rewrite(
+        filename: str | Path, **kw: Any
+    ) -> AbstractContextManager[IO[Any]]:
+        if Path(filename).name == "todo":
+            raise OSError(13, "Permission denied")
+        return real_update_safe(filename, **kw)
+
+    monkeypatch.setattr(Package, "update_metadata", update_metadata)
+    monkeypatch.setattr(backend, "update_safe", fail_todo_rewrite)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=True, need_wrapup=True)
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+    files.update(_plant_mirror_files(mirror, _STALE_PACKAGE))
+    serial_before = mirror.synced_serial
+
+    await mirror.sync_packages()
+    mirror.finalize_sync()
+
+    assert seen == [_MISSING_PACKAGE, _STALE_PACKAGE]
+    assert mirror.errors
+    assert _MISSING_PACKAGE not in mirror.packages_to_sync
+    assert mirror.packages_to_sync == {_STALE_PACKAGE: _STALE_SERIAL}
+    assert mirror.synced_serial == serial_before
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(files)
+
+
+def _plant_metadata_release(
+    mirror: BandersnatchMirror, raw_name: str, blob_rel: str
+) -> dict[str, Path]:
+    package = Package(raw_name)
+    metadata_path = mirror.webdir / "json" / package.name
+    blob_path = mirror.webdir / blob_rel
+    sidecar = blob_path.with_name(f"{blob_path.name}.metadata")
+    simple_dir = mirror.simple_directory(package)
+    simple_index = simple_dir / "index.html"
+    decoy = mirror.webdir / "packages" / "keep-me.bin"
+    payload = {
+        "info": {"name": raw_name},
+        "releases": {
+            "1.0": [
+                {
+                    "filename": blob_path.name,
+                    "url": f"https://files.pythonhosted.org/{blob_rel}",
+                }
+            ]
+        },
+    }
+    for path in (metadata_path, blob_path, sidecar, simple_index, decoy):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(payload), encoding="utf-8")
+    blob_path.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    simple_index.write_bytes(b"simple-api")
+    decoy.write_bytes(b"leave-this")
+    return {
+        "metadata": metadata_path,
+        "blob": blob_path,
+        "sidecar": sidecar,
+        "simple": simple_index,
+        "decoy": decoy,
+    }
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_removes_blobs_and_simple_page(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Enabled: delete files named by local JSON, keep JSON, decoys, and todo."""
+    _install_metadata_results(monkeypatch)
+    packages = {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL}
+    original = _prepare_todo(mirror, packages, cleanup_todo=False, need_wrapup=True)
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    stale_files = _plant_mirror_files(mirror, _STALE_PACKAGE)
+
+    await mirror.sync_packages()
+
+    assert not planted["blob"].exists()
+    assert not planted["sidecar"].exists()
+    assert not planted["simple"].exists()
+    assert planted["metadata"].is_file()
+    assert planted["decoy"].read_bytes() == b"leave-this"
+    assert mirror.packages_to_sync == packages
+    assert mirror.todolist.read_text(encoding="utf-8") == original
+    _assert_mirror_files_unchanged(stale_files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_skips_unreadable_metadata(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    files = _plant_mirror_files(mirror, _MISSING_PACKAGE)
+
+    await mirror.sync_packages()
+
+    _assert_mirror_files_unchanged(files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_ignores_urls_outside_the_mirror(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    outside = mirror.homedir / "outside.bin"
+    outside.write_bytes(b"outside")
+    metadata = json.loads(planted["metadata"].read_text(encoding="utf-8"))
+    metadata["releases"]["1.0"].append(
+        {
+            "filename": "outside.bin",
+            "url": "https://files.pythonhosted.org/packages/../../outside.bin",
+        }
+    )
+    planted["metadata"].write_text(json.dumps(metadata), encoding="utf-8")
+
+    await mirror.sync_packages()
+
+    assert outside.read_bytes() == b"outside"
+    assert not planted["blob"].exists()
+    assert planted["metadata"].is_file()
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_does_not_run_for_sync(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=False,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+
+    await mirror.sync_packages()
+
+    assert planted["blob"].is_file()
+    assert planted["simple"].is_file()
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_with_cleanup_todo(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL, _STALE_PACKAGE: _STALE_SERIAL},
+        cleanup_todo=True,
+        need_wrapup=True,
+    )
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    stale_files = _plant_mirror_files(mirror, _STALE_PACKAGE)
+
+    await mirror.sync_packages()
+
+    assert not planted["blob"].exists()
+    assert not planted["simple"].exists()
+    assert planted["metadata"].is_file()
+    assert _MISSING_PACKAGE not in mirror.packages_to_sync
+    assert mirror.packages_to_sync == {_STALE_PACKAGE: _STALE_SERIAL}
+    _assert_mirror_files_unchanged(stale_files)
+
+
+@pytest.mark.asyncio
+async def test_delete_missing_packages_hash_index_keeps_sibling(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _install_metadata_results(monkeypatch)
+    _prepare_todo(
+        mirror,
+        {_MISSING_PACKAGE: _MISSING_SERIAL},
+        cleanup_todo=False,
+        need_wrapup=True,
+    )
+    mirror.hash_index = True
+    mirror.delete_missing_packages = True
+    planted = _plant_metadata_release(
+        mirror, _MISSING_PACKAGE, "packages/ab/Oreo4-1.0.tar.gz"
+    )
+    sibling = mirror.webdir / "simple" / "o" / "other" / "index.html"
+    sibling.parent.mkdir(parents=True, exist_ok=True)
+    sibling.write_bytes(b"sibling")
+
+    await mirror.sync_packages()
+
+    assert not planted["simple"].exists()
+    assert sibling.read_bytes() == b"sibling"
+    assert planted["metadata"].is_file()
+
+
+def test_delete_missing_packages_skips_absent_and_malformed_metadata(
+    mirror: BandersnatchMirror,
+) -> None:
+    """No JSON, identical names, and unusable JSON delete nothing."""
+    same_name = Package("oreo4")
+    assert same_name.name == same_name.raw_name
+    assert mirror._simple_dirs_for_missing_package(same_name) == [
+        mirror.simple_directory(same_name)
+    ]
+    mirror._delete_missing_package_files(same_name)
+
+    metadata_path = mirror.json_file(same_name.name)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text("{", encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    assert metadata_path.is_file()
+
+    metadata_path.write_text(json.dumps(["not-an-object"]), encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    metadata_path.write_text(json.dumps({"info": {"name": "oreo4"}}), encoding="utf-8")
+    mirror._delete_missing_package_files(same_name)
+    assert metadata_path.read_text(encoding="utf-8").startswith("{")
+
+
+def test_delete_missing_packages_reads_raw_metadata_and_skips_bad_entries(
+    mirror: BandersnatchMirror,
+) -> None:
+    """A differing raw name is the metadata key, and bad release entries are skipped."""
+    package = Package("Oreo.4")
+    assert package.name == "oreo-4"
+    assert package.raw_name == "Oreo.4"
+    canonical_json = mirror.json_file(package.name)
+    canonical_json.mkdir(parents=True)
+    metadata_path = mirror.json_file(package.raw_name)
+    blob = mirror.webdir / "packages" / "ab" / "Oreo.4-1.0.tar.gz"
+    sidecar = blob.with_name(f"{blob.name}.metadata")
+    simple = mirror.simple_directory(package) / "index.html"
+    raw_simple = mirror.webdir / "simple" / package.raw_name / "index.html"
+    for path in (metadata_path, blob, sidecar, simple, raw_simple):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "releases": {
+                    "skip-not-a-list": "nope",
+                    "1.0": [
+                        "not-a-dict",
+                        {"filename": "missing-url"},
+                        {"url": None},
+                        {"url": "ftp://files.pythonhosted.org/packages/ab/x.tar.gz"},
+                        {"url": "https://files.pythonhosted.org"},
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/Oreo.4-1.0.tar.gz"
+                            )
+                        },
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    blob.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    simple.write_bytes(b"simple")
+    raw_simple.write_bytes(b"raw-simple")
+
+    mirror._delete_missing_package_files(package)
+
+    assert not blob.exists()
+    assert not sidecar.exists()
+    assert not simple.exists()
+    assert not raw_simple.exists()
+    assert metadata_path.is_file()
+    assert canonical_json.is_dir()
+
+
+def test_release_blob_path_rejects_a_resolved_path_outside_the_mirror(
+    mirror: BandersnatchMirror, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_resolve = Path.resolve
+
+    def resolve(self: Path, *args: Any, **kwargs: Any) -> Path:
+        if self.name == "secret.bin":
+            return real_resolve(mirror.homedir / "secret.bin")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "resolve", resolve)
+    assert (
+        mirror._release_blob_path(
+            "https://files.pythonhosted.org/packages/ab/secret.bin"
+        )
+        is None
+    )
+
+
+def test_delete_missing_packages_does_not_remove_directories(
+    mirror: BandersnatchMirror,
+) -> None:
+    """A release URL that names a directory must not be removed recursively."""
+    package = Package("oreo4")
+    metadata_path = mirror.json_file(package.name)
+    blob = mirror.webdir / "packages" / "ab" / "oreo4-1.0.tar.gz"
+    sidecar = blob.with_name(f"{blob.name}.metadata")
+    no_sidecar = mirror.webdir / "packages" / "ab" / "noside.tar.gz"
+    missing_sidecar = mirror.webdir / "packages" / "ab" / "missing.tar.gz.metadata"
+    prefix_keep = mirror.webdir / "packages" / "ab" / "keep.bin"
+    packages_keep = mirror.webdir / "packages" / "keep.bin"
+    root_keep = mirror.webdir / "keep.bin"
+    other_simple = mirror.webdir / "simple" / "other" / "index.html"
+    simple = mirror.simple_directory(package) / "index.html"
+    for path in (
+        metadata_path,
+        blob,
+        sidecar,
+        no_sidecar,
+        missing_sidecar,
+        prefix_keep,
+        packages_keep,
+        root_keep,
+        other_simple,
+        simple,
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "releases": {
+                    "1.0": [
+                        {"url": "https://files.pythonhosted.org/"},
+                        {"url": "https://files.pythonhosted.org/packages/"},
+                        {"url": "https://files.pythonhosted.org/packages"},
+                        {"url": "https://files.pythonhosted.org/packages/ab"},
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/simple/oreo4/index.html"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/"
+                                "oreo4-1.0.tar.gz"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/noside.tar.gz"
+                            )
+                        },
+                        {
+                            "url": (
+                                "https://files.pythonhosted.org/packages/ab/"
+                                "missing.tar.gz"
+                            )
+                        },
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    blob.write_bytes(b"release-blob")
+    sidecar.write_bytes(b"core-metadata")
+    no_sidecar.write_bytes(b"no-sidecar")
+    missing_sidecar.write_bytes(b"orphan-sidecar")
+    prefix_keep.write_bytes(b"prefix")
+    packages_keep.write_bytes(b"packages")
+    root_keep.write_bytes(b"root")
+    other_simple.write_bytes(b"other-simple")
+    simple.write_bytes(b"simple")
+
+    mirror._delete_missing_package_files(package)
+
+    assert not blob.exists()
+    assert not sidecar.exists()
+    assert not no_sidecar.exists()
+    assert not missing_sidecar.exists()
+    assert prefix_keep.is_file()
+    assert packages_keep.is_file()
+    assert root_keep.is_file()
+    assert other_simple.is_file()
+    assert (mirror.webdir / "packages").is_dir()
+    assert (mirror.webdir / "packages" / "ab").is_dir()
+    assert not simple.exists()
+    assert metadata_path.is_file()
+    for url in (
+        "https://files.pythonhosted.org/",
+        "https://files.pythonhosted.org/packages/",
+        "https://files.pythonhosted.org/packages",
+        "https://files.pythonhosted.org/simple/oreo4/index.html",
+    ):
+        assert mirror._release_blob_path(url) is None
 
 
 if __name__ == "__main__":

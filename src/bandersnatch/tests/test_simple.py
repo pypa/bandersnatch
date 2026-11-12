@@ -17,6 +17,7 @@ from bandersnatch.simple import (
 )
 from bandersnatch.storage import Storage
 from bandersnatch.tests.test_simple_fixtures import (
+    EXPECTED_SIMPLE_GLOBAL_JSON_COMPACT,
     EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY,
     EXPECTED_SIMPLE_SIXTYNINE_JSON_1_1,
     EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY_1_1,
@@ -72,8 +73,43 @@ def test_json_package_page() -> None:
     )
 
 
+def test_json_package_page_core_metadata() -> None:
+    from copy import deepcopy
+    from json import loads
+    from typing import Any
+
+    metadata: dict[str, Any] = deepcopy(SIXTYNINE_METADATA)
+    metadata["releases"]["0.69"][0]["core-metadata"] = False
+    metadata["releases"]["6.9"][0]["core-metadata"] = {"sha256": "69" * 32}
+    p = Package("69")
+    p._metadata = metadata
+
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None)
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert files["69-0.69.tar.gz"]["core-metadata"] is False
+    assert files["69-6.9.tar.gz"]["core-metadata"] == {"sha256": "69" * 32}
+
+    # PEP 714 also allows true (metadata exists without a checksum) - we
+    # deliberately don't advertise files we could not verify + mirror
+    metadata["releases"]["0.69"][0]["core-metadata"] = True
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert "core-metadata" not in files["69-0.69.tar.gz"]
+
+    # Disabling core-metadata emits no keys at all
+    s = SimpleAPI(Storage(), SimpleFormat.JSON, [], "sha256", False, None, False)
+    files = {f["filename"]: f for f in loads(s.generate_json_simple_page(p))["files"]}
+    assert all("core-metadata" not in f for f in files.values())
+
+
+@pytest.mark.parametrize(
+    ("pretty", "expected"),
+    [
+        (False, EXPECTED_SIMPLE_GLOBAL_JSON_COMPACT),
+        (True, EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY),
+    ],
+)
 @pytest.mark.asyncio
-async def test_json_index_page() -> None:
+async def test_json_index_page(pretty: bool, expected: str) -> None:
     c = ConfigParser()
     c.add_section("mirror")
     c["mirror"]["workers"] = "1"
@@ -94,7 +130,7 @@ async def test_json_index_page() -> None:
         for a_file in (sixtynine_html, foo_html):
             a_file.touch()
 
-        s.sync_index_page(True, td_path, 12345, pretty=True)
+        s.sync_index_page(True, td_path, 12345, pretty=pretty)
         # See we get the files we expect on the file system
         # index.html is needed to trigger the global index finding the package
         assert """\
@@ -107,6 +143,4 @@ simple{0}index.html
 simple{0}index.v1_html
 simple{0}index.v1_json""".format(sep) == utils.find(td_path)
         # Check format of JSON
-        assert (simple_dir / "index.v1_json").open(
-            "r"
-        ).read() == EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY
+        assert (simple_dir / "index.v1_json").open("r").read() == expected

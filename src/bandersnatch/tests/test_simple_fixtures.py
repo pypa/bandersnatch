@@ -160,6 +160,11 @@ EXPECTED_SIMPLE_SIXTYNINE_JSON_PRETTY_1_1 = """\
 }\
 """
 
+EXPECTED_SIMPLE_GLOBAL_JSON_COMPACT = (
+    '{"meta": {"_last-serial": 12345, "api-version": "1.1"}, '
+    '"projects": [{"name": "69"}, {"name": "foo"}]}'
+)
+
 EXPECTED_SIMPLE_GLOBAL_JSON_PRETTY = """\
 {
     "meta": {

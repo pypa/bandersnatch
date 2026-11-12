@@ -18,8 +18,6 @@ Please make sure you system has the following:
 
 - Python 3.10.0 or greater
 - git client
-- docker
-  - *Optional* but needed to run S3 Tests
 
 ### Checkout `bandersnatch`
 
@@ -56,13 +54,13 @@ Successfully installed pip-10.0.1
 - Then install the dependencies to the venv:
 
 ```console
-/path/to/venv/bin/pip install -r requirements.txt -r test-requirements.txt
+/path/to/venv/bin/pip install -r requirements.txt -r requirements_test.txt
 ```
 
 For example:
 
 ```console
-$ bandersnatchvenv/bin/pip install -r requirements.txt -r test-requirements.txt
+$ bandersnatchvenv/bin/pip install -r requirements.txt -r requirements_test.txt
 ...
 Collecting pyparsing==2.1.10 (from -r requirements.txt (line 3))
   Downloading https://files.pythonhosted.org/packages/2b/f7/e5a178fc3ea4118a0edce2a8d51fc14e680c745cf4162e4285b437c43c94/pyparsing-2.1.10-py2.py3-none-any.whl (56kB)
@@ -90,54 +88,32 @@ Congrats, now you have a bandersnatch development environment ready to go! Just 
 
 ### S3 Unit Tests
 
-S3 unittests are more integration tests. They depend on [minio server](https://hub.docker.com/r/minio/minio) to work.
-We recommend using the OSS docker container image like bandersatch CI.
+S3 unit tests use [moto](https://github.com/getmoto/moto) for an in-memory AWS mock — no external
+services or Docker containers required. The `moto[s3]` package is included in `requirements_test.txt`
+and tests will run automatically as part of the standard test suite on all platforms.
 
-- You will either need to skip them or run minio
-- Other install options: <https://docs.min.io/enterprise/aistor-object-store/>
+### Running the Full Test Suite Against a Specific Python via Docker
 
-To skip the tests, run:
-
-```bash
-/path/to/venv/bin/tox -e py3 -- -k "not s3"
-```
-
-This will affect overall coverage numbers locally.
-
-#### Docker Install
-
-Docker is an easy way to get minio to run for tests to pass.
-
-```console
-docker run \
-  --rm \
-  -p 9000:9000 \
-  -p 9001:9001 \
-  --name minio \
-  -v ~/tmp/minio:/data \
-  minio/minio server /data --console-address ":9001"
-```
-
-Exit the container with <kbd>Ctrl+C</kbd>
-
-If you've run and exited the container once, running the same command again will
-emit this error:
-
-```console
-docker: Error response from daemon: Conflict. The container name "/minio" is already in use by container "...". You have to remove (or rename) that container to be able to reuse that name.
-```
-
-Instead of removing and starting again, you can start the container with:
+If you don't have a given Python version installed locally (e.g. a pre-release
+like 3.15), you can run the whole test suite inside an official `python:<ver>`
+Docker image. The S3 tests use moto's in-memory mock (see above), so no minio
+sidecar or extra network setup is required:
 
 ```bash
-docker start minio --attach
+docker run --rm \
+  -v "$PWD":/app -w /app \
+  python:3.15-rc bash -c '
+    pip install --upgrade pip setuptools tox &&
+    pip install -r requirements.txt -r requirements_test.txt -r requirements_s3.txt &&
+    pip install -e . &&
+    TOXENV=py3 python test_runner.py
+  '
 ```
 
-You can remove the container with:
-
-```console
-docker rm minio
-```
+Swap `python:3.15-rc` for any tag on
+[Docker Hub `python`](https://hub.docker.com/_/python) (e.g. `python:3.14`,
+`python:3.13`). Use `TOXENV=INTEGRATION` instead of `TOXENV=py3` to run the
+integration test.
 
 ## Creating a Pull Request
 
@@ -191,7 +167,7 @@ Example output:
 $ tox
 GLOB sdist-make: /Users/dhubbard/PycharmProjects/bandersnatch/setup.py
 py36 create: /Users/dhubbard/PycharmProjects/bandersnatch/.tox/py36
-py36 installdeps: -rtest-requirements.txt
+py36 installdeps: -rrequirements_test.txt
 py36 inst: /Users/dhubbard/PycharmProjects/bandersnatch/.tox/dist/bandersnatch-2.2.1.zip
 py36 installed: apipkg==1.4,attrs==18.1.0,bandersnatch==2.2.1,certifi==2018.4.16,chardet==3.0.4,coverage==4.5.1,execnet==1.5.0,flake8==3.5.0,idna==2.6,mccabe==0.6.1,more-itertools==4.1.0,packaging==17.1,pep8==1.7.1,pluggy==0.6.0,py==1.5.3,pycodestyle==2.3.1,pyflakes==1.6.0,pyparsing==2.2.0,pytest==3.5.1,pytest-cache==1.0,pytest-codecheckers==0.2,pytest-cov==2.5.1,pytest-timeout==1.2.1,python-dateutil==2.7.3,requests==2.18.4,six==1.11.0,tox==3.0.0,urllib3==1.22,virtualenv==15.2.0,xmlrpc2==0.3.1
 py36 runtests: PYTHONHASHSEED='42669967'

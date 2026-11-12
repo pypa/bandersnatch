@@ -14,3 +14,10 @@ updates:
     schedule:
       interval: "weekly"
     labels: ["skip news"]
+    ignore:
+      # Keep the pyproject.toml build requirement at the minimum supported version.
+      - dependency-name: "setuptools"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"

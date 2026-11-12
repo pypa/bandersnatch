@@ -1,16 +1,78 @@
 # Unreleased
 
-## CI
+## Other
 
+- Write compact simple index JSON with one `json.dumps` call instead of `json.dump`. Pretty JSON is unchanged. `PR #2396`
+
+## Bug Fixes
+
+- Match `[filter_prerelease] packages` against the canonical project name, so projects whose PyPI name is not canonical (e.g. `Django`) have their pre-releases filtered `PR #2402`
+- Skip releases without files when sorting `latest_release` candidates by upload time, instead of failing with `IndexError` `PR #2395`
+- Avoid creating local directories for S3 locks when using filelock 4.2.1 `PR #2376`
+- Avoid prerelease-setting deprecation warnings in release allowlist and blocklist filters `PR #2375`
+
+# 8.2.0
+
+## New Features
+
+- Add `delete_missing_packages` (default false). During `bandersnatch mirror`, a `PackageNotFound` package with readable local JSON metadata has the release blobs and simple API pages named by that metadata deleted. Only files strictly under `packages/` are removed; a URL that names a directory, including the mirror root, is skipped. Stale serials are unchanged, and the todo list is left to `cleanup_todo`. `PR #2369`
+
+## Bug Fixes
+
+- Add `--skip-json-fetch` option to `bandersnatch delete` to skip fetching JSON metadata from PyPI for packages not found locally, allowing deletion of packages that have been removed from PyPI `PR #2362`
+- When `cleanup_todo` is enabled, or `bandersnatch mirror --cleanup-todo` is passed, packages that raise `PackageNotFound` are removed from the todo list. The default stays off. Stale serials stay on the list, and mirrored files are not deleted. If rewriting the todo fails, the error is recorded and the mirror continues. `PR #2361`
+
+# 8.1.0
+
+## New Features
+
+- `regex_project_metadata` and `regex_release_file_metadata` accept `search = true` to match patterns with `re.search`. The default remains `re.match`. `PR #2358`
+
+## Bug Fixes
+
+- Skip non-PEP 440 versions in the `latest_release` plugin when sorting by version, and still keep the project's current version `PR #2357`
+- Skip release files whose names the storage cannot represent (for example from absurdly long version strings) with a one-line error instead of failing the package sync, and exclude the skipped files from the generated simple indexes `PR #2359`
+
+# 8.0.0
+
+## New Features
+
+- Mirror PEP 658 / PEP 714 core metadata files: when upstream advertises a `core-metadata` checksum for a release file (live on pypi.org's JSON API since [warehouse #20193](https://github.com/pypi/warehouse/pull/20193)), the extracted metadata is downloaded to `RELEASE_FILE.metadata` alongside the release file and checksum verified. Generated simple indexes advertise the files via the PEP 714 `data-core-metadata` (+ legacy `data-dist-info-metadata`) HTML attributes and the `core-metadata` JSON key, letting pip resolve dependencies without downloading full release files. Controlled by the new `[mirror] core-metadata` option (default `true`). `bandersnatch verify` re-fetches missing/corrupt core metadata files (use `--json-update` to backfill an existing mirror) and `bandersnatch delete` removes them. Checksum selection prefers the configured `digest_name`, then `sha256`, then any hashlib supported digest upstream offers `PR #2311`
+- Verify abstraction layer: add `Storage.verify_files()`, `Storage.iter_package_files()`, `Storage.set_hash()`, and `Storage.delete_package_file()` so each storage backend can implement integrity checking optimally. The filesystem default retains existing behaviour; the S3 backend now uses concurrent `HeadObject` calls with stored sha256 metadata, eliminating full-file downloads on the happy path. `PLUGIN_API_REVISION` bumped to 2. `PR #2286`
+- New `[s3] verify_concurrency` option (default `50`) controls the maximum number of simultaneous S3 API calls during `bandersnatch verify`. Verify runs on its own thread pool and HTTP connection pool sized to this value, decoupled from `[mirror] workers` (capped at 10 for PyPI politeness) since verify only touches your own bucket. Tune relative to your S3 request-rate limit and mirror size.
+- S3 client is now configured with botocore `adaptive` retry mode so transient `SlowDown` throttle responses from S3 are absorbed automatically rather than crashing a long-running verify run. The retry ceiling is configurable via the new `[s3] max_attempts` option (default `10`). A `WARNING` is logged if throttling persists after all retries.
+- `bandersnatch verify` now honours `compare-method` and `digest_name` config settings (previously always performed a sha256 hash regardless of config). The S3 backend's `verify_files` honours `compare-method` too: `stat` mode trusts a matching upload time with no content read, while `hash` mode always confirms content.
+- S3 verify now back-fills hash metadata for legacy objects on first verify (unless `--dry-run`), making future runs use only fast `HeadObject` calls; upload time and digest are validated and stored via the storage backend, with `.s3keep` logic moved fully into the S3 plugin.
+- Core verify and mirror flows now rely on storage backend methods (`set_hash`, etc.) for hash and metadata handling, enabling backend-specific optimizations.
+- Mirror skip checks use `Storage.release_file_is_current()`; S3 certifies with one `HeadObject`, migrates legacy objects on first check, and stamps metadata on `PutObject`. Storage plugins must accept optional `file_metadata` on `rewrite()`. `PR #2296`
+- Remove legacy XML-RPC support paths; metadata sync now uses only the PEP 691 Simple API `PR #2276`
+- Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
+- Use hashlib.file_digest() to calculate file hashes when verifying `PR #2277`
+- Add new `versions_count_project_metadata` filter plugin to filter packages by total version count `PR #2281`
+- Update get_hash() method for filesystem storage backend to use hashlib.file_digest() `PR #2288`
+- `bandersnatch verify` logs the count and total size of release files it downloads (or would download with `--dry-run`); release files without a usable `size` in metadata are skipped; `--delete` dry-run and delete actions log via the application logger. `PR #2290`
+
+## CI / test
+
+- Add Python 3.15 to CI matrix and supported versions `PR #2239`
 - Declare workflow-level `permissions: contents: read` on the 8 remaining workflows (CVE-2025-30066 hardening) `PR #2241`
+- Skip base class tests in test runs `PR #2263`
+- Transitioned from unittest.TestCase to pytest fixtures (`PR #2265`, `PR #2273`, `PR #2274`)
+- Replace MinIO Docker container with moto in-memory mock for S3 tests `PR #2272`
+- Bump filelock to 3.29.6 and update lock-file assertions to expect the persisted `.lock` file on Unix; filelock >=3.29.5 keeps Unix lock files after release (filelock PR #577) to avoid a lock-reuse race, while Windows still best-effort removes it `PR #2304`
 
 ## Documentation
 
 - Docs: add troubleshooting for Simple API JSON mirroring `PR #2145`
 - Docs: list all supported python versions for `exclude_platform` in filtering configuration `PR #2232`
+- Docs: document running the full test suite against a specific Python version via Docker
 
 ## Bug Fixes
 
+- Fix `cleanup = true` deleting the live simple index directory of mixed case package names (e.g. `ACMPlus`) on case insensitive filesystems (macOS APFS / Windows NTFS): the legacy non PEP 503 dir and the normalized dir are the same directory there, so cleanup now skips dirs that resolve to the live simple dir `PR #2311`
+- Drop `setuptools` from runtime requirements: nothing in bandersnatch imports `setuptools`/`pkg_resources` anymore (plugin loading uses `importlib.metadata`), so it is no longer declared in `install_requires` or the pinned requirements files. It remains only as the PEP 517 build backend in `pyproject.toml` `PR #2306`
+- Fix broken `bandersnatch_docker_compose` symlinks (`Dockerfile`, `nginx.conf`) whose targets included a trailing newline, leaving them unresolvable on disk `PR #2280`
+- Fix `mirror --force-check` to reset the mirror serial via the configured storage backend so it works with non-local backends such as S3 (previously used a local `shutil.move()` to `/tmp`) `Issue #2278`, `PR #2279`
 - Demote per-package filter matching logs from INFO to DEBUG to reduce noise during mirror and verify runs `PR #2193`
 - Exclude PEP 600 `manylinux_2_*` wheel tags when `exclude_platform = linux` is configured `PR #2151`
 
@@ -19,7 +81,6 @@
 ## New Features
 
 - Make filesystem permissions management configurable `PR #2137`
-- Allow configuring any PEP691 compliant digest that the index offers `PR #2262`
 
 # 7.0.1
 

@@ -113,8 +113,14 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                 )
                 continue
 
-            logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
-            await get_latest_json(master, json_full_path, executor, False)
+            if args.skip_json_fetch:
+                logger.info(
+                    f"{json_full_path} does not exist. Skipping JSON fetch "
+                    "(--skip-json-fetch)"
+                )
+            else:
+                logger.error(f"{json_full_path} does not exist. Pulling from PyPI")
+                await get_latest_json(master, json_full_path, executor, False)
         if not json_full_path.exists():
             logger.info(
                 f"No json file for {package} found, skipping blob file cleaning"
@@ -132,6 +138,9 @@ async def delete_packages(config: ConfigParser, args: Namespace, master: Master)
                     url_parts = urlparse(blob["url"])
                     blob_path = web_base_path / url_parts.path[1:]
                     delete_coros.append(delete_path(blob_path, args.dry_run))
+                    # PEP 658/714 core metadata file mirrored alongside the blob
+                    metadata_path = blob_path.with_name(f"{blob_path.name}.metadata")
+                    delete_coros.append(delete_path(metadata_path, args.dry_run))
 
         # Attempt to delete json, normal simple path + hash simple path
         hash_index_enabled = config.getboolean("mirror", "hash-index")
