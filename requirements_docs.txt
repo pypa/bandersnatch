@@ -4,7 +4,7 @@ pyparsing==3.3.3
 packaging==26.3
 requests==2.34.2
 sphinx==9.2.0
-MyST-Parser==5.1.0
+MyST-Parser==5.2.0
 sphinx-argparse-cli==1.24.2
 
 # Note: Optional storage backends are documented without importing their deps.
