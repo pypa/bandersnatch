@@ -4,6 +4,6 @@ attrs==26.1.0
 filelock==4.2.1
 humanfriendly==10.0
 idna==3.20
-multidict==7.1.0
+multidict==7.2.1
 packaging==26.3
 yarl==1.25.1
