@@ -147,14 +147,6 @@ both Bash and the edit tools. The user adds them by editing the file, or by choo
 don't ask again" on the permission prompt (which requires leaving auto mode with `shift+tab`).
 Never put them in a committed `.claude/settings.json` — this is a public repo.
 
-### Known upstream-blocked bumps
-
-- **#2258 `docutils` 0.22.4 → 0.23** — fails `html + linkcheck build` with
-  `ResolutionImpossible`: `sphinx==9.1.0` (currently the latest sphinx) requires
-  `docutils<0.23,>=0.21`. Nothing to fix on our side; leave it open until Sphinx relaxes the
-  cap. Re-check with
-  `curl -s https://pypi.org/pypi/sphinx/json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['info']['version'], [r for r in d['info']['requires_dist'] if 'docutils' in r])"`.
-
 ## Conventions
 
 - Version lives in **two** places that must be kept in sync: `setup.cfg` (`version =`) and `src/bandersnatch/__init__.py` (`__version_info__`). User-facing changes get a `CHANGES.md` entry.
