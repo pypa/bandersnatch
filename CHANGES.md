@@ -1,5 +1,7 @@
 # Unreleased
 
+# 8.2.1
+
 ## Other
 
 - Write compact simple index JSON with one `json.dumps` call instead of `json.dump`. Pretty JSON is unchanged. `PR #2396`
